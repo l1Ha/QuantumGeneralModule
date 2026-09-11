@@ -41,6 +41,8 @@ module mod_td_scattering
     public :: wavepacket_centroid_position
     public :: wavepacket_wigner_delay
     public :: calculate_td_differential_cross_section_2d
+    public :: accumulate_wavefunction_spectral_projection
+    public :: extract_td_scattering_wavefunction
 
 contains
 
@@ -419,5 +421,77 @@ contains
             end if
         end do
     end subroutine calculate_td_differential_cross_section_2d
+
+    ! ==========================================================================
+    ! 9. 含时波包全空间谱投影累积:
+    !    在动力学推进中原位累积时间-能量半傅里叶变换:
+    !    psi_E(x) = int_0^T psi(x, t) * exp(i * E * t / hbar) dt
+    ! ==========================================================================
+    subroutine accumulate_wavefunction_spectral_projection( &
+        psi_t, t, dt, energy, hbar, psi_energy_accum)
+
+        complex(dp), dimension(:), intent(in)    :: psi_t
+        real(dp), intent(in)                     :: t
+        real(dp), intent(in)                     :: dt
+        real(dp), intent(in)                     :: energy
+        real(dp), intent(in)                     :: hbar
+        complex(dp), dimension(:), intent(inout) :: psi_energy_accum
+
+        real(dp) :: phase
+        complex(dp) :: exp_fac
+
+        phase = energy * t / hbar
+        exp_fac = cmplx(cos(phase), sin(phase), kind=dp)
+        psi_energy_accum = psi_energy_accum + psi_t * exp_fac * dt
+    end subroutine accumulate_wavefunction_spectral_projection
+
+    ! ==========================================================================
+    ! 10. 从累积的时间-能量傅里叶振幅中归一化提取定态散射能量本征波函数 psi_E(x)
+    !     psi_E(x) = [ 1 / (sqrt(2*pi)*hbar) * int_0^T psi(x,t) exp(iEt/hbar) dt ] / [ sqrt(mu/(hbar^2*k_E)) * g(k_E) ]
+    !     满足连续态能量正交归一化 <psi_E | psi_E'> = delta(E - E')
+    ! ==========================================================================
+    subroutine extract_td_scattering_wavefunction( &
+        x_grid, psi_energy_accum, energy, mass, hbar, x0, sigma_x, k0, &
+        psi_energy_norm, stat)
+
+        real(dp), dimension(:), intent(in)     :: x_grid
+        complex(dp), dimension(:), intent(in)  :: psi_energy_accum
+        real(dp), intent(in)                   :: energy
+        real(dp), intent(in)                   :: mass
+        real(dp), intent(in)                   :: hbar
+        real(dp), intent(in)                   :: x0
+        real(dp), intent(in)                   :: sigma_x
+        real(dp), intent(in)                   :: k0
+        complex(dp), dimension(:), intent(out) :: psi_energy_norm
+        integer, optional, intent(out)         :: stat
+
+        integer  :: n_pts
+        real(dp) :: k_e, weight_e
+        complex(dp) :: gk, denom
+
+        if (present(stat)) stat = 0
+        n_pts = size(x_grid)
+
+        if (energy <= 0.0_dp) then
+            if (present(stat)) stat = -1
+            psi_energy_norm = (0.0_dp, 0.0_dp)
+            return
+        end if
+
+        k_e = sqrt(2.0_dp * mass * energy) / hbar
+        gk = gaussian_momentum_amplitude(k_e, x0, sigma_x, k0)
+
+        ! 动量到能量态密度换算因子: dE/dk = hbar^2 * k / mu -> c(E) = sqrt(mu / (hbar^2 * k)) * g(k)
+        weight_e = sqrt(mass / (hbar * hbar * k_e))
+        denom = TWOPI * hbar * weight_e * gk
+
+        if (abs(denom) < 1.0e-30_dp) then
+            if (present(stat)) stat = -2
+            psi_energy_norm = (0.0_dp, 0.0_dp)
+            return
+        end if
+
+        psi_energy_norm = psi_energy_accum / denom
+    end subroutine extract_td_scattering_wavefunction
 
 end module mod_td_scattering

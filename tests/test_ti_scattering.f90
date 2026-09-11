@@ -361,6 +361,45 @@ program test_ti_scattering
         end if
     end block
 
+    ! --------------------------------------------------------------------------
+    ! 测试 16: 非含时散射能量本征波函数 u_{l, E}(r) 求解与正交连续态归一化
+    ! --------------------------------------------------------------------------
+    n_total = n_total + 1
+    block
+        integer, parameter :: nw = 1200
+        real(dp) :: r_w(nw), v_w(nw), u_wf_e(nw), u_wf_k(nw), u_wf_1(nw)
+        real(dp) :: delta_w, e_test, k_test, amp_num, target_amp_e, target_amp_k
+        integer  :: iw
+
+        do iw = 1, nw
+            r_w(iw) = 0.01_dp + real(iw - 1, dp) * (25.0_dp - 0.01_dp) / real(nw - 1, dp)
+            ! 高斯势阱
+            v_w(iw) = -0.8_dp * exp(-(r_w(iw) - 2.0_dp)**2)
+        end do
+        e_test = 0.20_dp
+        k_test = sqrt(2.0_dp * 1.0_dp * e_test)
+        target_amp_e = sqrt(2.0_dp * 1.0_dp / (PI * k_test))
+        target_amp_k = sqrt(2.0_dp / PI)
+
+        call calc_scattering_wavefunction_ti(r_w, v_w, 1.0_dp, e_test, 0, NORM_ENERGY, u_wf_e, delta_w)
+        call calc_scattering_wavefunction_ti(r_w, v_w, 1.0_dp, e_test, 0, NORM_MOMENTUM, u_wf_k, delta_w)
+        call calc_scattering_wavefunction_ti(r_w, v_w, 1.0_dp, e_test, 0, NORM_UNIT_AMPLITUDE, u_wf_1, delta_w)
+
+        ! 检验渐近区振幅
+        amp_num = sqrt(u_wf_e(nw)**2 + (((u_wf_e(nw) - u_wf_e(nw - 1)) / (r_w(2) - r_w(1))) / k_test)**2)
+
+        if (abs(amp_num - target_amp_e) / target_amp_e < 0.02_dp .and. &
+            abs(u_wf_e(1)) < 1.0e-4_dp .and. &
+            abs(maxval(abs(u_wf_1(nw-50:nw))) - 1.0_dp) < 0.05_dp) then
+            print '(A, F8.4, A, F8.4, A, F8.4)', " [PASS] Continuous eigenstate u_E(r): Amp = ", amp_num, &
+                                                 " (Exact: ", target_amp_e, "), delta = ", delta_w
+            n_pass = n_pass + 1
+        else
+            print '(A, F8.4, A, F8.4)', " [FAIL] Continuous eigenstate u_E(r): Amp = ", amp_num, &
+                                        " (Exact: ", target_amp_e, ")"
+        end if
+    end block
+
     deallocate(r_grid, v_pot)
 
     print '(A)', "--------------------------------------------------"

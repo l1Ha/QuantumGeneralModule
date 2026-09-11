@@ -218,6 +218,51 @@ program test_td_scattering
         end if
     end block
 
+    ! --------------------------------------------------------------------------
+    ! 测试 9: 含时波包时间-能量谱投影法原位提取定态连续本征波函数 psi_E(x)
+    ! --------------------------------------------------------------------------
+    n_total = n_total + 1
+    block
+        complex(dp), allocatable :: psi_prop(:), psi_accum(:), psi_extracted(:)
+        real(dp) :: t_step, t_max, exact_amp, test_amp
+        integer  :: steps, s_idx, test_idx
+
+        allocate(psi_prop(nx), psi_accum(nx), psi_extracted(nx))
+        psi_accum = (0.0_dp, 0.0_dp)
+
+        call gaussian_wavepacket_1d(x_grid, x0, sigma_x, k0, psi_prop)
+        t_step = 0.04_dp
+        t_max = 26.0_dp
+        steps = nint(t_max / t_step)
+
+        do s_idx = 0, steps
+            t_curr = real(s_idx, dp) * t_step
+            ! 原位累积半傅里叶谱投影
+            call accumulate_wavefunction_spectral_projection( &
+                psi_prop, t_curr, t_step, e0, hbar, psi_accum)
+            call propagate_split_operator_1d(psi_prop, v_free, dx, mass, t_step)
+        end do
+
+        call extract_td_scattering_wavefunction( &
+            x_grid, psi_accum, e0, mass, hbar, x0, sigma_x, k0, psi_extracted)
+
+        ! 理论自由粒子连续态能量归一化振幅: |psi_E(x)| = sqrt(mu / (2*pi*hbar^2*k))
+        exact_amp = sqrt(mass / (TWOPI * (hbar * hbar) * k0))
+        test_idx = nx / 2 ! 原点 x ~ 0 处
+        test_amp = abs(psi_extracted(test_idx))
+
+        if (abs(test_amp - exact_amp) / exact_amp < 0.06_dp) then
+            print '(A, F8.4, A, F8.4)', " [PASS] TD spectral projection |psi_E(0)| = ", &
+                                         test_amp, " (Exact: ", exact_amp, ")"
+            n_pass = n_pass + 1
+        else
+            print '(A, F8.4, A, F8.4)', " [FAIL] TD spectral projection |psi_E(0)| = ", &
+                                         test_amp, " (Exact: ", exact_amp, ")"
+        end if
+
+        deallocate(psi_prop, psi_accum, psi_extracted)
+    end block
+
     deallocate(x_grid, v_pot, v_free, psi, psi_free)
 
     print '(A)', "--------------------------------------------------"

@@ -48,7 +48,8 @@ from .scattering import (
     plot_scattering_length_wavefunction,
     calc_differential_cross_section, calc_differential_cross_section_identical,
     plot_differential_cross_sections,
-    calc_multichannel_close_coupling, plot_multichannel_smatrix, plot_feshbach_resonance
+    calc_multichannel_close_coupling, plot_multichannel_smatrix, plot_feshbach_resonance,
+    calc_scattering_wavefunction_ti, plot_scattering_wavefunction
 )
 
 from .visualizer import (
@@ -75,6 +76,7 @@ __all__ = [
     "calc_differential_cross_section", "calc_differential_cross_section_identical",
     "plot_differential_cross_sections",
     "calc_multichannel_close_coupling", "plot_multichannel_smatrix", "plot_feshbach_resonance",
+    "calc_scattering_wavefunction_ti", "plot_scattering_wavefunction",
     "plot_wavefunctions", "plot_pulses", "plot_alignment_dynamics"
 ]
 

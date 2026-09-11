@@ -71,6 +71,11 @@ module mod_ti_scattering
     integer, parameter, public :: PARTICLE_IDENTICAL_FERMION_POLARIZED = 2
     integer, parameter, public :: PARTICLE_IDENTICAL_FERMION_UNPOLAR   = 3
 
+    ! 连续态归一化类型常数
+    integer, parameter, public :: NORM_ENERGY          = 1 ! delta(E - E') 能量归一化: 渐近振幅 sqrt(2*mu/(pi*hbar^2*k))
+    integer, parameter, public :: NORM_MOMENTUM        = 2 ! delta(k - k') 动量归一化: 渐近振幅 sqrt(2/pi)
+    integer, parameter, public :: NORM_UNIT_AMPLITUDE  = 3 ! 驻波渐近单位振幅: 渐近振幅 1.0
+
     ! --------------------------------------------------------------------------
     ! 公共接口导出
     ! --------------------------------------------------------------------------
@@ -78,6 +83,7 @@ module mod_ti_scattering
     public :: calc_scattering_length_numerov
     public :: calc_scattering_length_logder
     public :: calc_phase_shift_single_l
+    public :: calc_scattering_wavefunction_ti
     public :: calc_partial_wave_cross_sections
     public :: optical_theorem_cross_section
     public :: calc_differential_cross_section
@@ -358,6 +364,101 @@ contains
 
         deallocate(u_wf)
     end subroutine calc_phase_shift_single_l
+
+    ! ==========================================================================
+    ! 4.1 非含时方法求解定态散射能量本征波函数 u_{l, E}(r)
+    !     积分径向薛定谔方程，并使用精确渐近 Riccati 函数与相移进行能量/动量正交归一化
+    ! ==========================================================================
+    subroutine calc_scattering_wavefunction_ti( &
+        r_grid, v_pot, mass, energy, l, norm_type, u_wf, phase_shift, stat)
+
+        real(dp), dimension(:), intent(in)  :: r_grid
+        real(dp), dimension(:), intent(in)  :: v_pot
+        real(dp), intent(in)                :: mass
+        real(dp), intent(in)                :: energy
+        integer,  intent(in)                :: l
+        integer,  intent(in)                :: norm_type
+        real(dp), dimension(:), intent(out) :: u_wf
+        real(dp), intent(out)               :: phase_shift
+        integer, optional, intent(out)      :: stat
+
+        integer  :: n_pts, i
+        real(dp) :: dr, dr2_12, k_wave, r_match
+        real(dp) :: q_prev, q_curr, q_next
+        real(dp) :: c_prev, c_curr, c_next, d_u, y_logder
+        real(dp) :: jl, nl, d_jl, d_nl, num, den
+        real(dp) :: asymp_amp, norm_target, scale_factor, target_asymp
+
+        if (present(stat)) stat = 0
+        n_pts = size(r_grid)
+        u_wf = 0.0_dp
+        phase_shift = 0.0_dp
+
+        if (energy <= 0.0_dp .or. n_pts < 5) then
+            if (present(stat)) stat = -1
+            return
+        end if
+
+        k_wave = sqrt(2.0_dp * mass * energy)
+        dr = r_grid(2) - r_grid(1)
+        dr2_12 = (dr * dr) / 12.0_dp
+
+        ! 1. 从原点正则边界条件出发，Numerov 逐点积分
+        u_wf(1) = 0.0_dp
+        u_wf(2) = (dr)**(l + 1) * 1.0e-5_dp
+
+        do i = 2, n_pts - 1
+            q_prev = 2.0_dp * mass * (energy - v_pot(i - 1)) - real(l * (l + 1), dp) / (r_grid(i - 1)**2)
+            q_curr = 2.0_dp * mass * (energy - v_pot(i))     - real(l * (l + 1), dp) / (r_grid(i)**2)
+            q_next = 2.0_dp * mass * (energy - v_pot(i + 1)) - real(l * (l + 1), dp) / (r_grid(i + 1)**2)
+
+            c_prev = 1.0_dp + dr2_12 * q_prev
+            c_curr = 2.0_dp * (1.0_dp - 5.0_dp * dr2_12 * q_curr)
+            c_next = 1.0_dp + dr2_12 * q_next
+
+            u_wf(i + 1) = (c_curr * u_wf(i) - c_prev * u_wf(i - 1)) / c_next
+
+            if (abs(u_wf(i + 1)) > 1.0e20_dp) then
+                u_wf(1:i + 1) = u_wf(1:i + 1) * 1.0e-15_dp
+            end if
+        end do
+
+        ! 2. 外边界计算对数导数并匹配 Riccati 函数提取相移 delta_l
+        r_match = r_grid(n_pts)
+        d_u = (3.0_dp * u_wf(n_pts) - 4.0_dp * u_wf(n_pts - 1) + u_wf(n_pts - 2)) / (2.0_dp * dr)
+        y_logder = d_u / u_wf(n_pts)
+
+        call riccati_bessel_neumann(l, k_wave * r_match, jl, nl, d_jl, d_nl)
+        num = k_wave * d_jl - y_logder * jl
+        den = k_wave * d_nl - y_logder * nl
+        phase_shift = atan2(num, den)
+
+        ! 3. 严格连续态物理归一化 (Asymptotic Normalization)
+        ! 数值解在渐近区的振幅: A_num = sqrt( u^2 + (u'/k)^2 )
+        asymp_amp = sqrt(u_wf(n_pts)**2 + (d_u / k_wave)**2)
+        if (asymp_amp < 1.0e-30_dp) asymp_amp = 1.0e-30_dp
+
+        select case (norm_type)
+        case (NORM_ENERGY)
+            ! delta(E - E') 归一化: 振幅为 sqrt(2*mu / (pi*hbar^2*k))
+            norm_target = sqrt(2.0_dp * mass / (PI * k_wave))
+        case (NORM_MOMENTUM)
+            ! delta(k - k') 归一化: 振幅为 sqrt(2 / pi)
+            norm_target = sqrt(2.0_dp / PI)
+        case default
+            ! 驻波单位振幅: 振幅为 1.0
+            norm_target = 1.0_dp
+        end select
+
+        ! 相位对齐: 确保正负号与 cos(delta)*jl - sin(delta)*nl 严格同号
+        target_asymp = cos(phase_shift) * jl - sin(phase_shift) * nl
+        scale_factor = norm_target / asymp_amp
+        if (u_wf(n_pts) * target_asymp < 0.0_dp) then
+            scale_factor = -scale_factor
+        end if
+
+        u_wf = u_wf * scale_factor
+    end subroutine calc_scattering_wavefunction_ti
 
     ! ==========================================================================
     ! 5. 多分波截面与总碰撞截面计算

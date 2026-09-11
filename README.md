@@ -241,6 +241,7 @@ GeneralModule/
 - `calc_scattering_length_numerov(r_grid, v_pot, mass, a_s, u_zero, stat)`: 零能 Numerov 算法，自包含外推 $u(r) \to C(r - a_s)$ 提取 s-波散射长度 $a_s = r_N - u(r_N)/u'(r_N)$。
 - `calc_scattering_length_logder(r_grid, v_pot, mass, a_s, stat)`: Johnson 对数导数比值法，彻底免疫深吸引阱区波函数在经典禁区指数上溢，极低温散射长度黄金标准算法。
 - `calc_phase_shift_single_l(r_grid, v_pot, mass, energy, l, delta, k_mat, s_mat, t_mat, stat)`: 有限正能量定态薛定谔方程积分与渐近匹配，提取分波相移 $\delta_l$、反应矩阵 $K_l = \tan\delta_l$、幺正散射矩阵 $S_l = e^{2i\delta_l}$ 与跃迁矩阵 $T_l = S_l - 1$。
+- `calc_scattering_wavefunction_ti(r_grid, v_pot, mass, energy, l, norm_type, u_wf, phase_shift, stat)`: **非含时连续谱散射能量本征波函数 $u_{l, E}(r)$ 求解器**。支持三种物理归一化规范：`NORM_ENERGY`（$\delta(E-E')$ 能量归一化，渐近振幅 $\sqrt{\frac{2\mu}{\pi \hbar^2 k}}$）、`NORM_MOMENTUM`（$\delta(k-k')$ 动量归一化，渐近振幅 $\sqrt{2/\pi}$）以及 `NORM_UNIT_AMPLITUDE`（驻波单位振幅 1.0），精确匹配外边界 Riccati 函数提取相移并确保波函数全局相位严格对齐。
 - `calc_partial_wave_cross_sections(r_grid, v_pot, mass, energy, l_max, delta_arr, sigma_part, sigma_tot, stat)`: 分波弹性散射截面 $\sigma_l = \frac{4\pi}{k^2}(2l+1)\sin^2\delta_l$ 与总截面 $\sigma_{tot}$。
 - `optical_theorem_cross_section(k_wave, delta_arr, l_max)`: 光学定理自洽校验 $\sigma_{optical} = \frac{4\pi}{k} \text{Im}[f(0)]$。
 - `calc_differential_cross_section(energy, mass, delta_arr, l_max, theta_grid, dsigma_domega)`: 角度分辨微分散射截面 $\frac{d\sigma}{d\Omega}(\theta) = |f(\theta)|^2$（Legendre 级数展开）。
@@ -266,7 +267,9 @@ GeneralModule/
 - `project_wavepacket_to_smatrix(x_grid, dx, psi_final, mass, hbar, k0, sigma_x, x0, energy_grid, n_energies, t_prob, r_prob)`: Möller 动量表象渐近投影法，末态波包动量空间分解提取连续态透射与反射概率。
 - `multichannel_td_smatrix_elements(...)`: 多通道含时概率通量提取非绝热碰撞非弹性 S-矩阵元 $|S_{ij}(E)|^2$。
 - `wavepacket_centroid_position(x_grid, dx, psi)` / `wavepacket_wigner_delay(...)`: 波包质心轨迹追踪与含时 Wigner 散射时延 $\tau_W(E) = 2\hbar \frac{d\delta}{dE}$。
-- `td_differential_cross_section_2d(r_det, theta_grid, n_theta, psi_final, x_grid, y_grid, nx, ny, mass, hbar, t_duration, dsigma_dtheta)`: 二维连续态含时波包散射角分布微分散射截面 $\frac{d\sigma}{d\theta}(\theta)$。
+- `calculate_td_differential_cross_section_2d(x_grid, y_grid, psi_2d, mass, hbar, theta_grid, dsigma_dtheta)`: 二维连续态含时波包散射角分布微分散射截面 $\frac{d\sigma}{d\theta}(\theta)$。
+- `accumulate_wavefunction_spectral_projection(psi_t, t, dt, energy, hbar, psi_energy_accum)`: **含时动力学全空间谱投影原位累积器**。在波包推进主循环中无缝累积时间-能量半傅里叶变换 $\int_0^T \Psi(x, t) e^{iEt/\hbar} dt$。
+- `extract_td_scattering_wavefunction(x_grid, psi_energy_accum, energy, mass, hbar, x0, sigma_x, k0, psi_energy_norm, stat)`: **含时谱投影连续谱能量本征波函数提取器**。严格消除入射波包动量权重 $g(k_E)$ 与态密度变换因子，直接恢复满足严格 $\delta(E-E')$ 能量正交归一化的定态连续能量本征函数 $\psi_E(x)$。
 
 ---
 
@@ -372,10 +375,10 @@ Rovibrational Control Tests:  8 /  8 PASSED
 Interpolation Tests:          7 /  7 PASSED
 Photofragment & Flux Tests:   6 /  6 PASSED
 Open Quantum & OCT Tests:    10 / 10 PASSED
-TI Scattering Tests:         15 / 15 PASSED
-TD Scattering Tests:          8 /  8 PASSED
+TI Scattering Tests:         16 / 16 PASSED
+TD Scattering Tests:          9 /  9 PASSED
 ----------------------------------------------------------------
-ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 115/115 断言通过)
+ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 117/117 断言通过)
 ================================================================
 ```
 

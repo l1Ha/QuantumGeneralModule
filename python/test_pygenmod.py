@@ -27,6 +27,7 @@ from pygenmod import (
     calc_differential_cross_section, calc_differential_cross_section_identical,
     plot_differential_cross_sections,
     calc_multichannel_close_coupling, plot_multichannel_smatrix, plot_feshbach_resonance,
+    calc_scattering_wavefunction_ti, plot_scattering_wavefunction,
     plot_wavefunctions, plot_pulses
 )
 
@@ -228,6 +229,32 @@ class TestPyGenMod(unittest.TestCase):
         plot_feshbach_resonance(np.array([0.05, 0.10, 0.15]), np.array([1.2, 5.8, -2.1]), filename="test_fb.png")
         self.assertTrue(os.path.exists("test_fb.png"))
         os.remove("test_fb.png")
+
+    def test_continuous_scattering_wavefunction(self):
+        r_grid = np.linspace(0.01, 25.0, 1000)
+        v_pot = -0.8 * np.exp(-(r_grid - 2.0)**2)
+        mass = 1.0
+        energy = 0.20
+        k = np.sqrt(2.0 * mass * energy)
+        target_amp = np.sqrt(2.0 * mass / (np.pi * k))
+
+        # Energy normalized
+        u_wf_e, delta = calc_scattering_wavefunction_ti(r_grid, v_pot, mass=mass, energy=energy, l=0, norm_type='energy')
+        dr = r_grid[1] - r_grid[0]
+        du = (u_wf_e[-1] - u_wf_e[-2]) / dr
+        amp_num = np.sqrt(u_wf_e[-1]**2 + (du / k)**2)
+        self.assertAlmostEqual(amp_num, target_amp, delta=0.03 * target_amp)
+        self.assertAlmostEqual(u_wf_e[0], 0.0, places=4)
+
+        # Unit amplitude
+        u_wf_1, _ = calc_scattering_wavefunction_ti(r_grid, v_pot, mass=mass, energy=energy, l=0, norm_type='unit')
+        amp_1 = np.sqrt(u_wf_1[-1]**2 + (((u_wf_1[-1] - u_wf_1[-2]) / dr) / k)**2)
+        self.assertAlmostEqual(amp_1, 1.0, delta=0.03)
+
+        # Plot test
+        plot_scattering_wavefunction(r_grid, v_pot, u_wf_e, energy=energy, phase_shift=delta, filename="test_scat_wf.png")
+        self.assertTrue(os.path.exists("test_scat_wf.png"))
+        os.remove("test_scat_wf.png")
 
     def test_visualizer_smoke(self):
         # Quick check that visualization runs without error

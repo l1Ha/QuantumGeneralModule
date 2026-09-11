@@ -520,6 +520,19 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
                                      thresholds=thresholds, l_channels=l_channels, &
                                      s_wave_length=as_scan, eigenphase_sums=delta_scan)
    ```
+8. **定态连续谱散射能量本征波函数求解与归一化**：
+   ```fortran
+   real(dp), allocatable :: u_wf(:)
+   real(dp) :: delta_phase
+   allocate(u_wf(n_pts))
+
+   ! norm_type 可选: NORM_ENERGY (delta(E-E') 能量归一化),
+   !                 NORM_MOMENTUM (delta(k-k') 动量归一化),
+   !                 NORM_UNIT_AMPLITUDE (渐近振幅为 1.0)
+   call calc_scattering_wavefunction_ti(r_grid, v_pot, mass=1.0_dp, energy=0.20_dp, &
+                                        l=0, norm_type=NORM_ENERGY, &
+                                        u_wf=u_wf, phase_shift=delta_phase)
+   ```
 
 ---
 
@@ -556,10 +569,25 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 5. **二维含时波包角分布微分散射截面 $\frac{d\sigma}{d\theta}(\theta)$**：
    ```fortran
    ! 提取 2D 波包在检测半径 r_det 处的角度积分微分散射截面
-   call td_differential_cross_section_2d(r_det=10.0_dp, theta_grid=theta_grid, n_theta=181, &
-                                         psi_final=psi_2d, x_grid=x_grid, y_grid=y_grid, &
-                                         nx=nx, ny=ny, mass=1.0_dp, hbar=1.0_dp, &
-                                         t_duration=50.0_dp, dsigma_dtheta=ds_theta)
+   call calculate_td_differential_cross_section_2d(x_grid=x_grid, y_grid=y_grid, psi_2d=psi_2d, &
+                                                  mass=1.0_dp, hbar=1.0_dp, theta_grid=theta_grid, &
+                                                  dsigma_dtheta=ds_theta)
+   ```
+6. **含时波包动力学全空间谱投影提取连续本征波函数 $\psi_E(x)$**：
+   ```fortran
+   complex(dp), allocatable :: psi_accum(:), psi_energy_norm(:)
+   allocate(psi_accum(nx), psi_energy_norm(nx))
+   psi_accum = (0.0_dp, 0.0_dp)
+
+   ! 1. 在含时演化推进循环中原位积分累积半傅里叶谱投影
+   do step = 1, total_steps
+       call accumulate_wavefunction_spectral_projection(psi, t_curr, dt, target_energy, hbar, psi_accum)
+       call propagate_split_operator_1d(psi, v_pot, dx, mass, dt)
+   end do
+
+   ! 2. 演化结束后归一化提取严格 delta(E-E') 能量归一化连续能量本征函数
+   call extract_td_scattering_wavefunction(x_grid, psi_accum, target_energy, mass, hbar, &
+                                           x0, sigma_x, k0, psi_energy_norm)
    ```
 
 ---

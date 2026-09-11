@@ -398,3 +398,102 @@ def plot_feshbach_resonance(energy_grid: np.ndarray, scattering_lengths: np.ndar
     print(f"[Scattering] Feshbach resonance plot saved to: {filename}")
 
 
+def calc_scattering_wavefunction_ti(r_grid: np.ndarray, v_pot: np.ndarray,
+                                    mass: float, energy: float, l: int = 0,
+                                    norm_type: str = 'energy') -> tuple:
+    """
+    Time-independent scattering radial eigenfunction u_{l, E}(r).
+    Returns (u_wf, phase_shift).
+    norm_type: 'energy' (delta(E-E') normalized, amplitude sqrt(2*mu/(pi*hbar^2*k))),
+               'momentum' (delta(k-k') normalized, amplitude sqrt(2/pi)),
+               'unit' (asymptotic amplitude 1.0).
+    """
+    n_pts = len(r_grid)
+    dr = r_grid[1] - r_grid[0]
+    dr2_12 = (dr * dr) / 12.0
+    k = np.sqrt(2.0 * mass * max(1e-14, energy))
+
+    u_wf = np.zeros(n_pts)
+    u_wf[0] = 0.0
+    u_wf[1] = (dr ** (l + 1)) * 1e-5
+
+    q = 2.0 * mass * (energy - v_pot) - l * (l + 1) / (r_grid ** 2)
+
+    for i in range(1, n_pts - 1):
+        c_prev = 1.0 + dr2_12 * q[i - 1]
+        c_curr = 2.0 * (1.0 - 5.0 * dr2_12 * q[i])
+        c_next = 1.0 + dr2_12 * q[i + 1]
+        u_wf[i + 1] = (c_curr * u_wf[i] - c_prev * u_wf[i - 1]) / c_next
+        if abs(u_wf[i + 1]) > 1e20:
+            u_wf[:i + 2] *= 1e-15
+
+    # Log-derivative and asymptotic matching
+    du = (3.0 * u_wf[-1] - 4.0 * u_wf[-2] + u_wf[-3]) / (2.0 * dr)
+    y_logder = du / u_wf[-1]
+
+    x = k * r_grid[-1]
+    if l == 0:
+        jl, nl = np.sin(x), -np.cos(x)
+        djl, dnl = np.cos(x), np.sin(x)
+    else:
+        jl = np.sin(x - l * np.pi / 2.0)
+        nl = -np.cos(x - l * np.pi / 2.0)
+        djl = np.cos(x - l * np.pi / 2.0)
+        dnl = np.sin(x - l * np.pi / 2.0)
+
+    delta = np.arctan2(k * djl - y_logder * jl, k * dnl - y_logder * nl)
+
+    asymp_amp = np.sqrt(u_wf[-1]**2 + (du / k)**2)
+    if norm_type == 'energy':
+        norm_target = np.sqrt(2.0 * mass / (np.pi * k))
+    elif norm_type == 'momentum':
+        norm_target = np.sqrt(2.0 / np.pi)
+    else:
+        norm_target = 1.0
+
+    target_asymp = np.cos(delta) * jl - np.sin(delta) * nl
+    scale = norm_target / max(1e-30, asymp_amp)
+    if u_wf[-1] * target_asymp < 0:
+        scale = -scale
+    u_wf *= scale
+
+    return u_wf, delta
+
+
+def plot_scattering_wavefunction(r_grid: np.ndarray, v_pot: np.ndarray,
+                                 u_wf: np.ndarray, energy: float,
+                                 phase_shift: float = None,
+                                 filename: str = "result_scattering_wavefunction.png"):
+    """
+    Plot the continuous scattering energy eigenfunction u_E(r) alongside the potential.
+    """
+    fig, ax1 = plt.subplots(figsize=(8, 5))
+
+    color_wf = '#0275D8'
+    color_pot = '#D9534F'
+
+    ax1.set_xlabel('Radial Coordinate $r$ (a.u.)')
+    ax1.set_ylabel(r'Scattering Wavefunction $u_E(r)$ (a.u.)', color=color_wf)
+    title_str = f"Continuous Scattering Energy Eigenstate ($E = {energy:.4f}$ a.u."
+    if phase_shift is not None:
+        title_str += f", $\\delta = {phase_shift:.4f}$ rad)"
+    else:
+        title_str += ")"
+    ax1.plot(r_grid, u_wf, lw=2.2, color=color_wf, label=r'$u_E(r)$')
+    ax1.tick_params(axis='y', labelcolor=color_wf)
+    ax1.grid(True, alpha=0.3)
+    ax1.axhline(0, color='gray', ls='--', lw=0.8)
+
+    ax2 = ax1.twinx()
+    ax2.set_ylabel(r'Potential $V(r)$ (a.u.)', color=color_pot)
+    ax2.plot(r_grid, v_pot, lw=1.8, ls='--', color=color_pot, label=r'$V(r)$')
+    ax2.tick_params(axis='y', labelcolor=color_pot)
+
+    plt.title(title_str, fontweight='bold')
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300)
+    plt.close()
+    print(f"[Scattering] Scattering wavefunction plot saved to: {filename}")
+
+
+

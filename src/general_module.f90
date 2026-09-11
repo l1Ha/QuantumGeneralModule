@@ -93,9 +93,11 @@ module general_module
     public :: scattering_state_t, ere_result_t, resonance_info_t, multichannel_result_t
     public :: PARTICLE_DISTINGUISHABLE, PARTICLE_IDENTICAL_BOSON
     public :: PARTICLE_IDENTICAL_FERMION_POLARIZED, PARTICLE_IDENTICAL_FERMION_UNPOLAR
+    public :: NORM_ENERGY, NORM_MOMENTUM, NORM_UNIT_AMPLITUDE
     public :: riccati_bessel_neumann
     public :: calc_scattering_length_numerov, calc_scattering_length_logder
-    public :: calc_phase_shift_single_l, calc_partial_wave_cross_sections
+    public :: calc_phase_shift_single_l, calc_scattering_wavefunction_ti
+    public :: calc_partial_wave_cross_sections
     public :: optical_theorem_cross_section, calc_differential_cross_section
     public :: calc_differential_cross_section_identical
     public :: calc_transport_cross_sections, calc_cross_section_spectrum
@@ -113,5 +115,6 @@ module general_module
     public :: multichannel_td_smatrix_elements
     public :: wavepacket_centroid_position, wavepacket_wigner_delay
     public :: calculate_td_differential_cross_section_2d
+    public :: accumulate_wavefunction_spectral_projection, extract_td_scattering_wavefunction
 
 end module general_module
