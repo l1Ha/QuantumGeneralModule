@@ -42,11 +42,17 @@ from .rovibrational import (
     build_rovibrational_dipole_matrix
 )
 
+from .scattering import (
+    van_der_waals_mean_length, gribakin_flambaum_length,
+    square_well_scattering_length_exact, calc_scattering_length_numerov,
+    plot_scattering_length_wavefunction
+)
+
 from .visualizer import (
     set_publication_style, plot_wavefunctions, plot_pulses, plot_alignment_dynamics
 )
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __all__ = [
     "PI", "TWOPI", "HALFPI", "SQRTPI",
     "to_au", "from_au",
@@ -60,5 +66,8 @@ __all__ = [
     "rot_matrix_cos_theta", "calc_franck_condon_factors",
     "calc_rotational_constants_bv", "build_rovibrational_hamiltonian",
     "build_rovibrational_dipole_matrix",
+    "van_der_waals_mean_length", "gribakin_flambaum_length",
+    "square_well_scattering_length_exact", "calc_scattering_length_numerov",
+    "plot_scattering_length_wavefunction",
     "plot_wavefunctions", "plot_pulses", "plot_alignment_dynamics"
 ]

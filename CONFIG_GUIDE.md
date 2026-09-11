@@ -28,6 +28,8 @@
    - [3.9 自相关函数、光吸收谱与光碎片通量配置 (`mod_photofragment_flux`)](#39-自相关函数光吸收谱与光碎片通量配置-mod_photofragment_flux)
    - [3.10 开放量子系统与 Lindblad 耗散主方程配置 (`mod_open_quantum`)](#310-开放量子系统与-lindblad-耗散主方程配置-mod_open_quantum)
    - [3.11 量子最优控制理论 Krotov 算法配置 (`mod_optimal_control`)](#311-量子最优控制理论-krotov-算法配置-mod_optimal_control)
+   - [3.12 非含时散射理论与超冷散射长度配置 (`mod_ti_scattering`)](#312-非含时散射理论与超冷散射长度配置-mod_ti_scattering)
+   - [3.13 含时波包散射理论与 S-矩阵元提取配置 (`mod_td_scattering`)](#313-含时波包散射理论与-s-矩阵元提取配置-mod_td_scattering)
 4. [Python 伴侣库 `pygenmod` 配置与混合编程](#4-python-伴侣库-pygenmod-配置与混合编程)
    - [4.1 本地可编辑模式安装](#41-本地可编辑模式安装)
    - [4.2 数据交互规范（.dat 与无损二进制）](#42-数据交互规范-dat-与无损二进制)
@@ -425,6 +427,85 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
    call oct_optimize_pulse(h0_mat, mu_mat, psi_init, psi_target, &
                            oct_cfg, field_opt, final_fidelity, stat)
    print *, "Optimization converged with final fidelity:", final_fidelity
+   ```
+
+---
+
+### 3.12 非含时散射理论与超冷散射长度配置 (`mod_ti_scattering`)
+面向超冷原子/分子碰撞、磁 Feshbach 共振、散射截面及分波相移计算：
+1. **零能 Numerov 与 Johnson 对数导数法计算散射长度 $a_s$**：
+   ```fortran
+   ! 零能 Numerov 算法 (同时导出零能径向波函数 u_zero)
+   call calc_scattering_length_numerov(r_grid, v_pot, mass, a_s, u_zero, stat)
+
+   ! Johnson 比值法 (抗数值上溢，专用于深吸引阱体系)
+   call calc_scattering_length_logder(r_grid, v_pot, mass, a_s, stat)
+   ```
+2. **正能量分波相移与全套散射矩阵元 ($K_l, S_l, T_l$)**：
+   ```fortran
+   ! 求解单分波相移 delta_l、K 矩阵元、幺正 S 矩阵元与 T 矩阵元
+   call calc_phase_shift_single_l(r_grid, v_pot, mass, energy=0.05_dp, l=0, &
+                                  delta=delta_0, k_mat=k_0, s_mat=s_0, t_mat=t_0)
+
+   ! 多分波截面计算与光学定理自洽校验
+   call calc_partial_wave_cross_sections(r_grid, v_pot, mass, energy=0.05_dp, l_max=4, &
+                                         delta_arr=delta_arr, sigma_partial=sigma_part, &
+                                         sigma_total=sigma_tot)
+   sigma_opt = optical_theorem_cross_section(k_wave, delta_arr, l_max=4)
+   ```
+3. **超低能区有效力程展开 (ERE: $a_s, r_0$)**：
+   ```fortran
+   ! 自动在多个动量点提取相移并进行 k*cot(delta_0) = -1/a_s + 0.5*r_0*k^2 拟合
+   call fit_effective_range_expansion(r_grid, v_pot, mass, k_list, n_k=4, &
+                                      a_s=as_fit, r_0=r0_fit)
+   ```
+4. **形状共振 (Shape Resonance) Wigner 时延分析**：
+   ```fortran
+   type(resonance_info_t) :: res
+   ! 分析相移跃升峰值提取 Wigner 散射时延与共振线宽 Gamma
+   call analyze_shape_resonance(e_grid, delta_grid, n_pts, hbar=1.0_dp, res_info=res)
+   print *, "Resonance Energy:", res%e_res, "Width Gamma:", res%gamma_width
+   ```
+5. **双通道非绝热耦合密耦定态 S-矩阵**：
+   ```fortran
+   complex(dp) :: s_2x2(2, 2)
+   real(dp) :: p_inelastic
+   call calc_coupled_channel_smatrix_2x2(r_grid, v11, v22, v12, mass, &
+                                         total_energy=0.5_dp, delta_e=0.1_dp, &
+                                         s_matrix=s_2x2, inelastic_prob=p_inelastic)
+   ```
+
+---
+
+### 3.13 含时波包散射理论与 S-矩阵元提取配置 (`mod_td_scattering`)
+面向单次含时波包动力学推进提取全连续能量谱散射观测量：
+1. **构造入射高斯散射波包与动量谱**：
+   ```fortran
+   ! 坐标表象构造入射包
+   call gaussian_wavepacket_1d(x_grid, x0=-12.0_dp, sigma_x=1.5_dp, k0=1.2_dp, psi_0=psi)
+   ! 动量表象解析权重
+   gk = gaussian_momentum_amplitude(k_val, x0=-12.0_dp, sigma_x=1.5_dp, k0=1.2_dp)
+   ```
+2. **渐近透射面通量时间-能量傅里叶振幅与透射谱 $T(E)$**：
+   ```fortran
+   ! 在演化循环中累积透射面振幅 A(E)
+   call accumulate_flux_amplitude(t_curr, psi(idx_det), dt, energy_grid, n_energies, hbar, amp_trans)
+   ! 碰撞结束后直接计算连续能域透射几率 T(E)
+   call calculate_td_transmission(energy_grid, n_energies, amp_trans, mass, hbar, &
+                                  x0=-12.0_dp, sigma_x=1.5_dp, k0=1.2_dp, t_prob=t_prob)
+   ```
+3. **比对自由对照波包提取全能量散射矩阵元 $S(E)$ 与散射相移 $\delta(E)$**：
+   ```fortran
+   call calculate_td_smatrix_element(amp_scatter, amp_free, n_energies, s_mat_e, phase_shift_e)
+   ! 含时 Wigner 散射时延
+   call wavepacket_wigner_delay(energy_grid, phase_shift_e, n_energies, hbar, delay_w)
+   ```
+4. **Möller 渐近动量投影法**：
+   ```fortran
+   ! 末态波包动量空间分解，一步提取连续态透射与反射概率
+   call project_wavepacket_to_smatrix(x_grid, dx, psi_final, mass, hbar, &
+                                      k0, sigma_x, x0, energy_grid, n_energies, &
+                                      t_prob, r_prob)
    ```
 
 ---

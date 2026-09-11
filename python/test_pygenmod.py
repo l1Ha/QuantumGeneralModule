@@ -22,6 +22,8 @@ from pygenmod import (
     rot_matrix_cos_theta, calc_franck_condon_factors,
     calc_rotational_constants_bv, build_rovibrational_hamiltonian,
     build_rovibrational_dipole_matrix,
+    van_der_waals_mean_length, square_well_scattering_length_exact,
+    calc_scattering_length_numerov, plot_scattering_length_wavefunction,
     plot_wavefunctions, plot_pulses
 )
 
@@ -127,6 +129,26 @@ class TestPyGenMod(unittest.TestCase):
         chi[2, 1] = 1.0
         fc = calc_franck_condon_factors(chi, chi, dx=1.0)
         self.assertAlmostEqual(fc[0, 0], 1.0, places=6)
+
+    def test_scattering(self):
+        # 1. Van der Waals mean length
+        a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)
+        self.assertAlmostEqual(a_bar, 1.51153, places=4)
+
+        # 2. Square well analytical scattering length
+        as_exact = square_well_scattering_length_exact(r_well=2.0, v0_well=1.0, mass=1.0)
+        self.assertAlmostEqual(as_exact, 2.22898, places=4)
+
+        # 3. Numerov scattering length
+        r = np.linspace(0.01, 10.0, 500)
+        v = np.where(r <= 2.0, -1.0, 0.0)
+        as_num, u = calc_scattering_length_numerov(r, v, mass=1.0)
+        self.assertAlmostEqual(as_num, as_exact, delta=0.03)
+
+        # 4. Smoke test for plot_scattering_length_wavefunction
+        plot_scattering_length_wavefunction(r, v, u, as_num, filename="test_scat.png")
+        self.assertTrue(os.path.exists("test_scat.png"))
+        os.remove("test_scat.png")
 
     def test_visualizer_smoke(self):
         # Quick check that visualization runs without error

@@ -65,6 +65,16 @@ name = "test_open_quantum_opt"
 source-dir = "tests"
 main = "test_open_quantum_opt.f90"
 
+[[test]]
+name = "test_ti_scattering"
+source-dir = "tests"
+main = "test_ti_scattering.f90"
+
+[[test]]
+name = "test_td_scattering"
+source-dir = "tests"
+main = "test_td_scattering.f90"
+
 [[example]]
 name = "ex01_fgh_diatomic_bound_states"
 source-dir = "examples"

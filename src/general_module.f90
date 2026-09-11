@@ -20,6 +20,8 @@ module general_module
     use mod_photofragment_flux
     use mod_open_quantum
     use mod_optimal_control
+    use mod_ti_scattering
+    use mod_td_scattering
     implicit none
 
     public :: dp, int32, int64
@@ -86,5 +88,23 @@ module general_module
 
     ! 量子最优控制理论 (Krotov 算法)
     public :: oct_fidelity, oct_shape_function, oct_krotov_step, oct_optimize_pulse
+
+    ! 非含时散射理论与超冷碰撞 (Time-Independent Scattering)
+    public :: scattering_state_t, ere_result_t, resonance_info_t
+    public :: riccati_bessel_neumann
+    public :: calc_scattering_length_numerov, calc_scattering_length_logder
+    public :: calc_phase_shift_single_l, calc_partial_wave_cross_sections
+    public :: optical_theorem_cross_section, calc_differential_cross_section
+    public :: fit_effective_range_expansion
+    public :: gribakin_flambaum_length, van_der_waals_mean_length
+    public :: analyze_shape_resonance, calc_coupled_channel_smatrix_2x2
+
+    ! 含时波包散射理论与 S-矩阵 (Time-Dependent Scattering)
+    public :: td_scattering_channel_t
+    public :: gaussian_wavepacket_1d, gaussian_momentum_amplitude
+    public :: accumulate_flux_amplitude, calculate_td_transmission
+    public :: calculate_td_smatrix_element, project_wavepacket_to_smatrix
+    public :: multichannel_td_smatrix_elements
+    public :: wavepacket_centroid_position, wavepacket_wigner_delay
 
 end module general_module
