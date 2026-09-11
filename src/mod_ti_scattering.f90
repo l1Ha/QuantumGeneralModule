@@ -16,6 +16,7 @@
 module mod_ti_scattering
     use mod_constants, only: dp, PI, TWOPI, HALFPI
     use mod_special_functions, only: legendre_poly
+    use mod_linear_algebra, only: inv_real_matrix, inv_complex_matrix
     implicit none
     private
 
@@ -47,6 +48,23 @@ module mod_ti_scattering
         real(dp) :: peak_cross_section ! 峰值弹性散射截面
     end type resonance_info_t
 
+    type, public :: multichannel_result_t
+        integer :: n_channels                     ! 总通道数
+        integer :: n_open                         ! 开通道数 (E > E_thresh)
+        integer :: n_closed                       ! 闭通道数 (E <= E_thresh)
+        integer, allocatable :: open_channels(:)   ! 开通道全局索引列表 (1..n_open)
+        integer, allocatable :: closed_channels(:) ! 闭通道全局索引列表 (1..n_closed)
+        real(dp), allocatable :: k_open(:)         ! 开通道相对动量 k_i = sqrt(2*mu*(E-E_i))/hbar
+        real(dp), allocatable :: kappa_closed(:)   ! 闭通道衰减因子 kappa_i = sqrt(2*mu*(E_i-E))/hbar
+        real(dp), allocatable :: k_matrix(:, :)    ! 开通道实对称反应矩阵 K_oo (n_open, n_open)
+        complex(dp), allocatable :: s_matrix(:, :) ! 开通道严格幺正散射矩阵 S_oo (n_open, n_open)
+        complex(dp), allocatable :: t_matrix(:, :) ! 跃迁矩阵 T_oo = S_oo - I
+        real(dp), allocatable :: prob_matrix(:, :) ! 态-态跃迁几率 P(i->j) = |S_ij|^2
+        real(dp), allocatable :: cross_sections(:, :) ! 态-态部分截面 sigma(i->j)
+        real(dp), allocatable :: total_cross_sec(:)   ! 初态总散射截面 sigma_tot(i)
+        real(dp) :: eigenphase_sum                 ! 特征相移和 delta_sum (rad)
+    end type multichannel_result_t
+
     ! 全同粒子统计与量子对称性参数
     integer, parameter, public :: PARTICLE_DISTINGUISHABLE             = 0
     integer, parameter, public :: PARTICLE_IDENTICAL_BOSON             = 1
@@ -73,6 +91,8 @@ module mod_ti_scattering
     public :: van_der_waals_mean_length
     public :: analyze_shape_resonance
     public :: calc_coupled_channel_smatrix_2x2
+    public :: calc_multichannel_close_coupling_logder
+    public :: calc_feshbach_resonance_scan
 
 contains
 
@@ -906,5 +926,418 @@ contains
 
         inelastic_prob = abs(s_matrix(1, 2))**2
     end subroutine calc_coupled_channel_smatrix_2x2
+
+    ! ==========================================================================
+    ! 通用 N 通道定态密耦 Johnson 矩阵对数导数法 (Matrix Log-Derivative Close-Coupling)
+    ! 支持任意通道数、开通道/闭通道混合边界以及 Feshbach 共振
+    ! 参考文献: B. R. Johnson, J. Comput. Phys. 13, 445 (1973);
+    !          D. E. Manolopoulos, J. Chem. Phys. 85, 6425 (1986).
+    ! ==========================================================================
+    subroutine calc_multichannel_close_coupling_logder( &
+        r_grid, v_mat, mass, total_energy, thresholds, l_channels, &
+        res, stat)
+
+        real(dp), intent(in) :: r_grid(:)                    ! 径向格点 (1..n_pts)
+        real(dp), intent(in) :: v_mat(:, :, :)               ! 耦合势矩阵 V_ij(r), 形状 (n_chan, n_chan, n_pts)
+        real(dp), intent(in) :: mass                         ! 碰撞体系折合质量 mu
+        real(dp), intent(in) :: total_energy                 ! 总碰撞能量 E
+        real(dp), intent(in) :: thresholds(:)                ! 各通道渐近能级阈值 E_i^thresh (1..n_chan)
+        integer,  intent(in) :: l_channels(:)                ! 各通道轨道角动量 l_i (1..n_chan)
+        type(multichannel_result_t), intent(out) :: res      ! 输出多通道定态散射物理结果
+        integer,  intent(out), optional :: stat              ! 状态码 (0: 正常)
+
+        integer :: n_chan, n_pts, i, j, step, stat_inv
+        real(dp) :: dr, dr2_12, r_curr, r_match
+        real(dp), allocatable :: w_mat(:, :), q_mat(:, :), q_inv(:, :), m_mat(:, :)
+        real(dp), allocatable :: r_curr_mat(:, :), r_next_mat(:, :), r_inv(:, :)
+        real(dp), allocatable :: q_prev(:, :), q_curr(:, :)
+        real(dp), allocatable :: p1(:, :), p2(:, :), temp_mat(:, :)
+        real(dp), allocatable :: y_mat(:, :)
+        real(dp), allocatable :: y_oo(:, :), y_oc(:, :), y_co(:, :), y_cc(:, :)
+        real(dp), allocatable :: a_cc(:, :), a_cc_inv(:, :)
+        real(dp), allocatable :: y_eff(:, :)
+        real(dp), allocatable :: j_mat(:, :), n_mat(:, :), dj_mat(:, :), dn_mat(:, :)
+        real(dp), allocatable :: mj_mat(:, :), mn_mat(:, :), mn_inv(:, :)
+        complex(dp), allocatable :: eye_c(:, :), ik_mat(:, :), den_c(:, :), den_inv(:, :)
+        complex(dp), allocatable :: s_mat(:, :)
+        real(dp) :: jl, nl, djl, dnl, k_i, e_kin
+        complex(dp) :: det_s
+
+        if (present(stat)) stat = 0
+        n_pts = size(r_grid)
+        n_chan = size(thresholds)
+
+        res%n_channels = n_chan
+        res%n_open = 0
+        res%n_closed = 0
+
+        if (n_pts < 5 .or. n_chan < 1) then
+            if (present(stat)) stat = -1
+            return
+        end if
+
+        dr = r_grid(2) - r_grid(1)
+        dr2_12 = (dr * dr) / 12.0_dp
+
+        ! 1. 统计并分类开通道与闭通道
+        allocate(res%open_channels(n_chan))
+        allocate(res%closed_channels(n_chan))
+
+        do i = 1, n_chan
+            e_kin = total_energy - thresholds(i)
+            if (e_kin > 1.0e-13_dp) then
+                res%n_open = res%n_open + 1
+                res%open_channels(res%n_open) = i
+            else
+                res%n_closed = res%n_closed + 1
+                res%closed_channels(res%n_closed) = i
+            end if
+        end do
+
+        if (res%n_open == 0) then
+            ! 所有通道均为闭通道，体系处于全禁区束缚态区域
+            if (present(stat)) stat = 1
+            return
+        end if
+
+        allocate(res%k_open(res%n_open))
+        do i = 1, res%n_open
+            res%k_open(i) = sqrt(2.0_dp * mass * (total_energy - thresholds(res%open_channels(i))))
+        end do
+
+        if (res%n_closed > 0) then
+            allocate(res%kappa_closed(res%n_closed))
+            do i = 1, res%n_closed
+                res%kappa_closed(i) = sqrt(2.0_dp * mass * max(0.0_dp, thresholds(res%closed_channels(i)) - total_energy))
+            end do
+        end if
+
+        ! 2. 初始化 Johnson 矩阵对数导数 / 比值矩阵推进器
+        allocate(w_mat(n_chan, n_chan))
+        allocate(q_mat(n_chan, n_chan))
+        allocate(q_inv(n_chan, n_chan))
+        allocate(m_mat(n_chan, n_chan))
+        allocate(r_curr_mat(n_chan, n_chan))
+        allocate(r_next_mat(n_chan, n_chan))
+        allocate(r_inv(n_chan, n_chan))
+        allocate(q_prev(n_chan, n_chan))
+        allocate(q_curr(n_chan, n_chan))
+        allocate(p1(n_chan, n_chan))
+        allocate(p2(n_chan, n_chan))
+        allocate(temp_mat(n_chan, n_chan))
+        allocate(y_mat(n_chan, n_chan))
+
+        ! 计算第一格点的 W(r_1) 与 Q(r_1)
+        r_curr = r_grid(1)
+        do i = 1, n_chan
+            do j = 1, n_chan
+                w_mat(j, i) = 2.0_dp * mass * v_mat(j, i, 1)
+                if (i == j) then
+                    w_mat(i, i) = w_mat(i, i) - 2.0_dp * mass * (total_energy - thresholds(i)) + &
+                                  real(l_channels(i) * (l_channels(i) + 1), dp) / (r_curr * r_curr)
+                end if
+            end do
+        end do
+
+        q_mat = -dr2_12 * w_mat
+        do i = 1, n_chan
+            q_mat(i, i) = q_mat(i, i) + 1.0_dp
+        end do
+
+        call inv_real_matrix(n_chan, q_mat, q_inv, stat_inv)
+        if (stat_inv /= 0) then
+            if (present(stat)) stat = -2
+            return
+        end if
+
+        ! M_1 = 12 * Q_1^{-1} - 10 * I
+        m_mat = 12.0_dp * q_inv
+        do i = 1, n_chan
+            m_mat(i, i) = m_mat(i, i) - 10.0_dp
+        end do
+
+        ! 第一步 R_1^{-1} = 0 (原点波函数 Psi(r_0) = 0)
+        ! 从而 R_2 = M_1 - 0 = M_1
+        r_curr_mat = m_mat
+        q_prev = q_mat
+
+        ! 3. 循环递推推进到边界 r_N
+        do step = 2, n_pts - 1
+            r_curr = r_grid(step)
+
+            ! 构建 W(r_step)
+            do i = 1, n_chan
+                do j = 1, n_chan
+                    w_mat(j, i) = 2.0_dp * mass * v_mat(j, i, step)
+                    if (i == j) then
+                        w_mat(i, i) = w_mat(i, i) - 2.0_dp * mass * (total_energy - thresholds(i)) + &
+                                      real(l_channels(i) * (l_channels(i) + 1), dp) / (r_curr * r_curr)
+                    end if
+                end do
+            end do
+
+            q_mat = -dr2_12 * w_mat
+            do i = 1, n_chan
+                q_mat(i, i) = q_mat(i, i) + 1.0_dp
+            end do
+
+            call inv_real_matrix(n_chan, q_mat, q_inv, stat_inv)
+            if (stat_inv /= 0) then
+                if (present(stat)) stat = -3
+                return
+            end if
+
+            m_mat = 12.0_dp * q_inv
+            do i = 1, n_chan
+                m_mat(i, i) = m_mat(i, i) - 10.0_dp
+            end do
+
+            ! 求 R_step^{-1}
+            call inv_real_matrix(n_chan, r_curr_mat, r_inv, stat_inv)
+            if (stat_inv /= 0) then
+                ! 遇到极点微小微扰正则化
+                do i = 1, n_chan
+                    r_curr_mat(i, i) = r_curr_mat(i, i) + 1.0e-14_dp
+                end do
+                call inv_real_matrix(n_chan, r_curr_mat, r_inv, stat_inv)
+            end if
+
+            ! Johnson 递推: R_{step+1} = M_step - R_step^{-1}
+            r_next_mat = m_mat - r_inv
+            ! 严格保持对称性
+            r_next_mat = 0.5_dp * (r_next_mat + transpose(r_next_mat))
+
+            if (step == n_pts - 2) then
+                q_curr = q_mat
+            end if
+
+            r_curr_mat = r_next_mat
+        end do
+
+        ! 计算外边界 r_N 处的对数导数矩阵 Y(r_N)
+        ! 计算 P1 = Q_{N-1}^{-1} * R_N^{-1} * Q_N
+        call inv_real_matrix(n_chan, r_curr_mat, r_inv, stat_inv)
+
+        ! 计算格点 N 处的 Q_N
+        r_curr = r_grid(n_pts)
+        do i = 1, n_chan
+            do j = 1, n_chan
+                w_mat(j, i) = 2.0_dp * mass * v_mat(j, i, n_pts)
+                if (i == j) then
+                    w_mat(i, i) = w_mat(i, i) - 2.0_dp * mass * (total_energy - thresholds(i)) + &
+                                  real(l_channels(i) * (l_channels(i) + 1), dp) / (r_curr * r_curr)
+                end if
+            end do
+        end do
+        q_mat = -dr2_12 * w_mat
+        do i = 1, n_chan
+            q_mat(i, i) = q_mat(i, i) + 1.0_dp
+        end do
+
+        call inv_real_matrix(n_chan, q_curr, q_inv, stat_inv)
+        temp_mat = matmul(r_inv, q_mat)
+        p1 = matmul(q_inv, temp_mat)
+
+        ! P2 = P1 * P1 (利用两级向后逼近)
+        p2 = matmul(p1, p1)
+
+        ! Y = (3*I - 4*P1 + P2) / (2*dr)
+        y_mat = p2 - 4.0_dp * p1
+        do i = 1, n_chan
+            y_mat(i, i) = y_mat(i, i) + 3.0_dp
+        end do
+        y_mat = y_mat / (2.0_dp * dr)
+        y_mat = 0.5_dp * (y_mat + transpose(y_mat))
+
+        ! 4. 开通道/闭通道 Schur 补变换 (Feshbach 投影)
+        allocate(y_eff(res%n_open, res%n_open))
+
+        if (res%n_closed == 0) then
+            y_eff = y_mat
+        else
+            allocate(y_oo(res%n_open, res%n_open))
+            allocate(y_oc(res%n_open, res%n_closed))
+            allocate(y_co(res%n_closed, res%n_open))
+            allocate(y_cc(res%n_closed, res%n_closed))
+            allocate(a_cc(res%n_closed, res%n_closed))
+            allocate(a_cc_inv(res%n_closed, res%n_closed))
+
+            do i = 1, res%n_open
+                do j = 1, res%n_open
+                    y_oo(j, i) = y_mat(res%open_channels(j), res%open_channels(i))
+                end do
+            end do
+
+            do i = 1, res%n_closed
+                do j = 1, res%n_open
+                    y_oc(j, i) = y_mat(res%open_channels(j), res%closed_channels(i))
+                    y_co(i, j) = y_mat(res%closed_channels(i), res%open_channels(j))
+                end do
+            end do
+
+            do i = 1, res%n_closed
+                do j = 1, res%n_closed
+                    y_cc(j, i) = y_mat(res%closed_channels(j), res%closed_channels(i))
+                end do
+            end do
+
+            ! A_cc = Y_cc + diag(kappa_closed)
+            a_cc = y_cc
+            do i = 1, res%n_closed
+                a_cc(i, i) = a_cc(i, i) + res%kappa_closed(i)
+            end do
+
+            call inv_real_matrix(res%n_closed, a_cc, a_cc_inv, stat_inv)
+            if (stat_inv /= 0) then
+                ! 遇到 Feshbach 奇异共振点微扰正则化
+                do i = 1, res%n_closed
+                    a_cc(i, i) = a_cc(i, i) + 1.0e-10_dp
+                end do
+                call inv_real_matrix(res%n_closed, a_cc, a_cc_inv, stat_inv)
+            end if
+
+            ! Y_eff = Y_oo - Y_oc * A_cc^{-1} * Y_co
+            y_eff = y_oo - matmul(y_oc, matmul(a_cc_inv, y_co))
+            y_eff = 0.5_dp * (y_eff + transpose(y_eff))
+
+            deallocate(y_oo, y_oc, y_co, y_cc, a_cc, a_cc_inv)
+        end if
+
+        ! 5. 渐近 Riccati 函数边界匹配提取反应矩阵 K_oo
+        r_match = r_grid(n_pts)
+        allocate(j_mat(res%n_open, res%n_open))
+        allocate(n_mat(res%n_open, res%n_open))
+        allocate(dj_mat(res%n_open, res%n_open))
+        allocate(dn_mat(res%n_open, res%n_open))
+        allocate(mj_mat(res%n_open, res%n_open))
+        allocate(mn_mat(res%n_open, res%n_open))
+        allocate(mn_inv(res%n_open, res%n_open))
+        allocate(res%k_matrix(res%n_open, res%n_open))
+
+        j_mat = 0.0_dp; n_mat = 0.0_dp; dj_mat = 0.0_dp; dn_mat = 0.0_dp
+
+        do i = 1, res%n_open
+            k_i = res%k_open(i)
+            call riccati_bessel_neumann(l_channels(res%open_channels(i)), k_i * r_match, jl, nl, djl, dnl)
+            ! 通量归一化对角元
+            j_mat(i, i)  = jl / sqrt(k_i)
+            n_mat(i, i)  = nl / sqrt(k_i)
+            dj_mat(i, i) = djl * sqrt(k_i)
+            dn_mat(i, i) = dnl * sqrt(k_i)
+        end do
+
+        ! M_J = J' - Y_eff * J
+        ! M_N = N' - Y_eff * N
+        mj_mat = dj_mat - matmul(y_eff, j_mat)
+        mn_mat = dn_mat - matmul(y_eff, n_mat)
+
+        call inv_real_matrix(res%n_open, mn_mat, mn_inv, stat_inv)
+        if (stat_inv /= 0) then
+            do i = 1, res%n_open
+                mn_mat(i, i) = mn_mat(i, i) + 1.0e-12_dp
+            end do
+            call inv_real_matrix(res%n_open, mn_mat, mn_inv, stat_inv)
+        end if
+
+        ! K_oo = (M_N)^{-1} * M_J
+        res%k_matrix = matmul(mn_inv, mj_mat)
+        res%k_matrix = 0.5_dp * (res%k_matrix + transpose(res%k_matrix))
+
+        ! 6. Cayley 变换构建严格么正散射矩阵 S_oo = (I + i*K) * (I - i*K)^{-1}
+        allocate(eye_c(res%n_open, res%n_open))
+        allocate(ik_mat(res%n_open, res%n_open))
+        allocate(den_c(res%n_open, res%n_open))
+        allocate(den_inv(res%n_open, res%n_open))
+        allocate(res%s_matrix(res%n_open, res%n_open))
+        allocate(res%t_matrix(res%n_open, res%n_open))
+
+        eye_c = (0.0_dp, 0.0_dp)
+        do i = 1, res%n_open
+            eye_c(i, i) = (1.0_dp, 0.0_dp)
+        end do
+
+        ik_mat = cmplx(0.0_dp, res%k_matrix, kind=dp)
+        den_c = eye_c - ik_mat
+
+        call inv_complex_matrix(res%n_open, den_c, den_inv, stat_inv)
+        res%s_matrix = matmul(eye_c + ik_mat, den_inv)
+        res%t_matrix = res%s_matrix - eye_c
+
+        ! 7. 导出态-态跃迁几率与散射截面
+        allocate(res%prob_matrix(res%n_open, res%n_open))
+        allocate(res%cross_sections(res%n_open, res%n_open))
+        allocate(res%total_cross_sec(res%n_open))
+
+        do i = 1, res%n_open
+            res%total_cross_sec(i) = 0.0_dp
+            k_i = res%k_open(i)
+            do j = 1, res%n_open
+                res%prob_matrix(j, i) = abs(res%s_matrix(j, i))**2
+                res%cross_sections(j, i) = (PI / (k_i * k_i)) * &
+                    real(2 * l_channels(res%open_channels(i)) + 1, dp) * &
+                    abs(res%t_matrix(j, i))**2
+                res%total_cross_sec(i) = res%total_cross_sec(i) + res%cross_sections(j, i)
+            end do
+        end do
+
+        ! 8. 计算特征相移和 delta_sum = 0.5 * arg(det(S))
+        det_s = (1.0_dp, 0.0_dp)
+        if (res%n_open == 1) then
+            det_s = res%s_matrix(1, 1)
+        else if (res%n_open == 2) then
+            det_s = res%s_matrix(1, 1) * res%s_matrix(2, 2) - res%s_matrix(1, 2) * res%s_matrix(2, 1)
+        else
+            allocate(s_mat(res%n_open, res%n_open))
+            s_mat = res%s_matrix
+            do i = 1, res%n_open
+                det_s = det_s * s_mat(i, i)
+            end do
+            deallocate(s_mat)
+        end if
+        res%eigenphase_sum = 0.5_dp * atan2(aimag(det_s), real(det_s, dp))
+
+        ! 清理动态内存
+        deallocate(w_mat, q_mat, q_inv, m_mat, r_curr_mat, r_next_mat, r_inv)
+        deallocate(q_prev, q_curr, p1, p2, temp_mat, y_mat, y_eff)
+        deallocate(j_mat, n_mat, dj_mat, dn_mat, mj_mat, mn_mat, mn_inv)
+        deallocate(eye_c, ik_mat, den_c, den_inv)
+    end subroutine calc_multichannel_close_coupling_logder
+
+    ! ==========================================================================
+    ! Feshbach 共振能谱能量扫描: 提取开通道散射长度 a_s(E) 与特征相移跃升
+    ! ==========================================================================
+    subroutine calc_feshbach_resonance_scan( &
+        r_grid, v_mat, mass, energy_grid, n_energies, thresholds, l_channels, &
+        s_wave_length, eigenphase_sums, stat)
+
+        real(dp), intent(in) :: r_grid(:)
+        real(dp), intent(in) :: v_mat(:, :, :)
+        real(dp), intent(in) :: mass
+        real(dp), intent(in) :: energy_grid(:)
+        integer,  intent(in) :: n_energies
+        real(dp), intent(in) :: thresholds(:)
+        integer,  intent(in) :: l_channels(:)
+        real(dp), intent(out) :: s_wave_length(n_energies)
+        real(dp), intent(out) :: eigenphase_sums(n_energies)
+        integer,  intent(out), optional :: stat
+
+        type(multichannel_result_t) :: res
+        integer :: ie, s
+        real(dp) :: k1
+
+        if (present(stat)) stat = 0
+        s_wave_length = 0.0_dp
+        eigenphase_sums = 0.0_dp
+
+        do ie = 1, n_energies
+            call calc_multichannel_close_coupling_logder( &
+                r_grid, v_mat, mass, energy_grid(ie), thresholds, l_channels, res, s)
+            if (s == 0 .and. res%n_open >= 1) then
+                k1 = res%k_open(1)
+                s_wave_length(ie) = -res%k_matrix(1, 1) / max(1.0e-12_dp, k1)
+                eigenphase_sums(ie) = res%eigenphase_sum
+            end if
+        end do
+    end subroutine calc_feshbach_resonance_scan
 
 end module mod_ti_scattering

@@ -26,6 +26,7 @@ from pygenmod import (
     calc_scattering_length_numerov, plot_scattering_length_wavefunction,
     calc_differential_cross_section, calc_differential_cross_section_identical,
     plot_differential_cross_sections,
+    calc_multichannel_close_coupling, plot_multichannel_smatrix, plot_feshbach_resonance,
     plot_wavefunctions, plot_pulses
 )
 
@@ -191,6 +192,42 @@ class TestPyGenMod(unittest.TestCase):
         plot_differential_cross_sections(theta, ds_map, filename="test_dcs.png")
         self.assertTrue(os.path.exists("test_dcs.png"))
         os.remove("test_dcs.png")
+
+    def test_multichannel_close_coupling(self):
+        # 2-channel system: Channel 1 open (thresh=0), Channel 2 closed (thresh=0.4)
+        np_pts = 200
+        r_grid = np.linspace(0.8, 8.0, np_pts)
+        v_mat = np.zeros((2, 2, np_pts))
+        for i, r in enumerate(r_grid):
+            v_mat[0, 0, i] = -0.5 * np.exp(-(r - 2.0)**2)
+            v_mat[1, 1, i] = -1.0 * np.exp(-(r - 2.2)**2)
+            v_mat[0, 1, i] = 0.1 * np.exp(-(r - 2.1)**2)
+            v_mat[1, 0, i] = v_mat[0, 1, i]
+
+        thresh = np.array([0.0, 0.4])
+        # Energy E = 0.15 -> Ch 1 open, Ch 2 closed
+        res = calc_multichannel_close_coupling(r_grid, v_mat, mass=1.0, total_energy=0.15, thresholds=thresh)
+        self.assertEqual(res['n_open'], 1)
+        self.assertEqual(res['n_closed'], 1)
+        # Unitarity of open subspace: |S_11|^2 = 1.0
+        self.assertAlmostEqual(res['prob_matrix'][0, 0], 1.0, places=5)
+
+        # 2 open channels test: E = 0.5
+        res_open2 = calc_multichannel_close_coupling(r_grid, v_mat, mass=1.0, total_energy=0.5, thresholds=thresh)
+        self.assertEqual(res_open2['n_open'], 2)
+        self.assertEqual(res_open2['n_closed'], 0)
+        # Unitarity sum = 1.0
+        self.assertAlmostEqual(np.sum(res_open2['prob_matrix'][:, 0]), 1.0, places=4)
+        self.assertAlmostEqual(np.sum(res_open2['prob_matrix'][:, 1]), 1.0, places=4)
+
+        # Smoke test for plotting S-matrix heatmap and Feshbach resonance
+        plot_multichannel_smatrix(res_open2['prob_matrix'], ["Ch 1", "Ch 2"], filename="test_smat.png")
+        self.assertTrue(os.path.exists("test_smat.png"))
+        os.remove("test_smat.png")
+
+        plot_feshbach_resonance(np.array([0.05, 0.10, 0.15]), np.array([1.2, 5.8, -2.1]), filename="test_fb.png")
+        self.assertTrue(os.path.exists("test_fb.png"))
+        os.remove("test_fb.png")
 
     def test_visualizer_smoke(self):
         # Quick check that visualization runs without error

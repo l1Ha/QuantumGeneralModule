@@ -266,6 +266,101 @@ program test_ti_scattering
         end if
     end block
 
+    ! --------------------------------------------------------------------------
+    ! 测试 14: 通用 N 通道定态密耦 (Johnson Log-Derivative) 3 通道全开么正性与非弹性跃迁
+    ! --------------------------------------------------------------------------
+    n_total = n_total + 1
+    block
+        integer, parameter :: nc = 3, np = 400
+        real(dp) :: r_m(np), v_m(nc, nc, np), th(nc), e_tot
+        integer  :: l_ch(nc), k_i, k_j, p_idx
+        type(multichannel_result_t) :: mc_res
+        real(dp) :: r_val, sum_prob, max_unitarity_err
+
+        th = [0.0_dp, 0.05_dp, 0.10_dp]
+        l_ch = [0, 0, 0]
+        e_tot = 0.25_dp ! 高于所有阈值 -> 3 通道全开 (n_open = 3)
+
+        do p_idx = 1, np
+            r_m(p_idx) = 0.5_dp + real(p_idx - 1, dp) * (8.0_dp - 0.5_dp) / real(np - 1, dp)
+            r_val = r_m(p_idx)
+            ! 对角势能
+            v_m(1, 1, p_idx) = -1.0_dp * exp(-(r_val - 2.0_dp)**2)
+            v_m(2, 2, p_idx) = -0.8_dp * exp(-(r_val - 2.2_dp)**2)
+            v_m(3, 3, p_idx) = -0.6_dp * exp(-(r_val - 2.5_dp)**2)
+            ! 通道间非绝热跃迁耦合
+            v_m(1, 2, p_idx) = 0.08_dp * exp(-(r_val - 2.1_dp)**2)
+            v_m(2, 1, p_idx) = v_m(1, 2, p_idx)
+            v_m(2, 3, p_idx) = 0.05_dp * exp(-(r_val - 2.3_dp)**2)
+            v_m(3, 2, p_idx) = v_m(2, 3, p_idx)
+            v_m(1, 3, p_idx) = 0.02_dp * exp(-(r_val - 2.2_dp)**2)
+            v_m(3, 1, p_idx) = v_m(1, 3, p_idx)
+        end do
+
+        call calc_multichannel_close_coupling_logder(r_m, v_m, 1.0_dp, e_tot, th, l_ch, mc_res)
+
+        max_unitarity_err = 0.0_dp
+        do k_i = 1, mc_res%n_open
+            sum_prob = 0.0_dp
+            do k_j = 1, mc_res%n_open
+                sum_prob = sum_prob + mc_res%prob_matrix(k_j, k_i)
+            end do
+            max_unitarity_err = max(max_unitarity_err, abs(sum_prob - 1.0_dp))
+        end do
+
+        if (mc_res%n_open == 3 .and. max_unitarity_err < 1.0e-3_dp .and. mc_res%prob_matrix(2, 1) > 0.01_dp) then
+            print '(A, I1, A, E10.2, A, F8.4)', " [PASS] 3-Channel CC Log-Der: n_open = ", mc_res%n_open, &
+                                                  ", Unitarity err = ", max_unitarity_err, &
+                                                  ", P(1->2) = ", mc_res%prob_matrix(2, 1)
+            n_pass = n_pass + 1
+        else
+            print '(A, I1, A, E10.2)', " [FAIL] 3-Channel CC Log-Der: n_open = ", mc_res%n_open, &
+                                       ", Unitarity err = ", max_unitarity_err
+        end if
+    end block
+
+    ! --------------------------------------------------------------------------
+    ! 测试 15: 开-闭通道共存与 Feshbach 共振散射长度扫描
+    ! --------------------------------------------------------------------------
+    n_total = n_total + 1
+    block
+        integer, parameter :: nc = 2, np = 400, ne = 10
+        real(dp) :: r_m(np), v_m(nc, nc, np), th(nc), e_scan(ne), as_scan(ne), delta_sums(ne)
+        integer  :: l_ch(nc), p_idx, ie
+        real(dp) :: r_val
+        type(multichannel_result_t) :: fb_res
+
+        th = [0.0_dp, 0.40_dp] ! 通道 1 开 (0.05 a.u.), 通道 2 闭 (0.40 a.u.)
+        l_ch = [0, 0]
+
+        do p_idx = 1, np
+            r_m(p_idx) = 0.6_dp + real(p_idx - 1, dp) * (9.0_dp - 0.6_dp) / real(np - 1, dp)
+            r_val = r_m(p_idx)
+            v_m(1, 1, p_idx) = -0.5_dp * exp(-(r_val - 2.0_dp)**2)
+            v_m(2, 2, p_idx) = -1.2_dp * exp(-(r_val - 2.2_dp)**2) ! 较深闭通道阱，包含 Feshbach 准束缚态
+            v_m(1, 2, p_idx) = 0.12_dp * exp(-(r_val - 2.1_dp)**2)
+            v_m(2, 1, p_idx) = v_m(1, 2, p_idx)
+        end do
+
+        ! 1. 验证单一开通道在闭通道存在下的幺正性 |S_11|^2 = 1.0 (几率不泄漏)
+        call calc_multichannel_close_coupling_logder(r_m, v_m, 1.0_dp, 0.08_dp, th, l_ch, fb_res)
+
+        ! 2. 能量扫描
+        do ie = 1, ne
+            e_scan(ie) = 0.01_dp + real(ie - 1, dp) * (0.25_dp - 0.01_dp) / real(ne - 1, dp)
+        end do
+        call calc_feshbach_resonance_scan(r_m, v_m, 1.0_dp, e_scan, ne, th, l_ch, as_scan, delta_sums)
+
+        if (fb_res%n_open == 1 .and. fb_res%n_closed == 1 .and. &
+            abs(fb_res%prob_matrix(1, 1) - 1.0_dp) < 1.0e-3_dp) then
+            print '(A, F9.5, A, F8.4)', " [PASS] Feshbach Open-Closed CC: |S11|^2 = ", fb_res%prob_matrix(1, 1), &
+                                         ", a_s(E=0.08) = ", as_scan(4)
+            n_pass = n_pass + 1
+        else
+            print '(A, F9.5)', " [FAIL] Feshbach Open-Closed CC: |S11|^2 = ", fb_res%prob_matrix(1, 1)
+        end if
+    end block
+
     deallocate(r_grid, v_pot)
 
     print '(A)', "--------------------------------------------------"

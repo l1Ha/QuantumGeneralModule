@@ -494,6 +494,32 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
                                          total_energy=0.5_dp, delta_e=0.1_dp, &
                                          s_matrix=s_2x2, inelastic_prob=p_inelastic)
    ```
+7. **通用任意 $N$ 通道定态密耦求解器 (Johnson Log-Derivative) 与 Feshbach 共振**：
+   ```fortran
+   type(multichannel_result_t) :: mc_res
+   real(dp) :: v_mat(3, 3, 500), thresholds(3)
+   integer  :: l_channels(3)
+
+   thresholds = [0.0_dp, 0.05_dp, 0.40_dp]  ! 渐近通道阈值
+   l_channels = [0, 0, 0]                   ! 通道轨道角动量
+
+   ! 求解全通道定态密耦 (自动处理开通道与闭通道 Schur 补变换)
+   call calc_multichannel_close_coupling_logder(r_grid, v_mat, mass=1.0_dp, &
+                                                total_energy=0.15_dp, &
+                                                thresholds=thresholds, &
+                                                l_channels=l_channels, &
+                                                res=mc_res)
+
+   print *, "开通道数:", mc_res%n_open, "闭通道数:", mc_res%n_closed
+   print *, "态-态跃迁几率 P(1->2):", mc_res%prob_matrix(2, 1)
+   print *, "S-矩阵幺正性 |S11|^2 + |S12|^2:", mc_res%prob_matrix(1, 1) + mc_res%prob_matrix(2, 1)
+
+   ! 跨 Feshbach 共振能区连续扫描
+   call calc_feshbach_resonance_scan(r_grid, v_mat, mass=1.0_dp, &
+                                     energy_grid=e_scan, n_energies=100, &
+                                     thresholds=thresholds, l_channels=l_channels, &
+                                     s_wave_length=as_scan, eigenphase_sums=delta_scan)
+   ```
 
 ---
 

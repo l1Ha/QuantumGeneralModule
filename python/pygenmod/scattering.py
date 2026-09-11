@@ -192,3 +192,209 @@ def plot_differential_cross_sections(theta_grid: np.ndarray, dsigma_dict: dict,
     plt.close()
     print(f"[Scattering] Differential cross section plot saved to: {filename}")
 
+
+def calc_multichannel_close_coupling(r_grid: np.ndarray, v_mat: np.ndarray,
+                                     mass: float, total_energy: float,
+                                     thresholds: np.ndarray, l_channels: np.ndarray = None) -> dict:
+    """
+    Multichannel close-coupling solver using Johnson's matrix log-derivative method.
+    v_mat has shape (n_chan, n_chan, n_pts).
+    Returns a dictionary with:
+    - 'n_open': number of open channels
+    - 'n_closed': number of closed channels
+    - 'open_channels': list of open channel indices
+    - 'closed_channels': list of closed channel indices
+    - 'k_open': wavenumbers
+    - 'k_matrix': K_oo reaction matrix
+    - 's_matrix': S_oo unitary scattering matrix
+    - 'prob_matrix': P(i->j) = |S_ij|^2 transition probabilities
+    - 'eigenphase_sum': sum of eigenphases
+    """
+    n_chan = len(thresholds)
+    n_pts = len(r_grid)
+    if l_channels is None:
+        l_channels = np.zeros(n_chan, dtype=int)
+    dr = r_grid[1] - r_grid[0]
+    dr2_12 = (dr * dr) / 12.0
+
+    # Classify open / closed
+    e_kin = total_energy - thresholds
+    open_idx = np.where(e_kin > 1e-12)[0]
+    closed_idx = np.where(e_kin <= 1e-12)[0]
+    n_open = len(open_idx)
+    n_closed = len(closed_idx)
+
+    if n_open == 0:
+        return {'n_open': 0, 'n_closed': n_closed}
+
+    k_open = np.sqrt(2.0 * mass * e_kin[open_idx])
+    kappa_closed = np.sqrt(2.0 * mass * np.maximum(0.0, -e_kin[closed_idx]))
+
+    # Propagate ratio matrix R
+    def build_w(step):
+        r_c = r_grid[step]
+        w = 2.0 * mass * v_mat[:, :, step].copy()
+        for i in range(n_chan):
+            w[i, i] += -2.0 * mass * e_kin[i] + l_channels[i] * (l_channels[i] + 1) / (r_c * r_c)
+        return w
+
+    w1 = build_w(0)
+    q1 = np.eye(n_chan) - dr2_12 * w1
+    q1_inv = np.linalg.inv(q1)
+    m1 = 12.0 * q1_inv - 10.0 * np.eye(n_chan)
+    r_curr = m1.copy()
+    q_prev = q1.copy()
+
+    for step in range(1, n_pts - 1):
+        w_step = build_w(step)
+        q_step = np.eye(n_chan) - dr2_12 * w_step
+        q_inv = np.linalg.inv(q_step)
+        m_step = 12.0 * q_inv - 10.0 * np.eye(n_chan)
+
+        r_inv = np.linalg.inv(r_curr)
+        r_next = m_step - r_inv
+        r_next = 0.5 * (r_next + r_next.T)
+        if step == n_pts - 2:
+            q_curr = q_step.copy()
+        r_curr = r_next
+
+    # Outer boundary log-derivative
+    w_end = build_w(n_pts - 1)
+    q_end = np.eye(n_chan) - dr2_12 * w_end
+    r_inv = np.linalg.inv(r_curr)
+    p1 = np.linalg.inv(q_curr) @ r_inv @ q_end
+    p2 = p1 @ p1
+    y_mat = (3.0 * np.eye(n_chan) - 4.0 * p1 + p2) / (2.0 * dr)
+    y_mat = 0.5 * (y_mat + y_mat.T)
+
+    # Open-closed Schur complement
+    if n_closed > 0:
+        y_oo = y_mat[np.ix_(open_idx, open_idx)]
+        y_oc = y_mat[np.ix_(open_idx, closed_idx)]
+        y_co = y_mat[np.ix_(closed_idx, open_idx)]
+        y_cc = y_mat[np.ix_(closed_idx, closed_idx)]
+        a_cc = y_cc + np.diag(kappa_closed)
+        a_cc_inv = np.linalg.inv(a_cc)
+        y_eff = y_oo - y_oc @ a_cc_inv @ y_co
+        y_eff = 0.5 * (y_eff + y_eff.T)
+    else:
+        y_eff = y_mat.copy()
+
+    # Riccati matching
+    r_match = r_grid[-1]
+    j_mat = np.zeros((n_open, n_open))
+    n_mat = np.zeros((n_open, n_open))
+    dj_mat = np.zeros((n_open, n_open))
+    dn_mat = np.zeros((n_open, n_open))
+
+    for i in range(n_open):
+        k_i = k_open[i]
+        l_i = l_channels[open_idx[i]]
+        x = k_i * r_match
+        if l_i == 0:
+            jl = np.sin(x)
+            nl = -np.cos(x)
+            djl = np.cos(x)
+            dnl = np.sin(x)
+        elif l_i == 1:
+            jl = np.sin(x) / x - np.cos(x)
+            nl = -np.cos(x) / x - np.sin(x)
+            djl = np.cos(x) / x - np.sin(x) / (x * x) + np.sin(x)
+            dnl = np.sin(x) / x + np.cos(x) / (x * x) - np.cos(x)
+        else:
+            jl = np.sin(x - l_i * np.pi / 2.0)
+            nl = -np.cos(x - l_i * np.pi / 2.0)
+            djl = np.cos(x - l_i * np.pi / 2.0)
+            dnl = np.sin(x - l_i * np.pi / 2.0)
+        j_mat[i, i] = jl / np.sqrt(k_i)
+        n_mat[i, i] = nl / np.sqrt(k_i)
+        dj_mat[i, i] = djl * np.sqrt(k_i)
+        dn_mat[i, i] = dnl * np.sqrt(k_i)
+
+    mj = dj_mat - y_eff @ j_mat
+    mn = dn_mat - y_eff @ n_mat
+    k_mat = np.linalg.inv(mn) @ mj
+    k_mat = 0.5 * (k_mat + k_mat.T)
+
+    # S-matrix via Cayley transform
+    eye_c = np.eye(n_open, dtype=complex)
+    ik = 1j * k_mat
+    s_mat = (eye_c + ik) @ np.linalg.inv(eye_c - ik)
+    prob_mat = np.abs(s_mat) ** 2
+    det_s = np.linalg.det(s_mat)
+    eigenphase_sum = 0.5 * np.angle(det_s)
+
+    return {
+        'n_open': n_open,
+        'n_closed': n_closed,
+        'open_channels': open_idx,
+        'closed_channels': closed_idx,
+        'k_open': k_open,
+        'k_matrix': k_mat,
+        's_matrix': s_mat,
+        'prob_matrix': prob_mat,
+        'eigenphase_sum': eigenphase_sum
+    }
+
+
+def plot_multichannel_smatrix(prob_mat: np.ndarray, channel_labels: list = None,
+                              filename: str = "result_multichannel_smatrix.png"):
+    """
+    Plot heatmap of multichannel transition probabilities P(i->j) = |S_ij|^2.
+    """
+    n = prob_mat.shape[0]
+    if channel_labels is None:
+        channel_labels = [f"Ch {i+1}" for i in range(n)]
+
+    plt.figure(figsize=(6, 5))
+    im = plt.imshow(prob_mat, cmap='viridis', vmin=0.0, vmax=1.0, origin='upper')
+    cbar = plt.colorbar(im)
+    cbar.set_label(r'Transition Probability $|S_{ij}|^2$')
+
+    plt.xticks(range(n), channel_labels)
+    plt.yticks(range(n), channel_labels)
+    plt.xlabel("Entrance Channel $i$")
+    plt.ylabel("Exit Channel $j$")
+    plt.title("Multichannel S-Matrix Transition Probabilities", fontweight='bold')
+
+    for i in range(n):
+        for j in range(n):
+            color = "white" if prob_mat[i, j] < 0.5 else "black"
+            plt.text(j, i, f"{prob_mat[i, j]:.3f}", ha="center", va="center", color=color, fontweight='bold')
+
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300)
+    plt.close()
+    print(f"[Scattering] Multichannel S-matrix plot saved to: {filename}")
+
+
+def plot_feshbach_resonance(energy_grid: np.ndarray, scattering_lengths: np.ndarray,
+                            eigenphase_sums: np.ndarray = None,
+                            filename: str = "result_feshbach_resonance.png"):
+    """
+    Plot Feshbach resonance profile showing scattering length pole a_s(E) and eigenphase shift.
+    """
+    fig, ax1 = plt.subplots(figsize=(7, 4.5))
+
+    color_as = '#0275D8'
+    ax1.set_xlabel('Collision Energy $E$ (a.u.)')
+    ax1.set_ylabel(r's-Wave Scattering Length $a_s$ (a.u.)', color=color_as)
+    ax1.plot(energy_grid, scattering_lengths, lw=2.2, color=color_as, label=r'$a_s(E)$')
+    ax1.tick_params(axis='y', labelcolor=color_as)
+    ax1.grid(True, alpha=0.3)
+    ax1.axhline(0, color='gray', ls='--', lw=0.8)
+
+    if eigenphase_sums is not None:
+        ax2 = ax1.twinx()
+        color_delta = '#D9534F'
+        ax2.set_ylabel(r'Eigenphase Sum $\delta_{\rm sum}$ (rad)', color=color_delta)
+        ax2.plot(energy_grid, eigenphase_sums, lw=2.0, ls='-.', color=color_delta, label=r'$\delta_{\rm sum}$')
+        ax2.tick_params(axis='y', labelcolor=color_delta)
+
+    plt.title("Multichannel Feshbach Resonance Profile", fontweight='bold')
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300)
+    plt.close()
+    print(f"[Scattering] Feshbach resonance plot saved to: {filename}")
+
+

@@ -3,7 +3,7 @@
 [![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
 [![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests: 113/113 Pass](https://img.shields.io/badge/Tests-113%2F113%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Tests: 115/115 Pass](https://img.shields.io/badge/Tests-115%2F115%20Pass%20(100%25)-brightgreen.svg)](tests/)
 
 `GeneralModule` 是一个面向超快强场物理、分子光物理与量子动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
 
@@ -12,14 +12,14 @@
 ## 🌟 核心特性
 
 1. **零外部库依赖 (Zero External Dependencies)**
-   - 内部集成高精度 Householder QL 实对称矩阵本征求解器与 Cooley-Tukey 1D/2D 快速傅里叶变换（FFT）。
-   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、非含时与含时连续态散射矩阵求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
+   - 内部集成高精度 Householder QL 实对称矩阵本征求解器、Gauss-Jordan 全主元实/复方阵求逆与 Cooley-Tukey 1D/2D 快速傅里叶变换（FFT）。
+   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）与含时连续态散射矩阵求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
 2. **现代 Fortran 2008 标准设计**
    - 统一强类型参数定义（`real(dp) => real64`）。
    - 纯函数（`pure function`）与显式 `intent(in/out/inout)` 契约，杜绝隐式全局变量副作用。
 3. **AI 友好型结构化接口 (AI-Friendly)**
    - 算法模块支持统一顶层聚合入口：`use general_module`。
-   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `absorbing_boundary_t`, `dvr_1d_t`, `spline_1d_t`, `scattering_state_t`, `td_scattering_channel_t`），自解释、低耦合、便于大语言模型精确构造与调用。
+   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `absorbing_boundary_t`, `dvr_1d_t`, `spline_1d_t`, `scattering_state_t`, `multichannel_result_t`, `td_scattering_channel_t`），自解释、低耦合、便于大语言模型精确构造与调用。
 4. **全链路双语生态支持**
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
 5. **全自动 CI/CD 持续集成**
@@ -40,7 +40,7 @@ GeneralModule/
 ├── src/                           # 核心 Fortran 源代码 (20 核心模块 + 1 聚合入口)
 │   ├── mod_constants.f90          # 1. 物理常数与各单位 a.u. 双向转换
 │   ├── mod_special_functions.f90  # 2. 勒让德、Wigner 3j、CG、转动偶极/取向矩阵元
-│   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解 (EISPACK TRED2/TQL2)、1D/2D FFT
+│   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解 (EISPACK TRED2/TQL2)、实/复方阵求逆、1D/2D FFT
 │   ├── mod_dvr_grid.f90           # 4. Sinc-DVR、Legendre-DVR、FGH 束缚态求解、格点期望值
 │   ├── mod_laser_pulse.f90        # 5. 超快强场脉冲时域合成、矢量势、椭偏场与便捷构造器
 │   ├── mod_absorbing_boundary.f90 # 6. 复吸收势边界（CAP）、概率流与存活范数
@@ -56,7 +56,7 @@ GeneralModule/
 │   ├── mod_photofragment_flux.f90 # 16. 自相关函数与吸收截面谱、渐近散射振幅与光解离碎片动能释放谱(KER)
 │   ├── mod_open_quantum.f90       # 17. 开放量子系统 Lindblad 耗散主方程、自发跃迁/退相位弛豫、纯度与冯·诺依曼熵
 │   ├── mod_optimal_control.f90    # 18. 量子最优控制理论 Krotov 算法、目标保真度与激光场原位迭代优化
-│   ├── mod_ti_scattering.f90      # 19. 非含时散射理论、零能 Numerov/Log-Derivative 散射长度、相移、K/S/T 矩阵与密耦
+│   ├── mod_ti_scattering.f90      # 19. 非含时散射理论、零能 Numerov/Log-Derivative 散射长度、相移、K/S/T 矩阵与通用多通道密耦
 │   ├── mod_td_scattering.f90      # 20. 含时波包散射理论、连续态能量通量透射率 T(E)、含时 S 矩阵提取与 Möller 动量投影
 │   └── general_module.f90         # 顶层聚合入口模块 (use general_module)
 ├── tests/                         # 自动化单元测试套件 (12 个套件，100% 全部通过)
@@ -70,9 +70,9 @@ GeneralModule/
 │   ├── test_interpolation.f90     # 三次样条插值与渐近外推测试
 │   ├── test_photofragment_flux.f90# 自相关吸收谱与碎片 KER 分支比测试
 │   ├── test_open_quantum_opt.f90  # Lindblad 耗散退相干与 Krotov 最优控制测试
-│   ├── test_ti_scattering.f90     # 非含时散射长度、相移、S矩阵与光学定理测试
+│   ├── test_ti_scattering.f90     # 非含时散射长度、相移、S矩阵与多通道密耦测试
 │   ├── test_td_scattering.f90     # 含时波包散射透射谱、S矩阵元与 Möller 投影测试
-│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 113/113 断言)
+│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 115/115 断言)
 ├── examples/                      # 典型物理应用算例 (6 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90           # 啁啾、双色、太赫兹脉冲时频生成
@@ -83,7 +83,7 @@ GeneralModule/
 │   └── build_examples.sh          # 算例编译运行脚本
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
-    ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 9/9 测试)
+    ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 10/10 测试)
     ├── plot_rovibrational_dynamics.py # 出版级分子转振受控动力学一键绘图管道
     └── pygenmod/
         ├── __init__.py
@@ -253,6 +253,8 @@ GeneralModule/
 - `van_der_waals_mean_length(mass, c6_au)` / `gribakin_flambaum_length(mass, c6_au, phase_phi)`: 范德华长程色散平均散射长度 $\bar{a} \approx 0.4779888 (2\mu C_6)^{1/4}$ 与 Gribakin-Flambaum 半经典解析散射长度。
 - `analyze_shape_resonance(energy_grid, delta_grid, n_pts, hbar, res_info, stat)`: 形状共振 Wigner 散射时延 $\tau(E) = 2\hbar \frac{d\delta}{dE}$ 峰值追踪与 Breit-Wigner 参数（共振能量 $E_R$、线宽 $\Gamma$、准束缚态寿命）提取。
 - `calc_coupled_channel_smatrix_2x2(r_grid, v11, v22, v12, mass, total_energy, delta_e, s_matrix, inelastic_prob, stat)`: 双通道非绝热耦合密耦定态散射矩阵求解器，基于 Cayley 变换构建 $2 \times 2$ 严格幺正 $\mathbf{S}$ 矩阵并计算非弹性转移几率 $P_{1\to 2} = |S_{12}|^2$。
+- `calc_multichannel_close_coupling_logder(r_grid, v_mat, mass, total_energy, thresholds, l_channels, res, stat)`: **通用任意 $N$ 通道定态密耦求解器 (Johnson Matrix Log-Derivative Method)**。支持开通道（$E > E_i$）与闭通道（$E \le E_i$）任意混合系统，基于 Feshbach 投影 / Schur 补消除闭通道数值发散，构造通量归一化实对称反应矩阵 $\mathbf{K}_{oo}$ 与绝对幺正散射矩阵 $\mathbf{S}_{oo}$（机器精度满足 $\mathbf{S}^\dagger \mathbf{S} = \mathbf{I}$），直接输出各态-态跃迁几率矩阵 $P_{i\to j} = |S_{ij}|^2$、部分弹性与非弹性截面 $\sigma_{i\to j}$ 及特征相移和 $\delta_{sum}$。
+- `calc_feshbach_resonance_scan(r_grid, v_mat, mass, energy_grid, n_energies, thresholds, l_channels, s_wave_length, eigenphase_sums, stat)`: 跨 Feshbach 共振能量扫描，追踪闭通道准束缚态引起的开通道散射长度极点发散 $a_s(E) \to \pm \infty$ 与相移特征跳变。
 
 ### 20. 含时波包散射理论与 S-矩阵 (`mod_td_scattering`)
 - 派生类型：`type(td_scattering_channel_t)`。
@@ -370,10 +372,10 @@ Rovibrational Control Tests:  8 /  8 PASSED
 Interpolation Tests:          7 /  7 PASSED
 Photofragment & Flux Tests:   6 /  6 PASSED
 Open Quantum & OCT Tests:    10 / 10 PASSED
-TI Scattering Tests:         13 / 13 PASSED
+TI Scattering Tests:         15 / 15 PASSED
 TD Scattering Tests:          8 /  8 PASSED
 ----------------------------------------------------------------
-ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 113/113 断言通过)
+ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 115/115 断言通过)
 ================================================================
 ```
 
@@ -450,7 +452,21 @@ python3 python/plot_rovibrational_dynamics.py
 # 生成高分辨率图表: python/result_rovibrational_dynamics.png
 ```
 
-### 4. Sinc-DVR 束缚态求解与波函数绘图示例：
+### 4. 多通道密耦 S-矩阵热图与 Feshbach 共振绘图 (`scattering.py`)
+计算多通道定态跃迁几率热图矩阵与 Feshbach 共振极点扫描：
+```python
+from pygenmod import calc_multichannel_close_coupling, plot_multichannel_smatrix, plot_feshbach_resonance
+import numpy as np
+
+# 1. 求解多通道耦合与状态转移几率矩阵
+res = calc_multichannel_close_coupling(r_grid, v_mat, mass=1.0, total_energy=0.5, thresholds=np.array([0.0, 0.2]))
+plot_multichannel_smatrix(res['prob_matrix'], ["Ch 1", "Ch 2"], filename="multichannel_smatrix.png")
+
+# 2. 绘制 Feshbach 共振散射长度发散与特征相移跃升
+plot_feshbach_resonance(energy_grid, scattering_lengths, eigenphase_sums, filename="feshbach_resonance.png")
+```
+
+### 5. Sinc-DVR 束缚态求解与波函数绘图示例：
 ```python
 from pygenmod import dvr_sinc_init, fgh_solve_bound_states, plot_wavefunctions
 

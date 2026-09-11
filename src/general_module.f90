@@ -31,7 +31,7 @@ module general_module
     public :: legendre_poly, assoc_legendre_poly, wigner_3j, clebsch_gordan
     public :: rot_matrix_cos_theta, rot_matrix_cos2_theta
 
-    public :: diag_symmetric_matrix, fft_1d, fft_2d
+    public :: diag_symmetric_matrix, fft_1d, fft_2d, inv_real_matrix, inv_complex_matrix
 
     public :: dvr_1d_t, dvr_legendre_t, dvr_sinc_init, dvr_legendre_init, fgh_solve_bound_states
     public :: dvr_expectation_value, dvr_matrix_element
@@ -90,7 +90,7 @@ module general_module
     public :: oct_fidelity, oct_shape_function, oct_krotov_step, oct_optimize_pulse
 
     ! 非含时散射理论与超冷碰撞 (Time-Independent Scattering)
-    public :: scattering_state_t, ere_result_t, resonance_info_t
+    public :: scattering_state_t, ere_result_t, resonance_info_t, multichannel_result_t
     public :: PARTICLE_DISTINGUISHABLE, PARTICLE_IDENTICAL_BOSON
     public :: PARTICLE_IDENTICAL_FERMION_POLARIZED, PARTICLE_IDENTICAL_FERMION_UNPOLAR
     public :: riccati_bessel_neumann
@@ -103,6 +103,7 @@ module general_module
     public :: fit_effective_range_expansion
     public :: gribakin_flambaum_length, van_der_waals_mean_length
     public :: analyze_shape_resonance, calc_coupled_channel_smatrix_2x2
+    public :: calc_multichannel_close_coupling_logder, calc_feshbach_resonance_scan
 
     ! 含时波包散射理论与 S-矩阵 (Time-Dependent Scattering)
     public :: td_scattering_channel_t

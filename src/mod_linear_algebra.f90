@@ -10,6 +10,8 @@ module mod_linear_algebra
     public :: diag_symmetric_matrix
     public :: fft_1d
     public :: fft_2d
+    public :: inv_real_matrix
+    public :: inv_complex_matrix
 
 contains
 
@@ -422,5 +424,116 @@ contains
 
         deallocate(row, col)
     end subroutine fft_2d
+
+    !> \brief 通用实方阵求逆（Gauss-Jordan 全主元消去法，零外部依赖）
+    subroutine inv_real_matrix(n, a, a_inv, stat)
+        integer, intent(in)   :: n
+        real(dp), intent(in)  :: a(n, n)
+        real(dp), intent(out) :: a_inv(n, n)
+        integer, intent(out)  :: stat
+
+        real(dp) :: aug(n, 2 * n), temp, pivot, factor
+        integer  :: i, j, k, max_row
+
+        stat = 0
+        aug(:, 1:n) = a
+        aug(:, n + 1:2 * n) = 0.0_dp
+        do i = 1, n
+            aug(i, n + i) = 1.0_dp
+        end do
+
+        do i = 1, n
+            max_row = i
+            pivot = abs(aug(i, i))
+            do k = i + 1, n
+                if (abs(aug(k, i)) > pivot) then
+                    pivot = abs(aug(k, i))
+                    max_row = k
+                end if
+            end do
+
+            if (pivot < 1.0e-30_dp) then
+                stat = -1
+                a_inv = 0.0_dp
+                return
+            end if
+
+            if (max_row /= i) then
+                do j = 1, 2 * n
+                    temp = aug(i, j)
+                    aug(i, j) = aug(max_row, j)
+                    aug(max_row, j) = temp
+                end do
+            end if
+
+            factor = aug(i, i)
+            aug(i, :) = aug(i, :) / factor
+
+            do k = 1, n
+                if (k /= i) then
+                    factor = aug(k, i)
+                    aug(k, :) = aug(k, :) - factor * aug(i, :)
+                end if
+            end do
+        end do
+
+        a_inv = aug(:, n + 1:2 * n)
+    end subroutine inv_real_matrix
+
+    !> \brief 通用复方阵求逆（Gauss-Jordan 全主元消去法，零外部依赖）
+    subroutine inv_complex_matrix(n, a, a_inv, stat)
+        integer, intent(in)      :: n
+        complex(dp), intent(in)  :: a(n, n)
+        complex(dp), intent(out) :: a_inv(n, n)
+        integer, intent(out)     :: stat
+
+        complex(dp) :: aug(n, 2 * n), temp, factor
+        real(dp)    :: pivot
+        integer     :: i, j, k, max_row
+
+        stat = 0
+        aug(:, 1:n) = a
+        aug(:, n + 1:2 * n) = (0.0_dp, 0.0_dp)
+        do i = 1, n
+            aug(i, n + i) = (1.0_dp, 0.0_dp)
+        end do
+
+        do i = 1, n
+            max_row = i
+            pivot = abs(aug(i, i))
+            do k = i + 1, n
+                if (abs(aug(k, i)) > pivot) then
+                    pivot = abs(aug(k, i))
+                    max_row = k
+                end if
+            end do
+
+            if (pivot < 1.0e-30_dp) then
+                stat = -1
+                a_inv = (0.0_dp, 0.0_dp)
+                return
+            end if
+
+            if (max_row /= i) then
+                do j = 1, 2 * n
+                    temp = aug(i, j)
+                    aug(i, j) = aug(max_row, j)
+                    aug(max_row, j) = temp
+                end do
+            end if
+
+            factor = aug(i, i)
+            aug(i, :) = aug(i, :) / factor
+
+            do k = 1, n
+                if (k /= i) then
+                    factor = aug(k, i)
+                    aug(k, :) = aug(k, :) - factor * aug(i, :)
+                end if
+            end do
+        end do
+
+        a_inv = aug(:, n + 1:2 * n)
+    end subroutine inv_complex_matrix
 
 end module mod_linear_algebra
