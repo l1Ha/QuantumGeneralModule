@@ -84,6 +84,7 @@ module mod_ti_scattering
     public :: calc_scattering_length_logder
     public :: calc_phase_shift_single_l
     public :: calc_scattering_wavefunction_ti
+    public :: calc_scattering_wavefunction_1d_cartesian
     public :: calc_partial_wave_cross_sections
     public :: optical_theorem_cross_section
     public :: calc_differential_cross_section
@@ -459,6 +460,103 @@ contains
 
         u_wf = u_wf * scale_factor
     end subroutine calc_scattering_wavefunction_ti
+
+    ! ==========================================================================
+    ! 4.2 非含时一维笛卡尔定态散射能量本征波函数 psi_E(x) 求解器
+    !     从右边界透射波 psi ~ exp(i*k*x) 逆向 Numerov 积分至左边界，
+    !     分解得到入射波振幅 A_inc 与反射波振幅 B_ref，
+    !     计算透射几率 T = 1/|A|^2 与反射几率 R = |B|^2/|A|^2，
+    !     并进行严格连续能量归一化 psi_E(x) = (psi/A) / sqrt(2*pi) * sqrt(m/(hbar^2*k))
+    ! ==========================================================================
+    subroutine calc_scattering_wavefunction_1d_cartesian( &
+        x_grid, v_pot, mass, energy, norm_type, psi_wf, trans_prob, refl_prob, stat)
+
+        real(dp), dimension(:), intent(in)     :: x_grid
+        real(dp), dimension(:), intent(in)     :: v_pot
+        real(dp), intent(in)                   :: mass
+        real(dp), intent(in)                   :: energy
+        integer,  intent(in)                   :: norm_type
+        complex(dp), dimension(:), intent(out) :: psi_wf
+        real(dp), intent(out)                  :: trans_prob
+        real(dp), intent(out)                  :: refl_prob
+        integer, optional, intent(out)         :: stat
+
+        integer  :: n_pts, i
+        real(dp) :: dx, dx2_12, k_wave
+        real(dp), allocatable :: q(:)
+        complex(dp) :: c_curr, c_next, c_prev, d_psi_left, a_inc, b_ref
+        real(dp) :: norm_factor
+
+        if (present(stat)) stat = 0
+        n_pts = size(x_grid)
+        psi_wf = (0.0_dp, 0.0_dp)
+        trans_prob = 0.0_dp
+        refl_prob = 0.0_dp
+
+        if (energy <= 0.0_dp .or. n_pts < 5) then
+            if (present(stat)) stat = -1
+            return
+        end if
+
+        k_wave = sqrt(2.0_dp * mass * energy)
+        dx = x_grid(2) - x_grid(1)
+        dx2_12 = (dx * dx) / 12.0_dp
+
+        allocate(q(n_pts))
+        do i = 1, n_pts
+            q(i) = 2.0_dp * mass * (energy - v_pot(i))
+        end do
+
+        ! 右边界纯透射波初始条件: psi(x) ~ exp(i * k * x)
+        psi_wf(n_pts)     = cmplx(cos(k_wave * x_grid(n_pts)), sin(k_wave * x_grid(n_pts)), kind=dp)
+        psi_wf(n_pts - 1) = cmplx(cos(k_wave * x_grid(n_pts - 1)), sin(k_wave * x_grid(n_pts - 1)), kind=dp)
+
+        ! 逆向 Numerov 积分至左边界
+        do i = n_pts - 1, 2, -1
+            c_curr = 2.0_dp * (1.0_dp - 5.0_dp * dx2_12 * q(i)) * psi_wf(i)
+            c_next = (1.0_dp + dx2_12 * q(i + 1)) * psi_wf(i + 1)
+            c_prev = cmplx(1.0_dp + dx2_12 * q(i - 1), 0.0_dp, kind=dp)
+            psi_wf(i - 1) = (c_curr - c_next) / c_prev
+
+            if (abs(psi_wf(i - 1)) > 1.0e20_dp) then
+                psi_wf(i - 1:n_pts) = psi_wf(i - 1:n_pts) * 1.0e-15_dp
+            end if
+        end do
+
+        ! 左边界数值导数
+        d_psi_left = (-3.0_dp * psi_wf(1) + 4.0_dp * psi_wf(2) - psi_wf(3)) / (2.0_dp * dx)
+
+        ! 分解入射与反射波: psi(x_L) = A_inc * exp(i*k*x_L) + B_ref * exp(-i*k*x_L)
+        a_inc = 0.5_dp * (psi_wf(1) - (0.0_dp, 1.0_dp) * d_psi_left / k_wave) * &
+                cmplx(cos(k_wave * x_grid(1)), -sin(k_wave * x_grid(1)), kind=dp)
+        b_ref = 0.5_dp * (psi_wf(1) + (0.0_dp, 1.0_dp) * d_psi_left / k_wave) * &
+                cmplx(cos(k_wave * x_grid(1)),  sin(k_wave * x_grid(1)), kind=dp)
+
+        if (abs(a_inc) < 1.0e-30_dp) then
+            if (present(stat)) stat = -2
+            deallocate(q)
+            return
+        end if
+
+        trans_prob = 1.0_dp / (abs(a_inc)**2)
+        refl_prob  = (abs(b_ref)**2) / (abs(a_inc)**2)
+
+        ! 归一化标定
+        select case (norm_type)
+        case (NORM_ENERGY)
+            ! delta(E - E') 归一化: 入射振幅为 1/sqrt(2*pi) * sqrt(m / (hbar^2 * k))
+            norm_factor = (1.0_dp / sqrt(TWOPI)) * sqrt(mass / k_wave)
+        case (NORM_MOMENTUM)
+            ! delta(k - k') 归一化: 入射振幅为 1/sqrt(2*pi)
+            norm_factor = 1.0_dp / sqrt(TWOPI)
+        case default
+            ! 驻波或单位入射振幅: A_inc = 1.0
+            norm_factor = 1.0_dp
+        end select
+
+        psi_wf = (psi_wf / a_inc) * norm_factor
+        deallocate(q)
+    end subroutine calc_scattering_wavefunction_1d_cartesian
 
     ! ==========================================================================
     ! 5. 多分波截面与总碰撞截面计算

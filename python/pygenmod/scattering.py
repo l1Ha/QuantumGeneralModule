@@ -496,4 +496,48 @@ def plot_scattering_wavefunction(r_grid: np.ndarray, v_pot: np.ndarray,
     print(f"[Scattering] Scattering wavefunction plot saved to: {filename}")
 
 
+def calc_scattering_wavefunction_1d_cartesian(x_grid: np.ndarray, v_pot: np.ndarray,
+                                              mass: float, energy: float,
+                                              norm_type: str = 'energy') -> tuple:
+    """
+    1D Cartesian time-independent scattering energy eigenfunction psi_E(x).
+    Integrates backward from transmission boundary to determine incident/reflected amplitudes.
+    Returns (psi_wf, trans_prob, refl_prob).
+    norm_type: 'energy' (delta(E-E') normalized, incident amplitude 1/sqrt(2*pi) * sqrt(m/(hbar^2*k))),
+               'momentum' (delta(k-k') normalized, incident amplitude 1/sqrt(2*pi)),
+               'unit' (unit incident amplitude 1.0).
+    """
+    n_pts = len(x_grid)
+    dx = x_grid[1] - x_grid[0]
+    dx2_12 = (dx * dx) / 12.0
+    k = np.sqrt(2.0 * mass * max(1e-14, energy))
 
+    q = 2.0 * mass * (energy - v_pot)
+    psi = np.zeros(n_pts, dtype=complex)
+    psi[-1] = np.exp(1j * k * x_grid[-1])
+    psi[-2] = np.exp(1j * k * x_grid[-2])
+
+    for i in range(n_pts - 2, 0, -1):
+        c_curr = 2.0 * (1.0 - 5.0 * dx2_12 * q[i]) * psi[i]
+        c_next = (1.0 + dx2_12 * q[i + 1]) * psi[i + 1]
+        c_prev = 1.0 + dx2_12 * q[i - 1]
+        psi[i - 1] = (c_curr - c_next) / c_prev
+        if abs(psi[i - 1]) > 1e20:
+            psi[i - 1:] *= 1e-15
+
+    d_psi_left = (-3.0 * psi[0] + 4.0 * psi[1] - psi[2]) / (2.0 * dx)
+    a_inc = 0.5 * (psi[0] - 1j * d_psi_left / k) * np.exp(-1j * k * x_grid[0])
+    b_ref = 0.5 * (psi[0] + 1j * d_psi_left / k) * np.exp(1j * k * x_grid[0])
+
+    t_prob = 1.0 / (abs(a_inc)**2)
+    r_prob = (abs(b_ref)**2) / (abs(a_inc)**2)
+
+    if norm_type == 'energy':
+        norm_factor = (1.0 / np.sqrt(2.0 * np.pi)) * np.sqrt(mass / k)
+    elif norm_type == 'momentum':
+        norm_factor = 1.0 / np.sqrt(2.0 * np.pi)
+    else:
+        norm_factor = 1.0
+
+    psi_wf = (psi / a_inc) * norm_factor
+    return psi_wf, t_prob, r_prob

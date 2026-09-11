@@ -405,6 +405,8 @@ chmod +x build_examples.sh
    - 强场激光作用下氩原子的阿秒高次谐波发射仿真，通过 Lewenstein 强场近似生成偶极加速度并精确展现谐波平台与截止能。
 6. **`ex06_two_state_nonadiabatic.f90`**
    - 模拟核波包穿过经典 Tully 避差交叉势能面（Avoided Crossing），计算无绝热跃迁与各通道末态布居比。
+7. **`ex07_scattering_wavefunctions_ti_td.f90`**
+   - **连续谱散射能量本征波函数定量求解与交叉验证**：在同一一维势垒上对比非含时逆向 Numerov 匹配法与含时高斯波包 Split-Operator 谱投影法，直接给出高精度的连续态空间本征波函数 $\psi_E(x)$、隧穿透射几率 $T(E)$ 与反射几率 $R(E)$，两套独立算法相对偏差 $< 1.9\%$。
 
 ---
 

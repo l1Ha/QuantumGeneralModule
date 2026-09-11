@@ -12,7 +12,9 @@ echo "================================================================"
 echo "          Building and Running GeneralModule Examples           "
 echo "================================================================"
 
-EXAMPLES=("ex01_fgh_diatomic_bound_states" "ex02_pulse_synthesis" "ex03_split_operator_1d" "ex04_field_free_orientation" "ex05_hhg_lewenstein_spectrum" "ex06_two_state_nonadiabatic")
+cd "$DIR"
+
+EXAMPLES=("ex01_fgh_diatomic_bound_states" "ex02_pulse_synthesis" "ex03_split_operator_1d" "ex04_field_free_orientation" "ex05_hhg_lewenstein_spectrum" "ex06_two_state_nonadiabatic" "ex07_scattering_wavefunctions_ti_td")
 
 for ex in "${EXAMPLES[@]}"; do
     echo ""
