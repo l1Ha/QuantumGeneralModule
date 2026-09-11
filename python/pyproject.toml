@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pygenmod"
+version = "1.0.0"
+authors = [
+  { name="LiHao" },
+]
+description = "Python companion and analysis toolkit for the GeneralModule Fortran quantum dynamics library"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "numpy>=1.20",
+    "matplotlib>=3.3",
+]

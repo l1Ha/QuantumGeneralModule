@@ -1,0 +1,76 @@
+name = "GeneralModule"
+version = "0.1.0"
+license = "MIT"
+author = "LiHao"
+maintainer = "ablis@outlook.com"
+copyright = "Copyright 2026, LiHao"
+
+[build]
+auto-executables = false
+auto-tests = false
+auto-examples = false
+
+[fortran]
+implicit-typing = false
+implicit-external = false
+source-form = "default"
+
+[[test]]
+name = "test_constants"
+source-dir = "tests"
+main = "test_constants.f90"
+
+[[test]]
+name = "test_special_functions"
+source-dir = "tests"
+main = "test_special_functions.f90"
+
+[[test]]
+name = "test_dvr_grid"
+source-dir = "tests"
+main = "test_dvr_grid.f90"
+
+[[test]]
+name = "test_laser_pulse"
+source-dir = "tests"
+main = "test_laser_pulse.f90"
+
+[[test]]
+name = "test_propagators"
+source-dir = "tests"
+main = "test_propagators.f90"
+
+[[test]]
+name = "test_atomic_hhg"
+source-dir = "tests"
+main = "test_atomic_hhg.f90"
+
+[[example]]
+name = "ex01_fgh_diatomic_bound_states"
+source-dir = "examples"
+main = "ex01_fgh_diatomic_bound_states.f90"
+
+[[example]]
+name = "ex02_pulse_synthesis"
+source-dir = "examples"
+main = "ex02_pulse_synthesis.f90"
+
+[[example]]
+name = "ex03_split_operator_1d"
+source-dir = "examples"
+main = "ex03_split_operator_1d.f90"
+
+[[example]]
+name = "ex04_field_free_orientation"
+source-dir = "examples"
+main = "ex04_field_free_orientation.f90"
+
+[[example]]
+name = "ex05_hhg_lewenstein_spectrum"
+source-dir = "examples"
+main = "ex05_hhg_lewenstein_spectrum.f90"
+
+[[example]]
+name = "ex06_two_state_nonadiabatic"
+source-dir = "examples"
+main = "ex06_two_state_nonadiabatic.f90"
