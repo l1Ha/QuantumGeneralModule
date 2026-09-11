@@ -1,5 +1,10 @@
 # GeneralModule: 现代量子动力学通用算法库 (Fortran 2008 / Python)
 
+[![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
+[![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
+[![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
+[![Tests: 92/92 Pass](https://img.shields.io/badge/Tests-92%2F92%20Pass%20(100%25)-brightgreen.svg)](tests/)
+
 `GeneralModule` 是一个面向超快强场物理、分子光物理与量子动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
 
 ---
@@ -8,15 +13,17 @@
 
 1. **零外部库依赖 (Zero External Dependencies)**
    - 内部集成高精度 Householder QL 实对称矩阵本征求解器与 Cooley-Tukey 1D/2D 快速傅里叶变换（FFT）。
-   - 无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用，支持跨平台一键编译。
+   - 纯 Fortran 自包含样条插值、Lindblad 主方程积分器与 Krotov 最优控制，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
 2. **现代 Fortran 2008 标准设计**
    - 统一强类型参数定义（`real(dp) => real64`）。
    - 纯函数（`pure function`）与显式 `intent(in/out/inout)` 契约，杜绝隐式全局变量副作用。
 3. **AI 友好型结构化接口 (AI-Friendly)**
    - 算法模块支持统一顶层聚合入口：`use general_module`。
-   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `absorbing_boundary_t`, `dvr_1d_t`），自解释、低耦合、便于大语言模型精确构造与调用。
+   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `absorbing_boundary_t`, `dvr_1d_t`, `spline_1d_t`, `lindblad_system_t`, `oct_config_t`），自解释、低耦合、便于大语言模型精确构造与调用。
 4. **全链路双语生态支持**
-   - 附带标准 Python 包装分析包 `pygenmod`，无缝衔接参数预计算、波包可视化与发表级绘图。
+   - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包可视化与发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
+5. **全自动 CI/CD 持续集成**
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 10 大测试套件与 Python 验证。
 
 ---
 
@@ -24,12 +31,13 @@
 
 ```text
 GeneralModule/
+├── .github/workflows/ci.yml       # 🚀 GitHub Actions 跨平台 CI 持续集成工作流
 ├── CONFIG_GUIDE.md                # 📖 详尽配置与部署指南（全编译平台、参数全典、AI提示词模板）
 ├── fpm.toml                       # Fortran Package Manager 配置文件
 ├── CMakeLists.txt                 # CMake 跨平台构建系统
 ├── README.md                      # 本文档
 ├── .gitignore                     # Git 忽略规则
-├── src/                           # 核心 Fortran 源代码 (14 核心模块 + 1 聚合入口)
+├── src/                           # 核心 Fortran 源代码 (18 核心模块 + 1 聚合入口)
 │   ├── mod_constants.f90          # 1. 物理常数与各单位 a.u. 双向转换
 │   ├── mod_special_functions.f90  # 2. 勒让德、Wigner 3j、CG、转动偶极/取向矩阵元
 │   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解 (EISPACK TRED2/TQL2)、1D/2D FFT
@@ -44,8 +52,12 @@ GeneralModule/
 │   ├── mod_multistate_coupling.f90 # 12. 多势能面非绝热耦合动力学与Landau-Zener跃迁
 │   ├── mod_rovibrational.f90      # 13. 分子转振耦合、Franck-Condon因子、转动常数、偶极矩阵与STIRAP脉冲
 │   ├── mod_io_utils.f90           # 14. 科学数据多列保存、矩阵导出、控制台横幅与进度条监测
+│   ├── mod_interpolation.f90      # 15. 高精度自然/固定导数三次样条插值、解析一阶/二阶导数与势能面渐近外推
+│   ├── mod_photofragment_flux.f90 # 16. 自相关函数与吸收截面谱、渐近散射振幅与光解离碎片动能释放谱(KER)
+│   ├── mod_open_quantum.f90       # 17. 开放量子系统 Lindblad 耗散主方程、自发跃迁/退相位弛豫、纯度与冯·诺依曼熵
+│   ├── mod_optimal_control.f90    # 18. 量子最优控制理论 Krotov 算法、目标保真度与激光场原位迭代优化
 │   └── general_module.f90         # 顶层聚合入口模块 (use general_module)
-├── tests/                         # 自动化单元测试套件 (7 个套件，100% 全部通过)
+├── tests/                         # 自动化单元测试套件 (10 个套件，100% 全部通过)
 │   ├── test_constants.f90
 │   ├── test_special_functions.f90
 │   ├── test_dvr_grid.f90
@@ -53,7 +65,10 @@ GeneralModule/
 │   ├── test_propagators.f90
 │   ├── test_atomic_hhg.f90
 │   ├── test_laser_rovibrational_control.f90 # 激光调控分子转振态布居转移综合测试
-│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 69/69 断言)
+│   ├── test_interpolation.f90     # 三次样条插值与渐近外推测试
+│   ├── test_photofragment_flux.f90# 自相关吸收谱与碎片 KER 分支比测试
+│   ├── test_open_quantum_opt.f90  # Lindblad 耗散退相干与 Krotov 最优控制测试
+│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 92/92 断言)
 ├── examples/                      # 典型物理应用算例 (6 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90           # 啁啾、双色、太赫兹脉冲时频生成
@@ -64,7 +79,8 @@ GeneralModule/
 │   └── build_examples.sh          # 算例编译运行脚本
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
-    ├── test_pygenmod.py           # Python 单元测试 (100% Pass)
+    ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 7/7 测试)
+    ├── plot_rovibrational_dynamics.py # 出版级分子转振受控动力学一键绘图管道
     └── pygenmod/
         ├── __init__.py
         ├── constants.py
@@ -73,6 +89,7 @@ GeneralModule/
         ├── coulomb.py
         ├── hhg.py
         ├── multistate.py
+        ├── rovibrational.py       # 转振态索引映射、FC因子、转动常数与跃迁偶极
         └── visualizer.py          # 发表级科学绘图工具
 ```
 
@@ -180,6 +197,39 @@ GeneralModule/
 - `print_banner(title, width)`: 控制台美化打印计算任务标题横幅。
 - `print_progress_bar(current, total, prefix)`: 动力学时域演化单行就地刷新进度条。
 
+### 15. 高精度样条插值与势能面外推 (`mod_interpolation`)
+- 派生类型：`type(spline_1d_t)`（支持 `BC_NATURAL` 与 `BC_CLAMPED`）。
+- `spline_1d_init(x, y, spline, bc_type, yp_0, yp_n)`: 内部采用三对角追赶法（Thomas 算法）构建自然三次样条（Natural BC, $y''=0$）或固定导数三次样条（Clamped BC）。
+- `spline_1d_eval(spline, x_eval)`: 样条内插求值，自动二分查找区间，无外部矩阵求逆依赖。
+- `spline_1d_deriv(spline, x_eval)` / `spline_1d_deriv2(spline, x_eval)`: 解析一阶与二阶导数连续计算，误差达到机器浮点极限，直接用于势能面受力与曲率分析。
+- `potential_extrapolate_1d(x_eval, spline, r_min, r_max, a_rep, b_rep, c6_disp, v_inf)`: 科学势能面专用接合外推器，短程指数排斥 $A e^{-B R}$，长程范德华 $V_\infty - C_6/R^6$ 渐近平滑接合。
+
+### 16. 光碎片动力学与通量谱分析 (`mod_photofragment_flux`)
+- `calc_autocorrelation(psi_0, psi_t, dx)`: 波包初态与含时态重叠自相关函数 $C(t) = \langle\psi(0)|\psi(t)\rangle$。
+- `heller_absorption_spectrum(t_arr, c_t, dt, gamma_damp, omega_arr, spectrum)`: 基于 Heller 理论的连续吸收截面光波谱 $\sigma(\omega) \propto \omega \text{Re}\int_0^\infty C(t) e^{i(\omega+E_0)t - \gamma t} dt$。
+- `photofragment_energy_amplitude(t_arr, psi_at_r_det, dt, e_arr, amp_e)`: 渐近监测面 $R_{det}$ 处含时散射波的时间-能量傅里叶散射振幅 $A(E) = \frac{1}{\sqrt{2\pi}}\int \psi(R_{det}, t) e^{i E t} dt$。
+- `fragment_kinetic_energy_release(e_photon, v_asymptote, e_bound, ker_spectrum, n_pts)`: 光解离碎片动能释放谱（KER）与能量守恒分析。
+- `photofragment_branching_ratio(flux_channels, n_channels, ratios)`: 多通道渐近概率流积分与光化学反应分支比。
+
+### 17. 开放量子系统与 Lindblad 耗散主方程 (`mod_open_quantum`)
+- 派生类型：`type(lindblad_system_t)`。
+- `lindblad_init(n_levels, n_channels, sys)`: 初始化开放量子系统密度矩阵维度与耗散通道。
+- `lindblad_add_decay_channel(sys, i_from, j_to, rate_gamma)`: 添加自发跃迁弛豫算符 $L = \sqrt{\gamma} |j\rangle\langle i|$。
+- `lindblad_add_dephasing_channel(sys, level_idx, rate_gamma_d)`: 添加纯退相位跃迁算符 $L = \sqrt{\gamma_d} |i\rangle\langle i|$。
+- `lindblad_rhs(rho, h_eff, sys, drho_dt)`: 计算密度矩阵主方程导数 $\frac{d\rho}{dt} = -i[H, \rho] + \sum_k \gamma_k (L_k \rho L_k^\dagger - \frac{1}{2}\{L_k^\dagger L_k, \rho\})$。
+- `propagate_lindblad_rk4(rho, h_eff, sys, dt)`: 4 阶保迹保埃尔米特 Runge-Kutta 密度矩阵时域推进器。
+- `density_matrix_purity(rho)`: 量子态纯度 $\text{Tr}(\rho^2)$（纯态为 1，最大混合态为 $1/N$）。
+- `von_neumann_entropy(rho)`: 冯·诺依曼量子信息熵 $S = -\text{Tr}(\rho \ln \rho)$。
+- `quantum_coherence_l1(rho)`: 全局 $l_1$-范数量子相干度 $C_{l_1}(\rho) = \sum_{i \ne j} |\rho_{ij}|$。
+
+### 18. 量子最优控制理论 Krotov 算法 (`mod_optimal_control`)
+- 派生类型：`type(oct_config_t)`。
+- `oct_config_init(n_steps, dt, alpha_penalty, max_iter, tol_fidelity, cfg)`: 配置控制时域、场强惩罚权重 $\alpha_0$、收敛阈值。
+- `state_transfer_fidelity(psi_final, psi_target)`: 目标态转移保真度 $F = |\langle\psi_{target}|\psi(T)\rangle|^2$。
+- `oct_shape_function(t, t_total, shape_type)`: 开关整形约束函数 $S(t) = \sin^2(\pi t / T)$，确保激光场在脉冲起止点平滑归零。
+- `oct_krotov_step(h0, mu, psi_forward, chi_backward, field_old, field_new, cfg, delta_j)`: 单步执行 Krotov 正向-反向共轭态交替推进并原位更新控制激光场 $\Delta E(t) = -\frac{S(t)}{\alpha_0} \text{Im}\langle\chi(t)|\mu|\psi(t)\rangle$。
+- `oct_optimize_pulse(h0, mu, psi_init, psi_target, cfg, field_opt, final_fidelity, stat)`: 高层封装端到端激光脉冲自动优化循环。
+
 ---
 
 ## 📖 详细配置手册
@@ -261,7 +311,7 @@ target_link_libraries(my_executable PRIVATE GeneralModule_static)
 
 ## 🧪 自动化测试套件
 
-算法库内建完备的单元测试，覆盖物理常数往返转换、角动量耦合、FGH 谐振子能级、激光脉冲包络、Bloch / Split-Operator 模长守恒、强场原子模型与多态非绝热耦合：
+算法库内建完备的单元测试，覆盖物理常数往返转换、角动量耦合、FGH 谐振子能级、激光脉冲包络、Bloch / Split-Operator 模长守恒、强场原子模型与多态非绝热耦合、转振态激光调控、三次样条插值与外推、自相关吸收谱与碎片 KER 分支比、Lindblad 耗散主方程与 Krotov 最优控制：
 
 ```bash
 cd GeneralModule/tests
@@ -269,8 +319,11 @@ chmod +x run_all_tests.sh
 ./run_all_tests.sh
 ```
 
-**测试结果示例**：
+**测试结果清单**：
 ```text
+================================================================
+          Running GeneralModule Test Suite Suite                
+================================================================
 Constants Tests:             10 / 10 PASSED
 Special Function Tests:      12 / 12 PASSED
 DVR Grid Tests:               8 /  8 PASSED
@@ -278,8 +331,12 @@ Laser Pulse Tests:            9 /  9 PASSED
 Propagator Tests:             8 /  8 PASSED
 Extended Atomic Tests:       14 / 14 PASSED
 Rovibrational Control Tests:  8 /  8 PASSED
----------------------------------------------
-ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 69/69 tests)
+Interpolation Tests:          7 /  7 PASSED
+Photofragment & Flux Tests:   6 /  6 PASSED
+Open Quantum & OCT Tests:    10 / 10 PASSED
+----------------------------------------------------------------
+ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 92/92 断言通过)
+================================================================
 ```
 
 ---
@@ -310,14 +367,21 @@ chmod +x build_examples.sh
 
 ## 🐍 Python 辅助分析套件 (`pygenmod`)
 
-提供轻量 Python 库，用于数据交互与前后期处理：
+提供轻量 Python 库，用于数据交互、前处理计算与出版级可视化：
 
 ```bash
 cd GeneralModule/python
-python3 test_pygenmod.py
+python3 test_pygenmod.py   # 运行 7 大单元测试 (100% Pass)
 ```
 
-### Python 调用示例：
+### 1. 转振态激光调控动力学一键绘图 (`plot_rovibrational_dynamics.py`)
+结合 Fortran 计算生成的 `test_rovibrational_dynamics.dat`，一键绘制 4 面板 300 DPI 矢量级高清科研图（激光电场、各振动态布居演化、转振精细结构布居、全系综总几率守恒验证）：
+```bash
+python3 python/plot_rovibrational_dynamics.py
+# 生成高分辨率图表: python/result_rovibrational_dynamics.png
+```
+
+### 2. Python 调用示例：
 ```python
 from pygenmod import dvr_sinc_init, fgh_solve_bound_states, plot_wavefunctions
 

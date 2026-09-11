@@ -7,7 +7,9 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SRC_DIR="$DIR/../src"
 
-export DEVELOPER_DIR="/Library/Developer/CommandLineTools"
+if [ -d "/Library/Developer/CommandLineTools" ]; then
+    export DEVELOPER_DIR="/Library/Developer/CommandLineTools"
+fi
 
 echo "================================================================"
 echo "          Running GeneralModule Test Suite Suite                "
@@ -30,13 +32,17 @@ gfortran -O2 -fPIC -c mod_chebyshev_propagator.f90
 gfortran -O2 -fPIC -c mod_multistate_coupling.f90
 gfortran -O2 -fPIC -c mod_rovibrational.f90
 gfortran -O2 -fPIC -c mod_io_utils.f90
+gfortran -O2 -fPIC -c mod_interpolation.f90
+gfortran -O2 -fPIC -c mod_photofragment_flux.f90
+gfortran -O2 -fPIC -c mod_open_quantum.f90
+gfortran -O2 -fPIC -c mod_optimal_control.f90
 gfortran -O2 -fPIC -c general_module.f90
-DEVELOPER_DIR=/Library/Developer/CommandLineTools ar rcs libgeneral_module.a *.o
+ar rcs libgeneral_module.a *.o
 
 cd "$DIR"
 
-# 2. 编译并运行各项测试
-TESTS=("test_constants" "test_special_functions" "test_dvr_grid" "test_laser_pulse" "test_propagators" "test_atomic_hhg" "test_laser_rovibrational_control")
+# 2. 编译并运行各项测试 (共 10 大完整测试套件)
+TESTS=("test_constants" "test_special_functions" "test_dvr_grid" "test_laser_pulse" "test_propagators" "test_atomic_hhg" "test_laser_rovibrational_control" "test_interpolation" "test_photofragment_flux" "test_open_quantum_opt")
 
 for test_name in "${TESTS[@]}"; do
     echo ""

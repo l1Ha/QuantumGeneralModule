@@ -50,6 +50,21 @@ name = "test_laser_rovibrational_control"
 source-dir = "tests"
 main = "test_laser_rovibrational_control.f90"
 
+[[test]]
+name = "test_interpolation"
+source-dir = "tests"
+main = "test_interpolation.f90"
+
+[[test]]
+name = "test_photofragment_flux"
+source-dir = "tests"
+main = "test_photofragment_flux.f90"
+
+[[test]]
+name = "test_open_quantum_opt"
+source-dir = "tests"
+main = "test_open_quantum_opt.f90"
+
 [[example]]
 name = "ex01_fgh_diatomic_bound_states"
 source-dir = "examples"

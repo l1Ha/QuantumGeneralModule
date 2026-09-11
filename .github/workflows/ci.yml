@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Build & Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Fortran Compiler (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran
+
+      - name: Setup Fortran Compiler (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install gcc || true
+          which gfortran || true
+          gfortran --version
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy scipy matplotlib
+
+      - name: Run Fortran Unit Test Suite (10 Test Suites, 92 Assertions)
+        run: |
+          bash tests/run_all_tests.sh
+
+      - name: Run Python Package Unit Tests (pygenmod)
+        run: |
+          python3 python/test_pygenmod.py
+
+      - name: Run Rovibrational Dynamics Visualization Pipeline
+        run: |
+          python3 python/plot_rovibrational_dynamics.py

@@ -24,6 +24,10 @@
    - [3.5 分子转振态基底与激光动力学耦合配置 (`mod_rovibrational`)](#35-分子转振态基底与激光动力学耦合配置-mod_rovibrational)
    - [3.6 科学计算 I/O 与诊断可视化工具 (`mod_io_utils`)](#36-科学计算-io-与诊断可视化工具-mod_io_utils)
    - [3.7 时间推进步长稳定性判据 (CFL 条件)](#37-时间推进步长稳定性判据-cfl-条件)
+   - [3.8 高精度三次样条插值与势能面外推配置 (`mod_interpolation`)](#38-高精度三次样条插值与势能面外推配置-mod_interpolation)
+   - [3.9 自相关函数、光吸收谱与光碎片通量配置 (`mod_photofragment_flux`)](#39-自相关函数光吸收谱与光碎片通量配置-mod_photofragment_flux)
+   - [3.10 开放量子系统与 Lindblad 耗散主方程配置 (`mod_open_quantum`)](#310-开放量子系统与-lindblad-耗散主方程配置-mod_open_quantum)
+   - [3.11 量子最优控制理论 Krotov 算法配置 (`mod_optimal_control`)](#311-量子最优控制理论-krotov-算法配置-mod_optimal_control)
 4. [Python 伴侣库 `pygenmod` 配置与混合编程](#4-python-伴侣库-pygenmod-配置与混合编程)
    - [4.1 本地可编辑模式安装](#41-本地可编辑模式安装)
    - [4.2 数据交互规范（.dat 与无损二进制）](#42-数据交互规范-dat-与无损二进制)
@@ -328,6 +332,100 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 - **电子动力学（$m = 1\text{ a.u.}$）**：若 $\Delta x = 0.2\text{ Bohr}$，则 $\Delta t \le \frac{2 \times 0.04}{3.14} \approx 0.025\text{ a.u.} \approx 0.6\text{ 自动单位 (约 } 0.0006\text{ fs)}$。
 - **核动力学（$m \sim 2000\text{ a.u.}$）**：步长可大幅放宽至 $\Delta t \sim 1.0 - 5.0\text{ a.u.} (0.02 - 0.1\text{ fs})$。
 - **切比雪夫推进器（`chebyshev_propagate_step`）**：时间步长不受上述高频震荡严格限制，单步可达几个飞秒且保持机器精度。
+
+---
+
+### 3.8 高精度三次样条插值与势能面外推配置 (`mod_interpolation`)
+针对量子化学第一性原理计算离散单点能（Ab Initio PES）或从头算偶极矩曲面的高精度平滑重构：
+1. **构造自然/固定导数样条**：
+   ```fortran
+   type(spline_1d_t) :: pes_spline
+   ! 自然边界条件 (BC_NATURAL: y''(x_0) = y''(x_n) = 0)
+   call spline_1d_init(r_grid, v_ab_initio, pes_spline, bc_type=BC_NATURAL)
+   ! 固定一阶导数边界条件 (BC_CLAMPED)
+   call spline_1d_init(r_grid, v_ab_initio, pes_spline, bc_type=BC_CLAMPED, yp_0=0.0_dp, yp_n=0.0_dp)
+   ```
+2. **内插与连续导数求值**：
+   ```fortran
+   v_val = spline_1d_eval(pes_spline, r_curr)       ! 高精度函数值
+   force = -spline_1d_deriv(pes_spline, r_curr)     ! 解析一阶导数（受力）
+   curv  = spline_1d_deriv2(pes_spline, r_curr)     ! 解析二阶导数（曲率）
+   ```
+3. **势能面全域物理外推（短程排斥 + 长程范德华）**：
+   ```fortran
+   ! 当 r < r_min 时采用 A*exp(-B*r) 指数排斥，当 r > r_max 时采用 V_inf - C6/r^6 平滑过渡
+   v_extrap = potential_extrapolate_1d(r_curr, pes_spline, r_min=1.0_dp, r_max=12.0_dp, &
+                                       a_rep=100.0_dp, b_rep=2.5_dp, c6_disp=25.0_dp, v_inf=0.0_dp)
+   ```
+
+---
+
+### 3.9 自相关函数、光吸收谱与光碎片通量配置 (`mod_photofragment_flux`)
+面向分子光解离（Photodissociation）、光缔合与超快激发态动力学终态测量分析：
+1. **波包自相关函数与 Heller 吸收截面谱**：
+   ```fortran
+   ! 计算每步含时重叠 C(t) = <psi(0) | psi(t)>
+   c_t(it) = calc_autocorrelation(psi_init, psi_curr, dx)
+
+   ! 快速傅里叶时频积分提取吸收截面 sigma(omega)
+   call heller_absorption_spectrum(t_arr, c_t, dt, gamma_damp=0.002_dp, &
+                                   omega_arr=omega_arr, spectrum=sigma_abs, e_zero=e_init)
+   ```
+2. **渐近面动能释放谱（KER）与多通道光解离分支比**：
+   ```fortran
+   ! 在探测边界 R_det 处提取连续态能量谱振幅 A(E)
+   call photofragment_energy_amplitude(t_arr, psi_at_det, dt, e_grid, amp_e)
+
+   ! 积分各出射通道渐近概率通量计算分支比 (Branching Ratio)
+   call photofragment_branching_ratio(flux_channels, n_channels=2, ratios=branch_ratios)
+   ```
+
+---
+
+### 3.10 开放量子系统与 Lindblad 耗散主方程配置 (`mod_open_quantum`)
+模拟受热浴环境耗散、自发辐射衰减（$T_1$ 弛豫）与介质碰撞纯退相位（$T_2^*$ 退相干）影响的非幺正密度矩阵演化：
+1. **初始化耗散系统与跃迁通道**：
+   ```fortran
+   type(lindblad_system_t) :: sys
+   call lindblad_init(n_levels=3, n_channels=2, sys=sys)
+
+   ! 添加能级 2 到能级 1 的自发跃迁弛豫通道 (rate = gamma_1)
+   call lindblad_add_decay_channel(sys, i_from=2, j_to=1, rate_gamma=1.0e-4_dp)
+
+   ! 添加能级 2 的纯退相位通道 (rate = gamma_dephasing)
+   call lindblad_add_dephasing_channel(sys, level_idx=2, rate_gamma_d=5.0e-5_dp)
+   ```
+2. **Runge-Kutta 4 阶密度矩阵积分推进**：
+   ```fortran
+   ! 单步演化: d(rho)/dt = -i[H, rho] + D[rho]
+   call propagate_lindblad_rk4(rho, h_eff, sys, dt)
+   ```
+3. **量子态纯度、信息熵与相干度诊断**：
+   ```fortran
+   purity  = density_matrix_purity(rho)      ! Tr(rho^2) ∈ [1/N, 1]
+   entropy = von_neumann_entropy(rho)        ! -Tr(rho * ln(rho))
+   coher   = quantum_coherence_l1(rho)       ! sum_{i != j} |rho_ij|
+   ```
+
+---
+
+### 3.11 量子最优控制理论 Krotov 算法配置 (`mod_optimal_control`)
+用于高保真度目标态布居转移（State Preparation）或量子逻辑门激光脉冲波形自适应设计：
+1. **控制参数配置**：
+   ```fortran
+   type(oct_config_t) :: oct_cfg
+   ! n_steps: 离散时步, dt: 推进步长
+   ! alpha_penalty: 激光能量惩罚因子 (建议原子单位取 20.0 ~ 100.0)
+   ! max_iter: 最大迭代轮数, tol_fidelity: 目标保真度阈值 (如 0.999)
+   call oct_config_init(n_steps=1000, dt=0.5_dp, alpha_penalty=50.0_dp, &
+                        max_iter=50, tol_fidelity=0.999_dp, cfg=oct_cfg)
+   ```
+2. **端到端激光脉冲自动优化**：
+   ```fortran
+   call oct_optimize_pulse(h0_mat, mu_mat, psi_init, psi_target, &
+                           oct_cfg, field_opt, final_fidelity, stat)
+   print *, "Optimization converged with final fidelity:", final_fidelity
+   ```
 
 ---
 

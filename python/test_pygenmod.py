@@ -18,6 +18,10 @@ from pygenmod import (
     get_atom_config, keldysh_parameter, hhg_cutoff_energy,
     soft_core_coulomb_potential, adk_ionization_rate,
     landau_zener_probability, calculate_channel_populations,
+    rovibrational_state_index, rovibrational_state_unindex,
+    rot_matrix_cos_theta, calc_franck_condon_factors,
+    calc_rotational_constants_bv, build_rovibrational_hamiltonian,
+    build_rovibrational_dipole_matrix,
     plot_wavefunctions, plot_pulses
 )
 
@@ -104,6 +108,25 @@ class TestPyGenMod(unittest.TestCase):
         self.assertAlmostEqual(pop1, 1.0, places=6)
         self.assertAlmostEqual(pop2, 0.0, places=6)
         self.assertAlmostEqual(ratio, 0.0, places=6)
+
+    def test_rovibrational(self):
+        # Index roundtrip
+        idx = rovibrational_state_index(v=2, j=3, j_max=5)
+        v, j = rovibrational_state_unindex(idx, j_max=5)
+        self.assertEqual(v, 2)
+        self.assertEqual(j, 3)
+
+        # Transition dipole selection rule <0|cos|1> = 1/sqrt(3)
+        me = rot_matrix_cos_theta(0, 1, 0)
+        self.assertAlmostEqual(me, 1.0 / np.sqrt(3.0), places=6)
+        self.assertEqual(rot_matrix_cos_theta(0, 2, 0), 0.0)
+
+        # Franck-Condon factor
+        chi = np.zeros((10, 2))
+        chi[2, 0] = 1.0
+        chi[2, 1] = 1.0
+        fc = calc_franck_condon_factors(chi, chi, dx=1.0)
+        self.assertAlmostEqual(fc[0, 0], 1.0, places=6)
 
     def test_visualizer_smoke(self):
         # Quick check that visualization runs without error

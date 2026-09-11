@@ -35,11 +35,18 @@ from .multistate import (
     landau_zener_probability, calculate_channel_populations
 )
 
+from .rovibrational import (
+    rovibrational_state_index, rovibrational_state_unindex,
+    rot_matrix_cos_theta, calc_franck_condon_factors,
+    calc_rotational_constants_bv, build_rovibrational_hamiltonian,
+    build_rovibrational_dipole_matrix
+)
+
 from .visualizer import (
     set_publication_style, plot_wavefunctions, plot_pulses, plot_alignment_dynamics
 )
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __all__ = [
     "PI", "TWOPI", "HALFPI", "SQRTPI",
     "to_au", "from_au",
@@ -49,5 +56,9 @@ __all__ = [
     "keldysh_parameter", "ponderomotive_energy", "hhg_cutoff_energy", "quiver_radius", "adk_ionization_rate",
     "calculate_dipole_acceleration", "hhg_power_spectrum",
     "landau_zener_probability", "calculate_channel_populations",
+    "rovibrational_state_index", "rovibrational_state_unindex",
+    "rot_matrix_cos_theta", "calc_franck_condon_factors",
+    "calc_rotational_constants_bv", "build_rovibrational_hamiltonian",
+    "build_rovibrational_dipole_matrix",
     "plot_wavefunctions", "plot_pulses", "plot_alignment_dynamics"
 ]

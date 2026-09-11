@@ -16,6 +16,10 @@ module general_module
     use mod_multistate_coupling
     use mod_rovibrational
     use mod_io_utils
+    use mod_interpolation
+    use mod_photofragment_flux
+    use mod_open_quantum
+    use mod_optimal_control
     implicit none
 
     public :: dp, int32, int64
@@ -66,5 +70,21 @@ module general_module
     ! 标准化科学 I/O 工具
     public :: save_data_table_1d, save_data_table_2d, save_matrix_dat
     public :: print_banner, print_progress_bar
+
+    ! 势能面高精度样条插值与外推
+    public :: spline_1d_t, spline_init, spline_eval, spline_eval_deriv, spline_eval_deriv2
+    public :: spline_clean, interpolate_pes_to_grid, BC_NATURAL, BC_CLAMPED
+
+    ! 光解离碎片能谱与自相关吸收谱
+    public :: calculate_autocorrelation, calculate_absorption_spectrum
+    public :: energy_resolved_flux_amplitude, calculate_ker_spectrum, calculate_branching_ratios
+
+    ! 开放量子系统与耗散动力学
+    public :: lindblad_dissipator, rk4_lindblad_step, calculate_quantum_purity
+    public :: calculate_von_neumann_entropy, calculate_quantum_coherence
+    public :: create_relaxation_jump_op, create_dephasing_jump_op
+
+    ! 量子最优控制理论 (Krotov 算法)
+    public :: oct_fidelity, oct_shape_function, oct_krotov_step, oct_optimize_pulse
 
 end module general_module
