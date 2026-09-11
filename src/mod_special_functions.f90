@@ -178,19 +178,18 @@ contains
     pure function rot_matrix_cos_theta(j, j_prime, m) result(mat_elem)
         integer, intent(in) :: j, j_prime, m
         real(dp) :: mat_elem
-        real(dp) :: j_r, m_r
+        real(dp) :: j_max_r, m_r
+        integer :: j_max
 
         mat_elem = 0.0_dp
+        if (abs(j - j_prime) /= 1) return
         if (abs(m) > min(j, j_prime)) return
 
-        j_r = real(min(j, j_prime), dp)
+        j_max = max(j, j_prime)
+        j_max_r = real(j_max, dp)
         m_r = real(m, dp)
 
-        if (j_prime == j + 1) then
-            mat_elem = sqrt(((j_r + 1.0_dp)**2 - m_r**2) / ((2.0_dp * j_r + 1.0_dp) * (2.0_dp * j_r + 3.0_dp)))
-        else if (j_prime == j - 1) then
-            mat_elem = sqrt((j_r**2 - m_r**2) / ((2.0_dp * j_r - 1.0_dp) * (2.0_dp * j_r + 1.0_dp)))
-        end if
+        mat_elem = sqrt((j_max_r**2 - m_r**2) / ((2.0_dp * j_max_r - 1.0_dp) * (2.0_dp * j_max_r + 1.0_dp)))
     end function rot_matrix_cos_theta
 
     !> \brief 转动基底取向矩阵元 <j, m | cos^2(theta) | j_prime, m>
@@ -198,21 +197,23 @@ contains
         integer, intent(in) :: j, j_prime, m
         real(dp) :: mat_elem
         real(dp) :: j_r, m_r
+        integer :: j_min
 
         mat_elem = 0.0_dp
         if (abs(m) > min(j, j_prime)) return
-        j_r = real(j, dp)
         m_r = real(m, dp)
 
-        if (j_prime == j) then
-            mat_elem = ((j_r + 1.0_dp)**2 - m_r**2) / ((2.0_dp * j_r + 1.0_dp) * (2.0_dp * j_r + 3.0_dp)) + &
-                       (j_r**2 - m_r**2) / ((2.0_dp * j_r - 1.0_dp) * (2.0_dp * j_r + 1.0_dp))
-        else if (j_prime == j + 2) then
+        if (j == j_prime) then
+            j_r = real(j, dp)
+            mat_elem = ((j_r + 1.0_dp)**2 - m_r**2) / ((2.0_dp * j_r + 1.0_dp) * (2.0_dp * j_r + 3.0_dp))
+            if (j > 0) then
+                mat_elem = mat_elem + (j_r**2 - m_r**2) / ((2.0_dp * j_r - 1.0_dp) * (2.0_dp * j_r + 1.0_dp))
+            end if
+        else if (abs(j - j_prime) == 2) then
+            j_min = min(j, j_prime)
+            j_r = real(j_min, dp)
             mat_elem = sqrt(((j_r + 1.0_dp)**2 - m_r**2) * ((j_r + 2.0_dp)**2 - m_r**2) / &
                        ((2.0_dp * j_r + 1.0_dp) * (2.0_dp * j_r + 3.0_dp)**2 * (2.0_dp * j_r + 5.0_dp)))
-        else if (j_prime == j - 2) then
-            mat_elem = sqrt((j_r**2 - m_r**2) * ((j_r - 1.0_dp)**2 - m_r**2) / &
-                       ((2.0_dp * j_r + 1.0_dp) * (2.0_dp * j_r - 1.0_dp)**2 * (2.0_dp * j_r - 3.0_dp)))
         end if
     end function rot_matrix_cos2_theta
 

@@ -29,12 +29,12 @@ GeneralModule/
 ├── CMakeLists.txt                 # CMake 跨平台构建系统
 ├── README.md                      # 本文档
 ├── .gitignore                     # Git 忽略规则
-├── src/                           # 核心 Fortran 源代码 (12 核心模块 + 1 聚合入口)
+├── src/                           # 核心 Fortran 源代码 (14 核心模块 + 1 聚合入口)
 │   ├── mod_constants.f90          # 1. 物理常数与各单位 a.u. 双向转换
 │   ├── mod_special_functions.f90  # 2. 勒让德、Wigner 3j、CG、转动偶极/取向矩阵元
-│   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解、1D/2D FFT
-│   ├── mod_dvr_grid.f90           # 4. Sinc-DVR、Legendre-DVR、FGH 束缚态求解
-│   ├── mod_laser_pulse.f90        # 5. 超快强场脉冲时域合成、矢量势与椭偏场
+│   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解 (EISPACK TRED2/TQL2)、1D/2D FFT
+│   ├── mod_dvr_grid.f90           # 4. Sinc-DVR、Legendre-DVR、FGH 束缚态求解、格点期望值
+│   ├── mod_laser_pulse.f90        # 5. 超快强场脉冲时域合成、矢量势、椭偏场与便捷构造器
 │   ├── mod_absorbing_boundary.f90 # 6. 复吸收势边界（CAP）、概率流与存活范数
 │   ├── mod_thermal_ensemble.f90   # 7. 玻尔兹曼转振分布、热系综统计平均
 │   ├── mod_wavepacket_propagator.f90 # 8. 分裂算符 (1D/2D Split-Operator)、RK4、Bloch、ABM4
@@ -42,15 +42,18 @@ GeneralModule/
 │   ├── mod_hhg_spectra.f90        # 10. Ehrenfest偶极加速度、HHG谐波谱、Gabor时频与SFA模型
 │   ├── mod_chebyshev_propagator.f90 # 11. 切比雪夫多项式大步长推进器与能谱窗算子
 │   ├── mod_multistate_coupling.f90 # 12. 多势能面非绝热耦合动力学与Landau-Zener跃迁
+│   ├── mod_rovibrational.f90      # 13. 分子转振耦合、Franck-Condon因子、转动常数、偶极矩阵与STIRAP脉冲
+│   ├── mod_io_utils.f90           # 14. 科学数据多列保存、矩阵导出、控制台横幅与进度条监测
 │   └── general_module.f90         # 顶层聚合入口模块 (use general_module)
-├── tests/                         # 自动化单元测试套件 (6 个套件，100% 全部通过)
+├── tests/                         # 自动化单元测试套件 (7 个套件，100% 全部通过)
 │   ├── test_constants.f90
 │   ├── test_special_functions.f90
 │   ├── test_dvr_grid.f90
 │   ├── test_laser_pulse.f90
 │   ├── test_propagators.f90
 │   ├── test_atomic_hhg.f90
-│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass)
+│   ├── test_laser_rovibrational_control.f90 # 激光调控分子转振态布居转移综合测试
+│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 69/69 断言)
 ├── examples/                      # 典型物理应用算例 (6 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90           # 啁啾、双色、太赫兹脉冲时频生成
@@ -160,6 +163,23 @@ GeneralModule/
 - `landau_zener_probability(v12, velocity, delta_slope)`: 经典 Landau-Zener 避差穿越跃迁几率计算。
 - `calculate_channel_populations(psi1, psi2, dx, pop1, pop2, ratio)`: 各电子通道波包总几率与非绝热转移分支比。
 
+### 13. 分子转振耦合与激光调控 (`mod_rovibrational`)
+- `calc_franck_condon_factors(chi_a, chi_b, dx, fc_mat)`: 计算双原子分子振动态间 Franck-Condon 重叠因子矩阵 $FC(v, v') = |\langle\chi_v | \chi_{v'}\rangle|^2$。
+- `calc_vibrational_dipole_matrix(chi, dipole_grid, dx, dip_mat)`: 计算核间距依赖偶极矩在振动态基底下的跃迁积分 $M(v, v') = \langle\chi_v | \mu(R) | \chi_{v'}\rangle$。
+- `calc_rotational_constants_bv(chi, r_grid, dx, mass, b_v)`: 严格数值积分各振动态有效转动常数 $B_v = \langle\chi_v | \frac{\hbar^2}{2\mu R^2} | \chi_v\rangle$。
+- `build_rovibrational_hamiltonian(v_max, j_max, e_vib, b_v, h_diag)`: 构造 $|v, J\rangle$ 转振空间本征能级对角哈密顿量 $E(v, J) = E_v + B_v J(J+1)$。
+- `build_rovibrational_dipole_matrix(v_max, j_max, dip_vib, dip_mat)`: 构造严格满足偶极选择定则 $\Delta J = \pm 1, \Delta M = 0$ 的全转振跃迁矩阵。
+- `build_rovibrational_polarizability_matrix(v_max, j_max, alpha_vib, polar_mat)`: 构造满足极化选择定则 $\Delta J = 0, \pm 2$ 的激光取向耦合矩阵。
+- `create_stirap_pulses(peak_p, peak_s, dur_p, dur_s, delay, w_p, w_s, cfg_p, cfg_s)`: 便捷生成受激拉曼绝热通道（STIRAP）Stokes 超前 Pump 脉冲对。
+- `rovibrational_state_index(v, j, j_max)` / `rovibrational_state_unindex(idx, j_max, v, j)`: 二维量子数 $(v, J)$ 与一维基底线性索引快速双向互转。
+
+### 14. 科学计算 I/O 与诊断工具 (`mod_io_utils`)
+- `save_data_table_1d(filename, x, y, ...)`: 导出双列 ASCII 科学数据表，自动生成格式化注释头。
+- `save_data_table_2d(filename, x, y_mat, col_names, header)`: 导出多自由度动力学时序演化数据表（多列二维矩阵）。
+- `save_matrix_dat(filename, mat, header)`: 导出二维实对称或势能面方阵数据。
+- `print_banner(title, width)`: 控制台美化打印计算任务标题横幅。
+- `print_progress_bar(current, total, prefix)`: 动力学时域演化单行就地刷新进度条。
+
 ---
 
 ## 📖 详细配置手册
@@ -251,14 +271,15 @@ chmod +x run_all_tests.sh
 
 **测试结果示例**：
 ```text
-Constants Tests:        10 / 10 PASSED
-Special Function Tests: 12 / 12 PASSED
-DVR Grid Tests:          8 /  8 PASSED
-Laser Pulse Tests:       9 /  9 PASSED
-Propagator Tests:        8 /  8 PASSED
-Extended Atomic Tests:  14 / 14 PASSED
------------------------------------------
-ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 61/61 tests)
+Constants Tests:             10 / 10 PASSED
+Special Function Tests:      12 / 12 PASSED
+DVR Grid Tests:               8 /  8 PASSED
+Laser Pulse Tests:            9 /  9 PASSED
+Propagator Tests:             8 /  8 PASSED
+Extended Atomic Tests:       14 / 14 PASSED
+Rovibrational Control Tests:  8 /  8 PASSED
+---------------------------------------------
+ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 69/69 tests)
 ```
 
 ---

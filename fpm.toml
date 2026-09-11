@@ -45,6 +45,11 @@ name = "test_atomic_hhg"
 source-dir = "tests"
 main = "test_atomic_hhg.f90"
 
+[[test]]
+name = "test_laser_rovibrational_control"
+source-dir = "tests"
+main = "test_laser_rovibrational_control.f90"
+
 [[example]]
 name = "ex01_fgh_diatomic_bound_states"
 source-dir = "examples"

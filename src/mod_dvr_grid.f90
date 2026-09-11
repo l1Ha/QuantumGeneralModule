@@ -12,6 +12,8 @@ module mod_dvr_grid
     public :: dvr_sinc_init
     public :: dvr_legendre_init
     public :: fgh_solve_bound_states
+    public :: dvr_expectation_value
+    public :: dvr_matrix_element
 
     !> \brief 一维 Sinc-DVR 网格对象
     type :: dvr_1d_t
@@ -174,5 +176,35 @@ contains
         ! 波函数归一化由积分权 sqrt(dx) 保证: psi(x_i) = eig_vecs(i, v) / sqrt(dx)
         deallocate(h_mat)
     end subroutine fgh_solve_bound_states
+
+    !> \brief 计算波包关于某局域坐标算符的期望值 <psi | O(x) | psi>
+    pure function dvr_expectation_value(dvr, psi, op_grid) result(val)
+        type(dvr_1d_t), intent(in) :: dvr
+        complex(dp), intent(in) :: psi(:)
+        real(dp), intent(in) :: op_grid(:)
+        real(dp) :: val
+        integer :: i, n
+
+        val = 0.0_dp
+        n = min(dvr%n_points, size(psi), size(op_grid))
+        do i = 1, n
+            val = val + (abs(psi(i))**2) * op_grid(i) * dvr%dx
+        end do
+    end function dvr_expectation_value
+
+    !> \brief 计算两态之间的跃迁矩阵元 <psi1 | O(x) | psi2>
+    pure function dvr_matrix_element(dvr, psi1, psi2, op_grid) result(elem)
+        type(dvr_1d_t), intent(in) :: dvr
+        complex(dp), intent(in) :: psi1(:), psi2(:)
+        real(dp), intent(in) :: op_grid(:)
+        complex(dp) :: elem
+        integer :: i, n
+
+        elem = (0.0_dp, 0.0_dp)
+        n = min(dvr%n_points, size(psi1), size(psi2), size(op_grid))
+        do i = 1, n
+            elem = elem + conjg(psi1(i)) * op_grid(i) * psi2(i) * dvr%dx
+        end do
+    end function dvr_matrix_element
 
 end module mod_dvr_grid

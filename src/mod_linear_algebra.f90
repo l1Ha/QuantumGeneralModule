@@ -27,24 +27,264 @@ contains
         integer, intent(out) :: stat
 
         real(dp) :: e(n)
-        integer :: i, j, k
-        real(dp) :: p
 
         stat = 0
         z = a_in
 
-        ! 1. Householder 三对角化
+        ! 1. Householder 三对角化并累积正交变换
         call tred2(n, z, d, e)
 
-        ! 2. QL 隐式位移迭代求特征值与特征向量
+        ! 2. QL 隐式位移迭代求解本征值与本征向量（自动升序排列）
         call tql2(n, d, e, z, stat)
-        if (stat /= 0) return
+    end subroutine diag_symmetric_matrix
 
-        ! 3. 特征值与特征向量升序排序 (Bubble / Insertion sort)
-        do i = 1, n - 1
+    !> \brief 安全计算 sqrt(a^2 + b^2) 避免数值溢出
+    pure function pythag(a, b) result(p)
+        real(dp), intent(in) :: a, b
+        real(dp) :: p, absa, absb
+        absa = abs(a)
+        absb = abs(b)
+        if (absa > absb) then
+            p = absa * sqrt(1.0_dp + (absb / absa)**2)
+        else if (absb /= 0.0_dp) then
+            p = absb * sqrt(1.0_dp + (absa / absb)**2)
+        else
+            p = 0.0_dp
+        end if
+    end function pythag
+
+    !> \brief Householder 约化实对称矩阵为三对角形式并累积正交变换矩阵 (EISPACK TRED2)
+    subroutine tred2(n, z, d, e)
+        integer, intent(in) :: n
+        real(dp), intent(inout) :: z(n, n)
+        real(dp), intent(out) :: d(n)
+        real(dp), intent(out) :: e(n)
+
+        integer :: i, j, k, l, ii, jp1
+        real(dp) :: f, g, h, hh, scale
+
+        do i = 1, n
+            d(i) = z(n, i)
+        end do
+
+        if (n == 1) then
+            d(1) = z(1, 1)
+            z(1, 1) = 1.0_dp
+            e(1) = 0.0_dp
+            return
+        end if
+
+        do ii = 2, n
+            i = n + 2 - ii
+            l = i - 1
+            h = 0.0_dp
+            scale = 0.0_dp
+            if (l < 2) then
+                e(i) = d(l)
+                do j = 1, l
+                    d(j) = z(l, j)
+                    z(i, j) = 0.0_dp
+                    z(j, i) = 0.0_dp
+                end do
+                d(i) = h
+                cycle
+            end if
+
+            do k = 1, l
+                scale = scale + abs(d(k))
+            end do
+
+            if (scale == 0.0_dp) then
+                e(i) = d(l)
+                do j = 1, l
+                    d(j) = z(l, j)
+                    z(i, j) = 0.0_dp
+                    z(j, i) = 0.0_dp
+                end do
+            else
+                do k = 1, l
+                    d(k) = d(k) / scale
+                    h = h + d(k) * d(k)
+                end do
+                f = d(l)
+                g = -sign(sqrt(h), f)
+                e(i) = scale * g
+                h = h - f * g
+                d(l) = f - g
+
+                do j = 1, l
+                    e(j) = 0.0_dp
+                end do
+
+                do j = 1, l
+                    f = d(j)
+                    z(j, i) = f
+                    g = e(j) + z(j, j) * f
+                    jp1 = j + 1
+                    if (l >= jp1) then
+                        do k = jp1, l
+                            g = g + z(k, j) * d(k)
+                            e(k) = e(k) + z(k, j) * f
+                        end do
+                    end if
+                    e(j) = g
+                end do
+
+                f = 0.0_dp
+                do j = 1, l
+                    e(j) = e(j) / h
+                    f = f + e(j) * d(j)
+                end do
+                hh = f / (h + h)
+
+                do j = 1, l
+                    e(j) = e(j) - hh * d(j)
+                end do
+
+                do j = 1, l
+                    f = d(j)
+                    g = e(j)
+                    do k = j, l
+                        z(k, j) = z(k, j) - f * e(k) - g * d(k)
+                    end do
+                    d(j) = z(l, j)
+                    z(i, j) = 0.0_dp
+                end do
+            end if
+            d(i) = h
+        end do
+
+        ! 累积正交变换矩阵
+        do i = 2, n
+            l = i - 1
+            z(n, l) = z(l, l)
+            z(l, l) = 1.0_dp
+            h = d(i)
+            if (h /= 0.0_dp) then
+                do k = 1, l
+                    d(k) = z(k, i) / h
+                end do
+                do j = 1, l
+                    g = 0.0_dp
+                    do k = 1, l
+                        g = g + z(k, i) * z(k, j)
+                    end do
+                    do k = 1, l
+                        z(k, j) = z(k, j) - g * d(k)
+                    end do
+                end do
+            end if
+            do k = 1, l
+                z(k, i) = 0.0_dp
+            end do
+        end do
+
+        do i = 1, n
+            d(i) = z(n, i)
+            z(n, i) = 0.0_dp
+        end do
+        z(n, n) = 1.0_dp
+        e(1) = 0.0_dp
+    end subroutine tred2
+
+    !> \brief QL 隐式位移算法求实对称三对角矩阵本征值与本征向量 (EISPACK TQL2)
+    subroutine tql2(n, d, e, z, ierr)
+        integer, intent(in) :: n
+        real(dp), intent(inout) :: d(n), e(n), z(n, n)
+        integer, intent(out) :: ierr
+
+        integer :: i, j, k, l, m, ii, l1, l2, mml
+        real(dp) :: c, c2, c3, dl1, el1, f, g, h, p, r, s, s2, tst1, tst2
+
+        ierr = 0
+        if (n == 1) return
+
+        do i = 2, n
+            e(i - 1) = e(i)
+        end do
+        f = 0.0_dp
+        tst1 = 0.0_dp
+        e(n) = 0.0_dp
+
+        do l = 1, n
+            j = 0
+            h = abs(d(l)) + abs(e(l))
+            if (tst1 < h) tst1 = h
+
+            ! 查找极小次对角元素
+            do m = l, n
+                tst2 = tst1 + abs(e(m))
+                if (tst2 == tst1) exit
+            end do
+
+            if (m /= l) then
+                do
+                    if (j == 60) then
+                        ierr = l
+                        return
+                    end if
+                    j = j + 1
+
+                    l1 = l + 1
+                    l2 = l1 + 1
+                    g = d(l)
+                    p = (d(l1) - g) / (2.0_dp * e(l))
+                    r = pythag(p, 1.0_dp)
+                    d(l) = e(l) / (p + sign(r, p))
+                    d(l1) = e(l) * (p + sign(r, p))
+                    dl1 = d(l1)
+                    h = g - d(l)
+                    if (l2 <= n) then
+                        do i = l2, n
+                            d(i) = d(i) - h
+                        end do
+                    end if
+                    f = f + h
+
+                    ! QL 变换
+                    p = d(m)
+                    c = 1.0_dp
+                    c2 = c
+                    el1 = e(l1)
+                    s = 0.0_dp
+                    mml = m - l
+
+                    do ii = 1, mml
+                        c3 = c2
+                        c2 = c
+                        s2 = s
+                        i = m - ii
+                        g = c * e(i)
+                        h = c * p
+                        r = pythag(p, e(i))
+                        e(i + 1) = s * r
+                        s = e(i) / r
+                        c = p / r
+                        p = c * d(i) - s * g
+                        d(i + 1) = h + s * (c * g + s * d(i))
+                        do k = 1, n
+                            h = z(k, i + 1)
+                            z(k, i + 1) = s * z(k, i) + c * h
+                            z(k, i) = c * z(k, i) - s * h
+                        end do
+                    end do
+
+                    p = -s * s2 * c3 * el1 * e(l) / dl1
+                    e(l) = s * p
+                    d(l) = c * p
+                    tst2 = tst1 + abs(e(l))
+                    if (tst2 <= tst1) exit
+                end do
+            end if
+            d(l) = d(l) + f
+        end do
+
+        ! 本征值与本征向量升序排列
+        do ii = 2, n
+            i = ii - 1
             k = i
             p = d(i)
-            do j = i + 1, n
+            do j = ii, n
                 if (d(j) < p) then
                     k = j
                     p = d(j)
@@ -59,174 +299,6 @@ contains
                     z(j, k) = p
                 end do
             end if
-        end do
-    end subroutine diag_symmetric_matrix
-
-    !> \brief Householder 约化实对称矩阵为三对角形式
-    subroutine tred2(n, z, d, e)
-        integer, intent(in) :: n
-        real(dp), intent(inout) :: z(n, n)
-        real(dp), intent(out) :: d(n)
-        real(dp), intent(out) :: e(n)
-
-        integer :: i, j, k, l
-        real(dp) :: f, g, h, hh, scale
-
-        do i = 1, n
-            d(i) = z(n, i)
-        end do
-
-        do i = n, 2, -1
-            l = i - 1
-            h = 0.0_dp
-            scale = 0.0_dp
-            if (l > 1) then
-                do k = 1, l
-                    scale = scale + abs(d(k))
-                end do
-                if (scale == 0.0_dp) then
-                    e(i) = d(l)
-                else
-                    do k = 1, l
-                        d(k) = d(k) / scale
-                        h = h + d(k) * d(k)
-                    end do
-                    f = d(l)
-                    g = -sign(sqrt(h), f)
-                    e(i) = scale * g
-                    h = h - f * g
-                    d(l) = f - g
-                    do j = 1, l
-                        e(j) = 0.0_dp
-                    end do
-                    do j = 1, l
-                        f = d(j)
-                        z(j, i) = f
-                        g = e(j) + z(j, j) * f
-                        do k = j + 1, l
-                            g = g + z(k, j) * d(k)
-                            e(k) = e(k) + z(k, j) * f
-                        end do
-                        e(j) = g
-                    end do
-                    f = 0.0_dp
-                    do j = 1, l
-                        e(j) = e(j) / h
-                        f = f + e(j) * d(j)
-                    end do
-                    hh = f / (h + h)
-                    do j = 1, l
-                        e(j) = e(j) - hh * d(j)
-                    end do
-                    do j = 1, l
-                        f = d(j)
-                        g = e(j)
-                        do k = j, l
-                            z(k, j) = z(k, j) - (f * e(k) + g * d(k))
-                        end do
-                        d(j) = z(l, j)
-                        z(i, j) = 0.0_dp
-                    end do
-                end if
-            else
-                e(i) = d(l)
-            end if
-            d(i) = h
-        end do
-
-        d(1) = 0.0_dp
-        e(1) = 0.0_dp
-
-        do i = 1, n
-            l = i - 1
-            if (d(i) /= 0.0_dp) then
-                do j = 1, l
-                    g = 0.0_dp
-                    do k = 1, l
-                        g = g + z(k, i) * z(j, k)
-                    end do
-                    do k = 1, l
-                        z(j, k) = z(j, k) - g * z(k, i)
-                    end do
-                end do
-            end if
-            d(i) = z(i, i)
-            z(i, i) = 1.0_dp
-            do j = 1, l
-                z(j, i) = 0.0_dp
-                z(i, j) = 0.0_dp
-            end do
-        end do
-    end subroutine tred2
-
-    !> \brief QL 隐式位移算法求三对角矩阵的特征值与特征向量
-    subroutine tql2(n, d, e, z, ierr)
-        integer, intent(in) :: n
-        real(dp), intent(inout) :: d(n)
-        real(dp), intent(inout) :: e(n)
-        real(dp), intent(inout) :: z(n, n)
-        integer, intent(out) :: ierr
-
-        integer :: i, j, k, l, m, iter
-        real(dp) :: b, c, f, g, h, p, r, s
-
-        ierr = 0
-        if (n == 1) return
-
-        do i = 2, n
-            e(i - 1) = e(i)
-        end do
-        e(n) = 0.0_dp
-
-        do l = 1, n
-            iter = 0
-            iterate_m: do
-                do m = l, n - 1
-                    b = abs(d(m)) + abs(d(m + 1))
-                    if (abs(e(m)) + b == b) exit
-                end do
-                if (m == l) exit iterate_m
-
-                if (iter >= 60) then
-                    ierr = l
-                    return
-                end if
-                iter = iter + 1
-
-                g = (d(l + 1) - d(l)) / (2.0_dp * e(l))
-                r = sqrt(g * g + 1.0_dp)
-                g = d(m) - d(l) + e(l) / (g + sign(r, g))
-                s = 1.0_dp
-                c = 1.0_dp
-                p = 0.0_dp
-
-                do i = m - 1, l, -1
-                    f = s * e(i)
-                    b = c * e(i)
-                    r = sqrt(f * f + g * g)
-                    e(i + 1) = r
-                    if (r == 0.0_dp) then
-                        d(i + 1) = d(i + 1) - p
-                        e(m) = 0.0_dp
-                        cycle iterate_m
-                    end if
-                    s = f / r
-                    c = g / r
-                    g = d(i + 1) - p
-                    r = (d(i) - g) * s + 2.0_dp * c * b
-                    p = s * r
-                    d(i + 1) = g + p
-                    g = c * r - b
-                    do k = 1, n
-                        f = z(k, i + 1)
-                        z(k, i + 1) = s * z(k, i) + c * f
-                        z(k, i) = c * z(k, i) - s * f
-                    end do
-                end do
-                d(l) = d(l) - p
-                e(l) = g
-                e(m) = 0.0_dp
-            end do iterate_m
         end do
     end subroutine tql2
 

@@ -21,7 +21,9 @@
    - [3.2 离散变量网格配置 (`dvr_1d_t`, `dvr_legendre_t`)](#32-离散变量网格配置-dvr_1d_t-dvr_legendre_t)
    - [3.3 复吸收边界配置 (`absorbing_boundary_t`)](#33-复吸收边界配置-absorbing_boundary_t)
    - [3.4 强场原子模型配置 (`atom_config_t`)](#34-强场原子模型配置-atom_config_t)
-   - [3.5 时间推进步长稳定性判据 (CFL 条件)](#35-时间推进步长稳定性判据-cfl-条件)
+   - [3.5 分子转振态基底与激光动力学耦合配置 (`mod_rovibrational`)](#35-分子转振态基底与激光动力学耦合配置-mod_rovibrational)
+   - [3.6 科学计算 I/O 与诊断可视化工具 (`mod_io_utils`)](#36-科学计算-io-与诊断可视化工具-mod_io_utils)
+   - [3.7 时间推进步长稳定性判据 (CFL 条件)](#37-时间推进步长稳定性判据-cfl-条件)
 4. [Python 伴侣库 `pygenmod` 配置与混合编程](#4-python-伴侣库-pygenmod-配置与混合编程)
    - [4.1 本地可编辑模式安装](#41-本地可编辑模式安装)
    - [4.2 数据交互规范（.dat 与无损二进制）](#42-数据交互规范-dat-与无损二进制)
@@ -284,7 +286,43 @@ call get_atom_config("Ar", atom)
 
 ---
 
-### 3.5 时间推进步长稳定性判据 (CFL 条件)
+### 3.5 分子转振态基底与激光动力学耦合配置 (`mod_rovibrational`)
+针对极性双原子分子超快红外与强场激光相干调控，算法库提供了完整的 $|v, J\rangle$ 转振空间基底与跃迁矩阵构建：
+
+1. **转振基底索引映射**：
+   ```fortran
+   ! 将 (v, J) 映射至一维线性索引 k ∈ [1, (v_max+1)*(j_max+1)]
+   k = rovibrational_state_index(v, j, j_max)
+   ! 逆向反解
+   call rovibrational_state_unindex(k, j_max, v, j)
+   ```
+2. **转振能级与偶极跃迁矩阵构建**：
+   ```fortran
+   ! 构造无场本征能级: E(v, J) = E_vib(v) + B_v * J * (J + 1)
+   call build_rovibrational_hamiltonian(v_max, j_max, e_vib, b_v, h_diag)
+   ! 构造偶极矩阵元 (严格满足 Delta J = +/-1, Delta M = 0)
+   call build_rovibrational_dipole_matrix(v_max, j_max, dip_vib, dip_mat)
+   ```
+3. **STIRAP 绝热通道脉冲对配置**：
+   ```fortran
+   ! 自动生成 Stokes 先于 Pump 的反直觉时序脉冲对
+   call create_stirap_pulses(peak_p, peak_s, dur_p_fs, dur_s_fs, delay_fs, &
+                             freq_p_au, freq_s_au, cfg_pump, cfg_stokes)
+   ```
+
+---
+
+### 3.6 科学计算 I/O 与诊断可视化工具 (`mod_io_utils`)
+消除低效的手工格式化文件读写与控制台杂乱输出，内置发表级数据交换与监测例程：
+- `save_data_table_1d(filename, x, y, x_name, y_name, header)`：标准化一维双列 ASCII 保存。
+- `save_data_table_2d(filename, time, pop_mat, col_names, header)`：多自由度或转振态布居含时序列矩阵导出。
+- `save_matrix_dat(filename, mat, header)`：矩阵元或势能面网格导出。
+- `print_banner(title, width)`：控制台美化横幅输出。
+- `print_progress_bar(step, total, prefix)`：含时动力学推进循环中单行就地刷新进度百分比与进度条。
+
+---
+
+### 3.7 时间推进步长稳定性判据 (CFL 条件)
 使用 `propagate_split_operator_1d` 或 `propagate_split_operator_2d` 进行时间演化时，为保证波包演化的辛对称幺正性与相位精度，时间步长 $\Delta t$ 必须满足空间动能离散的 Courant-Friedrichs-Lewy (CFL) 上限：
 $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 - **电子动力学（$m = 1\text{ a.u.}$）**：若 $\Delta x = 0.2\text{ Bohr}$，则 $\Delta t \le \frac{2 \times 0.04}{3.14} \approx 0.025\text{ a.u.} \approx 0.6\text{ 自动单位 (约 } 0.0006\text{ fs)}$。
@@ -365,6 +403,9 @@ plot_wavefunctions(dvr.x, v_pot, eig_vals, wavefuncs, n_states=4, filename="harm
 
 #### 算例 C: 极性分子太赫兹场无场定向与玻尔兹曼系综平均
 > *"请使用 `general_module` 编写一个刚体转子分子在室温（$T=300\text{ K}$）下的定向动力学程序。调用 `boltzmann_rotational_weights` 计算各 $J$ 态的初态布居权重，并在外加脉冲后模拟自由演化量子拍，调用 `thermal_average_2d` 输出系综平均定向度 $\langle\cos\theta\rangle(t)$。"*
+
+#### 算例 D: 激光脉冲调控分子转振态相干布居转移与梯级跃迁
+> *"请使用 `general_module` 编写一个超快红外激光脉冲调控双原子分子转振态布居的完整程序。首先用 Sinc-DVR 求解 Morse 势束缚态波函数并积分各态转动常数 $B_v$ 与偶极矩阵，调用 `build_rovibrational_hamiltonian` 与 `build_rovibrational_dipole_matrix` 构建全空间 $|v, J\rangle$ 哈密顿量与跃迁偶极，配置共振 $\sin^2$ 激光脉冲驱动体系从基态 $|v=0, J=0\rangle$ 发生相干布居转移，RK4 演化 TDSE 并使用 `save_data_table_2d` 保存全转振态时序数据。"*
 
 ### 5.3 AI 编写 Fortran 常见陷阱自查表
 | 常见 AI 陷阱 | 产生原因 | 正确做法 |

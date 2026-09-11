@@ -14,6 +14,8 @@ module general_module
     use mod_hhg_spectra
     use mod_chebyshev_propagator
     use mod_multistate_coupling
+    use mod_rovibrational
+    use mod_io_utils
     implicit none
 
     public :: dp, int32, int64
@@ -26,9 +28,11 @@ module general_module
     public :: diag_symmetric_matrix, fft_1d, fft_2d
 
     public :: dvr_1d_t, dvr_legendre_t, dvr_sinc_init, dvr_legendre_init, fgh_solve_bound_states
+    public :: dvr_expectation_value, dvr_matrix_element
 
     public :: pulse_config_t, pulse_envelope, pulse_electric_field, pulse_electric_field_2d
     public :: pulse_vector_potential, pulse_stark_shift, pulse_generate_timeseries
+    public :: create_gaussian_pulse, create_sin2_pulse, create_chirped_pulse
     public :: PULSE_GAUSSIAN, PULSE_SIN2, PULSE_FLATTOP, PULSE_CHIRP, PULSE_TWOCOLOR, PULSE_THZ_TRAIN
 
     public :: absorbing_boundary_t, cap_init, cap_evaluate, cap_apply_mask, calculate_probability_flux, calculate_norm_inside
@@ -52,5 +56,15 @@ module general_module
 
     ! 多态非绝热动力学
     public :: propagate_split_operator_2channel, landau_zener_probability, calculate_channel_populations
+
+    ! 分子转振动力学与态跃迁
+    public :: calc_franck_condon_factors, calc_vibrational_dipole_matrix, calc_rotational_constants_bv
+    public :: rovibrational_state_index, rovibrational_state_unindex
+    public :: build_rovibrational_hamiltonian, build_rovibrational_dipole_matrix
+    public :: build_rovibrational_polarizability_matrix, create_stirap_pulses
+
+    ! 标准化科学 I/O 工具
+    public :: save_data_table_1d, save_data_table_2d, save_matrix_dat
+    public :: print_banner, print_progress_bar
 
 end module general_module

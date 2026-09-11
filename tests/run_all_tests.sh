@@ -28,13 +28,15 @@ gfortran -O2 -fPIC -c mod_coulomb_atomic.f90
 gfortran -O2 -fPIC -c mod_hhg_spectra.f90
 gfortran -O2 -fPIC -c mod_chebyshev_propagator.f90
 gfortran -O2 -fPIC -c mod_multistate_coupling.f90
+gfortran -O2 -fPIC -c mod_rovibrational.f90
+gfortran -O2 -fPIC -c mod_io_utils.f90
 gfortran -O2 -fPIC -c general_module.f90
 DEVELOPER_DIR=/Library/Developer/CommandLineTools ar rcs libgeneral_module.a *.o
 
 cd "$DIR"
 
 # 2. 编译并运行各项测试
-TESTS=("test_constants" "test_special_functions" "test_dvr_grid" "test_laser_pulse" "test_propagators" "test_atomic_hhg")
+TESTS=("test_constants" "test_special_functions" "test_dvr_grid" "test_laser_pulse" "test_propagators" "test_atomic_hhg" "test_laser_rovibrational_control")
 
 for test_name in "${TESTS[@]}"; do
     echo ""

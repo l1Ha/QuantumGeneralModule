@@ -15,6 +15,9 @@ module mod_laser_pulse
     public :: pulse_vector_potential
     public :: pulse_stark_shift
     public :: pulse_generate_timeseries
+    public :: create_gaussian_pulse
+    public :: create_sin2_pulse
+    public :: create_chirped_pulse
 
     ! 脉冲形状常量枚举
     integer, parameter :: PULSE_GAUSSIAN  = 1
@@ -200,5 +203,56 @@ contains
 
         avec = -(cfg%field_peak / w) * env * sin(phase)
     end function pulse_vector_potential
+
+    !> \brief 便捷构造标准高斯脉冲配置结构体
+    pure subroutine create_gaussian_pulse(peak, dur_fs, freq_ev, t_center_fs, cep, cfg)
+        use mod_constants, only: EV2AU
+        real(dp), intent(in) :: peak, dur_fs, freq_ev
+        real(dp), intent(in), optional :: t_center_fs, cep
+        type(pulse_config_t), intent(out) :: cfg
+
+        cfg%shape_type = PULSE_GAUSSIAN
+        cfg%field_peak = peak
+        cfg%duration = dur_fs * FS2AU
+        cfg%freq_central = freq_ev * EV2AU
+        cfg%t_center = 0.0_dp
+        if (present(t_center_fs)) cfg%t_center = t_center_fs * FS2AU
+        cfg%cep_phase = 0.0_dp
+        if (present(cep)) cfg%cep_phase = cep
+    end subroutine create_gaussian_pulse
+
+    !> \brief 便捷构造 Sin^2 脉冲配置结构体
+    pure subroutine create_sin2_pulse(peak, dur_fs, freq_ev, t_center_fs, cep, cfg)
+        use mod_constants, only: EV2AU
+        real(dp), intent(in) :: peak, dur_fs, freq_ev
+        real(dp), intent(in), optional :: t_center_fs, cep
+        type(pulse_config_t), intent(out) :: cfg
+
+        cfg%shape_type = PULSE_SIN2
+        cfg%field_peak = peak
+        cfg%duration = dur_fs * FS2AU
+        cfg%freq_central = freq_ev * EV2AU
+        cfg%t_center = 0.0_dp
+        if (present(t_center_fs)) cfg%t_center = t_center_fs * FS2AU
+        cfg%cep_phase = 0.0_dp
+        if (present(cep)) cfg%cep_phase = cep
+    end subroutine create_sin2_pulse
+
+    !> \brief 便捷构造线性啁啾脉冲配置结构体
+    pure subroutine create_chirped_pulse(peak, dur_fs, freq_ev, chirp_rate_au, t_center_fs, cfg)
+        use mod_constants, only: EV2AU
+        real(dp), intent(in) :: peak, dur_fs, freq_ev, chirp_rate_au
+        real(dp), intent(in), optional :: t_center_fs
+        type(pulse_config_t), intent(out) :: cfg
+
+        cfg%shape_type = PULSE_CHIRP
+        cfg%field_peak = peak
+        cfg%duration = dur_fs * FS2AU
+        cfg%freq_central = freq_ev * EV2AU
+        cfg%chirp_rate = chirp_rate_au
+        cfg%t_center = 0.0_dp
+        if (present(t_center_fs)) cfg%t_center = t_center_fs * FS2AU
+        cfg%cep_phase = 0.0_dp
+    end subroutine create_chirped_pulse
 
 end module mod_laser_pulse
