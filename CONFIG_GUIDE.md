@@ -453,20 +453,40 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
                                          sigma_total=sigma_tot)
    sigma_opt = optical_theorem_cross_section(k_wave, delta_arr, l_max=4)
    ```
-3. **超低能区有效力程展开 (ERE: $a_s, r_0$)**：
+3. **微分散射截面、全同粒子干涉与输运截面**：
+   ```fortran
+   ! 微分散射截面 (区分粒子 |f(theta)|^2)
+   call calc_differential_cross_section(energy, mass, delta_arr, l_max, theta_grid, ds_dist)
+
+   ! 全同玻色子 (偶数分波增强 4 倍，theta=pi/2 处干涉相长)
+   call calc_differential_cross_section_identical(energy, mass, delta_arr, l_max, theta_grid, &
+                                                 STAT_IDENTICAL_BOSON, ds_boson)
+
+   ! 极化全同费米子 (奇数分波，theta=pi/2 处由于偶极/宇称相消严格归零)
+   call calc_differential_cross_section_identical(energy, mass, delta_arr, l_max, theta_grid, &
+                                                 STAT_IDENTICAL_FERMION, ds_fermion)
+
+   ! 动量传输截面 sigma_m 与粘滞截面 sigma_v
+   call calc_transport_cross_sections(energy, mass, delta_arr, l_max, sigma_m, sigma_v)
+
+   ! Legendre 多极各向异性展开 A_K 与前后非对称度 A_FB
+   call calc_differential_legendre_expansion(theta_grid, ds_dist, n_theta, k_max=4, &
+                                            a_k=a_k, a_fb=a_fb)
+   ```
+4. **超低能区有效力程展开 (ERE: $a_s, r_0$)**：
    ```fortran
    ! 自动在多个动量点提取相移并进行 k*cot(delta_0) = -1/a_s + 0.5*r_0*k^2 拟合
    call fit_effective_range_expansion(r_grid, v_pot, mass, k_list, n_k=4, &
                                       a_s=as_fit, r_0=r0_fit)
    ```
-4. **形状共振 (Shape Resonance) Wigner 时延分析**：
+5. **形状共振 (Shape Resonance) Wigner 时延分析**：
    ```fortran
    type(resonance_info_t) :: res
    ! 分析相移跃升峰值提取 Wigner 散射时延与共振线宽 Gamma
    call analyze_shape_resonance(e_grid, delta_grid, n_pts, hbar=1.0_dp, res_info=res)
    print *, "Resonance Energy:", res%e_res, "Width Gamma:", res%gamma_width
    ```
-5. **双通道非绝热耦合密耦定态 S-矩阵**：
+6. **双通道非绝热耦合密耦定态 S-矩阵**：
    ```fortran
    complex(dp) :: s_2x2(2, 2)
    real(dp) :: p_inelastic
@@ -506,6 +526,14 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
    call project_wavepacket_to_smatrix(x_grid, dx, psi_final, mass, hbar, &
                                       k0, sigma_x, x0, energy_grid, n_energies, &
                                       t_prob, r_prob)
+   ```
+5. **二维含时波包角分布微分散射截面 $\frac{d\sigma}{d\theta}(\theta)$**：
+   ```fortran
+   ! 提取 2D 波包在检测半径 r_det 处的角度积分微分散射截面
+   call td_differential_cross_section_2d(r_det=10.0_dp, theta_grid=theta_grid, n_theta=181, &
+                                         psi_final=psi_2d, x_grid=x_grid, y_grid=y_grid, &
+                                         nx=nx, ny=ny, mass=1.0_dp, hbar=1.0_dp, &
+                                         t_duration=50.0_dp, dsigma_dtheta=ds_theta)
    ```
 
 ---

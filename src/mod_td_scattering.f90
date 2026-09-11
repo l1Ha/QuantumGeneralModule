@@ -40,6 +40,7 @@ module mod_td_scattering
     public :: multichannel_td_smatrix_elements
     public :: wavepacket_centroid_position
     public :: wavepacket_wigner_delay
+    public :: calculate_td_differential_cross_section_2d
 
 contains
 
@@ -365,5 +366,58 @@ contains
         delay_wigner(1) = delay_wigner(2)
         delay_wigner(n_energies) = delay_wigner(n_energies - 1)
     end subroutine wavepacket_wigner_delay
+
+    ! ==========================================================================
+    ! 9. 二维含时波包角分布微分散射截面 d(sigma)/d(theta)
+    !    在末态动量空间 (k_x, k_y) 投影，取 k = k0 环状圆周沿不同散射角 theta:
+    !    d(sigma)/d(theta) = (2*pi / k0) * |psi(k0 * cos(theta), k0 * sin(theta))|^2 / P_inc
+    ! ==========================================================================
+    subroutine calculate_td_differential_cross_section_2d(x_grid, y_grid, psi_final, &
+                                                          k0, sigma_x, theta_grid, dsigma_dtheta)
+        real(dp), dimension(:), intent(in)          :: x_grid
+        real(dp), dimension(:), intent(in)          :: y_grid
+        complex(dp), dimension(:, :), intent(in)    :: psi_final
+        real(dp), intent(in)                        :: k0
+        real(dp), intent(in)                        :: sigma_x
+        real(dp), dimension(:), intent(in)          :: theta_grid
+        real(dp), dimension(:), intent(out)         :: dsigma_dtheta
+
+        integer  :: nx, ny, nth, ix, iy, ith
+        real(dp) :: dx, dy, kx, ky, th, phase
+        real(dp) :: inv_twopi, p_inc
+        complex(dp) :: psi_k, exp_fac
+
+        nx = size(x_grid)
+        ny = size(y_grid)
+        nth = size(theta_grid)
+        dx = x_grid(2) - x_grid(1)
+        dy = y_grid(2) - y_grid(1)
+
+        inv_twopi = 1.0_dp / TWOPI
+        ! 入射波包动量密度峰值归一化因子
+        p_inc = sqrt(2.0_dp * (sigma_x**2) / PI)
+
+        do ith = 1, nth
+            th = theta_grid(ith)
+            kx = k0 * cos(th)
+            ky = k0 * sin(th)
+
+            psi_k = (0.0_dp, 0.0_dp)
+            do iy = 1, ny
+                do ix = 1, nx
+                    phase = -(kx * x_grid(ix) + ky * y_grid(iy))
+                    exp_fac = cmplx(cos(phase), sin(phase), kind=dp)
+                    psi_k = psi_k + psi_final(ix, iy) * exp_fac * dx * dy
+                end do
+            end do
+            psi_k = psi_k * inv_twopi
+
+            if (p_inc > 1.0e-14_dp .and. k0 > 1.0e-14_dp) then
+                dsigma_dtheta(ith) = (TWOPI / k0) * (abs(psi_k)**2) / p_inc
+            else
+                dsigma_dtheta(ith) = 0.0_dp
+            end if
+        end do
+    end subroutine calculate_td_differential_cross_section_2d
 
 end module mod_td_scattering

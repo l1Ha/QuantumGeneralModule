@@ -45,7 +45,9 @@ from .rovibrational import (
 from .scattering import (
     van_der_waals_mean_length, gribakin_flambaum_length,
     square_well_scattering_length_exact, calc_scattering_length_numerov,
-    plot_scattering_length_wavefunction
+    plot_scattering_length_wavefunction,
+    calc_differential_cross_section, calc_differential_cross_section_identical,
+    plot_differential_cross_sections
 )
 
 from .visualizer import (
@@ -69,5 +71,8 @@ __all__ = [
     "van_der_waals_mean_length", "gribakin_flambaum_length",
     "square_well_scattering_length_exact", "calc_scattering_length_numerov",
     "plot_scattering_length_wavefunction",
+    "calc_differential_cross_section", "calc_differential_cross_section_identical",
+    "plot_differential_cross_sections",
     "plot_wavefunctions", "plot_pulses", "plot_alignment_dynamics"
 ]
+

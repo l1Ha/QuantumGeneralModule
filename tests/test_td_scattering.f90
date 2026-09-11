@@ -189,6 +189,35 @@ program test_td_scattering
         print '(A, F8.4)', " [FAIL] Multichannel S-matrix extraction = ", s11_p(5)
     end if
 
+    ! --------------------------------------------------------------------------
+    ! 测试 8: 二维含时波包散射角分布微分散射截面 d(sigma)/d(theta)
+    ! --------------------------------------------------------------------------
+    n_total = n_total + 1
+    block
+        real(dp) :: x_2d(32), y_2d(32), th_2d(8), ds_2d(8)
+        complex(dp) :: psi_2d(32, 32)
+        integer :: i1, i2
+        do i1 = 1, 32
+            x_2d(i1) = -10.0_dp + real(i1 - 1, dp) * (20.0_dp / 31.0_dp)
+            y_2d(i1) = -10.0_dp + real(i1 - 1, dp) * (20.0_dp / 31.0_dp)
+        end do
+        do i1 = 1, 8
+            th_2d(i1) = real(i1 - 1, dp) * TWOPI / 8.0_dp
+        end do
+        do i2 = 1, 32
+            do i1 = 1, 32
+                psi_2d(i1, i2) = cmplx(exp(-(x_2d(i1)**2 + y_2d(i2)**2) / 4.0_dp), 0.0_dp, kind=dp)
+            end do
+        end do
+        call calculate_td_differential_cross_section_2d(x_2d, y_2d, psi_2d, 1.0_dp, 1.0_dp, th_2d, ds_2d)
+        if (all(ds_2d >= 0.0_dp) .and. maxval(ds_2d) > 0.0_dp) then
+            print '(A, F9.5)', " [PASS] 2D TD Differential cross section max dsigma/dtheta = ", maxval(ds_2d)
+            n_pass = n_pass + 1
+        else
+            print '(A, F9.5)', " [FAIL] 2D TD Differential cross section = ", maxval(ds_2d)
+        end if
+    end block
+
     deallocate(x_grid, v_pot, v_free, psi, psi_free)
 
     print '(A)', "--------------------------------------------------"

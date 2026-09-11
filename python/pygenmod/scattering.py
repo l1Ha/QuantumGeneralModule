@@ -113,3 +113,82 @@ def plot_scattering_length_wavefunction(r_grid: np.ndarray, v_pot: np.ndarray,
     plt.savefig(filename, dpi=300)
     plt.close()
     print(f"[Scattering] High-resolution figure saved to: {filename}")
+
+
+def calc_differential_cross_section(energy: float, mass: float, delta_arr: np.ndarray,
+                                    theta_grid: np.ndarray) -> np.ndarray:
+    """Compute differential scattering cross section dsigma/dOmega(theta)."""
+    k = np.sqrt(2.0 * mass * max(1e-14, energy))
+    l_max = len(delta_arr) - 1
+    f_theta = np.zeros(len(theta_grid), dtype=complex)
+    for l in range(l_max + 1):
+        pl = np.polynomial.legendre.Legendre.basis(l)(np.cos(theta_grid))
+        f_theta += (2 * l + 1) * np.exp(1j * delta_arr[l]) * np.sin(delta_arr[l]) * pl
+    f_theta /= k
+    return np.abs(f_theta) ** 2
+
+
+def calc_differential_cross_section_identical(energy: float, mass: float, delta_arr: np.ndarray,
+                                              theta_grid: np.ndarray,
+                                              particle_stat: str = 'distinguishable') -> np.ndarray:
+    """
+    Compute differential cross section considering quantum statistics of identical particles:
+    - 'distinguishable': |f(theta)|^2
+    - 'boson': |f(theta) + f(pi - theta)|^2
+    - 'fermion': |f(theta) - f(pi - theta)|^2
+    - 'fermion_unpolarized': 0.25*|f(th)+f(pi-th)|^2 + 0.75*|f(th)-f(pi-th)|^2
+    """
+    k = np.sqrt(2.0 * mass * max(1e-14, energy))
+    l_max = len(delta_arr) - 1
+    f_th = np.zeros(len(theta_grid), dtype=complex)
+    f_pi = np.zeros(len(theta_grid), dtype=complex)
+    for l in range(l_max + 1):
+        pl = np.polynomial.legendre.Legendre.basis(l)(np.cos(theta_grid))
+        pl_pi = ((-1.0) ** l) * pl
+        term = (2 * l + 1) * np.exp(1j * delta_arr[l]) * np.sin(delta_arr[l])
+        f_th += term * pl
+        f_pi += term * pl_pi
+    f_th /= k
+    f_pi /= k
+
+    if particle_stat == 'boson':
+        return np.abs(f_th + f_pi) ** 2
+    elif particle_stat == 'fermion':
+        return np.abs(f_th - f_pi) ** 2
+    elif particle_stat == 'fermion_unpolarized':
+        return 0.25 * np.abs(f_th + f_pi) ** 2 + 0.75 * np.abs(f_th - f_pi) ** 2
+    else:
+        return np.abs(f_th) ** 2
+
+
+def plot_differential_cross_sections(theta_grid: np.ndarray, dsigma_dict: dict,
+                                     filename: str = "result_differential_cross_section.png"):
+    """
+    Plot differential cross sections in both polar and Cartesian coordinates.
+    dsigma_dict maps label to dsigma/dOmega array.
+    """
+    fig = plt.figure(figsize=(11, 5))
+    ax_cart = fig.add_subplot(1, 2, 1)
+    ax_polar = fig.add_subplot(1, 2, 2, projection='polar')
+
+    colors = ['#0275D8', '#D9534F', '#5CB85C', '#F0AD4E']
+    theta_deg = np.degrees(theta_grid)
+
+    for (label, ds), col in zip(dsigma_dict.items(), colors):
+        ax_cart.plot(theta_deg, ds, lw=2.2, label=label, color=col)
+        ax_polar.plot(theta_grid, ds, lw=2.0, label=label, color=col)
+
+    ax_cart.set_xlabel(r'Scattering Angle $\theta$ (deg)')
+    ax_cart.set_ylabel(r'$d\sigma/d\Omega$ (a.u.)')
+    ax_cart.set_title("Differential Cross Section (Cartesian)", fontweight='bold')
+    ax_cart.grid(True, alpha=0.3)
+    ax_cart.legend(loc='upper right')
+
+    ax_polar.set_title("Angular Distribution (Polar)", fontweight='bold', va='bottom')
+    ax_polar.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300)
+    plt.close()
+    print(f"[Scattering] Differential cross section plot saved to: {filename}")
+

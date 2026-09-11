@@ -47,6 +47,12 @@ module mod_ti_scattering
         real(dp) :: peak_cross_section ! 峰值弹性散射截面
     end type resonance_info_t
 
+    ! 全同粒子统计与量子对称性参数
+    integer, parameter, public :: PARTICLE_DISTINGUISHABLE             = 0
+    integer, parameter, public :: PARTICLE_IDENTICAL_BOSON             = 1
+    integer, parameter, public :: PARTICLE_IDENTICAL_FERMION_POLARIZED = 2
+    integer, parameter, public :: PARTICLE_IDENTICAL_FERMION_UNPOLAR   = 3
+
     ! --------------------------------------------------------------------------
     ! 公共接口导出
     ! --------------------------------------------------------------------------
@@ -57,6 +63,11 @@ module mod_ti_scattering
     public :: calc_partial_wave_cross_sections
     public :: optical_theorem_cross_section
     public :: calc_differential_cross_section
+    public :: calc_differential_cross_section_identical
+    public :: calc_transport_cross_sections
+    public :: calc_cross_section_spectrum
+    public :: calc_generalized_cross_sections
+    public :: calc_differential_legendre_expansion
     public :: fit_effective_range_expansion
     public :: gribakin_flambaum_length
     public :: van_der_waals_mean_length
@@ -424,6 +435,226 @@ contains
             dsigma_domega(i) = abs(f_theta)**2
         end do
     end subroutine calc_differential_cross_section
+
+    ! ==========================================================================
+    ! 7b. 全同粒子量子对称性微分散射截面
+    !     区分粒子: |f(theta)|^2
+    !     全同玻色子: |f(theta) + f(pi - theta)|^2
+    !     极化全同费米子: |f(theta) - f(pi - theta)|^2
+    !     非极化自旋-1/2费米子: 1/4 |f(theta) + f(pi - theta)|^2 + 3/4 |f(theta) - f(pi - theta)|^2
+    ! ==========================================================================
+    subroutine calc_differential_cross_section_identical(energy, mass, delta_arr, l_max, &
+                                                        theta_grid, particle_stat, dsigma_domega)
+        real(dp), intent(in)                 :: energy
+        real(dp), intent(in)                 :: mass
+        real(dp), dimension(0:l_max), intent(in) :: delta_arr
+        integer, intent(in)                  :: l_max
+        real(dp), dimension(:), intent(in)   :: theta_grid
+        integer, intent(in)                  :: particle_stat
+        real(dp), dimension(:), intent(out)  :: dsigma_domega
+
+        integer  :: n_angles, i, l
+        real(dp) :: k_wave, x_cos, p_l, p_l_pi
+        complex(dp) :: f_theta, f_pi_minus_theta, term, term_pi
+        real(dp) :: ds_boson, ds_fermion
+
+        n_angles = size(theta_grid)
+        k_wave = sqrt(2.0_dp * mass * max(1.0e-14_dp, energy))
+
+        do i = 1, n_angles
+            x_cos = cos(theta_grid(i))
+            f_theta = (0.0_dp, 0.0_dp)
+            f_pi_minus_theta = (0.0_dp, 0.0_dp)
+
+            do l = 0, l_max
+                p_l = legendre_poly(l, x_cos)
+                p_l_pi = ((-1.0_dp)**l) * p_l  ! P_l(-cos theta) = (-1)^l P_l(cos theta)
+
+                term = real(2 * l + 1, dp) * cmplx(cos(delta_arr(l)), sin(delta_arr(l)), kind=dp) * &
+                       sin(delta_arr(l)) * p_l
+                term_pi = real(2 * l + 1, dp) * cmplx(cos(delta_arr(l)), sin(delta_arr(l)), kind=dp) * &
+                          sin(delta_arr(l)) * p_l_pi
+
+                f_theta = f_theta + term
+                f_pi_minus_theta = f_pi_minus_theta + term_pi
+            end do
+
+            f_theta = f_theta / k_wave
+            f_pi_minus_theta = f_pi_minus_theta / k_wave
+
+            select case (particle_stat)
+            case (PARTICLE_DISTINGUISHABLE)
+                dsigma_domega(i) = abs(f_theta)**2
+            case (PARTICLE_IDENTICAL_BOSON)
+                dsigma_domega(i) = abs(f_theta + f_pi_minus_theta)**2
+            case (PARTICLE_IDENTICAL_FERMION_POLARIZED)
+                dsigma_domega(i) = abs(f_theta - f_pi_minus_theta)**2
+            case (PARTICLE_IDENTICAL_FERMION_UNPOLAR)
+                ds_boson   = abs(f_theta + f_pi_minus_theta)**2
+                ds_fermion = abs(f_theta - f_pi_minus_theta)**2
+                dsigma_domega(i) = 0.25_dp * ds_boson + 0.75_dp * ds_fermion
+            case default
+                dsigma_domega(i) = abs(f_theta)**2
+            end select
+        end do
+    end subroutine calc_differential_cross_section_identical
+
+    ! ==========================================================================
+    ! 7c. 输运散射截面 (动量传输截面 sigma_m 与 粘滞截面 sigma_v)
+    !     sigma_m = 4*pi/k^2 * sum_{l=0}^{l_max-1} (l+1) sin^2(delta_l - delta_{l+1})
+    !     sigma_v = 4*pi/k^2 * sum_{l=0}^{l_max-2} (l+1)(l+2)/(2l+3) sin^2(delta_l - delta_{l+2})
+    ! ==========================================================================
+    subroutine calc_transport_cross_sections(energy, mass, delta_arr, l_max, sigma_momentum, sigma_viscosity)
+        real(dp), intent(in)                 :: energy
+        real(dp), intent(in)                 :: mass
+        real(dp), dimension(0:l_max), intent(in) :: delta_arr
+        integer, intent(in)                  :: l_max
+        real(dp), intent(out)                :: sigma_momentum
+        real(dp), intent(out)                :: sigma_viscosity
+
+        integer  :: l
+        real(dp) :: k_wave, pref
+
+        sigma_momentum = 0.0_dp
+        sigma_viscosity = 0.0_dp
+
+        if (energy <= 1.0e-14_dp .or. l_max < 1) return
+
+        k_wave = sqrt(2.0_dp * mass * energy)
+        pref = 4.0_dp * PI / (k_wave * k_wave)
+
+        ! 动量传输截面 (Diffusion cross section)
+        do l = 0, l_max - 1
+            sigma_momentum = sigma_momentum + real(l + 1, dp) * (sin(delta_arr(l) - delta_arr(l + 1))**2)
+        end do
+        sigma_momentum = sigma_momentum * pref
+
+        ! 粘滞截面 (Viscosity cross section)
+        if (l_max >= 2) then
+            do l = 0, l_max - 2
+                sigma_viscosity = sigma_viscosity + (real((l + 1) * (l + 2), dp) / real(2 * l + 3, dp)) * &
+                                  (sin(delta_arr(l) - delta_arr(l + 2))**2)
+            end do
+            sigma_viscosity = sigma_viscosity * pref
+        end if
+    end subroutine calc_transport_cross_sections
+
+    ! ==========================================================================
+    ! 7d. 全能量范围散射截面能谱扫描 (展示低能常数平台、共振峰与 Ramsauer-Townsend 极小)
+    ! ==========================================================================
+    subroutine calc_cross_section_spectrum(r_grid, v_pot, mass, energy_grid, n_energies, &
+                                          l_max, sigma_total, sigma_partial, stat)
+        real(dp), dimension(:), intent(in)            :: r_grid
+        real(dp), dimension(:), intent(in)            :: v_pot
+        real(dp), intent(in)                          :: mass
+        real(dp), dimension(n_energies), intent(in)   :: energy_grid
+        integer, intent(in)                           :: n_energies
+        integer, intent(in)                           :: l_max
+        real(dp), dimension(n_energies), intent(out)  :: sigma_total
+        real(dp), dimension(0:l_max, n_energies), optional, intent(out) :: sigma_partial
+        integer, optional, intent(out)                :: stat
+
+        integer  :: ie, istat
+        real(dp) :: delta_arr(0:l_max), sig_part(0:l_max), sig_tot
+
+        if (present(stat)) stat = 0
+
+        do ie = 1, n_energies
+            call calc_partial_wave_cross_sections(r_grid, v_pot, mass, energy_grid(ie), l_max, &
+                                                  delta_arr, sig_part, sig_tot, istat)
+            sigma_total(ie) = sig_tot
+            if (present(sigma_partial)) then
+                sigma_partial(0:l_max, ie) = sig_part
+            end if
+        end do
+    end subroutine calc_cross_section_spectrum
+
+    ! ==========================================================================
+    ! 7e. 广义吸收/复势弹性截面、非弹性吸收截面与总截面
+    !     sigma_el   = pi/k^2 * sum_l (2l+1) |1 - S_l|^2
+    !     sigma_inel = pi/k^2 * sum_l (2l+1) (1 - |S_l|^2)
+    !     sigma_tot  = sigma_el + sigma_inel = 2*pi/k^2 * sum_l (2l+1) (1 - Re S_l)
+    ! ==========================================================================
+    subroutine calc_generalized_cross_sections(k_wave, s_mat_arr, l_max, &
+                                              sigma_elastic, sigma_inelastic, sigma_total)
+        real(dp), intent(in)                     :: k_wave
+        complex(dp), dimension(0:l_max), intent(in) :: s_mat_arr
+        integer, intent(in)                      :: l_max
+        real(dp), intent(out)                    :: sigma_elastic
+        real(dp), intent(out)                    :: sigma_inelastic
+        real(dp), intent(out)                    :: sigma_total
+
+        integer  :: l
+        real(dp) :: pref, deg, mod_s2
+
+        sigma_elastic = 0.0_dp
+        sigma_inelastic = 0.0_dp
+        sigma_total = 0.0_dp
+
+        if (k_wave <= 1.0e-14_dp) return
+
+        pref = PI / (k_wave * k_wave)
+
+        do l = 0, l_max
+            deg = real(2 * l + 1, dp)
+            mod_s2 = abs(s_mat_arr(l))**2
+
+            sigma_elastic   = sigma_elastic   + deg * (abs(1.0_dp - s_mat_arr(l))**2)
+            sigma_inelastic = sigma_inelastic + deg * max(0.0_dp, 1.0_dp - mod_s2)
+            sigma_total     = sigma_total     + deg * 2.0_dp * (1.0_dp - real(s_mat_arr(l), dp))
+        end do
+
+        sigma_elastic   = sigma_elastic * pref
+        sigma_inelastic = sigma_inelastic * pref
+        sigma_total     = sigma_total * pref
+    end subroutine calc_generalized_cross_sections
+
+    ! ==========================================================================
+    ! 7f. 微分散射截面 Legendre 级数展开与前后各向异性不对称参数 A_FB
+    !     dsigma/dOmega = sum_{K} A_K P_K(cos theta)
+    !     A_FB = (Forward - Backward) / (Forward + Backward)
+    ! ==========================================================================
+    subroutine calc_differential_legendre_expansion(theta_grid, dsigma_domega, k_max, a_coeff, fb_asymmetry)
+        real(dp), dimension(:), intent(in)   :: theta_grid
+        real(dp), dimension(:), intent(in)   :: dsigma_domega
+        integer, intent(in)                  :: k_max
+        real(dp), dimension(0:k_max), intent(out) :: a_coeff
+        real(dp), intent(out)                :: fb_asymmetry
+
+        integer  :: n_angles, i, k
+        real(dp) :: dtheta, th, x_cos, p_k, sin_th, w
+        real(dp) :: forward_flux, backward_flux
+
+        n_angles = size(theta_grid)
+        dtheta = theta_grid(2) - theta_grid(1)
+        a_coeff = 0.0_dp
+        forward_flux = 0.0_dp
+        backward_flux = 0.0_dp
+
+        do i = 1, n_angles
+            th = theta_grid(i)
+            x_cos = cos(th)
+            sin_th = sin(th)
+            w = sin_th * dtheta
+
+            if (th <= HALFPI) then
+                forward_flux = forward_flux + dsigma_domega(i) * w
+            else
+                backward_flux = backward_flux + dsigma_domega(i) * w
+            end if
+
+            do k = 0, k_max
+                p_k = legendre_poly(k, x_cos)
+                a_coeff(k) = a_coeff(k) + real(2 * k + 1, dp) * 0.5_dp * dsigma_domega(i) * p_k * w
+            end do
+        end do
+
+        if (forward_flux + backward_flux > 1.0e-14_dp) then
+            fb_asymmetry = (forward_flux - backward_flux) / (forward_flux + backward_flux)
+        else
+            fb_asymmetry = 0.0_dp
+        end if
+    end subroutine calc_differential_legendre_expansion
 
     ! ==========================================================================
     ! 8. 超低能区有效力程展开 (ERE: Effective Range Expansion) 最小二乘拟合

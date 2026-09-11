@@ -3,7 +3,7 @@
 [![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
 [![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests: 108/108 Pass](https://img.shields.io/badge/Tests-108%2F108%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Tests: 113/113 Pass](https://img.shields.io/badge/Tests-113%2F113%20Pass%20(100%25)-brightgreen.svg)](tests/)
 
 `GeneralModule` 是一个面向超快强场物理、分子光物理与量子动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
 
@@ -72,7 +72,7 @@ GeneralModule/
 │   ├── test_open_quantum_opt.f90  # Lindblad 耗散退相干与 Krotov 最优控制测试
 │   ├── test_ti_scattering.f90     # 非含时散射长度、相移、S矩阵与光学定理测试
 │   ├── test_td_scattering.f90     # 含时波包散射透射谱、S矩阵元与 Möller 投影测试
-│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 108/108 断言)
+│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 113/113 断言)
 ├── examples/                      # 典型物理应用算例 (6 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90           # 啁啾、双色、太赫兹脉冲时频生成
@@ -83,7 +83,7 @@ GeneralModule/
 │   └── build_examples.sh          # 算例编译运行脚本
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
-    ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 8/8 测试)
+    ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 9/9 测试)
     ├── plot_rovibrational_dynamics.py # 出版级分子转振受控动力学一键绘图管道
     └── pygenmod/
         ├── __init__.py
@@ -244,6 +244,11 @@ GeneralModule/
 - `calc_partial_wave_cross_sections(r_grid, v_pot, mass, energy, l_max, delta_arr, sigma_part, sigma_tot, stat)`: 分波弹性散射截面 $\sigma_l = \frac{4\pi}{k^2}(2l+1)\sin^2\delta_l$ 与总截面 $\sigma_{tot}$。
 - `optical_theorem_cross_section(k_wave, delta_arr, l_max)`: 光学定理自洽校验 $\sigma_{optical} = \frac{4\pi}{k} \text{Im}[f(0)]$。
 - `calc_differential_cross_section(energy, mass, delta_arr, l_max, theta_grid, dsigma_domega)`: 角度分辨微分散射截面 $\frac{d\sigma}{d\Omega}(\theta) = |f(\theta)|^2$（Legendre 级数展开）。
+- `calc_differential_cross_section_identical(energy, mass, delta_arr, l_max, theta_grid, particle_stat, dsigma_domega)`: 考虑全同粒子量子统计干涉的微分散射截面（`STAT_DISTINGUISHABLE`, `STAT_IDENTICAL_BOSON` 在 $\pi/2$ 处干涉增强 4 倍, `STAT_IDENTICAL_FERMION` 在 $\pi/2$ 处奇宇称严格相消归零, `STAT_FERMION_UNPOLARIZED` 自旋统计混合）。
+- `calc_transport_cross_sections(energy, mass, delta_arr, l_max, sigma_m, sigma_v)`: 输运截面计算，包含动量传输截面 $\sigma_m = \int (1-\cos\theta) d\sigma$ 与粘滞截面 $\sigma_v = \int \sin^2\theta d\sigma$。
+- `calc_differential_legendre_expansion(theta_grid, dsigma_domega, n_theta, k_max, a_k, a_fb)`: 微分散射截面各向异性勒让德展开多极矩 $A_K$ 与前后散射非对称度参数 $A_{FB} = (\sigma_F - \sigma_B)/(\sigma_F + \sigma_B)$。
+- `calc_cross_section_spectrum(r_grid, v_pot, mass, energy_grid, n_e, l_max, sigma_tot_spectrum, stat)`: 宽能量范围散射截面与分波相移连续能谱扫描。
+- `calc_generalized_cross_sections(k_wave, s_matrix_diag, l_max, sigma_el, sigma_inel, sigma_tot)`: 广义吸收复势弹性截面、非弹性吸收截面与光学总截面。
 - `fit_effective_range_expansion(r_grid, v_pot, mass, k_list, n_k, a_s, r_0, stat)`: 超低能区有效力程展开 $k\cot\delta_0(k) = -1/a_s + \frac{1}{2} r_0 k^2$ 最小二乘拟合。
 - `van_der_waals_mean_length(mass, c6_au)` / `gribakin_flambaum_length(mass, c6_au, phase_phi)`: 范德华长程色散平均散射长度 $\bar{a} \approx 0.4779888 (2\mu C_6)^{1/4}$ 与 Gribakin-Flambaum 半经典解析散射长度。
 - `analyze_shape_resonance(energy_grid, delta_grid, n_pts, hbar, res_info, stat)`: 形状共振 Wigner 散射时延 $\tau(E) = 2\hbar \frac{d\delta}{dE}$ 峰值追踪与 Breit-Wigner 参数（共振能量 $E_R$、线宽 $\Gamma$、准束缚态寿命）提取。
@@ -259,6 +264,7 @@ GeneralModule/
 - `project_wavepacket_to_smatrix(x_grid, dx, psi_final, mass, hbar, k0, sigma_x, x0, energy_grid, n_energies, t_prob, r_prob)`: Möller 动量表象渐近投影法，末态波包动量空间分解提取连续态透射与反射概率。
 - `multichannel_td_smatrix_elements(...)`: 多通道含时概率通量提取非绝热碰撞非弹性 S-矩阵元 $|S_{ij}(E)|^2$。
 - `wavepacket_centroid_position(x_grid, dx, psi)` / `wavepacket_wigner_delay(...)`: 波包质心轨迹追踪与含时 Wigner 散射时延 $\tau_W(E) = 2\hbar \frac{d\delta}{dE}$。
+- `td_differential_cross_section_2d(r_det, theta_grid, n_theta, psi_final, x_grid, y_grid, nx, ny, mass, hbar, t_duration, dsigma_dtheta)`: 二维连续态含时波包散射角分布微分散射截面 $\frac{d\sigma}{d\theta}(\theta)$。
 
 ---
 
@@ -354,9 +360,9 @@ chmod +x run_all_tests.sh
 ================================================================
           Running GeneralModule Test Suite Suite                
 ================================================================
-Constants Tests:             10 / 10 PASSED
-Special Function Tests:      12 / 12 PASSED
-DVR Grid Tests:               8 /  8 PASSED
+Constants Tests:             12 / 12 PASSED
+Special Function Tests:      10 / 10 PASSED
+DVR Grid Tests:               7 /  7 PASSED
 Laser Pulse Tests:            9 /  9 PASSED
 Propagator Tests:             8 /  8 PASSED
 Extended Atomic Tests:       14 / 14 PASSED
@@ -364,10 +370,10 @@ Rovibrational Control Tests:  8 /  8 PASSED
 Interpolation Tests:          7 /  7 PASSED
 Photofragment & Flux Tests:   6 /  6 PASSED
 Open Quantum & OCT Tests:    10 / 10 PASSED
-TI Scattering Tests:          9 /  9 PASSED
-TD Scattering Tests:          7 /  7 PASSED
+TI Scattering Tests:         13 / 13 PASSED
+TD Scattering Tests:          8 /  8 PASSED
 ----------------------------------------------------------------
-ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 108/108 断言通过)
+ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 113/113 断言通过)
 ================================================================
 ```
 
@@ -403,7 +409,7 @@ chmod +x build_examples.sh
 
 ```bash
 cd GeneralModule/python
-python3 test_pygenmod.py   # 运行 8 大单元测试 (100% Pass)
+python3 test_pygenmod.py   # 运行 9 大单元测试 (100% Pass)
 ```
 
 ### 1. 超冷散射长度与零能波函数渐近线可视化 (`scattering.py`)
@@ -418,14 +424,33 @@ a_s, u_wf = calc_scattering_length_numerov(r, v_pot, mass=1.0)
 plot_scattering_length_wavefunction(r, v_pot, u_wf, a_s, filename="scattering_length.png")
 ```
 
-### 2. 转振态激光调控动力学一键绘图 (`plot_rovibrational_dynamics.py`)
+### 2. 微分散射截面与全同粒子干涉绘图 (`scattering.py`)
+计算可区分粒子、全同玻色子、极化费米子角分布，极坐标与直角坐标双面板出版级成图：
+```python
+from pygenmod import calc_differential_cross_section_identical, plot_differential_cross_sections
+import numpy as np
+
+theta = np.linspace(0.0, np.pi, 181)
+delta = np.array([0.45, 0.15, 0.05])  # l=0, 1, 2 分波相移
+ds_dist = calc_differential_cross_section_identical(0.05, 1.0, delta, theta, 'distinguishable')
+ds_boson = calc_differential_cross_section_identical(0.05, 1.0, delta, theta, 'boson')
+ds_fermion = calc_differential_cross_section_identical(0.05, 1.0, delta, theta, 'fermion')
+
+plot_differential_cross_sections(theta, {
+    "Distinguishable": ds_dist,
+    "Identical Bosons": ds_boson,
+    "Polarized Fermions": ds_fermion
+}, filename="result_differential_cross_section.png")
+```
+
+### 3. 转振态激光调控动力学一键绘图 (`plot_rovibrational_dynamics.py`)
 结合 Fortran 计算生成的 `test_rovibrational_dynamics.dat`，一键绘制 4 面板 300 DPI 矢量级高清科研图（激光电场、各振动态布居演化、转振精细结构布居、全系综总几率守恒验证）：
 ```bash
 python3 python/plot_rovibrational_dynamics.py
 # 生成高分辨率图表: python/result_rovibrational_dynamics.png
 ```
 
-### 2. Python 调用示例：
+### 4. Sinc-DVR 束缚态求解与波函数绘图示例：
 ```python
 from pygenmod import dvr_sinc_init, fgh_solve_bound_states, plot_wavefunctions
 

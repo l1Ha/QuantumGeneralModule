@@ -91,10 +91,15 @@ module general_module
 
     ! 非含时散射理论与超冷碰撞 (Time-Independent Scattering)
     public :: scattering_state_t, ere_result_t, resonance_info_t
+    public :: PARTICLE_DISTINGUISHABLE, PARTICLE_IDENTICAL_BOSON
+    public :: PARTICLE_IDENTICAL_FERMION_POLARIZED, PARTICLE_IDENTICAL_FERMION_UNPOLAR
     public :: riccati_bessel_neumann
     public :: calc_scattering_length_numerov, calc_scattering_length_logder
     public :: calc_phase_shift_single_l, calc_partial_wave_cross_sections
     public :: optical_theorem_cross_section, calc_differential_cross_section
+    public :: calc_differential_cross_section_identical
+    public :: calc_transport_cross_sections, calc_cross_section_spectrum
+    public :: calc_generalized_cross_sections, calc_differential_legendre_expansion
     public :: fit_effective_range_expansion
     public :: gribakin_flambaum_length, van_der_waals_mean_length
     public :: analyze_shape_resonance, calc_coupled_channel_smatrix_2x2
@@ -106,5 +111,6 @@ module general_module
     public :: calculate_td_smatrix_element, project_wavepacket_to_smatrix
     public :: multichannel_td_smatrix_elements
     public :: wavepacket_centroid_position, wavepacket_wigner_delay
+    public :: calculate_td_differential_cross_section_2d
 
 end module general_module

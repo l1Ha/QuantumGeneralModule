@@ -24,8 +24,11 @@ from pygenmod import (
     build_rovibrational_dipole_matrix,
     van_der_waals_mean_length, square_well_scattering_length_exact,
     calc_scattering_length_numerov, plot_scattering_length_wavefunction,
+    calc_differential_cross_section, calc_differential_cross_section_identical,
+    plot_differential_cross_sections,
     plot_wavefunctions, plot_pulses
 )
+
 
 
 class TestPyGenMod(unittest.TestCase):
@@ -149,6 +152,45 @@ class TestPyGenMod(unittest.TestCase):
         plot_scattering_length_wavefunction(r, v, u, as_num, filename="test_scat.png")
         self.assertTrue(os.path.exists("test_scat.png"))
         os.remove("test_scat.png")
+
+    def test_differential_cross_sections(self):
+        # Phase shifts for l=0, 1, 2
+        delta = np.array([0.45, 0.15, 0.05])
+        energy = 0.05
+        mass = 1.0
+        theta = np.linspace(0.0, np.pi, 181)
+
+        # Distinguishable
+        ds_dist = calc_differential_cross_section(energy, mass, delta, theta)
+        self.assertEqual(len(ds_dist), 181)
+        self.assertTrue(np.all(ds_dist >= 0.0))
+
+        # Quantum statistics: Boson vs Fermion at theta = pi/2 (index 90)
+        ds_boson = calc_differential_cross_section_identical(energy, mass, delta, theta, 'boson')
+        ds_fermion = calc_differential_cross_section_identical(energy, mass, delta, theta, 'fermion')
+        ds_unpol = calc_differential_cross_section_identical(energy, mass, delta, theta, 'fermion_unpolarized')
+
+        # At theta = pi/2:
+        # 1) Fermion with only odd l has P_odd(0) = 0 -> strictly 0
+        self.assertAlmostEqual(ds_fermion[90], 0.0, places=7)
+
+        # 2) Boson has constructive interference: ds_boson(pi/2) = 4 * ds_even(pi/2)
+        # Check that ds_boson(pi/2) > 0 and ds_boson >= 0 everywhere
+        self.assertGreater(ds_boson[90], 0.0)
+        self.assertTrue(np.all(ds_boson >= 0.0))
+
+        # 3) Unpolarized spin-1/2: 0.25 * ds_boson + 0.75 * ds_fermion
+        self.assertAlmostEqual(ds_unpol[90], 0.25 * ds_boson[90] + 0.75 * ds_fermion[90], places=7)
+
+        # Smoke test for plotting
+        ds_map = {
+            "Distinguishable": ds_dist,
+            "Bosons": ds_boson,
+            "Polarized Fermions": ds_fermion
+        }
+        plot_differential_cross_sections(theta, ds_map, filename="test_dcs.png")
+        self.assertTrue(os.path.exists("test_dcs.png"))
+        os.remove("test_dcs.png")
 
     def test_visualizer_smoke(self):
         # Quick check that visualization runs without error

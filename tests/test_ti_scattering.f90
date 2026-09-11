@@ -185,6 +185,87 @@ program test_ti_scattering
     end if
     deallocate(v11, v22, v12)
 
+    ! --------------------------------------------------------------------------
+    ! 测试 10: 全同粒子微分散射截面与量子干涉效应 (Bosons vs Fermions at theta=pi/2)
+    ! 在 s-波主导下: Boson 在 pi/2 处截面应为区分粒子的 4 倍; Fermion 在 pi/2 处截面应严格归零
+    ! --------------------------------------------------------------------------
+    n_total = n_total + 1
+    block
+        real(dp) :: th_pi2(1), ds_dist(1), ds_boson(1), ds_ferm(1)
+        th_pi2 = [PI / 2.0_dp]
+        call calc_differential_cross_section_identical(0.01_dp, mass, delta_arr, 0, &
+                                                      th_pi2, PARTICLE_DISTINGUISHABLE, ds_dist)
+        call calc_differential_cross_section_identical(0.01_dp, mass, delta_arr, 0, &
+                                                      th_pi2, PARTICLE_IDENTICAL_BOSON, ds_boson)
+        call calc_differential_cross_section_identical(0.01_dp, mass, delta_arr, 0, &
+                                                      th_pi2, PARTICLE_IDENTICAL_FERMION_POLARIZED, ds_ferm)
+
+        if (abs(ds_boson(1) - 4.0_dp * ds_dist(1)) / ds_boson(1) < 1.0e-5_dp .and. &
+            abs(ds_ferm(1)) < 1.0e-12_dp) then
+            print '(A, F8.3, A, F8.3, A)', " [PASS] Quantum stats at pi/2: Boson = 4x Dist (", &
+                                          ds_boson(1), " vs ", 4.0_dp * ds_dist(1), "), Fermion = 0.0"
+            n_pass = n_pass + 1
+        else
+            print '(A, F8.3, A, F8.3)', " [FAIL] Quantum stats: Boson = ", ds_boson(1), ", Fermion = ", ds_ferm(1)
+        end if
+    end block
+
+    ! --------------------------------------------------------------------------
+    ! 测试 11: 输运截面 (动量传输截面 sigma_m 与 粘滞截面 sigma_v)
+    ! --------------------------------------------------------------------------
+    n_total = n_total + 1
+    block
+        real(dp) :: sig_m, sig_v
+        call calc_transport_cross_sections(energy, mass, delta_arr, 3, sig_m, sig_v)
+        if (sig_m > 0.0_dp .and. sig_v > 0.0_dp) then
+            print '(A, F10.4, A, F10.4)', " [PASS] Transport cross sections: sigma_m = ", sig_m, ", sigma_v = ", sig_v
+            n_pass = n_pass + 1
+        else
+            print '(A, F10.4, A, F10.4)', " [FAIL] Transport cross sections: sigma_m = ", sig_m, ", sigma_v = ", sig_v
+        end if
+    end block
+
+    ! --------------------------------------------------------------------------
+    ! 测试 12: 截面能谱扫描 (Cross Section Spectrum) 与低能极限 4*pi*a_s^2
+    ! --------------------------------------------------------------------------
+    n_total = n_total + 1
+    block
+        real(dp) :: e_scan(5), sig_tot_scan(5), sig_as_exact
+        e_scan = [0.0001_dp, 0.0005_dp, 0.001_dp, 0.005_dp, 0.01_dp]
+        call calc_cross_section_spectrum(r_grid, v_pot, mass, e_scan, 5, 1, sig_tot_scan)
+        sig_as_exact = 4.0_dp * PI * (as_exact**2)
+        ! 最低能量处应当极度接近 4*pi*a_s^2
+        if (abs(sig_tot_scan(1) - sig_as_exact) / sig_as_exact < 0.02_dp) then
+            print '(A, F9.4, A, F9.4)', " [PASS] Low-energy limit sigma(E->0) = ", sig_tot_scan(1), &
+                                         " (4*pi*a_s^2 = ", sig_as_exact, ")"
+            n_pass = n_pass + 1
+        else
+            print '(A, F9.4, A, F9.4)', " [FAIL] Low-energy limit sigma = ", sig_tot_scan(1), &
+                                         " (Exact: ", sig_as_exact, ")"
+        end if
+    end block
+
+    ! --------------------------------------------------------------------------
+    ! 测试 13: 微分散射截面 Legendre 展开与各项同性分量 A_0 = sigma_tot / (4*pi)
+    ! --------------------------------------------------------------------------
+    n_total = n_total + 1
+    block
+        real(dp) :: th_grid(181), ds_omega(181), a_coeffs(0:4), fb_asym
+        integer  :: j
+        do j = 1, 181
+            th_grid(j) = real(j - 1, dp) * PI / 180.0_dp
+        end do
+        call calc_differential_cross_section(energy, mass, delta_arr, 3, th_grid, ds_omega)
+        call calc_differential_legendre_expansion(th_grid, ds_omega, 4, a_coeffs, fb_asym)
+        if (abs(a_coeffs(0) - sigma_tot / (4.0_dp * PI)) / (sigma_tot / (4.0_dp * PI)) < 0.01_dp) then
+            print '(A, F9.4, A, F9.4)', " [PASS] Diff Legendre A_0 = ", a_coeffs(0), &
+                                         " (sigma_tot/(4*pi) = ", sigma_tot / (4.0_dp * PI), ")"
+            n_pass = n_pass + 1
+        else
+            print '(A, F9.4)', " [FAIL] Diff Legendre A_0 = ", a_coeffs(0)
+        end if
+    end block
+
     deallocate(r_grid, v_pot)
 
     print '(A)', "--------------------------------------------------"
