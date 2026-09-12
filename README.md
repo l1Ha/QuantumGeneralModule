@@ -3,7 +3,8 @@
 [![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
 [![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests: 159/159 Pass](https://img.shields.io/badge/Tests-159%2F159%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Tests: 164/164 Pass](https://img.shields.io/badge/Tests-164%2F164%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Literature: 8 Topics](https://img.shields.io/badge/Literature-8%20Topics%20(PRL%2FPRA%2FRMP)-blue.svg)](LITERATURE.md)
 
 `GeneralModule` 是一个面向超快强场物理、分子光物理与量子动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
 
@@ -33,6 +34,7 @@
 GeneralModule/
 ├── .github/workflows/ci.yml       # 🚀 GitHub Actions 跨平台 CI 持续集成工作流
 ├── CONFIG_GUIDE.md                # 📖 详尽配置与部署指南（全编译平台、参数全典、AI提示词模板）
+├── LITERATURE.md                  # 📚 科学文献典藏与理论映射全典 (PRL/PRA/RMP/JCP 权威论文与代码映射)
 ├── fpm.toml                       # Fortran Package Manager 配置文件
 ├── CMakeLists.txt                 # CMake 跨平台构建系统
 ├── README.md                      # 本文档
@@ -56,9 +58,9 @@ GeneralModule/
 │   ├── mod_photofragment_flux.f90 # 16. 自相关函数与吸收截面谱、渐近散射振幅与光解离碎片动能释放谱(KER)
 │   ├── mod_open_quantum.f90       # 17. 开放量子系统 Lindblad 耗散主方程、自发跃迁/退相位弛豫、纯度与冯·诺依曼熵
 │   ├── mod_optimal_control.f90    # 18. 量子最优控制理论 Krotov 算法、目标保真度与激光场原位迭代优化
-│   ├── mod_ti_scattering.f90      # 19. 非含时散射理论、零能 Numerov/Log-Derivative 散射长度、相移、K/S/T 矩阵与通用多通道密耦
+│   ├── mod_ti_scattering.f90      # 19. 非含时散射理论、零能 Numerov/Log-Derivative 散射长度、相移、分段网格与多通道密耦
 │   ├── mod_td_scattering.f90      # 20. 含时波包散射理论、连续态能量通量透射率 T(E)、含时 S 矩阵提取与 Möller 动量投影
-│   ├── mod_field_scattering.f90   # 21. 外加电磁场超冷散射、四大经典基组严格幺正变换、Breit-Rabi本征态、自旋交换势与磁Feshbach共振扫描
+│   ├── mod_field_scattering.f90   # 21. 外加电磁场超冷散射、四大经典基组严格幺正变换、Breit-Rabi本征态与磁Feshbach共振扫描
 │   └── general_module.f90         # 顶层聚合入口模块 (use general_module)
 ├── tests/                         # 自动化单元测试套件 (13 个套件，100% 全部通过)
 │   ├── test_constants.f90
@@ -71,11 +73,11 @@ GeneralModule/
 │   ├── test_interpolation.f90     # 三次样条插值与渐近外推测试
 │   ├── test_photofragment_flux.f90# 自相关吸收谱与碎片 KER 分支比测试
 │   ├── test_open_quantum_opt.f90  # Lindblad 耗散退相干与 Krotov 最优控制测试
-│   ├── test_ti_scattering.f90     # 非含时散射长度、相移、S矩阵与多通道密耦测试
+│   ├── test_ti_scattering.f90     # 非含时散射长度、相移、S矩阵与分段网格多通道测试
 │   ├── test_td_scattering.f90     # 含时波包散射透射谱、S矩阵元与 Möller 投影测试
 │   ├── test_field_scattering.f90  # 外场四大基组幺正变换、Breit-Rabi解析与数值比对、磁Feshbach共振拟合测试
-│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 148/148 断言)
-├── examples/                      # 典型物理应用算例 (7 大完整前沿算例)
+│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 164/164 断言)
+├── examples/                      # 典型物理应用算例 (8 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90           # 啁啾、双色、太赫兹脉冲时频生成
 │   ├── ex03_split_operator_1d.f90         # 1D 波包动力学演化与 CAP 吸收边界
@@ -83,6 +85,7 @@ GeneralModule/
 │   ├── ex05_hhg_lewenstein_spectrum.f90   # 强场阿秒高次谐波发射与半经典截止能
 │   ├── ex06_two_state_nonadiabatic.f90    # 双态避差穿越非绝热动力学与分支比
 │   ├── ex07_scattering_wavefunctions_ti_td.f90 # 连续态能量本征波函数非含时与含时双向求解对比
+│   ├── ex08_ultracold_feshbach_segmented.f90   # 多扇区分段网格超冷磁 Feshbach 共振与散射长度扫描
 │   └── build_examples.sh          # 算例编译运行脚本
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
@@ -258,8 +261,13 @@ GeneralModule/
 - `van_der_waals_mean_length(mass, c6_au)` / `gribakin_flambaum_length(mass, c6_au, phase_phi)`: 范德华长程色散平均散射长度 $\bar{a} \approx 0.4779888 (2\mu C_6)^{1/4}$ 与 Gribakin-Flambaum 半经典解析散射长度。
 - `analyze_shape_resonance(energy_grid, delta_grid, n_pts, hbar, res_info, stat)`: 形状共振 Wigner 散射时延 $\tau(E) = 2\hbar \frac{d\delta}{dE}$ 峰值追踪与 Breit-Wigner 参数（共振能量 $E_R$、线宽 $\Gamma$、准束缚态寿命）提取。
 - `calc_coupled_channel_smatrix_2x2(r_grid, v11, v22, v12, mass, total_energy, delta_e, s_matrix, inelastic_prob, stat)`: 双通道非绝热耦合密耦定态散射矩阵求解器，基于 Cayley 变换构建 $2 \times 2$ 严格幺正 $\mathbf{S}$ 矩阵并计算非弹性转移几率 $P_{1\to 2} = |S_{12}|^2$。
-- `calc_multichannel_close_coupling_logder(r_grid, v_mat, mass, total_energy, thresholds, l_channels, res, stat)`: **通用任意 $N$ 通道定态密耦求解器 (Johnson Matrix Log-Derivative Method)**。支持开通道（$E > E_i$）与闭通道（$E \le E_i$）任意混合系统，基于 Feshbach 投影 / Schur 补消除闭通道数值发散，构造通量归一化实对称反应矩阵 $\mathbf{K}_{oo}$ 与绝对幺正散射矩阵 $\mathbf{S}_{oo}$（机器精度满足 $\mathbf{S}^\dagger \mathbf{S} = \mathbf{I}$），直接输出各态-态跃迁几率矩阵 $P_{i\to j} = |S_{ij}|^2$、部分弹性与非弹性截面 $\sigma_{i\to j}$ 及特征相移和 $\delta_{sum}$。
 - `calc_feshbach_resonance_scan(r_grid, v_mat, mass, energy_grid, n_energies, thresholds, l_channels, s_wave_length, eigenphase_sums, stat)`: 跨 Feshbach 共振能量扫描，追踪闭通道准束缚态引起的开通道散射长度极点发散 $a_s(E) \to \pm \infty$ 与相移特征跳变。
+- `segmented_grid_t`: 多扇区自适应变步长分段径向网格派生类型，支持短程深阱区密格点、长程弱渐近区稀疏格点的高效离散。
+- `create_segmented_grid(r_start, r_bounds, dr_steps, grid, stat)`: 多扇区分段径向网格构造器，自动分段对齐与全局单调展平。
+- `calc_scattering_length_segmented_numerov(grid, v_pot, mass, a_s, u_zero, stat)`: 分段网格零能 Numerov 散射长度求解器，各扇区交接面采用 4 阶 Taylor 导数光滑桥接。
+- `calc_scattering_wavefunction_segmented_ti(grid, v_pot, mass, energy, l, norm_type, u_wf, phase_shift, stat)`: 分段网格连续散射态能量本征波函数求解器。
+- `calc_phase_shift_segmented(grid, v_pot, mass, energy, l, delta, stat)`: 分段网格分波相移与反应矩阵求解。
+- `calc_multichannel_close_coupling_segmented_logder(grid, v_mat, mass, total_energy, thresholds, l_channels, res, stat)`: **分段网格多通道定态密耦 Johnson 矩阵对数导数求解器**，扇区间局域对数导数矩阵精确传递，大幅节约深势阱多通道计算量。
 
 ### 20. 含时波包散射理论与 S-矩阵 (`mod_td_scattering`)
 - 派生类型：`type(td_scattering_channel_t)`。
@@ -370,8 +378,8 @@ chmod +x run_all_tests.sh
           Running GeneralModule Test Suite Suite                
 ================================================================
 Constants Tests:             12 / 12 PASSED
-Special Function Tests:      10 / 10 PASSED
-DVR Grid Tests:               7 /  7 PASSED
+Special Function Tests:      12 / 12 PASSED
+DVR Grid Tests:               8 /  8 PASSED
 Laser Pulse Tests:            9 /  9 PASSED
 Propagator Tests:             8 /  8 PASSED
 Extended Atomic Tests:       14 / 14 PASSED
@@ -379,11 +387,11 @@ Rovibrational Control Tests:  8 /  8 PASSED
 Interpolation Tests:          7 /  7 PASSED
 Photofragment & Flux Tests:   6 /  6 PASSED
 Open Quantum & OCT Tests:    10 / 10 PASSED
-TI Scattering Tests:         16 / 16 PASSED
+TI Scattering Tests:         19 / 19 PASSED
 TD Scattering Tests:          9 /  9 PASSED
 Field Scattering Tests:      42 / 42 PASSED
 ----------------------------------------------------------------
-ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 159/159 断言通过)
+ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 164/164 断言通过)
 ================================================================
 ```
 
@@ -391,7 +399,7 @@ ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 159/159 断言通过)
 
 ## 📊 典型物理算例 (Examples)
 
-位于 `GeneralModule/examples/`，一键编译运行全部 6 大物理算例：
+位于 `GeneralModule/examples/`，一键编译运行全部 8 大物理算例：
 ```bash
 cd GeneralModule/examples
 chmod +x build_examples.sh
@@ -412,6 +420,8 @@ chmod +x build_examples.sh
    - 模拟核波包穿过经典 Tully 避差交叉势能面（Avoided Crossing），计算无绝热跃迁与各通道末态布居比。
 7. **`ex07_scattering_wavefunctions_ti_td.f90`**
    - **连续谱散射能量本征波函数定量求解与交叉验证**：在同一一维势垒上对比非含时逆向 Numerov 匹配法与含时高斯波包 Split-Operator 谱投影法，直接给出高精度的连续态空间本征波函数 $\psi_E(x)$、隧穿透射几率 $T(E)$ 与反射几率 $R(E)$，两套独立算法相对偏差 $< 1.9\%$。
+8. **`ex08_ultracold_feshbach_segmented.f90`**
+   - **分段网格多通道超冷磁 Feshbach 共振色散扫描与拟合**：以 $^{87}\text{Rb} + ^{87}\text{Rb}$ 双通道碰撞系统为例，采用 3 扇区分段网格（短程深阱区 $dr=0.005\,a_0$、中间区 $dr=0.02\,a_0$、长程渐近区 $dr=0.1\,a_0$），在磁场范围 $B \in [70, 90]\,\text{Gauss}$ 内高精度扫描色散散射长度 $a_s(B)$，并通过非线性拟合准确提取磁共振中心位置 $B_0$、共振宽度 $\Delta B$、背景散射长度 $a_{\text{bg}}$ 与零散射点 $B_{\text{zero}}$。
 
 ---
 
@@ -518,6 +528,45 @@ b_grid = np.linspace(50.0, 110.0, 100)
 a_s = 100.0 * (1.0 - 5.0 / (b_grid - 80.0))  # 示例共振峰
 plot_magnetic_feshbach_resonance(b_grid, a_s, save_path="feshbach_resonance_fit.png")
 ```
+
+---
+
+## 📚 科学文献典藏与权威理论全典
+
+本算法库的所有物理模型、数值微分/积分格式、渐近边界匹配与对角化算法均严格对齐国际主流顶级物理期刊（PRL, PRA, PR, RMP, JCP, CPC 等）经典文献。
+
+项目根目录下建立了完整的独立文献全典：👉 **[LITERATURE.md](LITERATURE.md)**
+
+### 核心涵盖的物理领域与经典学术奠基：
+1. **非含时散射理论、分波相移与有效力程展开**
+   - E. P. Wigner, *Phys. Rev.* **73**, 1002 (1948) [分波相移与低能极限]
+   - H. A. Bethe, *Phys. Rev.* **76**, 38 (1949) [有效力程展开 ERE]
+   - E. P. Wigner, *Phys. Rev.* **98**, 145 (1955); F. T. Smith, *Phys. Rev.* **118**, 349 (1960) [Wigner-Smith 时延矩阵]
+2. **多通道密耦对数导数法与多扇区分段网格**
+   - B. R. Johnson, *J. Comput. Phys.* **13**, 445 (1973); *J. Chem. Phys.* **67**, 4086 (1977) [矩阵比值递推]
+   - D. E. Manolopoulos, *J. Chem. Phys.* **85**, 6425 (1986); *J. Comput. Phys.* **105**, 169 (1993) [分段扇区局域传播]
+   - J. M. Hutson & C. R. Le Sueur, *Comput. Phys. Commun.* **241**, 9 (2019) [MOLSCAT 分子密耦系统]
+3. **长程范德华色散与半经典解析散射长度**
+   - G. F. Gribakin & V. V. Flambaum, *Phys. Rev. A* **48**, 546 (1993) [平均散射长度 $\bar{a}$]
+   - Bo Gao, *Phys. Rev. A* **58**, 4222 (1998); *Phys. Rev. A* **72**, 042719 (2005) [纯范德华解析解与 MQDT]
+4. **超冷原子自旋相互作用与外场磁 Feshbach 共振**
+   - H. Feshbach, *Ann. Phys.* **5**, 357 (1958); U. Fano, *Phys. Rev.* **124**, 1866 (1961) [共振与组态相互作用]
+   - H. T. C. Stoof et al., *Phys. Rev. B* **38**, 4688 (1988); E. Tiesinga et al., *Phys. Rev. A* **47**, 4114 (1993) [自旋交换]
+   - C. Chin, R. Grimm, P. S. Julienne, and E. Tiesinga, *Rev. Mod. Phys.* **82**, 1225 (2010) [超冷原子 Feshbach 共振全景综述]
+5. **塞曼-超精细 Breit-Rabi 能谱与四大经典基组变换**
+   - G. Breit & I. I. Rabi, *Phys. Rev.* **38**, 2082 (1931) [单电子 Breit-Rabi 解析公式]
+   - D. A. Varshalovich et al., *Quantum Theory of Angular Momentum*, World Scientific (1988) [Racah 角动量耦合代数]
+   - J. P. Burke, Jr., Ph.D. thesis, Univ. of Colorado (1999) [四大基组表象与幺正投影]
+6. **强场超快物理、高次谐波发射与隧穿电离**
+   - L. V. Keldysh, *Sov. Phys. JETP* **20**, 1307 (1965); M. V. Ammosov et al., *Sov. Phys. JETP* **64**, 1191 (1986) [ADK]
+   - P. B. Corkum, *Phys. Rev. Lett.* **71**, 1994 (1993); M. Lewenstein et al., *Phys. Rev. A* **49**, 2117 (1994) [SFA 强场近似]
+7. **离散变量表象 (DVR)、虚时间与分裂算符波包动力学**
+   - D. T. Colbert & W. H. Miller, *J. Chem. Phys.* **96**, 1982 (1992) [Sinc-DVR]
+   - C. C. Marston & G. G. Balint-Kurti, *J. Chem. Phys.* **91**, 3571 (1989) [Fourier Grid Hamiltonian, FGH]
+   - M. D. Feit, J. A. Fleck, Jr., & A. Steiger, *J. Comput. Phys.* **47**, 412 (1982) [Split-Operator 算法]
+8. **开放量子系统 Lindblad 耗散与 Krotov 最优控制**
+   - G. Lindblad, *Commun. Math. Phys.* **48**, 119 (1976); V. Gorini et al., *J. Math. Phys.* **17**, 821 (1976) [Lindblad 动力学]
+   - V. F. Krotov, *Global Methods in Optimal Control Theory* (1996); R. Somlói et al., *Chem. Phys.* **172**, 85 (1993) [Krotov 算法]
 
 ---
 

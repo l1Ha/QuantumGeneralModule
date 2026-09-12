@@ -1,5 +1,13 @@
 !> \brief 外加磁场与电场中超冷量子散射理论与多基组密耦求解核心模块
-!> \details 支持：
+!> \details 权威理论参考文献 (详见 LITERATURE.md):
+!>   - G. Breit & I. I. Rabi, Phys. Rev. 38, 2082 (1931) [Breit-Rabi 塞曼-超精细能级]
+!>   - H. Feshbach, Ann. Phys. 5, 357 (1958); U. Fano, Phys. Rev. 124, 1866 (1961) [共振理论]
+!>   - H. T. C. Stoof et al., Phys. Rev. B 38, 4688 (1988) [自旋交换相互作用 s1 . s2]
+!>   - E. Tiesinga et al., Phys. Rev. A 47, 4114 (1993) [冷碰撞阈值与共振现象]
+!>   - D. A. Varshalovich et al., Quantum Theory of Angular Momentum (1988) [Racah代数]
+!>   - C. Chin et al., Rev. Mod. Phys. 82, 1225 (2010) [超冷气体 Feshbach 共振综述]
+!>   - J. M. Hutson & C. R. Le Sueur, Comput. Phys. Commun. 241, 1 (2019) [FIELD系统]
+!> 支持特性：
 !>   1. 四大经典基组表示及精确幺正变换：
 !>      - 非耦合基组 (Uncoupled Basis): |m_s1, m_i1, m_s2, m_i2, L, M_L>
 !>      - 单原子超精细耦合基组 (f-Coupled Basis): |(s1 i1) f1 m_f1, (s2 i2) f2 m_f2, L, M_L>

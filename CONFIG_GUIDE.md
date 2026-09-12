@@ -2,6 +2,10 @@
 
 本文档为 `GeneralModule` 现代量子动力学算法库的权威配置、编译构建、参数调优及多语言混合编程指南。无论您是高校/科研院所的研究人员、高性能计算（HPC）工程师，还是配合 AI Coding Agent（如 Antigravity、Cursor、Copilot）进行算法开发，本手册都提供了完备的配置说明。
 
+> [!NOTE]
+> 理论公式推导、物理机理与国际权威期刊参考文献（PRL, PRA, RMP, JCP 等）详见独立全典：
+> 👉 **[LITERATURE.md](LITERATURE.md)**
+
 ---
 
 ## 目录
@@ -534,6 +538,25 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
                                         l=0, norm_type=NORM_ENERGY, &
                                         u_wf=u_wf, phase_shift=delta_phase)
    ```
+9. **多扇区分段网格 (Segmented Grid) 与自适应步长密耦推进**：
+   ```fortran
+   type(segmented_grid_t) :: grid
+   real(dp) :: r_bounds(3), dr_steps(3)
+   type(multichannel_result_t) :: mc_res
+
+   ! 1. 构造 3 扇区分段网格：近核深势阱区步长极密，长程色散区稀疏放缩
+   r_bounds = [3.0_dp, 15.0_dp, 100.0_dp]
+   dr_steps = [0.005_dp, 0.02_dp, 0.10_dp]
+   call create_segmented_grid(r_start=0.05_dp, r_bounds=r_bounds, dr_steps=dr_steps, grid=grid)
+
+   ! 2. 分段网格零能散射长度 (Numerov + 4阶 Taylor 导数跨扇区光滑桥接)
+   call calc_scattering_length_segmented_numerov(grid, v_pot, mass=1.0_dp, a_s=as_val)
+
+   ! 3. 分段网格多通道定态密耦 (Johnson 矩阵对数导数局域无缝传递)
+   call calc_multichannel_close_coupling_segmented_logder( &
+       grid, v_mat, mass=1.0_dp, total_energy=0.15_dp, &
+       thresholds=thresholds, l_channels=l_channels, res=mc_res)
+   ```
 
 ---
 
@@ -644,6 +667,12 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
    print *, "共振宽度 Delta_B (Gauss):", fb_res%delta_b
    print *, "背景散射长度 a_bg (a0):", fb_res%a_bg
    ```
+
+> [!TIP]
+> 完整的多扇区分段网格外场超冷散射与磁 Feshbach 共振拟合端到端工程示例，详见：
+> 👉 [`examples/ex08_ultracold_feshbach_segmented.f90`](examples/ex08_ultracold_feshbach_segmented.f90)
+> 对应理论参考文献与公式映射，详见：
+> 👉 [`LITERATURE.md`](LITERATURE.md) 第 4 节与第 5 节。
 
 ---
 

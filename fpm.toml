@@ -75,6 +75,11 @@ name = "test_td_scattering"
 source-dir = "tests"
 main = "test_td_scattering.f90"
 
+[[test]]
+name = "test_field_scattering"
+source-dir = "tests"
+main = "test_field_scattering.f90"
+
 [[example]]
 name = "ex01_fgh_diatomic_bound_states"
 source-dir = "examples"
@@ -104,3 +109,13 @@ main = "ex05_hhg_lewenstein_spectrum.f90"
 name = "ex06_two_state_nonadiabatic"
 source-dir = "examples"
 main = "ex06_two_state_nonadiabatic.f90"
+
+[[example]]
+name = "ex07_scattering_wavefunctions_ti_td"
+source-dir = "examples"
+main = "ex07_scattering_wavefunctions_ti_td.f90"
+
+[[example]]
+name = "ex08_ultracold_feshbach_segmented"
+source-dir = "examples"
+main = "ex08_ultracold_feshbach_segmented.f90"

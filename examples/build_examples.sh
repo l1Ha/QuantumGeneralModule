@@ -14,12 +14,13 @@ echo "================================================================"
 
 cd "$DIR"
 
-EXAMPLES=("ex01_fgh_diatomic_bound_states" "ex02_pulse_synthesis" "ex03_split_operator_1d" "ex04_field_free_orientation" "ex05_hhg_lewenstein_spectrum" "ex06_two_state_nonadiabatic" "ex07_scattering_wavefunctions_ti_td")
+FFLAGS="-O2 -fPIC -ffree-line-length-none"
+EXAMPLES=("ex01_fgh_diatomic_bound_states" "ex02_pulse_synthesis" "ex03_split_operator_1d" "ex04_field_free_orientation" "ex05_hhg_lewenstein_spectrum" "ex06_two_state_nonadiabatic" "ex07_scattering_wavefunctions_ti_td" "ex08_ultracold_feshbach_segmented")
 
 for ex in "${EXAMPLES[@]}"; do
     echo ""
     echo ">> Building & Running $ex..."
-    gfortran -O2 -I"$SRC_DIR" "$ex.f90" "$SRC_DIR"/libgeneral_module.a -o "$ex"
+    gfortran $FFLAGS -I"$SRC_DIR" "$ex.f90" "$SRC_DIR"/libgeneral_module.a -o "$ex"
     "./$ex"
     rm -f "$ex"
 done

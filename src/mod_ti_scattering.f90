@@ -2,6 +2,14 @@
 ! GeneralModule: mod_ti_scattering.f90
 ! ------------------------------------------------------------------------------
 ! 现代量子动力学非含时散射理论与超冷碰撞模块 (Time-Independent Scattering)
+! 权威理论参考文献 (详见 LITERATURE.md):
+!   - E. P. Wigner, Phys. Rev. 73, 1002 (1948) [分波相移与低能截面极限]
+!   - H. A. Bethe, Phys. Rev. 76, 38 (1949) [有效力程展开 ERE]
+!   - E. P. Wigner, Phys. Rev. 98, 145 (1955); F. T. Smith, Phys. Rev. 118, 349 (1960) [时延]
+!   - B. R. Johnson, J. Comput. Phys. 13, 445 (1973) [矩阵对数导数递推法]
+!   - D. E. Manolopoulos, J. Chem. Phys. 85, 6425 (1986) [局域多扇区分段网格传递]
+!   - G. F. Gribakin & V. V. Flambaum, Phys. Rev. A 48, 546 (1993) [范德华半经典散射长度]
+!   - J. M. Hutson & C. R. Le Sueur, Comput. Phys. Commun. 241, 9 (2019) [MOLSCAT系统]
 ! 包含特性：
 ! 1. Riccati-Bessel/Neumann 特殊函数与任意角动量 l 的解析导数
 ! 2. 零能 Numerov 与 Johnson Log-Derivative 散射长度 (a_s) 求解
@@ -12,6 +20,7 @@
 ! 7. 范德华长程色散平均散射长度 a_bar 与 Gribakin-Flambaum 半经典解析公式
 ! 8. 形状共振 (Shape Resonance) Wigner 时延分析与 Breit-Wigner 参数提取
 ! 9. 双通道非绝热耦合密耦定态散射矩阵 (Close-Coupling 2x2 S-Matrix)
+! 10. 多通道密耦 (Johnson Log-Derivative) 与多扇区分段网格 (Segmented Grid)
 ! ==============================================================================
 module mod_ti_scattering
     use mod_constants, only: dp, PI, TWOPI, HALFPI
