@@ -3,7 +3,7 @@
 [![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
 [![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests: 115/115 Pass](https://img.shields.io/badge/Tests-115%2F115%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Tests: 148/148 Pass](https://img.shields.io/badge/Tests-148%2F148%20Pass%20(100%25)-brightgreen.svg)](tests/)
 
 `GeneralModule` 是一个面向超快强场物理、分子光物理与量子动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
 
@@ -13,17 +13,17 @@
 
 1. **零外部库依赖 (Zero External Dependencies)**
    - 内部集成高精度 Householder QL 实对称矩阵本征求解器、Gauss-Jordan 全主元实/复方阵求逆与 Cooley-Tukey 1D/2D 快速傅里叶变换（FFT）。
-   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）与含时连续态散射矩阵求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
+   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射与含时连续态散射矩阵求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
 2. **现代 Fortran 2008 标准设计**
    - 统一强类型参数定义（`real(dp) => real64`）。
    - 纯函数（`pure function`）与显式 `intent(in/out/inout)` 契约，杜绝隐式全局变量副作用。
 3. **AI 友好型结构化接口 (AI-Friendly)**
    - 算法模块支持统一顶层聚合入口：`use general_module`。
-   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `absorbing_boundary_t`, `dvr_1d_t`, `spline_1d_t`, `scattering_state_t`, `multichannel_result_t`, `td_scattering_channel_t`），自解释、低耦合、便于大语言模型精确构造与调用。
+   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `absorbing_boundary_t`, `dvr_1d_t`, `spline_1d_t`, `scattering_state_t`, `multichannel_result_t`, `td_scattering_channel_t`, `cold_atom_t`, `field_channel_t`, `field_feshbach_result_t`），自解释、低耦合、便于大语言模型精确构造与调用。
 4. **全链路双语生态支持**
-   - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
+   - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
 5. **全自动 CI/CD 持续集成**
-   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 12 大测试套件与 Python 验证。
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 13 大测试套件与 Python 验证。
 
 ---
 
@@ -37,9 +37,9 @@ GeneralModule/
 ├── CMakeLists.txt                 # CMake 跨平台构建系统
 ├── README.md                      # 本文档
 ├── .gitignore                     # Git 忽略规则
-├── src/                           # 核心 Fortran 源代码 (20 核心模块 + 1 聚合入口)
+├── src/                           # 核心 Fortran 源代码 (21 核心模块 + 1 聚合入口)
 │   ├── mod_constants.f90          # 1. 物理常数与各单位 a.u. 双向转换
-│   ├── mod_special_functions.f90  # 2. 勒让德、Wigner 3j、CG、转动偶极/取向矩阵元
+│   ├── mod_special_functions.f90  # 2. 勒让德、Wigner 3j/6j/9j、CG半整数代数、转动偶极/取向矩阵元
 │   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解 (EISPACK TRED2/TQL2)、实/复方阵求逆、1D/2D FFT
 │   ├── mod_dvr_grid.f90           # 4. Sinc-DVR、Legendre-DVR、FGH 束缚态求解、格点期望值
 │   ├── mod_laser_pulse.f90        # 5. 超快强场脉冲时域合成、矢量势、椭偏场与便捷构造器
@@ -58,8 +58,9 @@ GeneralModule/
 │   ├── mod_optimal_control.f90    # 18. 量子最优控制理论 Krotov 算法、目标保真度与激光场原位迭代优化
 │   ├── mod_ti_scattering.f90      # 19. 非含时散射理论、零能 Numerov/Log-Derivative 散射长度、相移、K/S/T 矩阵与通用多通道密耦
 │   ├── mod_td_scattering.f90      # 20. 含时波包散射理论、连续态能量通量透射率 T(E)、含时 S 矩阵提取与 Möller 动量投影
+│   ├── mod_field_scattering.f90   # 21. 外加电磁场超冷散射、四大经典基组严格幺正变换、Breit-Rabi本征态、自旋交换势与磁Feshbach共振扫描
 │   └── general_module.f90         # 顶层聚合入口模块 (use general_module)
-├── tests/                         # 自动化单元测试套件 (12 个套件，100% 全部通过)
+├── tests/                         # 自动化单元测试套件 (13 个套件，100% 全部通过)
 │   ├── test_constants.f90
 │   ├── test_special_functions.f90
 │   ├── test_dvr_grid.f90
@@ -72,18 +73,20 @@ GeneralModule/
 │   ├── test_open_quantum_opt.f90  # Lindblad 耗散退相干与 Krotov 最优控制测试
 │   ├── test_ti_scattering.f90     # 非含时散射长度、相移、S矩阵与多通道密耦测试
 │   ├── test_td_scattering.f90     # 含时波包散射透射谱、S矩阵元与 Möller 投影测试
-│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 115/115 断言)
-├── examples/                      # 典型物理应用算例 (6 大完整前沿算例)
+│   ├── test_field_scattering.f90  # 外场四大基组幺正变换、Breit-Rabi解析与数值比对、磁Feshbach共振拟合测试
+│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 148/148 断言)
+├── examples/                      # 典型物理应用算例 (7 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90           # 啁啾、双色、太赫兹脉冲时频生成
 │   ├── ex03_split_operator_1d.f90         # 1D 波包动力学演化与 CAP 吸收边界
 │   ├── ex04_field_free_orientation.f90    # 刚体转子无场定向与玻尔兹曼热平均
 │   ├── ex05_hhg_lewenstein_spectrum.f90   # 强场阿秒高次谐波发射与半经典截止能
 │   ├── ex06_two_state_nonadiabatic.f90    # 双态避差穿越非绝热动力学与分支比
+│   ├── ex07_scattering_wavefunctions_ti_td.f90 # 连续态能量本征波函数非含时与含时双向求解对比
 │   └── build_examples.sh          # 算例编译运行脚本
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
-    ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 10/10 测试)
+    ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 12/12 测试)
     ├── plot_rovibrational_dynamics.py # 出版级分子转振受控动力学一键绘图管道
     └── pygenmod/
         ├── __init__.py
@@ -95,6 +98,7 @@ GeneralModule/
         ├── multistate.py
         ├── rovibrational.py       # 转振态索引映射、FC因子、转动常数与跃迁偶极
         ├── scattering.py          # 散射长度(Numerov/方势阱/范德华)与波函数渐近线绘图
+        ├── field_scattering.py    # 四大基组幺正变换、Breit-Rabi图谱与磁Feshbach色散拟合
         └── visualizer.py          # 发表级科学绘图工具
 ```
 
@@ -352,7 +356,7 @@ target_link_libraries(my_executable PRIVATE GeneralModule_static)
 
 ## 🧪 自动化测试套件
 
-算法库内建完备的单元测试，覆盖物理常数往返转换、角动量耦合、FGH 谐振子能级、激光脉冲包络、Bloch / Split-Operator 模长守恒、强场原子模型与多态非绝热耦合、转振态激光调控、三次样条插值与外推、自相关吸收谱与碎片 KER 分支比、Lindblad 耗散主方程与 Krotov 最优控制、非含时散射长度与 S-矩阵、含时波包散射连续态透射谱：
+算法库内建完备的单元测试，覆盖物理常数往返转换、半整数角动量耦合、FGH 谐振子能级、激光脉冲包络、Bloch / Split-Operator 模长守恒、强场原子模型与多态非绝热耦合、转振态激光调控、三次样条插值与外推、自相关吸收谱与碎片 KER 分支比、Lindblad 耗散主方程与 Krotov 最优控制、非含时散射长度与 S-矩阵、含时波包散射连续态透射谱、外加电磁场四大基组幺正变换与磁 Feshbach 共振拟合：
 
 ```bash
 cd GeneralModule/tests
@@ -377,8 +381,9 @@ Photofragment & Flux Tests:   6 /  6 PASSED
 Open Quantum & OCT Tests:    10 / 10 PASSED
 TI Scattering Tests:         16 / 16 PASSED
 TD Scattering Tests:          9 /  9 PASSED
+Field Scattering Tests:      31 / 31 PASSED
 ----------------------------------------------------------------
-ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 117/117 断言通过)
+ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 148/148 断言通过)
 ================================================================
 ```
 
@@ -486,6 +491,32 @@ eig_vals, wavefuncs = fgh_solve_bound_states(dvr, v_pot)
 
 # 4. 生成发表级对比图
 plot_wavefunctions(dvr.x, v_pot, eig_vals, wavefuncs, n_states=4, filename="harmonic_oscillator.png")
+```
+
+### 6. 外场超冷原子碰撞与 Breit-Rabi / 磁 Feshbach 绘图 (`field_scattering.py`)
+计算碱金属单原子在任意磁场下的 Zeeman-超精细 Breit-Rabi 能级劈裂，或构建四大基组（非耦合、f-耦合、总自旋、场缀饰）幺正变换矩阵并绘制磁 Feshbach 共振色散：
+```python
+from pygenmod import (
+    get_cold_atom_preset, calc_breit_rabi_energies,
+    build_field_collision_channels, calc_basis_transform_matrix,
+    BASIS_UNCOUPLED, BASIS_TOTAL_SPIN,
+    plot_breit_rabi_diagram, plot_magnetic_feshbach_resonance
+)
+import numpy as np
+
+# 1. 绘制 87Rb 单原子 Breit-Rabi 能级图 (0 ~ 200 Gauss)
+rb87 = get_cold_atom_preset("87Rb")
+plot_breit_rabi_diagram(rb87, b_max_gauss=200.0, save_path="breit_rabi_rb87.png")
+
+# 2. 四大基组幺正变换矩阵计算 (例如: 非耦合基组 -> 总自旋耦合基组)
+ch_unc = build_field_collision_channels(rb87, rb87, BASIS_UNCOUPLED, two_Mtot=2, l_max=0)
+ch_spin = build_field_collision_channels(rb87, rb87, BASIS_TOTAL_SPIN, two_Mtot=2, l_max=0)
+U_spin_unc = calc_basis_transform_matrix(rb87, rb87, ch_unc, ch_spin, BASIS_UNCOUPLED, BASIS_TOTAL_SPIN)
+
+# 3. 绘制磁 Feshbach 共振色散曲线 a_s(B) 与解析拟合
+b_grid = np.linspace(50.0, 110.0, 100)
+a_s = 100.0 * (1.0 - 5.0 / (b_grid - 80.0))  # 示例共振峰
+plot_magnetic_feshbach_resonance(b_grid, a_s, save_path="feshbach_resonance_fit.png")
 ```
 
 ---

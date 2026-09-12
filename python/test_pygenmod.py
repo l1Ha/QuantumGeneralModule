@@ -28,7 +28,13 @@ from pygenmod import (
     plot_differential_cross_sections,
     calc_multichannel_close_coupling, plot_multichannel_smatrix, plot_feshbach_resonance,
     calc_scattering_wavefunction_ti, plot_scattering_wavefunction,
-    plot_wavefunctions, plot_pulses
+    plot_wavefunctions, plot_pulses,
+    BASIS_UNCOUPLED, BASIS_F_COUPLED, BASIS_TOTAL_SPIN, BASIS_FIELD_DRESSED,
+    AU2GHZ, clebsch_gordan_half, ColdAtom, get_cold_atom_preset,
+    calc_breit_rabi_energies, FieldChannel, build_field_collision_channels,
+    calc_basis_transform_matrix, build_asymptotic_hamiltonian,
+    build_spin_exchange_matrix, fit_feshbach_resonance_parameters,
+    plot_breit_rabi_diagram, plot_magnetic_feshbach_resonance
 )
 
 
@@ -266,6 +272,61 @@ class TestPyGenMod(unittest.TestCase):
                            title="HO Test Wavefunctions", filename="test_ho.png")
         self.assertTrue(os.path.exists("test_ho.png"))
         os.remove("test_ho.png")
+
+    def test_field_scattering_module(self):
+        # 1. Clebsch-Gordan half integer
+        cg1 = clebsch_gordan_half(1, 1, 1, -1, 2, 0)
+        self.assertAlmostEqual(cg1, 1.0 / np.sqrt(2.0), places=12)
+
+        # 2. Breit-Rabi Rb87 zero field hyperfine splitting
+        rb87 = get_cold_atom_preset("87Rb")
+        evals, _ = calc_breit_rabi_energies(rb87, 0.0)
+        hfs_split_ghz = (evals[3] - evals[0]) * AU2GHZ
+        self.assertAlmostEqual(hfs_split_ghz, 6.83468261, delta=1e-4)
+
+        # 3. Channels and Unitary transformation across 4 bases
+        ch_unc = build_field_collision_channels(rb87, rb87, BASIS_UNCOUPLED, two_Mtot=2, l_max=0)
+        ch_f = build_field_collision_channels(rb87, rb87, BASIS_F_COUPLED, two_Mtot=2, l_max=0)
+        ch_spin = build_field_collision_channels(rb87, rb87, BASIS_TOTAL_SPIN, two_Mtot=2, l_max=0)
+        n_ch = len(ch_unc)
+        self.assertGreater(n_ch, 0)
+
+        # U(f <- unc)
+        u_f_unc = calc_basis_transform_matrix(rb87, rb87, ch_unc, ch_f, BASIS_UNCOUPLED, BASIS_F_COUPLED, 50.0)
+        np.testing.assert_allclose(u_f_unc @ u_f_unc.T, np.eye(n_ch), atol=1e-12)
+
+        # U(spin <- unc)
+        u_spin_unc = calc_basis_transform_matrix(rb87, rb87, ch_unc, ch_spin, BASIS_UNCOUPLED, BASIS_TOTAL_SPIN, 50.0)
+        np.testing.assert_allclose(u_spin_unc @ u_spin_unc.T, np.eye(n_ch), atol=1e-12)
+
+        # U(dress <- unc)
+        u_dress_unc = calc_basis_transform_matrix(rb87, rb87, ch_unc, ch_unc, BASIS_UNCOUPLED, BASIS_FIELD_DRESSED, 50.0)
+        np.testing.assert_allclose(u_dress_unc @ u_dress_unc.T, np.eye(n_ch), atol=1e-12)
+
+        # Chain rule: U(f <- spin) == U(f <- unc) @ U(unc <- spin)
+        u_f_spin = calc_basis_transform_matrix(rb87, rb87, ch_spin, ch_f, BASIS_TOTAL_SPIN, BASIS_F_COUPLED, 50.0)
+        np.testing.assert_allclose(u_f_spin, u_f_unc @ u_spin_unc.T, atol=1e-12)
+
+        # 4. Spin exchange operator s1 . s2 is diagonal in Total Spin basis
+        p_exc = build_spin_exchange_matrix(ch_spin, BASIS_TOTAL_SPIN)
+        np.testing.assert_allclose(p_exc, np.diag(np.diag(p_exc)), atol=1e-14)
+
+        # 5. Feshbach fit
+        b_test = np.linspace(50.0, 110.0, 61)
+        a_test = 100.0 * (1.0 - 5.0 / (b_test - 80.0))
+        b0_fit, delta_b_fit, a_bg_fit = fit_feshbach_resonance_parameters(b_test, a_test)
+        self.assertAlmostEqual(b0_fit, 80.0, delta=1.0)
+        self.assertAlmostEqual(delta_b_fit, 5.0, delta=1.0)
+        self.assertAlmostEqual(a_bg_fit, 100.0, delta=5.0)
+
+        # 6. Plotting smoke test
+        plot_breit_rabi_diagram(rb87, b_max_gauss=50.0, num_b=30, save_path="test_br.png")
+        self.assertTrue(os.path.exists("test_br.png"))
+        os.remove("test_br.png")
+
+        plot_magnetic_feshbach_resonance(b_test, a_test, b0_fit, delta_b_fit, a_bg_fit, save_path="test_mfb.png")
+        self.assertTrue(os.path.exists("test_mfb.png"))
+        os.remove("test_mfb.png")
 
 
 if __name__ == '__main__':

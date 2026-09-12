@@ -22,6 +22,7 @@ module general_module
     use mod_optimal_control
     use mod_ti_scattering
     use mod_td_scattering
+    use mod_field_scattering
     implicit none
 
     public :: dp, int32, int64
@@ -29,6 +30,7 @@ module general_module
     public :: to_au, from_au
 
     public :: legendre_poly, assoc_legendre_poly, wigner_3j, clebsch_gordan
+    public :: wigner_3j_half, clebsch_gordan_half, wigner_6j_half, wigner_9j_half
     public :: rot_matrix_cos_theta, rot_matrix_cos2_theta
 
     public :: diag_symmetric_matrix, fft_1d, fft_2d, inv_real_matrix, inv_complex_matrix
@@ -117,5 +119,15 @@ module general_module
     public :: wavepacket_centroid_position, wavepacket_wigner_delay
     public :: calculate_td_differential_cross_section_2d
     public :: accumulate_wavefunction_spectral_projection, extract_td_scattering_wavefunction
+
+    ! 外加电磁场超冷量子碰撞散射 (Field-Dressed & Multi-Basis Scattering)
+    public :: BASIS_UNCOUPLED, BASIS_F_COUPLED, BASIS_TOTAL_SPIN, BASIS_FIELD_DRESSED
+    public :: GAUSS2AU, AU2GAUSS, MU_B_AU, MU_N_AU, GHZ2AU, AU2GHZ
+    public :: cold_atom_t, field_channel_t, field_feshbach_result_t
+    public :: get_cold_atom_preset, calc_breit_rabi_energies
+    public :: build_field_collision_channels, calc_basis_transform_matrix
+    public :: build_asymptotic_hamiltonian, build_spin_exchange_matrix
+    public :: build_field_potential_matrix, calc_magnetic_feshbach_resonance_scan
+    public :: fit_feshbach_resonance_parameters
 
 end module general_module

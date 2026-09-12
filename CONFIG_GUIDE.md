@@ -30,6 +30,7 @@
    - [3.11 量子最优控制理论 Krotov 算法配置 (`mod_optimal_control`)](#311-量子最优控制理论-krotov-算法配置-mod_optimal_control)
    - [3.12 非含时散射理论与超冷散射长度配置 (`mod_ti_scattering`)](#312-非含时散射理论与超冷散射长度配置-mod_ti_scattering)
    - [3.13 含时波包散射理论与 S-矩阵元提取配置 (`mod_td_scattering`)](#313-含时波包散射理论与-s-矩阵元提取配置-mod_td_scattering)
+   - [3.14 外加电磁场超冷散射与多基组密耦配置 (`mod_field_scattering`)](#314-外加电磁场超冷散射与多基组密耦配置-mod_field_scattering)
 4. [Python 伴侣库 `pygenmod` 配置与混合编程](#4-python-伴侣库-pygenmod-配置与混合编程)
    - [4.1 本地可编辑模式安装](#41-本地可编辑模式安装)
    - [4.2 数据交互规范（.dat 与无损二进制）](#42-数据交互规范-dat-与无损二进制)
@@ -588,6 +589,60 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
    ! 2. 演化结束后归一化提取严格 delta(E-E') 能量归一化连续能量本征函数
    call extract_td_scattering_wavefunction(x_grid, psi_accum, target_energy, mass, hbar, &
                                            x0, sigma_x, k0, psi_energy_norm)
+   ```
+
+---
+
+### 3.14 外加电磁场超冷散射与多基组密耦配置 (`mod_field_scattering`)
+面向外加磁场（Zeeman 效应）与直流电场（Stark 效应）下的碱金属原子与极性分子超冷量子碰撞散射：
+1. **四大表象基组选择与应用场景**：
+   - `BASIS_UNCOUPLED`：非耦合基组 $|m_{s1}, m_{i1}, m_{s2}, m_{i2}, L, M_L\rangle$。在外磁场下 Zeeman 相互作用严格对角，适于强场/Paschen-Back 机制与全势矩阵直接组装。
+   - `BASIS_F_COUPLED`：单原子超精细耦合基组 $|(s_1 i_1) f_1 m_{f1}, (s_2 i_2) f_2 m_{f2}, L, M_L\rangle$。在零磁场下超精细能级对角，适于弱场与超精细能级态制备。
+   - `BASIS_TOTAL_SPIN`：总自旋耦合基组 $|(s_1 s_2) S, (i_1 i_2) I, F M_F, L, M_L\rangle$。电子自旋单重态 $V_0(r)$ 与三重态 $V_1(r)$ 相互作用势直接对角，自旋交换矩阵元 $\hat{\mathbf{s}}_1 \cdot \hat{\mathbf{s}}_2$ 严格对角。
+   - `BASIS_FIELD_DRESSED`：渐近本征通道基组 $|\alpha_1(B), \alpha_2(B), L, M_L\rangle$。在无限远渐近区严格对角化单原子外场哈密顿量，消除长程人工非绝热耦合。
+2. **冷原子同位素参数库与 Breit-Rabi 能级求解**：
+   ```fortran
+   type(cold_atom_t) :: rb87
+   real(dp), allocatable :: e_levels(:), states(:, :)
+   integer :: n_states
+
+   ! 提取内置同位素 (支持 6Li, 7Li, 23Na, 40K, 87Rb, 133Cs, 40K87Rb)
+   call get_cold_atom_preset("87Rb", rb87)
+
+   ! 求解 B = 50.0 Gauss 下的单原子 Zeeman-超精细 Breit-Rabi 本征态
+   call calc_breit_rabi_energies(rb87, 50.0_dp, e_levels, states, n_states)
+   ```
+3. **通道自动枚举与四大基组间机器精度（$<10^{-14}$）幺正变换**：
+   ```fortran
+   type(field_channel_t), allocatable :: ch_unc(:), ch_spin(:)
+   real(dp), allocatable :: U_spin_unc(:, :)
+   integer :: n_ch
+
+   ! 给定守恒总磁量子数 2*M_tot 与分波 l_max (如 s-波 l=0)
+   call build_field_collision_channels(rb87, rb87, BASIS_UNCOUPLED, two_Mtot=2, l_max=0, &
+                                       channels=ch_unc, n_channels=n_ch)
+   call build_field_collision_channels(rb87, rb87, BASIS_TOTAL_SPIN, two_Mtot=2, l_max=0, &
+                                       channels=ch_spin, n_channels=n_ch)
+
+   ! 构建 U_{spin <- unc} 变换矩阵 (满足 U * U^T = I)
+   allocate(U_spin_unc(n_ch, n_ch))
+   call calc_basis_transform_matrix(rb87, rb87, ch_unc, ch_spin, n_ch, &
+                                    BASIS_UNCOUPLED, BASIS_TOTAL_SPIN, 0.0_dp, U_spin_unc)
+   ```
+4. **外场多通道相互作用势矩阵与磁 Feshbach 共振色散扫描**：
+   ```fortran
+   type(field_feshbach_result_t) :: fb_res
+
+   ! 自动组装 V_{ij}(r; B) 并通过 Johnson 矩阵对数导数求解多通道密耦，扫描磁 Feshbach 共振
+   call calc_magnetic_feshbach_resonance_scan( &
+       r_grid, v_singlet, v_triplet, rb87, rb87, &
+       basis_type=BASIS_UNCOUPLED, two_Mtot=2, l_max=0, &
+       b_min=50.0_dp, b_max=110.0_dp, n_b=61, incident_energy=1.0e-9_dp, &
+       incident_channel=1, res=fb_res)
+
+   print *, "检测到磁 Feshbach 共振极点 B_0 (Gauss):", fb_res%b_res_pole
+   print *, "共振宽度 Delta_B (Gauss):", fb_res%delta_b
+   print *, "背景散射长度 a_bg (a0):", fb_res%a_bg
    ```
 
 ---

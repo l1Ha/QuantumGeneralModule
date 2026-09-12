@@ -53,11 +53,21 @@ from .scattering import (
     calc_scattering_wavefunction_1d_cartesian
 )
 
+from .field_scattering import (
+    BASIS_UNCOUPLED, BASIS_F_COUPLED, BASIS_TOTAL_SPIN, BASIS_FIELD_DRESSED,
+    GAUSS2AU, AU2GAUSS, MU_B_AU, MU_N_AU, GHZ2AU, AU2GHZ,
+    clebsch_gordan_half, ColdAtom, get_cold_atom_preset, calc_breit_rabi_energies,
+    FieldChannel, build_field_collision_channels, calc_basis_transform_matrix,
+    build_asymptotic_hamiltonian, build_spin_exchange_matrix,
+    fit_feshbach_resonance_parameters, plot_breit_rabi_diagram,
+    plot_magnetic_feshbach_resonance
+)
+
 from .visualizer import (
     set_publication_style, plot_wavefunctions, plot_pulses, plot_alignment_dynamics
 )
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 __all__ = [
     "PI", "TWOPI", "HALFPI", "SQRTPI",
     "to_au", "from_au",
@@ -79,6 +89,13 @@ __all__ = [
     "calc_multichannel_close_coupling", "plot_multichannel_smatrix", "plot_feshbach_resonance",
     "calc_scattering_wavefunction_ti", "plot_scattering_wavefunction",
     "calc_scattering_wavefunction_1d_cartesian",
+    "BASIS_UNCOUPLED", "BASIS_F_COUPLED", "BASIS_TOTAL_SPIN", "BASIS_FIELD_DRESSED",
+    "GAUSS2AU", "AU2GAUSS", "MU_B_AU", "MU_N_AU", "GHZ2AU", "AU2GHZ",
+    "clebsch_gordan_half", "ColdAtom", "get_cold_atom_preset", "calc_breit_rabi_energies",
+    "FieldChannel", "build_field_collision_channels", "calc_basis_transform_matrix",
+    "build_asymptotic_hamiltonian", "build_spin_exchange_matrix",
+    "fit_feshbach_resonance_parameters", "plot_breit_rabi_diagram",
+    "plot_magnetic_feshbach_resonance",
     "plot_wavefunctions", "plot_pulses", "plot_alignment_dynamics"
 ]
 

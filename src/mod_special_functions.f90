@@ -10,6 +10,10 @@ module mod_special_functions
     public :: assoc_legendre_poly
     public :: wigner_3j
     public :: clebsch_gordan
+    public :: wigner_3j_half
+    public :: clebsch_gordan_half
+    public :: wigner_6j_half
+    public :: wigner_9j_half
     public :: rot_matrix_cos_theta
     public :: rot_matrix_cos2_theta
 
@@ -216,5 +220,181 @@ contains
                        ((2.0_dp * j_r + 1.0_dp) * (2.0_dp * j_r + 3.0_dp)**2 * (2.0_dp * j_r + 5.0_dp)))
         end if
     end function rot_matrix_cos2_theta
+
+    !> \brief 通用半整数 Wigner 3j 符号 (输入参数均为 2 倍角动量量子数，避免浮点截断)
+    pure function wigner_3j_half(two_j1, two_j2, two_j3, two_m1, two_m2, two_m3) result(w3j)
+        integer, intent(in) :: two_j1, two_j2, two_j3, two_m1, two_m2, two_m3
+        real(dp) :: w3j
+
+        integer :: a, b, c, d, ja_p, ja_m, jb_p, jb_m, jc_p, jc_m
+        integer :: t, t_min, t_max, phase
+        real(dp) :: log_delta, log_pref, s, den, sign_t, sign_tot
+
+        w3j = 0.0_dp
+        if (two_m1 + two_m2 + two_m3 /= 0) return
+        if (abs(two_m1) > two_j1 .or. abs(two_m2) > two_j2 .or. abs(two_m3) > two_j3) return
+        if (two_j3 < abs(two_j1 - two_j2) .or. two_j3 > two_j1 + two_j2) return
+        if (mod(two_j1 + two_j2 + two_j3, 2) /= 0) return
+        if (mod(two_j1 - two_m1, 2) /= 0 .or. mod(two_j2 - two_m2, 2) /= 0 .or. mod(two_j3 - two_m3, 2) /= 0) return
+
+        a = (two_j1 + two_j2 - two_j3) / 2
+        b = (two_j1 - two_j2 + two_j3) / 2
+        c = (-two_j1 + two_j2 + two_j3) / 2
+        d = (two_j1 + two_j2 + two_j3) / 2 + 1
+
+        log_delta = 0.5_dp * (log_factorial(a) + log_factorial(b) + log_factorial(c) - log_factorial(d))
+
+        ja_p = (two_j1 + two_m1) / 2
+        ja_m = (two_j1 - two_m1) / 2
+        jb_p = (two_j2 + two_m2) / 2
+        jb_m = (two_j2 - two_m2) / 2
+        jc_p = (two_j3 + two_m3) / 2
+        jc_m = (two_j3 - two_m3) / 2
+
+        log_pref = log_delta + 0.5_dp * (log_factorial(ja_p) + log_factorial(ja_m) + &
+                                         log_factorial(jb_p) + log_factorial(jb_m) + &
+                                         log_factorial(jc_p) + log_factorial(jc_m))
+
+        t_min = max(0, (two_j2 - two_j3 - two_m1) / 2, (two_j1 - two_j3 + two_m2) / 2)
+        t_max = min(a, ja_m, jb_p)
+
+        s = 0.0_dp
+        do t = t_min, t_max
+            den = log_factorial(t) + log_factorial(a - t) + &
+                  log_factorial(ja_m - t) + log_factorial(jb_p - t) + &
+                  log_factorial((two_j3 - two_j2 + two_m1) / 2 + t) + &
+                  log_factorial((two_j3 - two_j1 - two_m2) / 2 + t)
+            if (mod(t, 2) /= 0) then
+                sign_t = -1.0_dp
+            else
+                sign_t = 1.0_dp
+            end if
+            s = s + sign_t * exp(-den)
+        end do
+
+        phase = (two_j1 - two_j2 - two_m3) / 2
+        if (mod(phase, 2) /= 0) then
+            sign_tot = -1.0_dp
+        else
+            sign_tot = 1.0_dp
+        end if
+
+        w3j = sign_tot * exp(log_pref) * s
+    end function wigner_3j_half
+
+    !> \brief 通用半整数 Clebsch-Gordan 系数 <j1 m1 j2 m2 | j3 m3> (输入均为 2 倍角动量量子数)
+    pure function clebsch_gordan_half(two_j1, two_m1, two_j2, two_m2, two_j3, two_m3) result(cg)
+        integer, intent(in) :: two_j1, two_m1, two_j2, two_m2, two_j3, two_m3
+        real(dp) :: cg
+        real(dp) :: w3j, sign_ph
+        integer  :: phase
+
+        if (two_m1 + two_m2 /= two_m3) then
+            cg = 0.0_dp
+            return
+        end if
+
+        w3j = wigner_3j_half(two_j1, two_j2, two_j3, two_m1, two_m2, -two_m3)
+        phase = (two_j1 - two_j2 + two_m3) / 2
+        if (mod(phase, 2) /= 0) then
+            sign_ph = -1.0_dp
+        else
+            sign_ph = 1.0_dp
+        end if
+
+        cg = sign_ph * sqrt(real(two_j3 + 1, dp)) * w3j
+    end function clebsch_gordan_half
+
+    !> \brief 辅助三角系数 Delta(j1, j2, j3) (输入为 2 倍角动量)
+    pure function triangle_half(two_a, two_b, two_c) result(tri)
+        integer, intent(in) :: two_a, two_b, two_c
+        real(dp) :: tri
+        integer  :: a, b, c, d
+        real(dp) :: log_d
+
+        tri = 0.0_dp
+        if (mod(two_a + two_b + two_c, 2) /= 0) return
+        if (two_c < abs(two_a - two_b) .or. two_c > two_a + two_b) return
+
+        a = (two_a + two_b - two_c) / 2
+        b = (two_a - two_b + two_c) / 2
+        c = (-two_a + two_b + two_c) / 2
+        d = (two_a + two_b + two_c) / 2 + 1
+
+        log_d = 0.5_dp * (log_factorial(a) + log_factorial(b) + log_factorial(c) - log_factorial(d))
+        tri = exp(log_d)
+    end function triangle_half
+
+    !> \brief 通用半整数 Wigner 6j 符号 (输入均为 2 倍角动量量子数)
+    pure function wigner_6j_half(two_j1, two_j2, two_j3, two_j4, two_j5, two_j6) result(w6j)
+        integer, intent(in) :: two_j1, two_j2, two_j3, two_j4, two_j5, two_j6
+        real(dp) :: w6j
+        real(dp) :: d1, d2, d3, d4, pref, s, num, den, sign_t
+        integer  :: t_min, t_max, t
+
+        w6j = 0.0_dp
+        d1 = triangle_half(two_j1, two_j2, two_j3)
+        d2 = triangle_half(two_j1, two_j5, two_j6)
+        d3 = triangle_half(two_j4, two_j2, two_j6)
+        d4 = triangle_half(two_j4, two_j5, two_j3)
+        if (d1 < 1.0e-30_dp .or. d2 < 1.0e-30_dp .or. d3 < 1.0e-30_dp .or. d4 < 1.0e-30_dp) return
+
+        pref = d1 * d2 * d3 * d4
+        t_min = max((two_j1 + two_j2 + two_j3) / 2, &
+                    (two_j1 + two_j5 + two_j6) / 2, &
+                    (two_j4 + two_j2 + two_j6) / 2, &
+                    (two_j4 + two_j5 + two_j3) / 2)
+        t_max = min((two_j1 + two_j2 + two_j4 + two_j5) / 2, &
+                    (two_j2 + two_j3 + two_j5 + two_j6) / 2, &
+                    (two_j3 + two_j1 + two_j6 + two_j4) / 2)
+
+        s = 0.0_dp
+        do t = t_min, t_max
+            num = log_factorial(t + 1)
+            den = log_factorial(t - (two_j1 + two_j2 + two_j3) / 2) + &
+                  log_factorial(t - (two_j1 + two_j5 + two_j6) / 2) + &
+                  log_factorial(t - (two_j4 + two_j2 + two_j6) / 2) + &
+                  log_factorial(t - (two_j4 + two_j5 + two_j3) / 2) + &
+                  log_factorial((two_j1 + two_j2 + two_j4 + two_j5) / 2 - t) + &
+                  log_factorial((two_j2 + two_j3 + two_j5 + two_j6) / 2 - t) + &
+                  log_factorial((two_j3 + two_j1 + two_j6 + two_j4) / 2 - t)
+            if (mod(t, 2) /= 0) then
+                sign_t = -1.0_dp
+            else
+                sign_t = 1.0_dp
+            end if
+            s = s + sign_t * exp(num - den)
+        end do
+
+        w6j = pref * s
+    end function wigner_6j_half
+
+    !> \brief 通用半整数 Wigner 9j 符号 (输入均为 2 倍角动量量子数)
+    pure function wigner_9j_half(two_j11, two_j12, two_j13, &
+                                 two_j21, two_j22, two_j23, &
+                                 two_j31, two_j32, two_j33) result(w9j)
+        integer, intent(in) :: two_j11, two_j12, two_j13
+        integer, intent(in) :: two_j21, two_j22, two_j23
+        integer, intent(in) :: two_j31, two_j32, two_j33
+        real(dp) :: w9j
+        integer  :: two_k, two_k_min, two_k_max
+        real(dp) :: w1, w2, w3, sign_k
+
+        w9j = 0.0_dp
+        two_k_min = max(abs(two_j11 - two_j33), abs(two_j32 - two_j21), abs(two_j12 - two_j23))
+        two_k_max = min(two_j11 + two_j33, two_j32 + two_j21, two_j12 + two_j23)
+
+        do two_k = two_k_min, two_k_max, 2
+            w1 = wigner_6j_half(two_j11, two_j21, two_j31, two_j32, two_j33, two_k)
+            w2 = wigner_6j_half(two_j12, two_j22, two_j32, two_j21, two_k, two_j23)
+            w3 = wigner_6j_half(two_j13, two_j23, two_j33, two_k, two_j11, two_j12)
+            if (mod(two_k, 2) /= 0) then
+                sign_k = -1.0_dp
+            else
+                sign_k = 1.0_dp
+            end if
+            w9j = w9j + real(two_k + 1, dp) * sign_k * w1 * w2 * w3
+        end do
+    end function wigner_9j_half
 
 end module mod_special_functions
