@@ -46,7 +46,8 @@ module general_module
     public :: absorbing_boundary_t, cap_init, cap_evaluate, cap_apply_mask, calculate_probability_flux, calculate_norm_inside
     public :: CAP_SIN2, CAP_POLYNOMIAL
 
-    public :: boltzmann_rotational_weights, boltzmann_vibrational_weights, thermal_average_1d, thermal_average_2d, bose_einstein_factor
+    public :: boltzmann_rotational_weights, boltzmann_vibrational_weights
+    public :: thermal_average_1d, thermal_average_2d, bose_einstein_factor
 
     public :: propagate_split_operator_1d, propagate_split_operator_2d, rk4_step, solve_bloch_two_level, abm4_step
 

@@ -71,7 +71,8 @@ contains
     end subroutine propagate_split_operator_2channel
 
     !> \brief 解析计算 2x2 对称势能矩阵指数作用:
-    !>        exp(-i * V * dt) = exp(-i * v_bar * dt) * [ cos(Omega*dt)*I - i*sin(Omega*dt)/Omega * (Delta*sigma_z + v12*sigma_x) ]
+    !>        exp(-i*V*dt) = exp(-i*v_bar*dt) * [ cos(Omega*dt)*I -
+    !>                       i*sin(Omega*dt)/Omega * (Delta*sigma_z + v12*sigma_x) ]
     subroutine apply_2x2_potential_exponential(psi1, psi2, v11, v22, v12, dt_step)
         complex(dp), intent(inout) :: psi1(:), psi2(:)
         real(dp), intent(in) :: v11(:), v22(:), v12(:)

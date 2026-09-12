@@ -553,13 +553,17 @@ contains
                     if (ch_uncoupled(i)%two_ms1 == ch_uncoupled(j)%two_ms1 + 2 .and. &
                         ch_uncoupled(i)%two_mi1 == ch_uncoupled(j)%two_mi1 - 2) then
                         H_uncoupled(i, j) = 0.5_dp * atom1%a_hf_au * &
-                            sqrt(real(atom1%two_s * (atom1%two_s + 2) - ch_uncoupled(j)%two_ms1 * (ch_uncoupled(j)%two_ms1 + 2), dp) / 4.0_dp) * &
-                            sqrt(real(atom1%two_i * (atom1%two_i + 2) - ch_uncoupled(j)%two_mi1 * (ch_uncoupled(j)%two_mi1 - 2), dp) / 4.0_dp)
+                            sqrt(real(atom1%two_s * (atom1%two_s + 2) - &
+                                      ch_uncoupled(j)%two_ms1 * (ch_uncoupled(j)%two_ms1 + 2), dp) / 4.0_dp) * &
+                            sqrt(real(atom1%two_i * (atom1%two_i + 2) - &
+                                      ch_uncoupled(j)%two_mi1 * (ch_uncoupled(j)%two_mi1 - 2), dp) / 4.0_dp)
                     else if (ch_uncoupled(i)%two_ms1 == ch_uncoupled(j)%two_ms1 - 2 .and. &
                              ch_uncoupled(i)%two_mi1 == ch_uncoupled(j)%two_mi1 + 2) then
                         H_uncoupled(i, j) = 0.5_dp * atom1%a_hf_au * &
-                            sqrt(real(atom1%two_s * (atom1%two_s + 2) - ch_uncoupled(j)%two_ms1 * (ch_uncoupled(j)%two_ms1 - 2), dp) / 4.0_dp) * &
-                            sqrt(real(atom1%two_i * (atom1%two_i + 2) - ch_uncoupled(j)%two_mi1 * (ch_uncoupled(j)%two_mi1 + 2), dp) / 4.0_dp)
+                            sqrt(real(atom1%two_s * (atom1%two_s + 2) - &
+                                      ch_uncoupled(j)%two_ms1 * (ch_uncoupled(j)%two_ms1 - 2), dp) / 4.0_dp) * &
+                            sqrt(real(atom1%two_i * (atom1%two_i + 2) - &
+                                      ch_uncoupled(j)%two_mi1 * (ch_uncoupled(j)%two_mi1 + 2), dp) / 4.0_dp)
                     end if
                 end if
 
@@ -569,13 +573,17 @@ contains
                     if (ch_uncoupled(i)%two_ms2 == ch_uncoupled(j)%two_ms2 + 2 .and. &
                         ch_uncoupled(i)%two_mi2 == ch_uncoupled(j)%two_mi2 - 2) then
                         H_uncoupled(i, j) = 0.5_dp * atom2%a_hf_au * &
-                            sqrt(real(atom2%two_s * (atom2%two_s + 2) - ch_uncoupled(j)%two_ms2 * (ch_uncoupled(j)%two_ms2 + 2), dp) / 4.0_dp) * &
-                            sqrt(real(atom2%two_i * (atom2%two_i + 2) - ch_uncoupled(j)%two_mi2 * (ch_uncoupled(j)%two_mi2 - 2), dp) / 4.0_dp)
+                            sqrt(real(atom2%two_s * (atom2%two_s + 2) - &
+                                      ch_uncoupled(j)%two_ms2 * (ch_uncoupled(j)%two_ms2 + 2), dp) / 4.0_dp) * &
+                            sqrt(real(atom2%two_i * (atom2%two_i + 2) - &
+                                      ch_uncoupled(j)%two_mi2 * (ch_uncoupled(j)%two_mi2 - 2), dp) / 4.0_dp)
                     else if (ch_uncoupled(i)%two_ms2 == ch_uncoupled(j)%two_ms2 - 2 .and. &
                              ch_uncoupled(i)%two_mi2 == ch_uncoupled(j)%two_mi2 + 2) then
                         H_uncoupled(i, j) = 0.5_dp * atom2%a_hf_au * &
-                            sqrt(real(atom2%two_s * (atom2%two_s + 2) - ch_uncoupled(j)%two_ms2 * (ch_uncoupled(j)%two_ms2 - 2), dp) / 4.0_dp) * &
-                            sqrt(real(atom2%two_i * (atom2%two_i + 2) - ch_uncoupled(j)%two_mi2 * (ch_uncoupled(j)%two_mi2 + 2), dp) / 4.0_dp)
+                            sqrt(real(atom2%two_s * (atom2%two_s + 2) - &
+                                      ch_uncoupled(j)%two_ms2 * (ch_uncoupled(j)%two_ms2 - 2), dp) / 4.0_dp) * &
+                            sqrt(real(atom2%two_i * (atom2%two_i + 2) - &
+                                      ch_uncoupled(j)%two_mi2 * (ch_uncoupled(j)%two_mi2 + 2), dp) / 4.0_dp)
                     end if
                 end if
             end do

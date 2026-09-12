@@ -18,28 +18,29 @@ echo "================================================================"
 # 1. 编译 src 中的模块 (若尚未编译)
 echo "[1/2] Compiling all modules in src/..."
 cd "$SRC_DIR"
-gfortran -O2 -fPIC -c mod_constants.f90
-gfortran -O2 -fPIC -c mod_special_functions.f90
-gfortran -O2 -fPIC -c mod_linear_algebra.f90
-gfortran -O2 -fPIC -c mod_dvr_grid.f90
-gfortran -O2 -fPIC -c mod_laser_pulse.f90
-gfortran -O2 -fPIC -c mod_absorbing_boundary.f90
-gfortran -O2 -fPIC -c mod_thermal_ensemble.f90
-gfortran -O2 -fPIC -c mod_wavepacket_propagator.f90
-gfortran -O2 -fPIC -c mod_coulomb_atomic.f90
-gfortran -O2 -fPIC -c mod_hhg_spectra.f90
-gfortran -O2 -fPIC -c mod_chebyshev_propagator.f90
-gfortran -O2 -fPIC -c mod_multistate_coupling.f90
-gfortran -O2 -fPIC -c mod_rovibrational.f90
-gfortran -O2 -fPIC -c mod_io_utils.f90
-gfortran -O2 -fPIC -c mod_interpolation.f90
-gfortran -O2 -fPIC -c mod_photofragment_flux.f90
-gfortran -O2 -fPIC -c mod_open_quantum.f90
-gfortran -O2 -fPIC -c mod_optimal_control.f90
-gfortran -O2 -fPIC -c mod_ti_scattering.f90
-gfortran -O2 -fPIC -c mod_td_scattering.f90
-gfortran -O2 -fPIC -c mod_field_scattering.f90
-gfortran -O2 -fPIC -c general_module.f90
+FFLAGS="-O2 -fPIC -ffree-line-length-none"
+gfortran $FFLAGS -c mod_constants.f90
+gfortran $FFLAGS -c mod_special_functions.f90
+gfortran $FFLAGS -c mod_linear_algebra.f90
+gfortran $FFLAGS -c mod_dvr_grid.f90
+gfortran $FFLAGS -c mod_laser_pulse.f90
+gfortran $FFLAGS -c mod_absorbing_boundary.f90
+gfortran $FFLAGS -c mod_thermal_ensemble.f90
+gfortran $FFLAGS -c mod_wavepacket_propagator.f90
+gfortran $FFLAGS -c mod_coulomb_atomic.f90
+gfortran $FFLAGS -c mod_hhg_spectra.f90
+gfortran $FFLAGS -c mod_chebyshev_propagator.f90
+gfortran $FFLAGS -c mod_multistate_coupling.f90
+gfortran $FFLAGS -c mod_rovibrational.f90
+gfortran $FFLAGS -c mod_io_utils.f90
+gfortran $FFLAGS -c mod_interpolation.f90
+gfortran $FFLAGS -c mod_photofragment_flux.f90
+gfortran $FFLAGS -c mod_open_quantum.f90
+gfortran $FFLAGS -c mod_optimal_control.f90
+gfortran $FFLAGS -c mod_ti_scattering.f90
+gfortran $FFLAGS -c mod_td_scattering.f90
+gfortran $FFLAGS -c mod_field_scattering.f90
+gfortran $FFLAGS -c general_module.f90
 ar rcs libgeneral_module.a *.o
 
 cd "$DIR"
