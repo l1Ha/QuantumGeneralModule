@@ -328,6 +328,20 @@ class TestPyGenMod(unittest.TestCase):
         self.assertTrue(os.path.exists("test_mfb.png"))
         os.remove("test_mfb.png")
 
+        # 7. Heteronuclear 40K + 87Rb multi-basis test
+        k40 = get_cold_atom_preset("40K")
+        ch_u_het = build_field_collision_channels(k40, rb87, BASIS_UNCOUPLED, two_Mtot=-7, l_max=0)
+        ch_f_het = build_field_collision_channels(k40, rb87, BASIS_F_COUPLED, two_Mtot=-7, l_max=0)
+        ch_s_het = build_field_collision_channels(k40, rb87, BASIS_TOTAL_SPIN, two_Mtot=-7, l_max=0)
+        self.assertEqual(len(ch_u_het), 12)
+        self.assertEqual(len(ch_f_het), 12)
+        self.assertEqual(len(ch_s_het), 12)
+
+        u_f_het = calc_basis_transform_matrix(k40, rb87, ch_u_het, ch_f_het, BASIS_UNCOUPLED, BASIS_F_COUPLED, 540.0)
+        u_s_het = calc_basis_transform_matrix(k40, rb87, ch_u_het, ch_s_het, BASIS_UNCOUPLED, BASIS_TOTAL_SPIN, 540.0)
+        np.testing.assert_allclose(u_f_het @ u_f_het.T, np.eye(12), atol=1e-12)
+        np.testing.assert_allclose(u_s_het @ u_s_het.T, np.eye(12), atol=1e-12)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

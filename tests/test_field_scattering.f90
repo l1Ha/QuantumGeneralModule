@@ -20,6 +20,7 @@ program test_field_scattering
     call test_four_bases_and_unitary_transforms()
     call test_spin_exchange_matrix()
     call test_feshbach_resonance_scan()
+    call test_heteronuclear_scattering()
 
     print *, ""
     print *, "================================================================"
@@ -257,6 +258,91 @@ contains
 
         deallocate(b_test, a_test)
     end subroutine test_feshbach_resonance_scan
+
+    ! --------------------------------------------------------------------------
+    ! 测试 6: 异核双原子超冷碰撞体系 (Heteronuclear: 40K + 87Rb, 6Li + 87Rb)
+    ! --------------------------------------------------------------------------
+    subroutine test_heteronuclear_scattering()
+        type(cold_atom_t) :: k40, rb87, li6
+        type(field_channel_t), allocatable :: ch_unc(:), ch_f(:), ch_spin(:)
+        real(dp), allocatable :: U_f_unc(:, :), U_spin_unc(:, :), U_dress_unc(:, :)
+        real(dp), allocatable :: U_prod(:, :), I_ref(:, :)
+        real(dp) :: max_err, mu_krb, mu_lirb, b_gauss
+        integer  :: n_ch, i
+
+        print *, ""
+        print *, "--- 6. Testing Heteronuclear Ultracold Scattering (40K + 87Rb) ---"
+
+        call get_cold_atom_preset("40K", k40)
+        call get_cold_atom_preset("87Rb", rb87)
+        call get_cold_atom_preset("6Li", li6)
+
+        call assert_true(k40%two_s == 1 .and. k40%two_i == 8, "40K has s=1/2, i=4")
+        call assert_true(rb87%two_s == 1 .and. rb87%two_i == 3, "87Rb has s=1/2, i=3/2")
+        call assert_true(li6%two_s == 1 .and. li6%two_i == 2, "6Li has s=1/2, i=1")
+
+        ! 验证异核折合质量 \mu = m1 * m2 / (m1 + m2)
+        mu_krb = (k40%mass_amu * rb87%mass_amu) / (k40%mass_amu + rb87%mass_amu)
+        call assert_near(mu_krb, 27.38006_dp, 0.01_dp, "40K-87Rb reduced mass ~ 27.38 amu")
+
+        mu_lirb = (li6%mass_amu * rb87%mass_amu) / (li6%mass_amu + rb87%mass_amu)
+        call assert_near(mu_lirb, 5.62677_dp, 0.01_dp, "6Li-87Rb reduced mass ~ 5.63 amu")
+
+        ! 针对 40K + 87Rb 异核碰撞体系测试：
+        ! 40K 具有半整数总角动量 f1, 87Rb 具有整数总角动量 f2, 总磁量子数 M_tot 为半整数
+        ! 设置 2*M_tot = -7 (即 M_tot = -7/2), s-波 (l=0)
+        call build_field_collision_channels(k40, rb87, BASIS_UNCOUPLED, -7, 0, ch_unc, n_ch)
+        call build_field_collision_channels(k40, rb87, BASIS_F_COUPLED, -7, 0, ch_f, n_ch)
+        call build_field_collision_channels(k40, rb87, BASIS_TOTAL_SPIN, -7, 0, ch_spin, n_ch)
+
+        call assert_true(n_ch == 12, "40K+87Rb 2*M_tot=-7 subspace dimension = 12 across all bases")
+
+        allocate(U_f_unc(n_ch, n_ch), U_spin_unc(n_ch, n_ch), U_dress_unc(n_ch, n_ch))
+        allocate(U_prod(n_ch, n_ch), I_ref(n_ch, n_ch))
+        I_ref = 0.0_dp
+        do i = 1, n_ch
+            I_ref(i, i) = 1.0_dp
+        end do
+
+        b_gauss = 540.0_dp ! 40K-87Rb 著名 Feshbach 共振区附近
+
+        ! (1) 异核体系 U(f <- unc) 幺正性
+        call calc_basis_transform_matrix(k40, rb87, ch_unc, ch_f, n_ch, BASIS_UNCOUPLED, BASIS_F_COUPLED, b_gauss, U_f_unc)
+        U_prod = matmul(U_f_unc, transpose(U_f_unc))
+        max_err = maxval(abs(U_prod - I_ref))
+        call assert_near(max_err, 0.0_dp, 1.0e-14_dp, "Heteronuclear 40K-87Rb U(f <- unc) unitary")
+
+        ! (2) 异核体系 U(spin <- unc) 幺正性
+        call calc_basis_transform_matrix(k40, rb87, ch_unc, ch_spin, n_ch, BASIS_UNCOUPLED, BASIS_TOTAL_SPIN, b_gauss, U_spin_unc)
+        U_prod = matmul(U_spin_unc, transpose(U_spin_unc))
+        max_err = maxval(abs(U_prod - I_ref))
+        call assert_near(max_err, 0.0_dp, 1.0e-14_dp, "Heteronuclear 40K-87Rb U(spin <- unc) unitary")
+
+        ! (3) 异核体系 U(dress <- unc) 场缀饰基组幺正性
+        call calc_basis_transform_matrix(k40, rb87, ch_unc, ch_unc, n_ch, BASIS_UNCOUPLED, BASIS_FIELD_DRESSED, b_gauss, U_dress_unc)
+        U_prod = matmul(U_dress_unc, transpose(U_dress_unc))
+        max_err = maxval(abs(U_prod - I_ref))
+        call assert_near(max_err, 0.0_dp, 1.0e-14_dp, "Heteronuclear 40K-87Rb U(dress <- unc) unitary at 540 G")
+
+        ! (4) 异核体系链式变换一致性: U(f <- spin) == U(f <- unc) * U(spin <- unc)^T
+        block
+            real(dp) :: U_chain(n_ch, n_ch), U_direct(n_ch, n_ch)
+            U_chain = matmul(U_f_unc, transpose(U_spin_unc))
+            call calc_basis_transform_matrix(k40, rb87, ch_spin, ch_f, n_ch, BASIS_TOTAL_SPIN, BASIS_F_COUPLED, b_gauss, U_direct)
+            max_err = maxval(abs(U_chain - U_direct))
+            call assert_near(max_err, 0.0_dp, 1.0e-14_dp, "Heteronuclear chain rule U(f <- spin) matches direct")
+        end block
+
+        ! (5) 异核体系总自旋基下的电子交换算符对角性
+        block
+            real(dp) :: P_exc(n_ch, n_ch)
+            call build_spin_exchange_matrix(ch_spin, n_ch, BASIS_TOTAL_SPIN, P_exc)
+            max_err = maxval(abs(P_exc - diag_part(P_exc, n_ch)))
+            call assert_near(max_err, 0.0_dp, 1.0e-14_dp, "Heteronuclear s1 . s2 strictly diagonal in Total Spin")
+        end block
+
+        deallocate(ch_unc, ch_f, ch_spin, U_f_unc, U_spin_unc, U_dress_unc, U_prod, I_ref)
+    end subroutine test_heteronuclear_scattering
 
     pure function diag_part(A, n) result(D)
         integer, intent(in) :: n

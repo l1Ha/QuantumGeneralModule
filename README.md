@@ -3,7 +3,7 @@
 [![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
 [![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests: 148/148 Pass](https://img.shields.io/badge/Tests-148%2F148%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Tests: 159/159 Pass](https://img.shields.io/badge/Tests-159%2F159%20Pass%20(100%25)-brightgreen.svg)](tests/)
 
 `GeneralModule` 是一个面向超快强场物理、分子光物理与量子动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
 
@@ -381,9 +381,9 @@ Photofragment & Flux Tests:   6 /  6 PASSED
 Open Quantum & OCT Tests:    10 / 10 PASSED
 TI Scattering Tests:         16 / 16 PASSED
 TD Scattering Tests:          9 /  9 PASSED
-Field Scattering Tests:      31 / 31 PASSED
+Field Scattering Tests:      42 / 42 PASSED
 ----------------------------------------------------------------
-ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 148/148 断言通过)
+ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 159/159 断言通过)
 ================================================================
 ```
 
