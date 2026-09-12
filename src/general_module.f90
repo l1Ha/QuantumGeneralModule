@@ -109,6 +109,9 @@ module general_module
     public :: gribakin_flambaum_length, van_der_waals_mean_length
     public :: analyze_shape_resonance, calc_coupled_channel_smatrix_2x2
     public :: calc_multichannel_close_coupling_logder, calc_feshbach_resonance_scan
+    public :: segmented_grid_t, create_segmented_grid
+    public :: calc_scattering_length_segmented_numerov, calc_scattering_wavefunction_segmented_ti
+    public :: calc_phase_shift_segmented, calc_multichannel_close_coupling_segmented_logder
 
     ! 含时波包散射理论与 S-矩阵 (Time-Dependent Scattering)
     public :: td_scattering_channel_t

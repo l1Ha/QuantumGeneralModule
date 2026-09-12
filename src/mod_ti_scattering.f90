@@ -65,6 +65,18 @@ module mod_ti_scattering
         real(dp) :: eigenphase_sum                 ! 特征相移和 delta_sum (rad)
     end type multichannel_result_t
 
+    ! 多扇区分段径向网格结构 (Segmented / Multi-Sector Radial Grid)
+    type, public :: segmented_grid_t
+        integer :: n_sectors                        ! 扇区数量
+        real(dp), allocatable :: sector_rmin(:)     ! 各扇区起始径向坐标 (n_sectors)
+        real(dp), allocatable :: sector_rmax(:)     ! 各扇区终止径向坐标 (n_sectors)
+        real(dp), allocatable :: sector_dr(:)       ! 各扇区网格步长 (n_sectors)
+        integer, allocatable  :: sector_npts(:)     ! 各扇区内格点数 (n_sectors)
+        integer, allocatable  :: sector_offset(:)   ! 各扇区在全局展平网格中的起始索引 (n_sectors)
+        integer               :: n_total            ! 全局总格点数
+        real(dp), allocatable :: r(:)               ! 展平后的连续单调递增全局径向网格 (1..n_total)
+    end type segmented_grid_t
+
     ! 全同粒子统计与量子对称性参数
     integer, parameter, public :: PARTICLE_DISTINGUISHABLE             = 0
     integer, parameter, public :: PARTICLE_IDENTICAL_BOSON             = 1
@@ -100,6 +112,13 @@ module mod_ti_scattering
     public :: calc_coupled_channel_smatrix_2x2
     public :: calc_multichannel_close_coupling_logder
     public :: calc_feshbach_resonance_scan
+
+    ! 多扇区分段网格专用接口导出
+    public :: create_segmented_grid
+    public :: calc_scattering_length_segmented_numerov
+    public :: calc_scattering_wavefunction_segmented_ti
+    public :: calc_phase_shift_segmented
+    public :: calc_multichannel_close_coupling_segmented_logder
 
 contains
 
@@ -1538,5 +1557,761 @@ contains
             end if
         end do
     end subroutine calc_feshbach_resonance_scan
+
+    ! ==========================================================================
+    ! 多扇区分段径向网格构造器 (Multi-Sector Segmented Radial Grid Generator)
+    ! ==========================================================================
+    subroutine create_segmented_grid(r_start, r_bounds, dr_steps, grid, stat)
+        real(dp), intent(in)                :: r_start
+        real(dp), dimension(:), intent(in)  :: r_bounds
+        real(dp), dimension(:), intent(in)  :: dr_steps
+        type(segmented_grid_t), intent(out) :: grid
+        integer, optional, intent(out)      :: stat
+
+        integer  :: n_sec, k, n_int, curr_idx, i
+        real(dp) :: r_curr_start, r_curr_end, dr_target, dr_actual
+
+        if (present(stat)) stat = 0
+        n_sec = size(r_bounds)
+        if (n_sec < 1 .or. size(dr_steps) /= n_sec) then
+            if (present(stat)) stat = -1
+            return
+        end if
+
+        grid%n_sectors = n_sec
+        allocate(grid%sector_rmin(n_sec))
+        allocate(grid%sector_rmax(n_sec))
+        allocate(grid%sector_dr(n_sec))
+        allocate(grid%sector_npts(n_sec))
+        allocate(grid%sector_offset(n_sec))
+
+        curr_idx = 1
+        do k = 1, n_sec
+            if (k == 1) then
+                r_curr_start = r_start
+            else
+                r_curr_start = r_bounds(k - 1)
+            end if
+            r_curr_end = r_bounds(k)
+            if (r_curr_end <= r_curr_start .or. dr_steps(k) <= 0.0_dp) then
+                if (present(stat)) stat = -2
+                return
+            end if
+
+            dr_target = dr_steps(k)
+            n_int = max(4, nint((r_curr_end - r_curr_start) / dr_target))
+            dr_actual = (r_curr_end - r_curr_start) / real(n_int, dp)
+
+            grid%sector_rmin(k) = r_curr_start
+            grid%sector_rmax(k) = r_curr_end
+            grid%sector_dr(k)   = dr_actual
+            grid%sector_npts(k) = n_int + 1
+            grid%sector_offset(k) = curr_idx
+
+            curr_idx = curr_idx + n_int
+        end do
+
+        grid%n_total = curr_idx
+        allocate(grid%r(grid%n_total))
+
+        ! 填充全局展平单调径向网格点
+        do k = 1, n_sec
+            curr_idx = grid%sector_offset(k)
+            do i = 1, grid%sector_npts(k)
+                grid%r(curr_idx + i - 1) = grid%sector_rmin(k) + real(i - 1, dp) * grid%sector_dr(k)
+            end do
+        end do
+    end subroutine create_segmented_grid
+
+    ! ==========================================================================
+    ! 分段扇区网格零能散射长度求解器 (Segmented Grid Numerov Scattering Length)
+    ! 跨扇区采用 4 阶 Taylor 导数桥接，保持波函数与能量本征导数光滑无缝连续
+    ! ==========================================================================
+    subroutine calc_scattering_length_segmented_numerov(grid, v_pot, mass, a_s, u_zero, stat)
+        type(segmented_grid_t), intent(in)  :: grid
+        real(dp), dimension(:), intent(in)  :: v_pot
+        real(dp), intent(in)                :: mass
+        real(dp), intent(out)               :: a_s
+        real(dp), dimension(:), optional, intent(out) :: u_zero
+        integer, optional, intent(out)      :: stat
+
+        integer  :: k, i, j_start, j_end, j_bound, n_total
+        real(dp) :: h, h2_12, h_prev
+        real(dp) :: q_prev, q_curr, q_next
+        real(dp) :: c_prev, c_curr, c_next
+        real(dp) :: d_u, d2_u, d3_u, d4_u
+        real(dp) :: q_j, q_jm1, q_jm2, d_q, d2_q
+        real(dp), allocatable :: u_wf(:)
+
+        if (present(stat)) stat = 0
+        n_total = grid%n_total
+        a_s = 0.0_dp
+
+        if (n_total < 5 .or. size(v_pot) < n_total) then
+            if (present(stat)) stat = -1
+            return
+        end if
+
+        allocate(u_wf(n_total))
+        u_wf = 0.0_dp
+
+        ! 扇区 1 启动
+        h = grid%sector_dr(1)
+        h2_12 = (h * h) / 12.0_dp
+        j_start = grid%sector_offset(1)
+        j_end   = j_start + grid%sector_npts(1) - 1
+
+        u_wf(1) = 0.0_dp
+        u_wf(2) = 1.0e-7_dp
+
+        do i = j_start + 1, j_end - 1
+            q_prev = -2.0_dp * mass * v_pot(i - 1)
+            q_curr = -2.0_dp * mass * v_pot(i)
+            q_next = -2.0_dp * mass * v_pot(i + 1)
+
+            c_prev = 1.0_dp + h2_12 * q_prev
+            c_curr = 2.0_dp * (1.0_dp - 5.0_dp * h2_12 * q_curr)
+            c_next = 1.0_dp + h2_12 * q_next
+
+            u_wf(i + 1) = (c_curr * u_wf(i) - c_prev * u_wf(i - 1)) / c_next
+            if (abs(u_wf(i + 1)) > 1.0e20_dp) then
+                u_wf(1:i + 1) = u_wf(1:i + 1) * 1.0e-15_dp
+            end if
+        end do
+
+        ! 扇区 2 到 n_sectors 跨扇区无缝推进
+        do k = 2, grid%n_sectors
+            j_bound = grid%sector_offset(k)
+            h_prev  = grid%sector_dr(k - 1)
+            h       = grid%sector_dr(k)
+            h2_12   = (h * h) / 12.0_dp
+            j_end   = j_bound + grid%sector_npts(k) - 1
+
+            ! 计算交界面导数 (以扇区 k-1 的步长 h_prev 做高阶向后差分)
+            d_u = (11.0_dp * u_wf(j_bound) - 18.0_dp * u_wf(j_bound - 1) + &
+                    9.0_dp * u_wf(j_bound - 2) - 2.0_dp * u_wf(j_bound - 3)) / (6.0_dp * h_prev)
+
+            q_j   = -2.0_dp * mass * v_pot(j_bound)
+            q_jm1 = -2.0_dp * mass * v_pot(j_bound - 1)
+            q_jm2 = -2.0_dp * mass * v_pot(j_bound - 2)
+
+            d_q  = (3.0_dp * q_j - 4.0_dp * q_jm1 + q_jm2) / (2.0_dp * h_prev)
+            d2_q = (q_j - 2.0_dp * q_jm1 + q_jm2) / (h_prev * h_prev)
+
+            d2_u = -q_j * u_wf(j_bound)
+            d3_u = -d_q * u_wf(j_bound) - q_j * d_u
+            d4_u = (-d2_q + q_j * q_j) * u_wf(j_bound) - 2.0_dp * d_q * d_u
+
+            ! 4 阶 Taylor 桥接生成新扇区第二点
+            u_wf(j_bound + 1) = u_wf(j_bound) + h * d_u + &
+                                0.5_dp * (h * h) * d2_u + &
+                                (h**3 / 6.0_dp) * d3_u + &
+                                (h**4 / 24.0_dp) * d4_u
+
+            ! 新扇区内部等步长 Numerov 推进
+            do i = j_bound + 1, j_end - 1
+                q_prev = -2.0_dp * mass * v_pot(i - 1)
+                q_curr = -2.0_dp * mass * v_pot(i)
+                q_next = -2.0_dp * mass * v_pot(i + 1)
+
+                c_prev = 1.0_dp + h2_12 * q_prev
+                c_curr = 2.0_dp * (1.0_dp - 5.0_dp * h2_12 * q_curr)
+                c_next = 1.0_dp + h2_12 * q_next
+
+                u_wf(i + 1) = (c_curr * u_wf(i) - c_prev * u_wf(i - 1)) / c_next
+                if (abs(u_wf(i + 1)) > 1.0e20_dp) then
+                    u_wf(1:i + 1) = u_wf(1:i + 1) * 1.0e-15_dp
+                end if
+            end do
+        end do
+
+        ! 外边界计算散射长度 a_s
+        h = grid%sector_dr(grid%n_sectors)
+        d_u = (3.0_dp * u_wf(n_total) - 4.0_dp * u_wf(n_total - 1) + u_wf(n_total - 2)) / (2.0_dp * h)
+
+        if (abs(d_u) > 1.0e-14_dp) then
+            a_s = grid%r(n_total) - u_wf(n_total) / d_u
+        else
+            a_s = 1.0e30_dp
+        end if
+
+        if (present(u_zero)) then
+            if (size(u_zero) == n_total) then
+                u_zero = u_wf
+            end if
+        end if
+
+        deallocate(u_wf)
+    end subroutine calc_scattering_length_segmented_numerov
+
+    ! ==========================================================================
+    ! 分段扇区网格定态散射波函数 u_{l, E}(r) 与相移求解器
+    ! ==========================================================================
+    subroutine calc_scattering_wavefunction_segmented_ti( &
+        grid, v_pot, mass, energy, l, norm_type, u_wf, phase_shift, stat)
+
+        type(segmented_grid_t), intent(in)  :: grid
+        real(dp), dimension(:), intent(in)  :: v_pot
+        real(dp), intent(in)                :: mass
+        real(dp), intent(in)                :: energy
+        integer,  intent(in)                :: l
+        integer,  intent(in)                :: norm_type
+        real(dp), dimension(:), intent(out) :: u_wf
+        real(dp), intent(out)               :: phase_shift
+        integer, optional, intent(out)      :: stat
+
+        integer  :: k, i, j_start, j_end, j_bound, n_total
+        real(dp) :: h, h2_12, h_prev, k_wave, r_match
+        real(dp) :: q_prev, q_curr, q_next
+        real(dp) :: c_prev, c_curr, c_next
+        real(dp) :: d_u, d2_u, d3_u, d4_u
+        real(dp) :: q_j, q_jm1, q_jm2, d_q, d2_q
+        real(dp) :: jl, nl, d_jl, d_nl, num, den, y_logder
+        real(dp) :: asymp_amp, norm_target, target_asymp, scale_factor
+
+        if (present(stat)) stat = 0
+        n_total = grid%n_total
+        u_wf = 0.0_dp
+        phase_shift = 0.0_dp
+
+        if (energy <= 0.0_dp .or. n_total < 5 .or. size(v_pot) < n_total) then
+            if (present(stat)) stat = -1
+            return
+        end if
+
+        k_wave = sqrt(2.0_dp * mass * energy)
+
+        ! 扇区 1 启动
+        h = grid%sector_dr(1)
+        h2_12 = (h * h) / 12.0_dp
+        j_start = grid%sector_offset(1)
+        j_end   = j_start + grid%sector_npts(1) - 1
+
+        u_wf(1) = 0.0_dp
+        u_wf(2) = (h)**(l + 1) * 1.0e-5_dp
+
+        do i = j_start + 1, j_end - 1
+            q_prev = 2.0_dp * mass * (energy - v_pot(i - 1)) - real(l * (l + 1), dp) / (grid%r(i - 1)**2)
+            q_curr = 2.0_dp * mass * (energy - v_pot(i))     - real(l * (l + 1), dp) / (grid%r(i)**2)
+            q_next = 2.0_dp * mass * (energy - v_pot(i + 1)) - real(l * (l + 1), dp) / (grid%r(i + 1)**2)
+
+            c_prev = 1.0_dp + h2_12 * q_prev
+            c_curr = 2.0_dp * (1.0_dp - 5.0_dp * h2_12 * q_curr)
+            c_next = 1.0_dp + h2_12 * q_next
+
+            u_wf(i + 1) = (c_curr * u_wf(i) - c_prev * u_wf(i - 1)) / c_next
+            if (abs(u_wf(i + 1)) > 1.0e20_dp) then
+                u_wf(1:i + 1) = u_wf(1:i + 1) * 1.0e-15_dp
+            end if
+        end do
+
+        ! 扇区 2 到 n_sectors
+        do k = 2, grid%n_sectors
+            j_bound = grid%sector_offset(k)
+            h_prev  = grid%sector_dr(k - 1)
+            h       = grid%sector_dr(k)
+            h2_12   = (h * h) / 12.0_dp
+            j_end   = j_bound + grid%sector_npts(k) - 1
+
+            d_u = (11.0_dp * u_wf(j_bound) - 18.0_dp * u_wf(j_bound - 1) + &
+                    9.0_dp * u_wf(j_bound - 2) - 2.0_dp * u_wf(j_bound - 3)) / (6.0_dp * h_prev)
+
+            q_j   = 2.0_dp * mass * (energy - v_pot(j_bound))     - real(l * (l + 1), dp) / (grid%r(j_bound)**2)
+            q_jm1 = 2.0_dp * mass * (energy - v_pot(j_bound - 1)) - real(l * (l + 1), dp) / (grid%r(j_bound - 1)**2)
+            q_jm2 = 2.0_dp * mass * (energy - v_pot(j_bound - 2)) - real(l * (l + 1), dp) / (grid%r(j_bound - 2)**2)
+
+            d_q  = (3.0_dp * q_j - 4.0_dp * q_jm1 + q_jm2) / (2.0_dp * h_prev)
+            d2_q = (q_j - 2.0_dp * q_jm1 + q_jm2) / (h_prev * h_prev)
+
+            d2_u = -q_j * u_wf(j_bound)
+            d3_u = -d_q * u_wf(j_bound) - q_j * d_u
+            d4_u = (-d2_q + q_j * q_j) * u_wf(j_bound) - 2.0_dp * d_q * d_u
+
+            u_wf(j_bound + 1) = u_wf(j_bound) + h * d_u + &
+                                0.5_dp * (h * h) * d2_u + &
+                                (h**3 / 6.0_dp) * d3_u + &
+                                (h**4 / 24.0_dp) * d4_u
+
+            do i = j_bound + 1, j_end - 1
+                q_prev = 2.0_dp * mass * (energy - v_pot(i - 1)) - real(l * (l + 1), dp) / (grid%r(i - 1)**2)
+                q_curr = 2.0_dp * mass * (energy - v_pot(i))     - real(l * (l + 1), dp) / (grid%r(i)**2)
+                q_next = 2.0_dp * mass * (energy - v_pot(i + 1)) - real(l * (l + 1), dp) / (grid%r(i + 1)**2)
+
+                c_prev = 1.0_dp + h2_12 * q_prev
+                c_curr = 2.0_dp * (1.0_dp - 5.0_dp * h2_12 * q_curr)
+                c_next = 1.0_dp + h2_12 * q_next
+
+                u_wf(i + 1) = (c_curr * u_wf(i) - c_prev * u_wf(i - 1)) / c_next
+                if (abs(u_wf(i + 1)) > 1.0e20_dp) then
+                    u_wf(1:i + 1) = u_wf(1:i + 1) * 1.0e-15_dp
+                end if
+            end do
+        end do
+
+        ! 外边界计算对数导数与相移
+        h = grid%sector_dr(grid%n_sectors)
+        r_match = grid%r(n_total)
+        d_u = (3.0_dp * u_wf(n_total) - 4.0_dp * u_wf(n_total - 1) + u_wf(n_total - 2)) / (2.0_dp * h)
+        y_logder = d_u / u_wf(n_total)
+
+        call riccati_bessel_neumann(l, k_wave * r_match, jl, nl, d_jl, d_nl)
+        num = k_wave * d_jl - y_logder * jl
+        den = k_wave * d_nl - y_logder * nl
+        phase_shift = atan2(num, den)
+
+        ! 渐近物理归一化
+        asymp_amp = sqrt(u_wf(n_total)**2 + (d_u / k_wave)**2)
+        if (asymp_amp < 1.0e-30_dp) asymp_amp = 1.0e-30_dp
+
+        select case (norm_type)
+        case (NORM_ENERGY)
+            norm_target = sqrt(2.0_dp * mass / (PI * k_wave))
+        case (NORM_MOMENTUM)
+            norm_target = sqrt(2.0_dp / PI)
+        case default
+            norm_target = 1.0_dp
+        end select
+
+        target_asymp = cos(phase_shift) * jl - sin(phase_shift) * nl
+        scale_factor = norm_target / asymp_amp
+        if (u_wf(n_total) * target_asymp < 0.0_dp) then
+            scale_factor = -scale_factor
+        end if
+
+        u_wf = u_wf * scale_factor
+    end subroutine calc_scattering_wavefunction_segmented_ti
+
+    ! ==========================================================================
+    ! 分段扇区网格快速计算分波相移与 S-矩阵元
+    ! ==========================================================================
+    subroutine calc_phase_shift_segmented( &
+        grid, v_pot, mass, energy, l, phase_shift, k_mat, s_mat, t_mat, cross_sec, stat)
+
+        type(segmented_grid_t), intent(in) :: grid
+        real(dp), dimension(:), intent(in) :: v_pot
+        real(dp), intent(in)               :: mass
+        real(dp), intent(in)               :: energy
+        integer,  intent(in)               :: l
+        real(dp), intent(out)              :: phase_shift
+        real(dp), intent(out)              :: k_mat
+        complex(dp), intent(out)           :: s_mat
+        complex(dp), intent(out)           :: t_mat
+        real(dp), intent(out)              :: cross_sec
+        integer, optional, intent(out)     :: stat
+
+        real(dp), allocatable :: u_wf(:)
+        real(dp) :: k_wave
+
+        if (present(stat)) stat = 0
+        allocate(u_wf(grid%n_total))
+
+        call calc_scattering_wavefunction_segmented_ti( &
+            grid, v_pot, mass, energy, l, NORM_UNIT_AMPLITUDE, u_wf, phase_shift, stat)
+
+        k_wave = sqrt(2.0_dp * mass * energy)
+        k_mat = tan(phase_shift)
+        s_mat = cmplx(cos(2.0_dp * phase_shift), sin(2.0_dp * phase_shift), kind=dp)
+        t_mat = s_mat - (1.0_dp, 0.0_dp)
+
+        if (k_wave > 1.0e-14_dp) then
+            cross_sec = (4.0_dp * PI / (k_wave * k_wave)) * real(2 * l + 1, dp) * (sin(phase_shift)**2)
+        else
+            cross_sec = 0.0_dp
+        end if
+
+        deallocate(u_wf)
+    end subroutine calc_phase_shift_segmented
+
+    ! ==========================================================================
+    ! 分段扇区网格多通道密耦 Johnson Log-Derivative 求解器
+    ! ==========================================================================
+    subroutine calc_multichannel_close_coupling_segmented_logder( &
+        grid, v_mat, mass, total_energy, thresholds, l_channels, res, stat)
+
+        type(segmented_grid_t), intent(in)      :: grid
+        real(dp), dimension(:, :, :), intent(in):: v_mat
+        real(dp), intent(in)                    :: mass
+        real(dp), intent(in)                    :: total_energy
+        real(dp), dimension(:), intent(in)      :: thresholds
+        integer,  dimension(:), intent(in)      :: l_channels
+        type(multichannel_result_t), intent(out):: res
+        integer, optional, intent(out)          :: stat
+
+        integer  :: n_chan, n_pts, sec, step, idx, i, j, stat_inv
+        integer  :: j_start, j_end, n_pts_sec
+        real(dp) :: h, h2_12, r_curr, e_kin, k_i, r_match
+        real(dp) :: jl, nl, djl, dnl
+        real(dp), allocatable :: w_mat(:, :), q_mat(:, :), q_inv(:, :), m_mat(:, :)
+        real(dp), allocatable :: r_curr_mat(:, :), r_next_mat(:, :), r_inv(:, :)
+        real(dp), allocatable :: q_prev(:, :), q_curr(:, :), p1(:, :), p2(:, :)
+        real(dp), allocatable :: temp_mat(:, :), y_mat(:, :), y_eff(:, :)
+        real(dp), allocatable :: y_oo(:, :), y_oc(:, :), y_co(:, :), y_cc(:, :)
+        real(dp), allocatable :: a_cc(:, :), a_cc_inv(:, :)
+        real(dp), allocatable :: j_mat(:, :), n_mat(:, :), dj_mat(:, :), dn_mat(:, :)
+        real(dp), allocatable :: mj_mat(:, :), mn_mat(:, :), mn_inv(:, :)
+        complex(dp), allocatable :: eye_c(:, :), ik_mat(:, :), den_c(:, :), den_inv(:, :)
+
+        if (present(stat)) stat = 0
+        n_chan = size(thresholds)
+        n_pts  = grid%n_total
+        res%n_channels = n_chan
+        res%n_open = 0
+        res%n_closed = 0
+
+        if (n_chan < 1 .or. n_pts < 5) then
+            if (present(stat)) stat = -1
+            return
+        end if
+
+        ! 1. 统计并分类开通道与闭通道
+        allocate(res%open_channels(n_chan))
+        allocate(res%closed_channels(n_chan))
+
+        do i = 1, n_chan
+            e_kin = total_energy - thresholds(i)
+            if (e_kin > 1.0e-13_dp) then
+                res%n_open = res%n_open + 1
+                res%open_channels(res%n_open) = i
+            else
+                res%n_closed = res%n_closed + 1
+                res%closed_channels(res%n_closed) = i
+            end if
+        end do
+
+        if (res%n_open == 0) then
+            if (present(stat)) stat = 1
+            return
+        end if
+
+        allocate(res%k_open(res%n_open))
+        do i = 1, res%n_open
+            res%k_open(i) = sqrt(2.0_dp * mass * (total_energy - thresholds(res%open_channels(i))))
+        end do
+
+        if (res%n_closed > 0) then
+            allocate(res%kappa_closed(res%n_closed))
+            do i = 1, res%n_closed
+                res%kappa_closed(i) = sqrt(2.0_dp * mass * max(0.0_dp, thresholds(res%closed_channels(i)) - total_energy))
+            end do
+        end if
+
+        ! 2. 初始化矩阵工作空间
+        allocate(w_mat(n_chan, n_chan))
+        allocate(q_mat(n_chan, n_chan))
+        allocate(q_inv(n_chan, n_chan))
+        allocate(m_mat(n_chan, n_chan))
+        allocate(r_curr_mat(n_chan, n_chan))
+        allocate(r_next_mat(n_chan, n_chan))
+        allocate(r_inv(n_chan, n_chan))
+        allocate(q_prev(n_chan, n_chan))
+        allocate(q_curr(n_chan, n_chan))
+        allocate(p1(n_chan, n_chan))
+        allocate(p2(n_chan, n_chan))
+        allocate(temp_mat(n_chan, n_chan))
+        allocate(y_mat(n_chan, n_chan))
+
+        ! 3. 逐扇区递推推进
+        do sec = 1, grid%n_sectors
+            h = grid%sector_dr(sec)
+            h2_12 = (h * h) / 12.0_dp
+            j_start   = grid%sector_offset(sec)
+            n_pts_sec = grid%sector_npts(sec)
+            j_end     = j_start + n_pts_sec - 1
+
+            if (sec == 1) then
+                ! 扇区 1 从禁区原点初始化
+                r_curr = grid%r(1)
+                do i = 1, n_chan
+                    do j = 1, n_chan
+                        w_mat(j, i) = 2.0_dp * mass * v_mat(j, i, 1)
+                        if (i == j) then
+                            w_mat(i, i) = w_mat(i, i) - 2.0_dp * mass * (total_energy - thresholds(i)) + &
+                                          real(l_channels(i) * (l_channels(i) + 1), dp) / (r_curr * r_curr)
+                        end if
+                    end do
+                end do
+
+                q_mat = -h2_12 * w_mat
+                do i = 1, n_chan
+                    q_mat(i, i) = q_mat(i, i) + 1.0_dp
+                end do
+
+                call inv_real_matrix(n_chan, q_mat, q_inv, stat_inv)
+                if (stat_inv /= 0) then
+                    if (present(stat)) stat = -2
+                    return
+                end if
+
+                m_mat = 12.0_dp * q_inv
+                do i = 1, n_chan
+                    m_mat(i, i) = m_mat(i, i) - 10.0_dp
+                end do
+
+                r_curr_mat = m_mat
+                q_prev = q_mat
+            else
+                ! 扇区 sec > 1: 利用交界面 y_mat 与新步长 h 构建新扇区启动比值矩阵
+                r_curr = grid%r(j_start)
+                do i = 1, n_chan
+                    do j = 1, n_chan
+                        w_mat(j, i) = 2.0_dp * mass * v_mat(j, i, j_start)
+                        if (i == j) then
+                            w_mat(i, i) = w_mat(i, i) - 2.0_dp * mass * (total_energy - thresholds(i)) + &
+                                          real(l_channels(i) * (l_channels(i) + 1), dp) / (r_curr * r_curr)
+                        end if
+                    end do
+                end do
+
+                q_mat = -h2_12 * w_mat
+                do i = 1, n_chan
+                    q_mat(i, i) = q_mat(i, i) + 1.0_dp
+                end do
+
+                call inv_real_matrix(n_chan, q_mat, q_inv, stat_inv)
+                if (stat_inv /= 0) then
+                    if (present(stat)) stat = -2
+                    return
+                end if
+
+                m_mat = 12.0_dp * q_inv
+                do i = 1, n_chan
+                    m_mat(i, i) = m_mat(i, i) - 10.0_dp
+                end do
+
+                ! R_start = I + h * Y - 0.5 * h^2 * W
+                r_curr_mat = h * y_mat - 0.5_dp * (h * h) * w_mat
+                do i = 1, n_chan
+                    r_curr_mat(i, i) = r_curr_mat(i, i) + 1.0_dp
+                end do
+
+                call inv_real_matrix(n_chan, r_curr_mat, r_inv, stat_inv)
+                if (stat_inv /= 0) then
+                    do i = 1, n_chan
+                        r_curr_mat(i, i) = r_curr_mat(i, i) + 1.0e-12_dp
+                    end do
+                    call inv_real_matrix(n_chan, r_curr_mat, r_inv, stat_inv)
+                end if
+
+                r_curr_mat = m_mat - r_inv
+                r_curr_mat = 0.5_dp * (r_curr_mat + transpose(r_curr_mat))
+                q_prev = q_mat
+            end if
+
+            ! 扇区内部 Johnson 比值递推
+            do step = 2, n_pts_sec - 1
+                idx = j_start + step - 1
+                r_curr = grid%r(idx)
+
+                do i = 1, n_chan
+                    do j = 1, n_chan
+                        w_mat(j, i) = 2.0_dp * mass * v_mat(j, i, idx)
+                        if (i == j) then
+                            w_mat(i, i) = w_mat(i, i) - 2.0_dp * mass * (total_energy - thresholds(i)) + &
+                                          real(l_channels(i) * (l_channels(i) + 1), dp) / (r_curr * r_curr)
+                        end if
+                    end do
+                end do
+
+                q_mat = -h2_12 * w_mat
+                do i = 1, n_chan
+                    q_mat(i, i) = q_mat(i, i) + 1.0_dp
+                end do
+
+                call inv_real_matrix(n_chan, q_mat, q_inv, stat_inv)
+                if (stat_inv /= 0) then
+                    if (present(stat)) stat = -3
+                    return
+                end if
+
+                m_mat = 12.0_dp * q_inv
+                do i = 1, n_chan
+                    m_mat(i, i) = m_mat(i, i) - 10.0_dp
+                end do
+
+                call inv_real_matrix(n_chan, r_curr_mat, r_inv, stat_inv)
+                if (stat_inv /= 0) then
+                    do i = 1, n_chan
+                        r_curr_mat(i, i) = r_curr_mat(i, i) + 1.0e-14_dp
+                    end do
+                    call inv_real_matrix(n_chan, r_curr_mat, r_inv, stat_inv)
+                end if
+
+                r_next_mat = m_mat - r_inv
+                r_next_mat = 0.5_dp * (r_next_mat + transpose(r_next_mat))
+
+                if (step == n_pts_sec - 2) then
+                    q_curr = q_mat
+                end if
+
+                r_curr_mat = r_next_mat
+            end do
+
+            ! 扇区终止边界提取局部对数导数矩阵 Y(r_{j_end})
+            call inv_real_matrix(n_chan, r_curr_mat, r_inv, stat_inv)
+
+            r_curr = grid%r(j_end)
+            do i = 1, n_chan
+                do j = 1, n_chan
+                    w_mat(j, i) = 2.0_dp * mass * v_mat(j, i, j_end)
+                    if (i == j) then
+                        w_mat(i, i) = w_mat(i, i) - 2.0_dp * mass * (total_energy - thresholds(i)) + &
+                                      real(l_channels(i) * (l_channels(i) + 1), dp) / (r_curr * r_curr)
+                    end if
+                end do
+            end do
+
+            q_mat = -h2_12 * w_mat
+            do i = 1, n_chan
+                q_mat(i, i) = q_mat(i, i) + 1.0_dp
+            end do
+
+            call inv_real_matrix(n_chan, q_curr, q_inv, stat_inv)
+            temp_mat = matmul(r_inv, q_mat)
+            p1 = matmul(q_inv, temp_mat)
+            p2 = matmul(p1, p1)
+
+            y_mat = p2 - 4.0_dp * p1
+            do i = 1, n_chan
+                y_mat(i, i) = y_mat(i, i) + 3.0_dp
+            end do
+            y_mat = y_mat / (2.0_dp * h)
+            y_mat = 0.5_dp * (y_mat + transpose(y_mat))
+        end do
+
+        ! 4. 开/闭通道 Schur 补变换与 Feshbach 投影
+        allocate(y_eff(res%n_open, res%n_open))
+        if (res%n_closed == 0) then
+            y_eff = y_mat
+        else
+            allocate(y_oo(res%n_open, res%n_open))
+            allocate(y_oc(res%n_open, res%n_closed))
+            allocate(y_co(res%n_closed, res%n_open))
+            allocate(y_cc(res%n_closed, res%n_closed))
+            allocate(a_cc(res%n_closed, res%n_closed))
+            allocate(a_cc_inv(res%n_closed, res%n_closed))
+
+            do i = 1, res%n_open
+                do j = 1, res%n_open
+                    y_oo(j, i) = y_mat(res%open_channels(j), res%open_channels(i))
+                end do
+            end do
+
+            do i = 1, res%n_closed
+                do j = 1, res%n_open
+                    y_oc(j, i) = y_mat(res%open_channels(j), res%closed_channels(i))
+                    y_co(i, j) = y_mat(res%closed_channels(i), res%open_channels(j))
+                end do
+            end do
+
+            do i = 1, res%n_closed
+                do j = 1, res%n_closed
+                    y_cc(j, i) = y_mat(res%closed_channels(j), res%closed_channels(i))
+                end do
+            end do
+
+            a_cc = y_cc
+            do i = 1, res%n_closed
+                a_cc(i, i) = a_cc(i, i) + res%kappa_closed(i)
+            end do
+
+            call inv_real_matrix(res%n_closed, a_cc, a_cc_inv, stat_inv)
+            if (stat_inv /= 0) then
+                do i = 1, res%n_closed
+                    a_cc(i, i) = a_cc(i, i) + 1.0e-10_dp
+                end do
+                call inv_real_matrix(res%n_closed, a_cc, a_cc_inv, stat_inv)
+            end if
+
+            y_eff = y_oo - matmul(y_oc, matmul(a_cc_inv, y_co))
+            y_eff = 0.5_dp * (y_eff + transpose(y_eff))
+
+            deallocate(y_oo, y_oc, y_co, y_cc, a_cc, a_cc_inv)
+        end if
+
+        ! 5. 渐近外边界 Riccati 函数匹配提取开通道反应矩阵 K_oo
+        r_match = grid%r(n_pts)
+        allocate(j_mat(res%n_open, res%n_open))
+        allocate(n_mat(res%n_open, res%n_open))
+        allocate(dj_mat(res%n_open, res%n_open))
+        allocate(dn_mat(res%n_open, res%n_open))
+        allocate(mj_mat(res%n_open, res%n_open))
+        allocate(mn_mat(res%n_open, res%n_open))
+        allocate(mn_inv(res%n_open, res%n_open))
+        allocate(res%k_matrix(res%n_open, res%n_open))
+
+        j_mat = 0.0_dp; n_mat = 0.0_dp; dj_mat = 0.0_dp; dn_mat = 0.0_dp
+
+        do i = 1, res%n_open
+            k_i = res%k_open(i)
+            call riccati_bessel_neumann(l_channels(res%open_channels(i)), k_i * r_match, jl, nl, djl, dnl)
+            j_mat(i, i)  = jl / sqrt(k_i)
+            n_mat(i, i)  = nl / sqrt(k_i)
+            dj_mat(i, i) = sqrt(k_i) * djl
+            dn_mat(i, i) = sqrt(k_i) * dnl
+        end do
+
+        mj_mat = dj_mat - matmul(y_eff, j_mat)
+        mn_mat = dn_mat - matmul(y_eff, n_mat)
+
+        call inv_real_matrix(res%n_open, mn_mat, mn_inv, stat_inv)
+        if (stat_inv /= 0) then
+            do i = 1, res%n_open
+                mn_mat(i, i) = mn_mat(i, i) + 1.0e-12_dp
+            end do
+            call inv_real_matrix(res%n_open, mn_mat, mn_inv, stat_inv)
+        end if
+
+        res%k_matrix = matmul(mn_inv, mj_mat)
+        res%k_matrix = 0.5_dp * (res%k_matrix + transpose(res%k_matrix))
+
+        ! 6. Cayley 变换求解幺正散射矩阵 S = (I + i*K)(I - i*K)^{-1}
+        allocate(eye_c(res%n_open, res%n_open))
+        allocate(ik_mat(res%n_open, res%n_open))
+        allocate(den_c(res%n_open, res%n_open))
+        allocate(den_inv(res%n_open, res%n_open))
+        allocate(res%s_matrix(res%n_open, res%n_open))
+        allocate(res%t_matrix(res%n_open, res%n_open))
+        allocate(res%prob_matrix(res%n_open, res%n_open))
+        allocate(res%cross_sections(res%n_open, res%n_open))
+        allocate(res%total_cross_sec(res%n_open))
+
+        eye_c = (0.0_dp, 0.0_dp)
+        do i = 1, res%n_open
+            eye_c(i, i) = (1.0_dp, 0.0_dp)
+        end do
+
+        do i = 1, res%n_open
+            do j = 1, res%n_open
+                ik_mat(j, i) = cmplx(0.0_dp, res%k_matrix(j, i), kind=dp)
+            end do
+        end do
+
+        den_c = eye_c - ik_mat
+        call inv_complex_matrix(res%n_open, den_c, den_inv, stat_inv)
+        res%s_matrix = matmul(eye_c + ik_mat, den_inv)
+        res%t_matrix = res%s_matrix - eye_c
+
+        ! 7. 跃迁几率、态-态截面与特征相移和
+        res%total_cross_sec = 0.0_dp
+        do i = 1, res%n_open
+            k_i = res%k_open(i)
+            do j = 1, res%n_open
+                res%prob_matrix(j, i) = abs(res%s_matrix(j, i))**2
+                res%cross_sections(j, i) = (PI / (k_i * k_i)) * abs(res%t_matrix(j, i))**2
+                res%total_cross_sec(i) = res%total_cross_sec(i) + res%cross_sections(j, i)
+            end do
+        end do
+
+        res%eigenphase_sum = 0.0_dp
+        do i = 1, res%n_open
+            res%eigenphase_sum = res%eigenphase_sum + atan(res%k_matrix(i, i))
+        end do
+
+        ! 释放内存
+        deallocate(w_mat, q_mat, q_inv, m_mat, r_curr_mat, r_next_mat, r_inv)
+        deallocate(q_prev, q_curr, p1, p2, temp_mat, y_mat, y_eff)
+        deallocate(j_mat, n_mat, dj_mat, dn_mat, mj_mat, mn_mat, mn_inv)
+        deallocate(eye_c, ik_mat, den_c, den_inv)
+    end subroutine calc_multichannel_close_coupling_segmented_logder
 
 end module mod_ti_scattering

@@ -400,6 +400,138 @@ program test_ti_scattering
         end if
     end block
 
+    ! --------------------------------------------------------------------------
+    ! 测试 17: 多扇区分段网格 (Segmented Grid) 零能散射长度求解与解析解对比
+    ! 采用 3 扇区网格: [0.01, 2.5] 细网格, [2.5, 6.0] 中网格, [6.0, 15.0] 粗网格
+    ! --------------------------------------------------------------------------
+    n_total = n_total + 1
+    block
+        type(segmented_grid_t) :: s_grid
+        real(dp) :: bounds(3), steps(3)
+        real(dp), allocatable :: v_seg(:)
+        real(dp) :: as_seg
+        integer  :: isg
+
+        bounds = [2.5_dp, 6.0_dp, 15.0_dp]
+        steps  = [0.005_dp, 0.02_dp, 0.05_dp]
+        call create_segmented_grid(0.01_dp, bounds, steps, s_grid)
+
+        allocate(v_seg(s_grid%n_total))
+        do isg = 1, s_grid%n_total
+            if (s_grid%r(isg) <= r_well) then
+                v_seg(isg) = -v0_well
+            else
+                v_seg(isg) = 0.0_dp
+            end if
+        end do
+
+        call calc_scattering_length_segmented_numerov(s_grid, v_seg, mass, as_seg)
+        if (abs(as_seg - as_exact) / abs(as_exact) < 0.005_dp .and. s_grid%n_sectors == 3) then
+            print '(A, I2, A, I5, A, F9.5, A, F9.5)', " [PASS] Segmented Numerov (", s_grid%n_sectors, &
+                  " sectors, N=", s_grid%n_total, ") a_s = ", as_seg, " (Exact: ", as_exact, ")"
+            n_pass = n_pass + 1
+        else
+            print '(A, F9.5, A, F9.5)', " [FAIL] Segmented Numerov a_s = ", as_seg, " (Exact: ", as_exact, ")"
+        end if
+        deallocate(v_seg)
+    end block
+
+    ! --------------------------------------------------------------------------
+    ! 测试 18: 分段扇区网格波函数 u_{l, E}(r) 跨扇区平滑推进与相移验证
+    ! --------------------------------------------------------------------------
+    n_total = n_total + 1
+    block
+        type(segmented_grid_t) :: s_grid
+        real(dp) :: bounds(3), steps(3)
+        real(dp), allocatable :: v_seg(:), u_seg(:)
+        real(dp) :: delta_seg, k_m, cs_m
+        complex(dp) :: s_m, t_m
+        real(dp) :: e_t, k_t, amp_t, amp_seg
+        integer  :: isg, n_pts_seg
+
+        bounds = [3.0_dp, 8.0_dp, 25.0_dp]
+        steps  = [0.005_dp, 0.02_dp, 0.10_dp]
+        call create_segmented_grid(0.01_dp, bounds, steps, s_grid)
+
+        n_pts_seg = s_grid%n_total
+        allocate(v_seg(n_pts_seg), u_seg(n_pts_seg))
+
+        do isg = 1, n_pts_seg
+            v_seg(isg) = -0.8_dp * exp(-(s_grid%r(isg) - 2.0_dp)**2)
+        end do
+
+        e_t = 0.20_dp
+        k_t = sqrt(2.0_dp * 1.0_dp * e_t)
+        amp_t = sqrt(2.0_dp * 1.0_dp / (PI * k_t))
+
+        call calc_scattering_wavefunction_segmented_ti( &
+            s_grid, v_seg, 1.0_dp, e_t, 0, NORM_ENERGY, u_seg, delta_seg)
+
+        call calc_phase_shift_segmented( &
+            s_grid, v_seg, 1.0_dp, e_t, 0, delta_seg, k_m, s_m, t_m, cs_m)
+
+        amp_seg = sqrt(u_seg(n_pts_seg)**2 + (((u_seg(n_pts_seg) - u_seg(n_pts_seg - 1)) / &
+                       s_grid%sector_dr(s_grid%n_sectors)) / k_t)**2)
+
+        if (abs(amp_seg - amp_t) / amp_t < 0.02_dp .and. &
+            abs(abs(s_m) - 1.0_dp) < 1.0e-5_dp) then
+            print '(A, F8.4, A, F8.4, A, F8.4)', " [PASS] Segmented Wavefunction: Amp = ", amp_seg, &
+                  " (Exact: ", amp_t, "), |S| = ", abs(s_m)
+            n_pass = n_pass + 1
+        else
+            print '(A, F8.4, A, F8.4)', " [FAIL] Segmented Wavefunction: Amp = ", amp_seg, &
+                  " (Exact: ", amp_t, ")"
+        end if
+        deallocate(v_seg, u_seg)
+    end block
+
+    ! --------------------------------------------------------------------------
+    ! 测试 19: 分段扇区网格多通道密耦 Log-Derivative 求解与 S-矩阵幺正性
+    ! --------------------------------------------------------------------------
+    n_total = n_total + 1
+    block
+        type(segmented_grid_t) :: s_grid
+        real(dp) :: bounds(2), steps(2)
+        real(dp), allocatable :: v_mat_seg(:, :, :)
+        type(multichannel_result_t) :: mc_res
+        real(dp) :: thresh(3), e_coll
+        integer  :: l_ch(3), isg
+        real(dp) :: p_sum, u_err
+
+        bounds = [5.0_dp, 20.0_dp]
+        steps  = [0.01_dp, 0.05_dp]
+        call create_segmented_grid(0.1_dp, bounds, steps, s_grid)
+
+        allocate(v_mat_seg(3, 3, s_grid%n_total))
+        v_mat_seg = 0.0_dp
+        do isg = 1, s_grid%n_total
+            v_mat_seg(1, 1, isg) = -0.5_dp * exp(-(s_grid%r(isg) - 2.0_dp)**2)
+            v_mat_seg(2, 2, isg) = -0.3_dp * exp(-(s_grid%r(isg) - 2.5_dp)**2)
+            v_mat_seg(3, 3, isg) = -0.2_dp * exp(-(s_grid%r(isg) - 3.0_dp)**2)
+            v_mat_seg(1, 2, isg) =  0.08_dp * exp(-(s_grid%r(isg) - 2.2_dp)**2)
+            v_mat_seg(2, 1, isg) =  v_mat_seg(1, 2, isg)
+        end do
+
+        thresh = [0.0_dp, 0.05_dp, 0.10_dp]
+        l_ch   = [0, 0, 0]
+        e_coll = 0.25_dp
+
+        call calc_multichannel_close_coupling_segmented_logder( &
+            s_grid, v_mat_seg, 1.0_dp, e_coll, thresh, l_ch, mc_res)
+
+        p_sum = mc_res%prob_matrix(1, 1) + mc_res%prob_matrix(2, 1) + mc_res%prob_matrix(3, 1)
+        u_err = abs(p_sum - 1.0_dp)
+
+        if (mc_res%n_open == 3 .and. u_err < 1.0e-5_dp) then
+            print '(A, I2, A, ES10.2, A, F8.4)', " [PASS] Segmented CC Log-Der: n_open = ", mc_res%n_open, &
+                  ", Unitarity err = ", u_err, ", P(1->2) = ", mc_res%prob_matrix(2, 1)
+            n_pass = n_pass + 1
+        else
+            print '(A, ES10.2)', " [FAIL] Segmented CC Log-Der Unitarity err = ", u_err
+        end if
+        deallocate(v_mat_seg)
+    end block
+
     deallocate(r_grid, v_pot)
 
     print '(A)', "--------------------------------------------------"
