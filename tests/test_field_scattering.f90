@@ -307,19 +307,22 @@ contains
         b_gauss = 540.0_dp ! 40K-87Rb 著名 Feshbach 共振区附近
 
         ! (1) 异核体系 U(f <- unc) 幺正性
-        call calc_basis_transform_matrix(k40, rb87, ch_unc, ch_f, n_ch, BASIS_UNCOUPLED, BASIS_F_COUPLED, b_gauss, U_f_unc)
+        call calc_basis_transform_matrix(k40, rb87, ch_unc, ch_f, n_ch, &
+                                         BASIS_UNCOUPLED, BASIS_F_COUPLED, b_gauss, U_f_unc)
         U_prod = matmul(U_f_unc, transpose(U_f_unc))
         max_err = maxval(abs(U_prod - I_ref))
         call assert_near(max_err, 0.0_dp, 1.0e-14_dp, "Heteronuclear 40K-87Rb U(f <- unc) unitary")
 
         ! (2) 异核体系 U(spin <- unc) 幺正性
-        call calc_basis_transform_matrix(k40, rb87, ch_unc, ch_spin, n_ch, BASIS_UNCOUPLED, BASIS_TOTAL_SPIN, b_gauss, U_spin_unc)
+        call calc_basis_transform_matrix(k40, rb87, ch_unc, ch_spin, n_ch, &
+                                         BASIS_UNCOUPLED, BASIS_TOTAL_SPIN, b_gauss, U_spin_unc)
         U_prod = matmul(U_spin_unc, transpose(U_spin_unc))
         max_err = maxval(abs(U_prod - I_ref))
         call assert_near(max_err, 0.0_dp, 1.0e-14_dp, "Heteronuclear 40K-87Rb U(spin <- unc) unitary")
 
         ! (3) 异核体系 U(dress <- unc) 场缀饰基组幺正性
-        call calc_basis_transform_matrix(k40, rb87, ch_unc, ch_unc, n_ch, BASIS_UNCOUPLED, BASIS_FIELD_DRESSED, b_gauss, U_dress_unc)
+        call calc_basis_transform_matrix(k40, rb87, ch_unc, ch_unc, n_ch, &
+                                         BASIS_UNCOUPLED, BASIS_FIELD_DRESSED, b_gauss, U_dress_unc)
         U_prod = matmul(U_dress_unc, transpose(U_dress_unc))
         max_err = maxval(abs(U_prod - I_ref))
         call assert_near(max_err, 0.0_dp, 1.0e-14_dp, "Heteronuclear 40K-87Rb U(dress <- unc) unitary at 540 G")
@@ -328,7 +331,8 @@ contains
         block
             real(dp) :: U_chain(n_ch, n_ch), U_direct(n_ch, n_ch)
             U_chain = matmul(U_f_unc, transpose(U_spin_unc))
-            call calc_basis_transform_matrix(k40, rb87, ch_spin, ch_f, n_ch, BASIS_TOTAL_SPIN, BASIS_F_COUPLED, b_gauss, U_direct)
+            call calc_basis_transform_matrix(k40, rb87, ch_spin, ch_f, n_ch, &
+                                             BASIS_TOTAL_SPIN, BASIS_F_COUPLED, b_gauss, U_direct)
             max_err = maxval(abs(U_chain - U_direct))
             call assert_near(max_err, 0.0_dp, 1.0e-14_dp, "Heteronuclear chain rule U(f <- spin) matches direct")
         end block

@@ -102,8 +102,8 @@ program test_atomic_hhg
     do step = 1, 10
         call propagate_split_operator_2channel(psi1, psi2, v11, v22, v12, 0.2_dp, 1.0_dp, 0.05_dp)
     end do
-    call calculate_channel_populations(psi1, psi2, 0.2_dp, pop1, pop2, ratio)
-    call assert_close("2-Channel total population conservation", 1.0_dp, (pop1 + pop2) / (sum(abs(psi1)**2 + abs(psi2)**2)*0.2_dp), 1.0e-6_dp)
+    call assert_close("2-Channel total population conservation", 1.0_dp, &
+                      (pop1 + pop2) / (sum(abs(psi1)**2 + abs(psi2)**2) * 0.2_dp), 1.0e-6_dp)
 
     ! 7. 二维 Split-Operator 波包范数守恒
     dx2 = 0.5_dp

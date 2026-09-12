@@ -51,7 +51,7 @@ TESTS=("test_constants" "test_special_functions" "test_dvr_grid" "test_laser_pul
 for test_name in "${TESTS[@]}"; do
     echo ""
     echo ">> Compiling and running $test_name..."
-    gfortran -O2 -I"$SRC_DIR" "$test_name.f90" "$SRC_DIR"/libgeneral_module.a -o "$test_name"
+    gfortran $FFLAGS -I"$SRC_DIR" "$test_name.f90" "$SRC_DIR"/libgeneral_module.a -o "$test_name"
     "./$test_name"
     rm -f "$test_name"
 done
