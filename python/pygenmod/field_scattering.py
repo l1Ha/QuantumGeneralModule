@@ -400,7 +400,9 @@ def build_asymptotic_hamiltonian(atom1: ColdAtom, atom2: ColdAtom,
         return U @ h_unc @ U.T
 
 
-def build_spin_exchange_matrix(channels: list[FieldChannel], basis_type: int) -> np.ndarray:
+def build_spin_exchange_matrix(channels: list[FieldChannel], basis_type: int,
+                               atom1: Optional[ColdAtom] = None,
+                               atom2: Optional[ColdAtom] = None) -> np.ndarray:
     """计算电子自旋交换算符 s1 . s2 矩阵元."""
     n_ch = len(channels)
     p_exc = np.zeros((n_ch, n_ch), dtype=float)
@@ -409,6 +411,12 @@ def build_spin_exchange_matrix(channels: list[FieldChannel], basis_type: int) ->
         for i, ch in enumerate(channels):
             s_val = ch.two_S / 2.0
             p_exc[i, i] = 0.5 * (s_val * (s_val + 1.0) - 0.75 - 0.75)
+    elif basis_type == BASIS_F_COUPLED and atom1 is not None and atom2 is not None:
+        ch_unc = build_field_collision_channels(atom1, atom2, BASIS_UNCOUPLED,
+                                               channels[0].two_Mtot, channels[0].l_orb)
+        p_unc = build_spin_exchange_matrix(ch_unc, BASIS_UNCOUPLED)
+        U = calc_basis_transform_matrix(atom1, atom2, ch_unc, channels, BASIS_UNCOUPLED, BASIS_F_COUPLED)
+        p_exc = U @ p_unc @ U.T
     else:
         for i, ch_i in enumerate(channels):
             ms1 = ch_i.two_ms1 / 2.0

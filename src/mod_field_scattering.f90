@@ -702,7 +702,26 @@ contains
         allocate(H_asymp(n_channels, n_channels), S_dot_S(n_channels, n_channels))
         call build_asymptotic_hamiltonian(atom1, atom2, b_gauss, e_field, basis_type, &
                                           channels, n_channels, H_asymp)
-        call build_spin_exchange_matrix(channels, n_channels, basis_type, S_dot_S)
+        if (basis_type == BASIS_TOTAL_SPIN) then
+            call build_spin_exchange_matrix(channels, n_channels, BASIS_TOTAL_SPIN, S_dot_S)
+        else if (basis_type == BASIS_UNCOUPLED .or. basis_type == BASIS_FIELD_DRESSED) then
+            call build_spin_exchange_matrix(channels, n_channels, BASIS_UNCOUPLED, S_dot_S)
+        else
+            ! 对于 BASIS_F_COUPLED，先在非耦合基组构建再变换: S_f = U * S_unc * U^T
+            block
+                type(field_channel_t), allocatable :: ch_unc(:)
+                real(dp), allocatable :: U_mat_f(:, :), S_unc(:, :)
+                integer :: n_u
+                call build_field_collision_channels(atom1, atom2, BASIS_UNCOUPLED, two_Mtot, l_max, &
+                                                    ch_unc, n_u)
+                allocate(U_mat_f(n_channels, n_channels), S_unc(n_channels, n_channels))
+                call build_spin_exchange_matrix(ch_unc, n_channels, BASIS_UNCOUPLED, S_unc)
+                call calc_basis_transform_matrix(atom1, atom2, ch_unc, channels, n_channels, &
+                                                 BASIS_UNCOUPLED, basis_type, b_gauss, U_mat_f)
+                S_dot_S = matmul(matmul(U_mat_f, S_unc), transpose(U_mat_f))
+                deallocate(ch_unc, U_mat_f, S_unc)
+            end block
+        end if
 
         ! 3. 若使用场缀饰通道基 (Field-Dressed)，严格对角化 H_asymp 并将矩阵元对齐到渐近阈值
         if (basis_type == BASIS_FIELD_DRESSED) then
