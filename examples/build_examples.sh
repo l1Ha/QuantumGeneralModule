@@ -15,7 +15,7 @@ echo "================================================================"
 cd "$DIR"
 
 FFLAGS="-O2 -fPIC -ffree-line-length-none"
-EXAMPLES=("ex01_fgh_diatomic_bound_states" "ex02_pulse_synthesis" "ex03_split_operator_1d" "ex04_field_free_orientation" "ex05_hhg_lewenstein_spectrum" "ex06_two_state_nonadiabatic" "ex07_scattering_wavefunctions_ti_td" "ex08_ultracold_feshbach_segmented")
+EXAMPLES=("ex01_fgh_diatomic_bound_states" "ex02_pulse_synthesis" "ex03_split_operator_1d" "ex04_field_free_orientation" "ex05_hhg_lewenstein_spectrum" "ex06_two_state_nonadiabatic" "ex07_scattering_wavefunctions_ti_td" "ex08_ultracold_feshbach_segmented" "ex09_dipolar_relaxation_scattering" "ex10_photoassociation_spectroscopy")
 
 for ex in "${EXAMPLES[@]}"; do
     echo ""

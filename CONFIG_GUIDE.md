@@ -676,6 +676,108 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 
 ---
 
+### 3.15 各向异性偶极散射与超冷自旋弛豫配置 (`mod_dipolar_scattering`)
+面向超冷偶极气体（如磁性原子 $^{52}\text{Cr}, ^{164}\text{Dy}, ^{168}\text{Er}$ 或偶极玻色子 $^{87}\text{Rb}$）与极性双原子分子（如 $^{40}\text{K}^{87}\text{Rb}, ^{23}\text{Na}^{40}\text{K}$）的长程各向异性相互作用：
+1. **各向异性磁偶极 (MDDI) 算符矩阵元与两体自旋张量**：
+   ```fortran
+   real(dp) :: c2q_val, spin_elem, c_dd
+   ! 1. 空间秩-2 球谐张量矩阵元 <l1, m1 | C_{2, q} | l2, m2>
+   c2q_val = c2q_orbital_matrix_element(l1=0, m1=0, l2=2, m2=0, q=0)
+   ! 2. 秩-2 两体自旋张量矩阵元 <S, Ms | [s1 x s2]^{(2)}_q | S', Ms'>
+   spin_elem = spin_tensor_coupled_matrix_element(s1=1.0_dp, s2=1.0_dp, &
+                                                   s_tot=1, ms_tot=0, s_prime=1, ms_prime=0, q=0)
+   ! 3. 磁偶极特征耦合系数 C_dd (a.u.)
+   c_dd = calc_mddi_coupling_strength(mu1_bohr=1.0_dp, mu2_bohr=1.0_dp)
+   ```
+2. **超冷原子磁阱自旋弛豫截面 $\sigma_{\text{rel}}$ 与热速率 $K_{\text{rel}}(T)$**：
+   ```fortran
+   real(dp) :: sigma_rel, k_rel
+   ! 计算能量 E 下两体自旋弛豫散射截面
+   call calc_dipolar_relaxation_cross_section(energy=1.0e-9_dp, mass=87.0_dp*AMU2AU, &
+                                              mu_mag=1.0_dp, delta_m=1, sigma_rel=sigma_rel)
+   ! 计算微开尔文 (T = 1.0 uK) 玻尔兹曼热平衡系综平均弛豫速率 (cm^3/s)
+   call calc_dipolar_relaxation_thermal_rate(temp_kelvin=1.0e-6_dp, mass=87.0_dp*AMU2AU, &
+                                             mu_mag=1.0_dp, delta_m=1, k_rel=k_rel)
+   ```
+3. **极性分子直流 Stark 诱导电偶极矩与特征偶极长度**：
+   ```fortran
+   type(polar_molecule_t) :: krb
+   real(dp) :: d_ind, a_d
+   ! 初始化 KRb 极性分子 (转动常数 B_e = 1.114 GHz, 永久偶极矩 d_0 = 0.574 Debye)
+   krb%rot_constant_ghz = 1.114_dp
+   krb%dipole_moment_debye = 0.574_dp
+   krb%mass_amu = 127.0_dp
+
+   ! 施加 DC 外电场 (10.0 kV/cm) 求解诱导电偶极矩
+   call calc_stark_induced_dipole(krb, e_field_dc_kv_cm=10.0_dp, d_ind_debye=d_ind)
+   ! 计算电偶极特征散射长度 a_d (a.u.)
+   call calc_electric_dipolar_length(krb%mass_amu * AMU2AU, d_ind, a_d)
+   ```
+4. **偶极多通道耦合势矩阵组装**：
+   ```fortran
+   type(dipolar_channel_t), allocatable :: channels(:)
+   real(dp), allocatable :: v_dd(:, :)
+   ! 构建自旋 S=1、分波截断 l_max=2 的耦合通道基
+   call build_dipolar_channel_basis(s_tot=1, l_max=2, channels=channels, n_channels=n_ch)
+   ! 组装距离 r 处的各向异性耦合势能矩阵
+   call calc_dipolar_potential_matrix(r=50.0_dp, channels=channels, n_channels=n_ch, &
+                                      mu1_bohr=1.0_dp, mu2_bohr=1.0_dp, v_mat=v_dd)
+   ```
+
+---
+
+### 3.16 超冷光缔合谱学与分子生成配置 (`mod_photoassociation`)
+面向超冷激光受激自由-束缚态光缔合 (Photoassociation, PA) 与 STIRAP 超冷分子制备：
+1. **自由-束缚 Franck-Condon 重叠积分与跃迁态密度**：
+   ```fortran
+   real(dp) :: overlap, f_fb
+   ! 散射能量本征波函数与激发态分子束缚态波函数积分
+   call calc_free_bound_fc_overlap(r_grid, psi_free_norm, psi_bound, overlap)
+   ! 计算态密度 f_FB(E) = |<psi_E | psi_v>|^2
+   call calc_free_bound_fc_density(energy=1.0e-9_dp, overlap=overlap, f_fb=f_fb)
+   ```
+2. **激光功率依赖的受激线宽与光缔合散射截面**：
+   ```fortran
+   type(pa_transition_t) :: trans
+   real(dp) :: gamma_stim, sigma_pa
+   trans%laser_intensity_w_cm2 = 100.0_dp      ! 激光强度 100 W/cm^2
+   trans%trans_dipole_debye = 2.5_dp           ! 跃迁电子偶极矩 2.5 Debye
+   trans%gamma_nat_mhz = 6.0_dp                ! 分子自发辐射天然线宽 6 MHz
+   trans%fc_overlap = overlap
+
+   ! 受激跃迁线宽 hbar * Gamma_stim
+   call calc_pa_stimulated_linewidth(trans%laser_intensity_w_cm2, trans%trans_dipole_debye, &
+                                     trans%fc_overlap, gamma_stim)
+   ! 求解单能量入射散射吸收截面 (失谐 Delta = 0)
+   call calc_pa_cross_section(trans, energy=1.0e-9_dp, detuning_au=0.0_dp, cross_sec_au=sigma_pa)
+   ```
+3. **热平衡系综平均光缔合速率与光谱扫描**：
+   ```fortran
+   real(dp) :: k_pa, detuning_grid(200), rates(200), peak_det
+   ! 计算 T = 50 uK 下的热平均光缔合速率系数 K_PA(T, Delta)
+   call calc_pa_thermal_rate_coefficient(trans, temp_kelvin=50.0e-6_dp, &
+                                         detuning_au=0.0_dp, k_pa=k_pa)
+   ! 激光频率失谐连续扫描生成完整光缔合吸收能谱
+   call calc_pa_detuning_scan(trans, temp_kelvin=50.0e-6_dp, detunings=detuning_grid, &
+                              n_pts=200, rates=rates, peak_detuning=peak_det)
+   ```
+4. **双光子 Raman / STIRAP 缔合基态分子有效耦合**：
+   ```fortran
+   real(dp) :: omega_eff
+   ! 给定泵浦光与斯托克斯光拉比频率 Omega_1, Omega_2 及激发态中间失谐 Delta_1
+   call calc_twophoton_raman_coupling(omega1=10.0_dp, omega2=15.0_dp, delta1=100.0_dp, &
+                                      omega_eff=omega_eff)
+   ```
+
+> [!TIP]
+> 完整的各向异性偶极自旋弛豫与光缔合分子生成前沿工程算例，详见：
+> 👉 [`examples/ex09_dipolar_relaxation_scattering.f90`](examples/ex09_dipolar_relaxation_scattering.f90)
+> 👉 [`examples/ex10_photoassociation_spectroscopy.f90`](examples/ex10_photoassociation_spectroscopy.f90)
+> 对应理论推导与学术文献全典，详见：
+> 👉 [`LITERATURE.md`](LITERATURE.md) 第 9 节与第 10 节。
+
+---
+
 ## 4. Python 伴侣库 `pygenmod` 配置与混合编程
 
 `GeneralModule/python` 目录提供了一个符合 PEP 517/518 标准的 Python 纯粹伴侣分析库 `pygenmod`，用于快速完成参数预计算、波包与谱线生成。
@@ -751,6 +853,12 @@ plot_wavefunctions(dvr.x, v_pot, eig_vals, wavefuncs, n_states=4, filename="harm
 
 #### 算例 D: 激光脉冲调控分子转振态相干布居转移与梯级跃迁
 > *"请使用 `general_module` 编写一个超快红外激光脉冲调控双原子分子转振态布居的完整程序。首先用 Sinc-DVR 求解 Morse 势束缚态波函数并积分各态转动常数 $B_v$ 与偶极矩阵，调用 `build_rovibrational_hamiltonian` 与 `build_rovibrational_dipole_matrix` 构建全空间 $|v, J\rangle$ 哈密顿量与跃迁偶极，配置共振 $\sin^2$ 激光脉冲驱动体系从基态 $|v=0, J=0\rangle$ 发生相干布居转移，RK4 演化 TDSE 并使用 `save_data_table_2d` 保存全转振态时序数据。"*
+
+#### 算例 E: 超冷磁偶极自旋弛豫与极性分子电偶极 Stark 效应
+> *"请使用 `general_module` 编写一个超冷偶极体系动力学分析程序。首先调用 `calc_dipolar_relaxation_cross_section` 和 `calc_dipolar_relaxation_thermal_rate` 计算弱磁阱中 $^{87}\text{Rb}$ 原子在 $T=1.0\,\mu\text{K}$ 下的各向异性磁偶极两体自旋弛豫截面与热平均速率常数；接着配置极性双原子分子 $^{40}\text{K}^{87}\text{Rb}$，在外加直流电场 $\mathcal{E} \in [0, 20]\,\text{kV/cm}$ 下调用 `calc_stark_induced_dipole` 扫描诱导电偶极矩 $d_{\text{ind}}(\mathcal{E})$ 并计算对应的特征电偶极长度 $a_d$。"*
+
+#### 算例 F: 超冷原子光缔合谱学与双光子 Raman 缔合
+> *"请使用 `general_module` 编写一个超冷光缔合（Photoassociation）谱学模拟程序。配置基态碰撞波函数与激发态束缚振动态，调用 `calc_free_bound_fc_overlap` 计算自由-束缚态 Franck-Condon 因子，并利用 `calc_pa_detuning_scan` 在温度 $T=50\,\mu\text{K}$ 下模拟激光失谐范围 $[-1.0, 1.0]\,\text{GHz}$ 的光缔合吸收谱，提取共振峰值与热展宽线宽，最后调用 `calc_twophoton_raman_coupling` 评估制备振转基态分子的双光子 STIRAP 有效耦合拉比频率。"*
 
 ### 5.3 AI 编写 Fortran 常见陷阱自查表
 | 常见 AI 陷阱 | 产生原因 | 正确做法 |

@@ -23,6 +23,8 @@ module general_module
     use mod_ti_scattering
     use mod_td_scattering
     use mod_field_scattering
+    use mod_dipolar_scattering
+    use mod_photoassociation
     implicit none
 
     public :: dp, int32, int64
@@ -133,5 +135,20 @@ module general_module
     public :: build_asymptotic_hamiltonian, build_spin_exchange_matrix
     public :: build_field_potential_matrix, calc_magnetic_feshbach_resonance_scan
     public :: fit_feshbach_resonance_parameters
+
+    ! 各向异性磁偶极与电偶极超冷散射 (Dipolar Quantum Scattering)
+    public :: FINE_STRUCT_ALPHA, ELECTRON_GS, BOHR_MAGNETON_AU
+    public :: polar_molecule_t, dipolar_channel_t, dipolar_relaxation_result_t
+    public :: calc_mddi_spatial_matrix_element, calc_mddi_spin_matrix_element
+    public :: calc_mddi_total_matrix_element, calc_dipolar_relaxation_cross_section
+    public :: calc_dipolar_relaxation_thermal_rate, calc_stark_induced_dipole
+    public :: calc_eddi_matrix_element, calc_dipole_length_scale
+    public :: build_dipolar_coupled_potential_matrix
+
+    ! 超冷光缔合谱学与自由-束缚态量子跃迁 (Ultracold Photoassociation)
+    public :: pa_config_t, pa_transition_result_t
+    public :: calc_free_bound_fc_overlap, calc_pa_stimulated_width
+    public :: calc_pa_cross_section, calc_pa_thermal_rate_coefficient
+    public :: calc_pa_spectrum_scan, calc_two_photon_raman_association_coupling
 
 end module general_module

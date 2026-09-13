@@ -3,8 +3,8 @@
 [![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
 [![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests: 164/164 Pass](https://img.shields.io/badge/Tests-164%2F164%20Pass%20(100%25)-brightgreen.svg)](tests/)
-[![Literature: 8 Topics](https://img.shields.io/badge/Literature-8%20Topics%20(PRL%2FPRA%2FRMP)-blue.svg)](LITERATURE.md)
+[![Tests: 199/199 Pass](https://img.shields.io/badge/Tests-199%2F199%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Literature: 10 Topics](https://img.shields.io/badge/Literature-10%20Topics%20(PRL%2FPRA%2FRMP)-blue.svg)](LITERATURE.md)
 
 `GeneralModule` 是一个面向超快强场物理、分子光物理与量子动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
 
@@ -14,17 +14,17 @@
 
 1. **零外部库依赖 (Zero External Dependencies)**
    - 内部集成高精度 Householder QL 实对称矩阵本征求解器、Gauss-Jordan 全主元实/复方阵求逆与 Cooley-Tukey 1D/2D 快速傅里叶变换（FFT）。
-   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射与含时连续态散射矩阵求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
+   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射、各向异性偶极耦合与超冷光缔合速率求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
 2. **现代 Fortran 2008 标准设计**
    - 统一强类型参数定义（`real(dp) => real64`）。
    - 纯函数（`pure function`）与显式 `intent(in/out/inout)` 契约，杜绝隐式全局变量副作用。
 3. **AI 友好型结构化接口 (AI-Friendly)**
    - 算法模块支持统一顶层聚合入口：`use general_module`。
-   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `absorbing_boundary_t`, `dvr_1d_t`, `spline_1d_t`, `scattering_state_t`, `multichannel_result_t`, `td_scattering_channel_t`, `cold_atom_t`, `field_channel_t`, `field_feshbach_result_t`），自解释、低耦合、便于大语言模型精确构造与调用。
+   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `absorbing_boundary_t`, `dvr_1d_t`, `spline_1d_t`, `scattering_state_t`, `multichannel_result_t`, `td_scattering_channel_t`, `cold_atom_t`, `field_channel_t`, `polar_molecule_t`, `pa_transition_t`），自解释、低耦合、便于大语言模型精确构造与调用。
 4. **全链路双语生态支持**
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
 5. **全自动 CI/CD 持续集成**
-   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 13 大测试套件与 Python 验证。
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 15 大测试套件与 Python 验证。
 
 ---
 
@@ -39,7 +39,7 @@ GeneralModule/
 ├── CMakeLists.txt                 # CMake 跨平台构建系统
 ├── README.md                      # 本文档
 ├── .gitignore                     # Git 忽略规则
-├── src/                           # 核心 Fortran 源代码 (21 核心模块 + 1 聚合入口)
+├── src/                           # 核心 Fortran 源代码 (23 核心模块 + 1 聚合入口)
 │   ├── mod_constants.f90          # 1. 物理常数与各单位 a.u. 双向转换
 │   ├── mod_special_functions.f90  # 2. 勒让德、Wigner 3j/6j/9j、CG半整数代数、转动偶极/取向矩阵元
 │   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解 (EISPACK TRED2/TQL2)、实/复方阵求逆、1D/2D FFT
@@ -61,8 +61,10 @@ GeneralModule/
 │   ├── mod_ti_scattering.f90      # 19. 非含时散射理论、零能 Numerov/Log-Derivative 散射长度、相移、分段网格与多通道密耦
 │   ├── mod_td_scattering.f90      # 20. 含时波包散射理论、连续态能量通量透射率 T(E)、含时 S 矩阵提取与 Möller 动量投影
 │   ├── mod_field_scattering.f90   # 21. 外加电磁场超冷散射、四大经典基组严格幺正变换、Breit-Rabi本征态与磁Feshbach共振扫描
+│   ├── mod_dipolar_scattering.f90 # 22. 各向异性磁偶极/电偶极散射、自旋弛豫截面/热速率、极性分子Stark诱导偶极与耦合势
+│   ├── mod_photoassociation.f90   # 23. 超冷光缔合谱学、自由-束缚态Franck-Condon重叠积分、受激跃迁线宽与热平均光缔合速率
 │   └── general_module.f90         # 顶层聚合入口模块 (use general_module)
-├── tests/                         # 自动化单元测试套件 (13 个套件，100% 全部通过)
+├── tests/                         # 自动化单元测试套件 (15 个套件，100% 全部通过)
 │   ├── test_constants.f90
 │   ├── test_special_functions.f90
 │   ├── test_dvr_grid.f90
@@ -76,8 +78,10 @@ GeneralModule/
 │   ├── test_ti_scattering.f90     # 非含时散射长度、相移、S矩阵与分段网格多通道测试
 │   ├── test_td_scattering.f90     # 含时波包散射透射谱、S矩阵元与 Möller 投影测试
 │   ├── test_field_scattering.f90  # 外场四大基组幺正变换、Breit-Rabi解析与数值比对、磁Feshbach共振拟合测试
-│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 164/164 断言)
-├── examples/                      # 典型物理应用算例 (8 大完整前沿算例)
+│   ├── test_dipolar_scattering.f90# 各向异性偶极张量、自旋弛豫截面、极性分子Stark感应与耦合势测试
+│   ├── test_photoassociation.f90  # 自由-束缚重叠积分、受激线宽、热光缔合速率与Raman双光子测试
+│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 199/199 断言)
+├── examples/                      # 典型物理应用算例 (10 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90           # 啁啾、双色、太赫兹脉冲时频生成
 │   ├── ex03_split_operator_1d.f90         # 1D 波包动力学演化与 CAP 吸收边界
@@ -86,6 +90,8 @@ GeneralModule/
 │   ├── ex06_two_state_nonadiabatic.f90    # 双态避差穿越非绝热动力学与分支比
 │   ├── ex07_scattering_wavefunctions_ti_td.f90 # 连续态能量本征波函数非含时与含时双向求解对比
 │   ├── ex08_ultracold_feshbach_segmented.f90   # 多扇区分段网格超冷磁 Feshbach 共振与散射长度扫描
+│   ├── ex09_dipolar_relaxation_scattering.f90  # 各向异性磁偶极自旋弛豫与极性分子外电场 Stark 诱导偶极
+│   ├── ex10_photoassociation_spectroscopy.f90  # 超冷光缔合跃迁谱学、受激饱和展宽与双光子 Raman 缔合
 │   └── build_examples.sh          # 算例编译运行脚本
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
@@ -283,6 +289,39 @@ GeneralModule/
 - `accumulate_wavefunction_spectral_projection(psi_t, t, dt, energy, hbar, psi_energy_accum)`: **含时动力学全空间谱投影原位累积器**。在波包推进主循环中无缝累积时间-能量半傅里叶变换 $\int_0^T \Psi(x, t) e^{iEt/\hbar} dt$。
 - `extract_td_scattering_wavefunction(x_grid, psi_energy_accum, energy, mass, hbar, x0, sigma_x, k0, psi_energy_norm, stat)`: **含时谱投影连续谱能量本征波函数提取器**。严格消除入射波包动量权重 $g(k_E)$ 与态密度变换因子，直接恢复满足严格 $\delta(E-E')$ 能量正交归一化的定态连续能量本征函数 $\psi_E(x)$。
 
+### 21. 外场电磁场超冷散射与四大基组变换 (`mod_field_scattering`)
+- 派生类型：`type(cold_atom_t)`, `type(field_channel_t)`, `type(field_feshbach_result_t)`。
+- 基组常量：`BASIS_UNCOUPLED`（非耦合基 $|s_1 m_{s1} i_1 m_{i1} s_2 m_{s2} i_2 m_{i2} l m_l\rangle$）、`BASIS_F_COUPLED`（单体自旋耦合基 $|f_1 m_{f1} f_2 m_{f2} l m_l\rangle$）、`BASIS_TOTAL_SPIN`（两体总自旋基 $|(s_1 s_2)S (i_1 i_2)I F M_F l m_l\rangle$）、`BASIS_FIELD_DRESSED`（外场渐近本征态缀饰基）。
+- `get_cold_atom_preset(name, atom, stat)`: 获取预置碱金属同位素原子参数（支持 $^6\text{Li}, ^7\text{Li}, ^{23}\text{Na}, ^{39}\text{K}, ^{40}\text{K}, ^{87}\text{Rb}, ^{133}\text{Cs}$ 等）。
+- `calc_breit_rabi_energies(atom, b_field_gauss, energies, stat)`: 任意磁场下单原子 Zeeman-超精细 Breit-Rabi 能级全数值求解。
+- `build_field_collision_channels(atom1, atom2, basis_type, two_Mtot, l_max, channels, stat)`: 根据总磁量子数守恒与分波截断构建碰撞通道空间。
+- `calc_basis_transform_matrix(atom1, atom2, channels_src, channels_dst, basis_src, basis_dst, u_mat, stat)`: 精确构造四大物理基组之间的幺正变换矩阵 $\mathbf{U}$。
+- `calc_zeeman_hyperfine_hamiltonian(atom1, atom2, b_field_gauss, channels, h_zeeman, stat)`: 组装外磁场下单体与两体塞曼-超精细哈密顿矩阵。
+- `calc_magnetic_feshbach_resonance_scan(atom1, atom2, b_grid, n_b, e_col, v_singlet, v_triplet, res, stat)`: 扫描磁场并拟合磁 Feshbach 共振中心 $B_0$、宽度 $\Delta B$、背景散射长度 $a_{\text{bg}}$ 与零交叉点 $B_{\text{zero}}$。
+
+### 22. 各向异性偶极超冷散射与自旋弛豫 (`mod_dipolar_scattering`)
+- 派生类型：`type(polar_molecule_t)`, `type(dipolar_channel_t)`。
+- `c2q_spherical_harmonic_tensor(theta, phi, q)`: 秩-2 球谐空间张量算符 $C_{2, q}(\theta, \phi) = \sqrt{\frac{4\pi}{5}} Y_{2, q}(\theta, \phi)$。
+- `c2q_orbital_matrix_element(l1, m1, l2, m2, q)`: 轨道角动量分波球谐张量矩阵元 $\langle l_1, m_1 | C_{2, q} | l_2, m_2 \rangle$（含 Wigner 3j 符号与奇偶性校验）。
+- `spin_tensor_coupled_matrix_element(s1, s2, s_tot, ms_tot, s_prime, ms_prime, q)`: 秩-2 两体自旋张量算符 $[\mathbf{s}_1 \otimes \mathbf{s}_2]^{(2)}_q$ 耦合矩阵元（严格自旋阶梯递推与相因子）。
+- `calc_mddi_coupling_strength(mu1_bohr, mu2_bohr)`: 磁偶极-偶极相互作用 (MDDI) 强度 $C_{\text{dd}} = \frac{\mu_0 \mu_1 \mu_2}{4\pi}$ (a.u.)。
+- `calc_dipolar_relaxation_cross_section(energy, mass, mu_mag, delta_m, sigma_rel)`: 磁阱超冷碰撞两体非弹性自旋弛豫截面 $\sigma_{\text{rel}}(E)$。
+- `calc_dipolar_relaxation_thermal_rate(temp_kelvin, mass, mu_mag, delta_m, k_rel)`: 玻尔兹曼系综平均超冷磁偶极自旋弛豫速率系数 $K_{\text{rel}}(T)$。
+- `calc_stark_induced_dipole(mol, e_field_dc, d_ind)`: 刚体极性分子外加直流电场 Stark 诱导电偶极矩 $d_{\text{ind}}(\mathcal{E})$。
+- `calc_electric_dipolar_length(mass, dipole_debye, a_d)`: 电偶极相互作用特征偶极长度 $a_d = \frac{m d^2}{2 \hbar^2}$。
+- `build_dipolar_channel_basis(s_tot, l_max, channels, stat)`: 构建包含轨道多分波 $(l, m_l)$ 与两体自旋 $(S, M_S)$ 的全通道基矢。
+- `calc_dipolar_potential_matrix(r, channels, mu1_bohr, mu2_bohr, v_mat, stat)`: 构造各向异性偶极多通道耦合势矩阵，驱动 s-波与 d-波间的本征角动量转移。
+
+### 23. 超冷光缔合谱学与分子生成 (`mod_photoassociation`)
+- 派生类型：`type(pa_transition_t)`, `type(pa_rate_result_t)`。
+- `calc_free_bound_fc_overlap(r_grid, psi_free, psi_bound, overlap)`: 能量归一化自由散射态 $\psi_E(r)$ 与激发振动态 $\psi_v(r)$ 自由-束缚态 Franck-Condon 空间重叠积分 $I_{\text{FB}} = \int_0^\infty \psi_E(r) \psi_v(r) dr$。
+- `calc_free_bound_fc_density(energy, overlap, f_fb)`: 自由-束缚跃迁态密度 $f_{\text{FB}}(E) = |I_{\text{FB}}(E)|^2$。
+- `calc_pa_stimulated_linewidth(laser_intensity_w_cm2, d_trans_debye, overlap, gamma_stim_au)`: 激光辐射诱导受激光缔合跃迁线宽 $\hbar \Gamma_{\text{stim}} = 2\pi \left(\frac{I}{2\varepsilon_0 c}\right) |d_{\text{el}} I_{\text{FB}}|^2$。
+- `calc_pa_cross_section(trans, energy, detuning, cross_sec_au)`: 单能量入射超冷原子光缔合吸收散射截面 $\sigma_{\text{PA}}(E, \Delta)$（幺正共振洛伦兹线型）。
+- `calc_pa_thermal_rate_coefficient(trans, temp_kelvin, detuning, k_pa)`: 麦克斯韦-玻尔兹曼热平衡系综平均光缔合速率系数 $K_{\text{PA}}(T, \Delta)$。
+- `calc_pa_detuning_scan(trans, temp_kelvin, detunings, n_pts, rates, peak_detuning, stat)`: 激光失谐频率连续扫描谱线生成与半高全宽（FWHM）/共振峰位提取。
+- `calc_twophoton_raman_coupling(omega1, omega2, delta1, omega_eff)`: 双光子 Raman / STIRAP 绝热受激跃迁生成振转基态分子的有效拉比频率 $\Omega_{\text{eff}} = \frac{\Omega_1 \Omega_2}{2\Delta_1}$。
+
 ---
 
 ## 📖 详细配置手册
@@ -364,7 +403,7 @@ target_link_libraries(my_executable PRIVATE GeneralModule_static)
 
 ## 🧪 自动化测试套件
 
-算法库内建完备的单元测试，覆盖物理常数往返转换、半整数角动量耦合、FGH 谐振子能级、激光脉冲包络、Bloch / Split-Operator 模长守恒、强场原子模型与多态非绝热耦合、转振态激光调控、三次样条插值与外推、自相关吸收谱与碎片 KER 分支比、Lindblad 耗散主方程与 Krotov 最优控制、非含时散射长度与 S-矩阵、含时波包散射连续态透射谱、外加电磁场四大基组幺正变换与磁 Feshbach 共振拟合：
+算法库内建完备的单元测试，覆盖物理常数往返转换、半整数角动量耦合、FGH 谐振子能级、激光脉冲包络、Bloch / Split-Operator 模长守恒、强场原子模型与多态非绝热耦合、转振态激光调控、三次样条插值与外推、自相关吸收谱与碎片 KER 分支比、Lindblad 耗散主方程与 Krotov 最优控制、非含时散射长度与 S-矩阵、含时波包散射连续态透射谱、外加电磁场四大基组幺正变换与磁 Feshbach 共振拟合、各向异性偶极张量与自旋弛豫、超冷光缔合受激线宽与分子生成：
 
 ```bash
 cd GeneralModule/tests
@@ -390,8 +429,10 @@ Open Quantum & OCT Tests:    10 / 10 PASSED
 TI Scattering Tests:         19 / 19 PASSED
 TD Scattering Tests:          9 /  9 PASSED
 Field Scattering Tests:      42 / 42 PASSED
+Dipolar Scattering Tests:    21 / 21 PASSED
+Photoassociation Tests:      14 / 14 PASSED
 ----------------------------------------------------------------
-ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 164/164 断言通过)
+ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 199/199 断言通过)
 ================================================================
 ```
 
@@ -399,7 +440,7 @@ ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 164/164 断言通过)
 
 ## 📊 典型物理算例 (Examples)
 
-位于 `GeneralModule/examples/`，一键编译运行全部 8 大物理算例：
+位于 `GeneralModule/examples/`，一键编译运行全部 10 大物理算例：
 ```bash
 cd GeneralModule/examples
 chmod +x build_examples.sh
@@ -422,6 +463,10 @@ chmod +x build_examples.sh
    - **连续谱散射能量本征波函数定量求解与交叉验证**：在同一一维势垒上对比非含时逆向 Numerov 匹配法与含时高斯波包 Split-Operator 谱投影法，直接给出高精度的连续态空间本征波函数 $\psi_E(x)$、隧穿透射几率 $T(E)$ 与反射几率 $R(E)$，两套独立算法相对偏差 $< 1.9\%$。
 8. **`ex08_ultracold_feshbach_segmented.f90`**
    - **分段网格多通道超冷磁 Feshbach 共振色散扫描与拟合**：以 $^{87}\text{Rb} + ^{87}\text{Rb}$ 双通道碰撞系统为例，采用 3 扇区分段网格（短程深阱区 $dr=0.005\,a_0$、中间区 $dr=0.02\,a_0$、长程渐近区 $dr=0.1\,a_0$），在磁场范围 $B \in [70, 90]\,\text{Gauss}$ 内高精度扫描色散散射长度 $a_s(B)$，并通过非线性拟合准确提取磁共振中心位置 $B_0$、共振宽度 $\Delta B$、背景散射长度 $a_{\text{bg}}$ 与零散射点 $B_{\text{zero}}$。
+9. **`ex09_dipolar_relaxation_scattering.f90`**
+   - **超冷磁偶极自旋弛豫与极性分子外电场 Stark 诱导偶极扫描**：模拟弱磁阱中 $^{87}\text{Rb}$ 原子受各向异性磁偶极相互作用驱动的二阶超精细两体自旋弛豫过程，计算碰撞能量扫描与微开尔文热平均弛豫速率 $K_{\text{rel}}(T)$；同步模拟刚体超冷极性双原子分子 $^{40}\text{K}^{87}\text{Rb}$ 在直流外电场 $\mathcal{E}$ 下的本征转动态 Stark 混叠，追踪诱导电偶极矩 $d_{\text{ind}}(\mathcal{E})$ 趋于永久偶极矩饱和，并计算电偶极相互作用特征长度 $a_d$。
+10. **`ex10_photoassociation_spectroscopy.f90`**
+    - **超冷原子光缔合光谱学与双光子 Raman 缔合分子态**：模拟超冷 $^{87}\text{Rb}$ 碰撞对由自由连续态受激跃迁至激发束缚态分子（$0_u^+ / 1_g$ 振动态）的光缔合吸收过程，计算自由-束缚态 Franck-Condon 重叠积分 $I_{\text{FB}}$、激光强度依赖的受激线宽 $\Gamma_{\text{stim}}$、单能量吸收截面与不同温度下的光缔合速率系数 $K_{\text{PA}}(T, \Delta)$ 洛伦兹-不对称展宽能谱，并计算利用双光子 STIRAP 绝热转移至超冷振转基态分子所需的有效双光子拉比耦合强度 $\Omega_{\text{eff}}$。
 
 ---
 
@@ -567,6 +612,14 @@ plot_magnetic_feshbach_resonance(b_grid, a_s, save_path="feshbach_resonance_fit.
 8. **开放量子系统 Lindblad 耗散与 Krotov 最优控制**
    - G. Lindblad, *Commun. Math. Phys.* **48**, 119 (1976); V. Gorini et al., *J. Math. Phys.* **17**, 821 (1976) [Lindblad 动力学]
    - V. F. Krotov, *Global Methods in Optimal Control Theory* (1996); R. Somlói et al., *Chem. Phys.* **172**, 85 (1993) [Krotov 算法]
+9. **各向异性磁偶极/电偶极超冷散射与自旋弛豫**
+   - S. Hensler et al., *Appl. Phys. B* **77**, 765 (2003); J. Stuhler et al., *Phys. Rev. Lett.* **95**, 150406 (2005) [磁偶极散射与超冷自旋弛豫]
+   - M. Marinescu & L. You, *Phys. Rev. Lett.* **81**, 4596 (1998) [超冷极性分子电偶极-偶极相互作用 EDDI 与 Stark 能级]
+   - K.-K. Ni et al., *Science* **322**, 231 (2008); S. Ospelkaus et al., *Science* **327**, 853 (2010) [超冷极性双原子分子碰撞与化学反应控制]
+10. **超冷原子光缔合谱学与自由-束缚态分子生成**
+    - H. R. Thorsheim, J. Weiner, & P. S. Julienne, *Phys. Rev. Lett.* **58**, 2420 (1987) [超冷原子光缔合 PA 奠基之作]
+    - K. M. Jones, E. Tiesinga, P. D. Lett, & P. S. Julienne, *Rev. Mod. Phys.* **78**, 483 (2006) [超冷原子光缔合光谱学权威综述]
+    - J. G. Danzl et al., *Science* **321**, 1062 (2008); *Nat. Phys.* **6**, 265 (2010) [双光子 STIRAP 绝热受激跃迁制备超冷振转基态分子]
 
 ---
 

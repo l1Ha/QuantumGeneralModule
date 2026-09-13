@@ -1,6 +1,6 @@
 # GeneralModule 科学文献典藏与理论映射全典 (Literature Compendium)
 
-本全典详尽整理了 `GeneralModule` 算法库所依据的权威经典与前沿学术文献。涵盖**超冷量子碰撞、多通道密耦与对数导数法、外场磁 Feshbach 共振、角动量表象变换、强场超快物理、波包动力学与最优控制**八大核心物理领域。每条文献均包含标准学术引用、DOI、理论物理机理及其在算法库源代码中的确切映射位置。
+本全典详尽整理了 `GeneralModule` 算法库所依据的权威经典与前沿学术文献。涵盖**超冷量子碰撞、多通道密耦与对数导数法、外场磁 Feshbach 共振、角动量表象变换、各向异性偶极散射与自旋弛豫、光缔合谱学、强场超快物理、波包动力学与最优控制**十大核心物理领域。每条文献均包含标准学术引用、DOI、理论物理机理及其在算法库源代码中的确切映射位置。
 
 ---
 
@@ -13,7 +13,9 @@
 6. [强场超快物理、高次谐波发射与隧穿电离](#6-强场超快物理高次谐波发射与隧穿电离)
 7. [离散变量表象 (DVR)、虚时间与分裂算符波包动力学](#7-离散变量表象-dvr虚时间与分裂算符波包动力学)
 8. [开放量子系统 Lindblad 耗散与 Krotov 最优控制](#8-开放量子系统-lindblad-耗散与-krotov-最优控制)
-9. [快速学术检索与代码对照总表](#9-快速学术检索与代码对照总表)
+9. [各向异性磁偶极与电偶极超冷散射及自旋弛豫](#9-各向异性磁偶极与电偶极超冷散射及自旋弛豫)
+10. [超冷光缔合谱学与自由-束缚态量子跃迁](#10-超冷光缔合谱学与自由-束缚态量子跃迁)
+11. [快速学术检索与代码对照总表](#11-快速学术检索与代码对照总表)
 
 ---
 
@@ -291,7 +293,87 @@
 
 ---
 
-## 9. 快速学术检索与代码对照总表
+## 9. 各向异性磁偶极与电偶极超冷散射及自旋弛豫
+
+### 9.1 电子磁偶极-偶极相互作用 (MDDI) 与 2 阶球张量展开
+- **文献**:
+  - H. T. C. Stoof, J. M. V. A. Koelman, and B. J. Verhaar, *"Spin-exchange and dipole relaxation in cesium and rubidium"*, **Phys. Rev. B** 38, 4688 (1988). [DOI: 10.1103/PhysRevB.38.4688](https://doi.org/10.1103/PhysRevB.38.4688)
+  - A. J. Moerdijk, B. J. Verhaar, and A. Axelsson, *"Resonances in ultracold collisions of $^6\text{Li}$, $^7\text{Li}$, and $^{133}\text{Cs}$"*, **Phys. Rev. A** 51, 4852 (1995). [DOI: 10.1103/PhysRevA.51.4852](https://doi.org/10.1103/PhysRevA.51.4852)
+- **核心理论**:
+  电子自旋之间的各向异性磁偶极哈密顿量可严格展开为 2 阶不可约球谐张量与自旋张量的标量积：
+  $$\hat{V}_{dd}(\mathbf{r}) = -\frac{\alpha^2 \sqrt{6}}{r^3} \sum_{q=-2}^2 (-1)^q C_{2, -q}(\hat{\mathbf{r}}) \left[\hat{\mathbf{s}}_1 \otimes \hat{\mathbf{s}}_2\right]^{(2)}_q$$
+  该相互作用打破轨道角动量 $L$ 的守恒，导致 $s$-波 ($L=0$) 与 $d$-波 ($L=2$) 强烈耦合，但严格守恒总磁量子数：
+  $$M_{\text{tot}} = M_L + M_S = M_L' + M_S'$$
+- **代码映射**:
+  - `src/mod_dipolar_scattering.f90`:
+    - `calc_mddi_spatial_matrix_element`: 空间张量矩阵元 $\langle L' M_L' | C_{2, q} | L M_L \rangle$；
+    - `calc_mddi_spin_matrix_element`: 自旋张量矩阵元 $\langle S' M_S' | [\mathbf{s}_1 \otimes \mathbf{s}_2]^{(2)}_q | S M_S \rangle$；
+    - `calc_mddi_total_matrix_element`: 总无量纲各向异性耦合强度系数。
+
+### 9.2 磁阱中非弹性偶极自旋弛豫 (Dipolar Relaxation)
+- **文献**:
+  - A. J. Moerdijk and B. J. Verhaar, *"Collisional stability of magnetically trapped rubidium atoms"*, **Phys. Rev. A** 53, 4341 (1996). [DOI: 10.1103/PhysRevA.53.4341](https://doi.org/10.1103/PhysRevA.53.4341)
+  - F. H. Mies, C. J. Williams, P. S. Julienne, and M. O. Krauss, *"Estimates of Antifolding Rates in Trapped Rubidium"*, **J. Res. Natl. Inst. Stand. Technol.** 101, 521 (1996). [DOI: 10.6028/jres.101.053](https://doi.org/10.6028/jres.101.053)
+- **核心理论**:
+  在静磁场 $B$ 下，处于弱场寻优态（如 $|S=1, M_S=1, L=0\rangle$）的双原子碰撞时，磁偶极作用驱动非弹性自旋翻转释放 Zeeman 能 $\Delta E = g_s \mu_B B$，转变为 $d$-波离去通道相对动能，造成磁阱原子剧烈碰撞损失：
+  $$\sigma_{\text{rel}}(E, B) \approx \frac{4\pi}{k_i^2} \frac{k_f}{k_i} \left|\langle \psi_f^{(d)} | \hat{V}_{dd} | \psi_i^{(s)} \rangle\right|^2$$
+- **代码映射**:
+  - `src/mod_dipolar_scattering.f90`:
+    - `calc_dipolar_relaxation_cross_section`: 单能自旋弛豫截面 $\sigma_{\text{rel}}$ 与双体速率系数 $K_{\text{rel}}$；
+    - `calc_dipolar_relaxation_thermal_rate`: 麦克斯韦-玻尔兹曼系综平均热弛豫速率。
+
+### 9.3 极性分子外加直流电场 (Stark 效应) 与各向异性电偶极碰撞 (EDDI)
+- **文献**:
+  - J. L. Bohn, M. Cavagnero, and C. Ticknor, *"Quasi-universal dipolar scattering in cold and ultracold gases"*, **New J. Phys.** 11, 055039 (2009). [DOI: 10.1088/1367-2630/11/5/055039](https://doi.org/10.1088/1367-2630/11/5/055039)
+  - G. Quéméner and J. L. Bohn, *"Electric field dependence of ultracold chemical reactions of polar molecules"*, **Phys. Rev. A** 81, 022702 (2010). [DOI: 10.1103/PhysRevA.81.022702](https://doi.org/10.1103/PhysRevA.81.022702)
+  - K.-K. Ni et al., *"A High Phase-Space-Density Gas of Polar Molecules"*, **Science** 322, 231 (2008). [DOI: 10.1126/science.1163861](https://doi.org/10.1126/science.1163861)
+- **核心理论**:
+  外加电场 $\mathcal{E}$ 混合相反宇称转动态使得实验室系诱导电偶极矩 $d_{\text{ind}}(\mathcal{E}) = -\frac{\partial E_0}{\partial \mathcal{E}} > 0$。分子间各向异性电偶极势为：
+  $$V_{dd}^{\text{el}}(\mathbf{r}) = -\frac{2 d_{\text{ind}}^2}{r^3} C_{20}(\hat{\mathbf{r}})$$
+  特征偶极长度尺度定义为 $a_d = \frac{\mu d_{\text{ind}}^2}{2\hbar^2}$。
+- **代码映射**:
+  - `src/mod_dipolar_scattering.f90`:
+    - `calc_stark_induced_dipole`: 刚体转子 Stark 哈密顿量对角化求 $d_{\text{ind}}$；
+    - `calc_eddi_matrix_element`: 各向异性电偶极张量矩阵元；
+    - `calc_dipole_length_scale`: 偶极力程 $a_d$；
+    - `build_dipolar_coupled_potential_matrix`: 多分波偶极耦合势矩阵组装。
+
+---
+
+## 10. 超冷光缔合谱学与自由-束缚态量子跃迁
+
+### 10.1 自由-束缚态 Franck-Condon 重叠积分
+- **文献**:
+  - K. M. Jones, E. Tiesinga, P. D. Lett, and P. S. Julienne, *"Ultracold photoassociation spectroscopy: Long-range molecules and atomic scattering"*, **Rev. Mod. Phys.** 78, 483 (2006). [DOI: 10.1103/RevModPhys.78.483](https://doi.org/10.1103/RevModPhys.78.483)
+  - H. R. Thorsheim, J. Weiner, and P. S. Julienne, *"Laser-Induced Photoassociation of Ultracold Sodium Atoms"*, **Phys. Rev. Lett.** 58, 2420 (1987). [DOI: 10.1103/PhysRevLett.58.2420](https://doi.org/10.1103/PhysRevLett.58.2420)
+- **核心理论**:
+  连续能量归一化初态散射波 $u_E(r)$ 与电子激发态长程振动束缚态 $\chi_{v'}(r)$ 在激光作用下发生自由-束缚偶极跃迁：
+  $$I_{\text{FB}}(E, v') = \int_0^\infty u_E(r) \mu_{eg}(r) \chi_{v'}(r) dr$$
+  Franck-Condon 密度 $f_{\text{FB}}(E, v') = |I_{\text{FB}}|^2$ 主要贡献来自于外转向点（Condon 点 $R_C$），呈现显著的量子反射与节点干涉结构。
+- **代码映射**:
+  - `src/mod_photoassociation.f90`:
+    - `calc_free_bound_fc_overlap`: 自由-束缚态重叠积分与 FC 密度计算；
+    - `calc_pa_stimulated_width`: 激光光强诱导受激线宽 $\hbar\Gamma_{\text{stim}}(E, I)$。
+
+### 10.2 光缔合共振截面与热速率系数 (Bohn-Julienne 理论)
+- **文献**:
+  - J. L. Bohn and P. S. Julienne, *"Semianalytic theory of laser-assisted ultracold collisions"*, **Phys. Rev. A** 60, 414 (1999). [DOI: 10.1103/PhysRevA.60.414](https://doi.org/10.1103/PhysRevA.60.414)
+  - R. Napolitano, J. Weiner, C. J. Williams, and P. S. Julienne, *"Line shapes of photoassociation in ultracold collisions"*, **Phys. Rev. Lett.** 73, 1352 (1994). [DOI: 10.1103/PhysRevLett.73.1352](https://doi.org/10.1103/PhysRevLett.73.1352)
+- **核心理论**:
+  在激光失谐 $\Delta$ 下，单能散射对发生光缔合的截面服从孤立 Breit-Wigner / Fano 形式：
+  $$\sigma_{\text{PA}}(E, \Delta) = \frac{\pi}{k^2} \frac{\hbar\Gamma_{\text{stim}} \gamma_{\text{nat}}}{(E - \Delta)^2 + [(\gamma_{\text{nat}} + \hbar\Gamma_{\text{stim}})/2]^2}$$
+  在有限碰撞温度 $T$ 下，麦克斯韦-玻尔兹曼系综平均速率系数为：
+  $$K_{\text{PA}}(T, \Delta) = \frac{1}{h Q_T} \int_0^\infty e^{-E/k_B T} \frac{\hbar\Gamma_{\text{stim}}(E) \gamma_{\text{nat}}}{(E - \Delta)^2 + [(\gamma_{\text{tot}})/2]^2} dE$$
+- **代码映射**:
+  - `src/mod_photoassociation.f90`:
+    - `calc_pa_cross_section`: 单能光缔合截面与速率；
+    - `calc_pa_thermal_rate_coefficient`: 热平均速率系数 $K_{\text{PA}}(T)$；
+    - `calc_pa_spectrum_scan`: 缔合激光谱扫描；
+    - `calc_two_photon_raman_association_coupling`: 双光子受激 Raman / STIRAP 缔合基态分子。
+
+---
+
+## 11. 快速学术检索与代码对照总表
 
 | 物理模块 | 对应源文件 | 核心经典文献代表 | 主要导出 API 与算法 |
 | :--- | :--- | :--- | :--- |
@@ -307,6 +389,8 @@
 | **非含时单/多通道散射**| `mod_ti_scattering.f90` | Wigner (1948), Johnson (1973), Manolopoulos (1986) | `calc_scattering_length_numerov`, `calc_multichannel_close_coupling_logder`, `create_segmented_grid` |
 | **含时波包散射** | `mod_td_scattering.f90` | Feit & Fleck (1982), Möller (1945) | `calculate_td_transmission`, `project_wavepacket_to_smatrix` |
 | **外场多基组超冷散射**| `mod_field_scattering.f90` | Breit & Rabi (1931), Stoof (1988), Chin et al. (2010) | `calc_breit_rabi_energies`, `calc_basis_transform_matrix`, `calc_magnetic_feshbach_resonance_scan` |
+| **各向异性偶极散射** | `mod_dipolar_scattering.f90`| Stoof (1988), Moerdijk (1996), Bohn (2009) | `calc_mddi_total_matrix_element`, `calc_dipolar_relaxation_cross_section`, `calc_stark_induced_dipole` |
+| **超冷光缔合谱学** | `mod_photoassociation.f90` | Jones et al. (RMP 2006), Bohn & Julienne (1999) | `calc_free_bound_fc_overlap`, `calc_pa_cross_section`, `calc_pa_thermal_rate_coefficient` |
 | **开放量子系统** | `mod_open_quantum.f90` | Lindblad (1976), Gorini (1976) | `propagate_lindblad_rk4`, `calculate_von_neumann_entropy` |
 | **量子最优控制** | `mod_optimal_control.f90` | Somlói & Tannor (1993), Krotov (1996) | `optimize_pulse_krotov` |
 
