@@ -48,13 +48,43 @@ gfortran $FFLAGS -c mod_autoionization_fano.f90
 gfortran $FFLAGS -c mod_crossed_field_scattering.f90
 gfortran $FFLAGS -c mod_triatomic_geometry.f90
 gfortran $FFLAGS -c mod_spinor_bec.f90
+gfortran $FFLAGS -c mod_hyperspherical_reactive.f90
+gfortran $FFLAGS -c mod_dipolar_droplets_lhy.f90
+gfortran $FFLAGS -c mod_strong_field_nsdi.f90
+gfortran $FFLAGS -c mod_feshbach_bound_states.f90
 gfortran $FFLAGS -c general_module.f90
 ar rcs libgeneral_module.a *.o
 
 cd "$DIR"
 
-# 2. 编译并运行各项测试 (共 21 大完整测试套件)
-TESTS=("test_constants" "test_special_functions" "test_dvr_grid" "test_laser_pulse" "test_propagators" "test_atomic_hhg" "test_laser_rovibrational_control" "test_interpolation" "test_photofragment_flux" "test_open_quantum_opt" "test_ti_scattering" "test_td_scattering" "test_field_scattering" "test_dipolar_scattering" "test_photoassociation" "test_three_body_recombination" "test_confined_scattering" "test_autoionization_fano" "test_crossed_field_scattering" "test_triatomic_geometry" "test_spinor_bec")
+# 2. 编译并运行各项测试 (共 25 大完整测试套件)
+TESTS=(
+    "test_constants"
+    "test_special_functions"
+    "test_dvr_grid"
+    "test_laser_pulse"
+    "test_propagators"
+    "test_atomic_hhg"
+    "test_laser_rovibrational_control"
+    "test_interpolation"
+    "test_photofragment_flux"
+    "test_open_quantum_opt"
+    "test_ti_scattering"
+    "test_td_scattering"
+    "test_field_scattering"
+    "test_dipolar_scattering"
+    "test_photoassociation"
+    "test_three_body_recombination"
+    "test_confined_scattering"
+    "test_autoionization_fano"
+    "test_crossed_field_scattering"
+    "test_triatomic_geometry"
+    "test_spinor_bec"
+    "test_hyperspherical_reactive"
+    "test_dipolar_droplets_lhy"
+    "test_strong_field_nsdi"
+    "test_feshbach_bound_states"
+)
 
 for test_name in "${TESTS[@]}"; do
     echo ""

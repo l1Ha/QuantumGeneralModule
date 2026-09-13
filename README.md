@@ -3,8 +3,8 @@
 [![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
 [![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests: 228/228 Pass](https://img.shields.io/badge/Tests-228%2F228%20Pass%20(100%25)-brightgreen.svg)](tests/)
-[![Literature: 16 Topics](https://img.shields.io/badge/Literature-16%20Topics%20(PRL%2FPRA%2FRMP)-blue.svg)](LITERATURE.md)
+[![Tests: 260/260 Pass](https://img.shields.io/badge/Tests-260%2F260%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Literature: 20 Topics](https://img.shields.io/badge/Literature-20%20Topics%20(PRL%2FPRA%2FRMP)-blue.svg)](LITERATURE.md)
 
 `GeneralModule` 是一个面向超快强场物理、分子光物理与量子动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
 
@@ -14,17 +14,17 @@
 
 1. **零外部库依赖 (Zero External Dependencies)**
    - 内部集成高精度 Householder QL 实对称矩阵本征求解器、Gauss-Jordan 全主元实/复方阵求逆与 Cooley-Tukey 1D/2D 快速傅里叶变换（FFT）。
-   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射、各向异性偶极耦合、超冷光缔合速率、少体 Efimov 物理、低维光晶格 CIR、自电离 Fano/CCR、交叉电磁场、三原子反应 PES 与旋量 BEC 自旋动力学求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
+   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射、各向异性偶极耦合、超冷光缔合速率、少体 Efimov 物理、低维光晶格 CIR、自电离 Fano/CCR、交叉电磁场、三原子反应 PES、旋量 BEC 自旋动力学、三原子超球面反应动力学、偶极量子液滴 LHY、强场非顺序双电离 (NSDI) 与磁/光 Feshbach 束缚态求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
 2. **现代 Fortran 2008 标准设计**
    - 统一强类型参数定义（`real(dp) => real64`）。
    - 纯函数（`pure function`）与显式 `intent(in/out/inout)` 契约，杜绝隐式全局变量副作用。
 3. **AI 友好型结构化接口 (AI-Friendly)**
    - 算法模块支持统一顶层聚合入口：`use general_module`。
-   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `absorbing_boundary_t`, `dvr_1d_t`, `spline_1d_t`, `scattering_state_t`, `multichannel_result_t`, `td_scattering_channel_t`, `cold_atom_t`, `field_channel_t`, `polar_molecule_t`, `pa_transition_t`, `efimov_param_t`, `waveguide_1d_t`, `fano_profile_t`, `crossed_field_config_t`, `leps_param_t`, `spinor_param_t`），自解释、低耦合、便于大语言模型精确构造与调用。
+   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `absorbing_boundary_t`, `dvr_1d_t`, `spline_1d_t`, `scattering_state_t`, `multichannel_result_t`, `td_scattering_channel_t`, `cold_atom_t`, `field_channel_t`, `polar_molecule_t`, `pa_transition_t`, `efimov_param_t`, `waveguide_1d_t`, `fano_profile_t`, `crossed_field_config_t`, `leps_param_t`, `spinor_param_t`, `reaction_mass_t`, `transition_state_t`, `dipolar_droplet_param_t`, `nsdi_laser_t`, `mfr_param_t`, `ofr_param_t`），自解释、低耦合、便于大语言模型精确构造与调用。
 4. **全链路双语生态支持**
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
 5. **全自动 CI/CD 持续集成**
-   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 21 大测试套件与 Python 验证。
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 25 大测试套件与 Python 验证。
 
 ---
 
@@ -39,7 +39,7 @@ GeneralModule/
 ├── CMakeLists.txt                 # CMake 跨平台构建系统
 ├── README.md                      # 本文档
 ├── .gitignore                     # Git 忽略规则
-├── src/                           # 核心 Fortran 源代码 (29 核心模块 + 1 聚合入口)
+├── src/                           # 核心 Fortran 源代码 (33 核心模块 + 1 聚合入口)
 │   ├── mod_constants.f90          # 1. 物理常数与各单位 a.u. 双向转换
 │   ├── mod_special_functions.f90  # 2. 勒让德、Wigner 3j/6j/9j、CG半整数代数、转动偶极/取向矩阵元
 │   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解 (EISPACK TRED2/TQL2)、实/复方阵求逆、1D/2D FFT
@@ -69,8 +69,12 @@ GeneralModule/
 │   ├── mod_crossed_field_scattering.f90 # 27. 交叉静电磁场 E x B 转振-自旋动力学、宇称破缺与倾角扫描
 │   ├── mod_triatomic_geometry.f90 # 28. 三原子反应散射 Jacobi 坐标、LEPS 反应势能面与锥形交叉 Berry 几何相位
 │   ├── mod_spinor_bec.f90         # 29. 超冷旋量玻色爱因斯坦凝聚 F=1 多体自旋动力学、铁磁/极性相与相干自旋混合
+│   ├── mod_hyperspherical_reactive.f90 # 30. 三原子超球面反应动力学、Delves 质量标度、反应偏角、Eckart 隧穿与反应速率 k(T)
+│   ├── mod_dipolar_droplets_lhy.f90    # 31. 超冷偶极量子液滴、Pelster-Lima 涨落积分 Q5、自束缚平衡密度 n0 与 eGPE 能量密度
+│   ├── mod_strong_field_nsdi.f90       # 32. 强场非顺序双电离、Corkum 三步模型、3.17 Up 截断、2D 动量关联谱与双电离膝盖结构
+│   ├── mod_feshbach_bound_states.f90   # 33. 磁与光 Feshbach 共振、Coupled-channel 弱束缚分子态 Eb(B)、闭通道权重与光致损耗
 │   └── general_module.f90         # 顶层聚合入口模块 (use general_module)
-├── tests/                         # 自动化单元测试套件 (21 个套件，100% 全部通过)
+├── tests/                         # 自动化单元测试套件 (25 个套件，100% 全部通过，260/260 断言)
 │   ├── test_constants.f90
 │   ├── test_special_functions.f90
 │   ├── test_dvr_grid.f90
@@ -92,8 +96,12 @@ GeneralModule/
 │   ├── test_crossed_field_scattering.f90 # 交叉静电磁场非共线态混合、Stark 定向度与避免交叉能谱
 │   ├── test_triatomic_geometry.f90       # Jacobi 坐标可逆映射、LEPS 反应势能面与锥形交叉 Berry 几何相位
 │   ├── test_spinor_bec.f90               # F=1 旋量凝聚体铁磁/极性相、保全几率与保磁化强度 RK4 自旋混合
-│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 228/228 断言)
-├── examples/                      # 典型物理应用算例 (16 大完整前沿算例)
+│   ├── test_hyperspherical_reactive.f90  # 三原子反应偏角、Eckart 隧穿传递几率、累积反应几率 N(E) 与热速率 k(T)
+│   ├── test_dipolar_droplets_lhy.f90     # 162Dy 偶极长度、Pelster-Lima Q5 积分、自束缚平衡密度与 eGPE 负化学势
+│   ├── test_strong_field_nsdi.f90        # 强场 3.17 Up 回碰截止、(e,2e) Lotz 截面、2D 平行动量关联与双电离膝盖结构
+│   ├── test_feshbach_bound_states.f90    # 6Li/87Rb 磁 Feshbach 弱束缚态能谱 Eb(B)、闭通道权重 Z(B) 与 OFR 双体损耗率 K2
+│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 260/260 断言)
+├── examples/                      # 典型物理应用算例 (20 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90           # 啁啾、双色、太赫兹脉冲时频生成
 │   ├── ex03_split_operator_1d.f90         # 1D 波包动力学演化与 CAP 吸收边界
@@ -110,7 +118,11 @@ GeneralModule/
 │   ├── ex14_spinor_bec_dynamics.f90             # 87Rb 与 23Na 凝聚体宏观自旋混合动力学与铁磁相图
 │   ├── ex15_crossed_field_stark_zeeman.f90      # 交叉电磁场中极性顺磁分子 Stark-Zeeman 态混合与空间定向
 │   ├── ex16_triatomic_reaction_berry_phase.f90  # 三原子反应路径 LEPS 势能面与锥形交叉 Berry 几何相位
-│   └── build_examples.sh          # 算例编译运行脚本
+│   ├── ex17_hyperspherical_reaction_rates.f90   # 三原子超球面反应动力学、Eckart 隧穿累积反应几率与正则热速率常数
+│   ├── ex18_dipolar_quantum_droplets.f90        # 162Dy 偶极量子液滴自束缚平衡密度、负化学势与气-液滴相变
+│   ├── ex19_strong_field_nsdi_recollision.f90   # 800nm 强场电子重碰撞动能 3.17 Up 截断、2D 动量关联谱与双电离膝盖结构
+│   ├── ex20_feshbach_molecular_bound_states.f90 # 6Li 磁 Feshbach 晕轮二聚体结合能、闭通道权重与 87Rb 光 Feshbach 损耗
+│   └── build_examples.sh          # 算例编译运行脚本 (全 20 算例编译运行通过)
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
     ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 12/12 测试)
@@ -339,6 +351,68 @@ GeneralModule/
 - `calc_pa_thermal_rate_coefficient(trans, temp_kelvin, detuning, k_pa)`: 麦克斯韦-玻尔兹曼热平衡系综平均光缔合速率系数 $K_{\text{PA}}(T, \Delta)$。
 - `calc_pa_detuning_scan(trans, temp_kelvin, detunings, n_pts, rates, peak_detuning, stat)`: 激光失谐频率连续扫描谱线生成与半高全宽（FWHM）/共振峰位提取。
 - `calc_twophoton_raman_coupling(omega1, omega2, delta1, omega_eff)`: 双光子 Raman / STIRAP 绝热受激跃迁生成振转基态分子的有效拉比频率 $\Omega_{\text{eff}} = \frac{\Omega_1 \Omega_2}{2\Delta_1}$。
+
+### 24. 超冷三体复合与 Efimov 少体物理 (`mod_three_body_recombination`)
+- `solve_efimov_s0_identical_bosons()`: 精确超越方程求解全同玻色子 Efimov 标度指数 $s_0 \approx 1.00624$ 与标度常数 $e^{\pi/s_0} \approx 22.7$。
+- `calc_three_body_recombination_a_positive(param, a_scat)`: $a>0$ 侧普适 $a^4$ 复合损失速率 $K_3$ 与干涉极小值。
+- `calc_three_body_recombination_a_negative(param, a_scat)`: $a<0$ 侧三体复合共振峰 $a_-^{(n)}$。
+- `calc_unitary_three_body_loss_temperature(temp_kelvin, mass)`: 酉极限幺正饱和温度依赖复合速率 $K_3 \propto T^{-2}$。
+
+### 25. 低维光晶格受限散射与约束诱导共振 (`mod_confined_scattering`)
+- `init_waveguide_1d(omega_perp_hz, mass_amu, wg)`: 初始化准一维横向简谐光阱波导与振荡长度 $a_\perp$。
+- `calc_olshanii_cir_parameters(wg, a_3d_bohr, g_1d, a_1d)`: Olshanii 约束诱导共振极点 $a_{\text{CIR}} \approx 1.0326 a_\perp$ 与有效 1D 耦合强度 $g_{\text{1D}}$。
+- `calc_confined_dimer_binding_energy(wg, a_3d_bohr)`: 准一维横向陷阱修饰分子结合能。
+- `calc_lieb_liniger_parameter(n_1d, g_1d, mass, gamma_ll)`: Lieb-Liniger 关联参数 $\gamma_{\text{LL}}$，判别 Tonks-Girardeau 强关联费米化气体。
+
+### 26. 自电离体系、Fano 共振与复坐标旋转 (`mod_autoionization_fano`)
+- `calc_fano_profile(energy, e0, gamma, q_param)`: 计算 Fano 不对称吸收线型 $\sigma(\epsilon) = \sigma_0 \frac{(q+\epsilon)^2}{1+\epsilon^2}$ 与反共振零点。
+- `calc_autoionization_lifetime(gamma_au)`: 自电离共振寿命 $\tau = \hbar / \Gamma$（飞秒 fs）。
+- `solve_ccr_resonance_model(e_discrete, v_coupl, theta_rot)`: 复坐标旋转法（CCR）非厄米哈密顿量本征求解，提取复本征能量 $E - i\Gamma/2$。
+
+### 27. 交叉静电磁场转振-自旋动力学 (`mod_crossed_field_scattering`)
+- `init_crossed_field_config(e_kv_cm, b_gauss, tilt_angle_deg, cfg)`: 配置任意倾角 $\beta$ 的交叉静电磁场 $\mathbf{E} \times \mathbf{B}$。
+- `solve_crossed_field_eigenstates(cfg, j_max, s_spin, energies, states)`: 严格对角化包含宇称破缺 Stark 效应与 Zeeman 效应的分子转动自旋哈密顿量。
+- `calc_crossed_field_observables(state, dipole_debye, cos_theta, sz)`: 计算实验室系诱导电取向度 $\langle\cos\theta\rangle$ 与自旋投影。
+
+### 28. 三原子反应散射、Jacobi 坐标与几何相位 (`mod_triatomic_geometry`)
+- `jacobi_to_internuclear(jacobi, masses, dist)` / `internuclear_to_jacobi`: 任意三原子质量体系 Jacobi 坐标与核间距解析双向变换。
+- `calc_leps_potential(dist, leps)`: London-Eyring-Polanyi-Sato (LEPS) 全势能面评估与对称鞍点反应势垒计算。
+- `calc_conical_intersection_adiabats(x, y, ci, e_lower, e_upper)`: 线性锥形交叉（CI）双绝热势能面与能隙分裂。
+- `calc_berry_phase_around_ci(ci, radius, n_steps)`: 闭合回路数值积分提取精确拓扑几何相位 $\Phi_B = \pi$。
+
+### 29. 旋量玻色爱因斯坦凝聚自旋动力学 (`mod_spinor_bec`)
+- `init_spinor_preset(preset_name, b_field_gauss, density_cm3, param)`: 装载 $^{87}\text{Rb}$（铁磁相 $c_2<0$）与 $^{23}\text{Na}$（反铁磁相 $c_2>0$）实验参数。
+- `calc_quadratic_zeeman_shift(b_gauss, atom_name)`: Breit-Rabi 二阶塞曼能量位移 $q_Z(B) \propto B^2$。
+- `propagate_spinor_sma_rk4(param, dt_au, state)`: 单模近似（SMA）下高精度 RK4 保全几率与保磁化强度相干自旋演化。
+
+### 30. 三原子超球面反应动力学与热速率常数 (`mod_hyperspherical_reactive`)
+- `init_reaction_mass(ma, mb, mc, rmass)`: Delves 质量标度超球面坐标变换因子 $d$ 与反应偏转角 $\beta_{skew}$（$\text{H}+\text{H}_2 \to 60^\circ$）。
+- `calc_eckart_transmission(energy, v_b, omega_im)`: 鞍点 Eckart 势垒精确量子隧穿传递几率 $P(E)$。
+- `calc_cumulative_reaction_probability(ts, energy)`: 跨势垒多振动态通道求和累积反应几率 $N(E)$。
+- `calc_canonical_rate_constant(ts, rmass, temp_k, n_steps)`: 正则全量子热反应速率常数 $k(T)$ 严格玻尔兹曼积分。
+- `calc_tst_wigner_rate(v_b, omega_im, temp_k, prefactor)`: 经典过渡态理论（TST）与 Wigner 势垒隧穿修正速率。
+
+### 31. 超冷偶极量子液滴与李-黄-杨量子涨落 (`mod_dipolar_droplets_lhy`)
+- `init_dipolar_droplet_param(atom_name, a_scat_bohr, param)`: 磁偶极特征长度 $a_{dd}$ 与相对偶极强度 $\epsilon_{dd} = a_{dd} / a_s$。
+- `calc_pelster_lima_q5(eps_dd)`: Pelster-Lima 超越平均场 LHY 零点量子涨落修正积分 $Q_5(\epsilon_{dd})$。
+- `calc_equilibrium_droplet_density(param)`: 自由空间零压平衡平顶自束缚量子液滴核心密度 $n_0$。
+- `calc_droplet_chemical_potential(param, density)`: 自束缚负化学势 $\mu(n_0) < 0$ 稳定性判据。
+- `calc_critical_atom_number(param)`: 3D 自束缚量子液滴相变与蒸发临界原子数 $N_{crit}$。
+
+### 32. 强场非顺序双电离与电子重碰撞动量谱 (`mod_strong_field_nsdi`)
+- `init_nsdi_laser(wavelength_nm, intensity_w_cm2, laser)`: 激光峰值电场 $F_0$、角频率 $\omega$ 与有质动力势 $U_p = F_0^2 / (4\omega^2)$。
+- `calc_recollision_trajectory(phi_0, up_au, phi_r, e_rec, ok)`: 求解经典电子轨道回碰根 $x(\phi_r) = 0$ 与 $3.173 U_p$ 动能截断。
+- `calc_lotz_cross_section(e_rec, ip2)`: 电子碰撞电离 $(e, 2e)$ Lotz 经验截面。
+- `calc_nsdi_2d_momentum_dist(laser, target, n_pts, p_max, grid, dist_2d, corr)`: 生成全周期纵向平行动量关联谱 $P(p_{z1}, p_{z2})$ 与 COLTRIMS 正向关联特征系数 $C_{corr} > 0$。
+- `calc_double_ion_yield_curve(wavelength, target, n_int, imin, imax, ints, y_nsdi, y_sdi)`: 扫描光强并重现双电离非顺序“膝盖平台结构”（Knee Structure）。
+
+### 33. 磁与光 Feshbach 共振与分子弱束缚态 (`mod_feshbach_bound_states`)
+- `init_mfr_preset(name, mfr)`: 装载 $^{6}\text{Li}$（宽共振 $s_{res} \approx 51$）与 $^{87}\text{Rb}$（窄共振 $s_{res} \approx 0.13$）物理参数。
+- `calc_mfr_scattering_length(mfr, b_gauss)`: 外磁场依赖 s 波有效散射长度 $a(B) = a_{bg}(1 - \Delta B / (B - B_0))$。
+- `calc_mfr_bound_energy_coupled(mfr, b_gauss)`: 耦合通道有限相互作用程 $R^*$ 精确分子结合能 $E_b(B)$。
+- `calc_mfr_closed_channel_fraction(mfr, b_gauss)`: Hellmann-Feynman 定理分子态闭通道成分占比 $Z(B) = 1 - 1/\sqrt{1 + 2R^*/a(B)}$。
+- `calc_ofr_complex_scattering_length(ofr, delta_hz, a_re, a_im)`: 光 Feshbach 共振（OFR）色散复散射长度 $\tilde{a}(\Delta_L)$。
+- `calc_ofr_inelastic_loss_rate(ofr, delta_hz)`: 实验可测光致双体非弹性损失速率常数 $K_2(\Delta_L)$（$\text{cm}^3/\text{s}$）。
 
 ---
 

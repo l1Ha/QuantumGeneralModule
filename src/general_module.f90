@@ -1,5 +1,6 @@
 !> \brief GeneralModule 统一入口总模块
-!> \details 汇聚并重新导出算法库内的全部子模块，允许开发者或 AI 直接以 `use general_module` 访问全部接口。
+!> \details 汇聚并重新导出算法库内的全部子模块，
+!>          允许开发者或 AI 直接以 `use general_module` 访问全部接口。
 !> \author LiHao
 module general_module
     use mod_constants
@@ -31,6 +32,10 @@ module general_module
     use mod_crossed_field_scattering
     use mod_triatomic_geometry
     use mod_spinor_bec
+    use mod_hyperspherical_reactive
+    use mod_dipolar_droplets_lhy
+    use mod_strong_field_nsdi
+    use mod_feshbach_bound_states
     implicit none
 
     public :: dp, int32, int64
@@ -52,7 +57,8 @@ module general_module
     public :: create_gaussian_pulse, create_sin2_pulse, create_chirped_pulse
     public :: PULSE_GAUSSIAN, PULSE_SIN2, PULSE_FLATTOP, PULSE_CHIRP, PULSE_TWOCOLOR, PULSE_THZ_TRAIN
 
-    public :: absorbing_boundary_t, cap_init, cap_evaluate, cap_apply_mask, calculate_probability_flux, calculate_norm_inside
+    public :: absorbing_boundary_t, cap_init, cap_evaluate, cap_apply_mask
+    public :: calculate_probability_flux, calculate_norm_inside
     public :: CAP_SIN2, CAP_POLYNOMIAL
 
     public :: boltzmann_rotational_weights, boltzmann_vibrational_weights
@@ -194,5 +200,33 @@ module general_module
     public :: init_spinor_preset, calc_spinor_interaction_couplings
     public :: calc_quadratic_zeeman_shift, propagate_spinor_sma_rk4
     public :: calc_spinor_energy, simulate_spin_mixing_dynamics
+
+    ! 三原子超球面反应散射动力学 (Hyperspherical Reactive Scattering)
+    public :: reaction_mass_t, transition_state_t
+    public :: init_reaction_mass, jacobi_to_hyperspherical, hyperspherical_to_jacobi
+    public :: calc_eckart_transmission, calc_cumulative_reaction_probability
+    public :: calc_canonical_rate_constant, calc_tst_wigner_rate
+
+    ! 超冷偶极量子液滴与李-黄-杨量子涨落修正 (Dipolar Droplets & LHY)
+    public :: dipolar_droplet_param_t
+    public :: init_dipolar_droplet_param, calc_pelster_lima_q5
+    public :: calc_equilibrium_droplet_density, calc_droplet_chemical_potential
+    public :: calc_critical_atom_number, calc_egpe_energy_density
+
+    ! 强场非顺序双电离与电子重碰撞动力学 (Strong-Field NSDI & Recollision)
+    public :: nsdi_laser_t, nsdi_target_t, nsdi_result_t
+    public :: init_nsdi_laser, init_nsdi_target
+    public :: calc_ponderomotive_energy, calc_keldysh_gamma, calc_adk_rate
+    public :: calc_recollision_trajectory, calc_lotz_cross_section
+    public :: calc_nsdi_drift_momenta, calc_nsdi_2d_momentum_dist
+    public :: calc_double_ion_yield_curve
+
+    ! 磁与光 Feshbach 共振与弱束缚分子态 (Feshbach Bound States & Loss)
+    public :: mfr_param_t, ofr_param_t
+    public :: init_mfr_preset, init_ofr_param
+    public :: calc_mfr_scattering_length, calc_mfr_r_star, calc_mfr_s_res
+    public :: calc_mfr_bound_energy_universal, calc_mfr_bound_energy_coupled
+    public :: calc_mfr_closed_channel_fraction
+    public :: calc_ofr_complex_scattering_length, calc_ofr_inelastic_loss_rate
 
 end module general_module

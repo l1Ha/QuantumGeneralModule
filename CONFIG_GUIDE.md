@@ -940,15 +940,132 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
    print *, "m=0 分量布居: ", state%pop_0, " 磁化强度: ", state%magnetization_mz
    ```
 
+---
+
+### 3.23 三原子超球面反应动力学与热速率常数配置 (`mod_hyperspherical_reactive`)
+面向多原子化学反应动力学 $A + BC \to AB + C$ 的超球面坐标几何与量子隧穿速率常数：
+1. **反应质量标度与反应偏角 $\beta_{skew}$**：
+   ```fortran
+   use mod_hyperspherical_reactive
+   type(reaction_mass_t) :: rmass
+   ! 初始化 H + H2 质量运动学参数
+   call init_reaction_mass(mass_a_amu=1.0078_dp, mass_b_amu=1.0078_dp, mass_c_amu=1.0078_dp, rmass=rmass)
+   print *, "Delves 标度因子 d = ", rmass%scale_factor_d, " 偏角 beta = ", rmass%skew_angle_deg, " deg"
+   ```
+2. **Eckart 鞍点量子隧穿与累积反应几率 $N(E)$**：
+   ```fortran
+   type(transition_state_t) :: ts
+   real(dp) :: prob_t, n_e
+   ts%v_barrier_au = 0.425_dp * EV2AU; ts%omega_im_au = 1500.0_dp * CM2AU
+   ts%omega_bend_au = 900.0_dp * CM2AU; ts%omega_symm_au = 2050.0_dp * CM2AU; ts%n_trans_states = 5
+   ! 计算总能量 E 下的 Eckart 势垒隧穿传递几率与多通道累积反应几率
+   prob_t = calc_eckart_transmission(energy_au=0.45_dp*EV2AU, v_barrier_au=ts%v_barrier_au, omega_im_au=ts%omega_im_au)
+   n_e    = calc_cumulative_reaction_probability(ts, energy_au=0.45_dp*EV2AU)
+   ```
+3. **正则热反应速率常数 $k(T)$ 与 Wigner 隧穿修正**：
+   ```fortran
+   real(dp) :: k_exact, k_tst
+   ! 室温 300 K 下基于 N(E) 严格玻尔兹曼积分的全量子速率与 Wigner 修正 TST 速率 (cm^3/s)
+   k_exact = calc_canonical_rate_constant(ts, rmass, temp_kelvin=300.0_dp, n_e_steps=500)
+   k_tst   = calc_tst_wigner_rate(ts%v_barrier_au, ts%omega_im_au, temp_kelvin=300.0_dp, prefactor=1.0e-10_dp)
+   ```
+
+---
+
+### 3.24 超冷偶极量子液滴与李-黄-杨量子涨落配置 (`mod_dipolar_droplets_lhy`)
+面向磁性稀薄玻色气体（$^{162}\text{Dy}, ^{166}\text{Er}$）中自束缚偶极量子液滴的宏观平顶密度与相平衡：
+1. **偶极长度与 Pelster-Lima 涨落积分 $Q_5(\epsilon_{dd})$**：
+   ```fortran
+   use mod_dipolar_droplets_lhy
+   type(dipolar_droplet_param_t) :: param
+   integer :: stat
+   ! 装载 162Dy (磁矩 10 mu_B) 在散射长度 a_s = 70 a0 下的特征参数
+   call init_dipolar_droplet_param("162Dy", a_scat_bohr=70.0_dp, param=param, stat=stat)
+   print *, "偶极长度 a_dd = ", param%a_dd_au, " a0, 偶极强度 eps_dd = ", param%epsilon_dd
+   print *, "量子涨落增强因子 Q_5 = ", param%q5_factor
+   ```
+2. **自由空间自束缚平衡密度 $n_0$ 与负化学势 $\mu(n_0) < 0$**：
+   ```fortran
+   real(dp) :: n0_au, n0_cm3, mu_eq, n_crit
+   n0_au  = calc_equilibrium_droplet_density(param)
+   n0_cm3 = n0_au / ((5.29177210903e-9_dp)**3)
+   mu_eq  = calc_droplet_chemical_potential(param, n0_au)
+   n_crit = calc_critical_atom_number(param)
+   print *, "平顶平衡密度 n_0 = ", n0_cm3, " cm^-3, 化学势 mu = ", mu_eq, " a.u., 临界原子数 = ", n_crit
+   ```
+
+---
+
+### 3.25 强场非顺序双电离与电子重碰撞相关动量谱配置 (`mod_strong_field_nsdi`)
+面向强红外激光脉冲（如 800 nm, $10^{14}-10^{15} \text{ W/cm}^2$）驱动稀有气体原子（$\text{He}, \text{Ar}, \text{Ne}$）强场双电离：
+1. **激光场与靶原子初始化**：
+   ```fortran
+   use mod_strong_field_nsdi
+   type(nsdi_laser_t)  :: laser
+   type(nsdi_target_t) :: target
+   integer :: stat
+   call init_nsdi_laser(wavelength_nm=800.0_dp, intensity_w_cm2=2.5e14_dp, laser=laser, stat=stat)
+   call init_nsdi_target("Ar", target=target, stat=stat)
+   print *, "有质动力能 Up = ", laser%up_au * AU2EV, " eV, 3.17 Up 截断能 = ", 3.173_dp * laser%up_au * AU2EV, " eV"
+   ```
+2. **经典回碰轨道与 2D 双电子平行动量分布 $P(p_{z1}, p_{z2})$**：
+   ```fortran
+   real(dp) :: grid_p(31), dist_2d(31, 31), corr_coeff
+   ! 数值积分生成 COLTRIMS 实验可测的双电子纵向动量谱并提取关联系数
+   call calc_nsdi_2d_momentum_dist(laser, target, n_pts=31, p_max=2.5_dp, &
+                                   grid_p=grid_p, dist_2d=dist_2d, corr_coeff=corr_coeff)
+   print *, "一三象限相关系数 C_corr = ", corr_coeff, " (> 0 表明同向关联出射)"
+   ```
+3. **双电离产率光强依赖曲线与非顺序“膝盖结构”**：
+   ```fortran
+   real(dp) :: intensities(10), y_nsdi(10), y_sdi(10)
+   call calc_double_ion_yield_curve(800.0_dp, target, 10, 1.5e14_dp, 8.0e14_dp, intensities, y_nsdi, y_sdi)
+   ```
+
+---
+
+### 3.26 磁与光 Feshbach 共振与弱束缚分子态配置 (`mod_feshbach_bound_states`)
+面向超冷原子磁场 Feshbach 共振（MFR）分子态能谱与激光驱动光 Feshbach 共振（OFR）：
+1. **磁 Feshbach 共振分类与两通道分子结合能 $E_b(B)$**：
+   ```fortran
+   use mod_feshbach_bound_states
+   type(mfr_param_t) :: li6_mfr
+   real(dp) :: a_b, eb_coup, z_closed
+   integer :: stat
+   ! 装载 6Li 832 G 极宽共振参数
+   call init_mfr_preset("6Li", li6_mfr, stat)
+   print *, "共振极点 B0 = ", li6_mfr%b0_gauss, " G, 强度参数 s_res = ", li6_mfr%s_res, " (>> 1 为宽共振)"
+   ! 计算 B = 800 G 下的散射长度、耦合通道分子结合能与闭通道占比 Z(B)
+   a_b      = calc_mfr_scattering_length(li6_mfr, 800.0_dp)
+   eb_coup  = calc_mfr_bound_energy_coupled(li6_mfr, 800.0_dp)
+   z_closed = calc_mfr_closed_channel_fraction(li6_mfr, 800.0_dp)
+   print *, "散射长度 a(B) = ", a_b, " a0, 结合能 = ", eb_coup * AU2EV, " eV, 闭通道权重 Z = ", z_closed
+   ```
+2. **光 Feshbach 共振 (OFR) 复散射长度与光致损耗率 $K_2$**：
+   ```fortran
+   type(ofr_param_t) :: ofr
+   real(dp) :: a_re, a_im, k2_loss
+   call init_ofr_param("87Rb", mass_amu=86.91_dp, a_bg_bohr=100.0_dp, gamma_hz=1.0e7_dp, &
+                       l_opt_bohr=50.0_dp, ofr=ofr, stat=stat)
+   ! 计算激光失谐 Delta_L = +5.0 MHz 下的复散射长度与双体非弹性损失常数 (cm^3/s)
+   call calc_ofr_complex_scattering_length(ofr, delta_hz=5.0e6_dp, a_real_au=a_re, a_imag_au=a_im)
+   k2_loss = calc_ofr_inelastic_loss_rate(ofr, delta_hz=5.0e6_dp)
+   print *, "调谐后散射长度 Re(a) = ", a_re, " a0, 双体损失率 K_2 = ", k2_loss, " cm^3/s"
+   ```
+
 > [!TIP]
-> 包含全部 6 大新复杂体系的前沿应用工程算例（11 至 16），详见：
+> 包含全部前沿复杂体系的应用工程算例（11 至 20），详见：
 > 👉 [`examples/ex11_three_body_efimov_recombination.f90`](examples/ex11_three_body_efimov_recombination.f90)
 > 👉 [`examples/ex12_confined_cir_scattering.f90`](examples/ex12_confined_cir_scattering.f90)
 > 👉 [`examples/ex13_autoionization_fano_resonance.f90`](examples/ex13_autoionization_fano_resonance.f90)
 > 👉 [`examples/ex14_spinor_bec_dynamics.f90`](examples/ex14_spinor_bec_dynamics.f90)
 > 👉 [`examples/ex15_crossed_field_stark_zeeman.f90`](examples/ex15_crossed_field_stark_zeeman.f90)
 > 👉 [`examples/ex16_triatomic_reaction_berry_phase.f90`](examples/ex16_triatomic_reaction_berry_phase.f90)
-> 对应理论文献详见：👉 [`LITERATURE.md`](LITERATURE.md) 第 11 节至第 16 节。
+> 👉 [`examples/ex17_hyperspherical_reaction_rates.f90`](examples/ex17_hyperspherical_reaction_rates.f90)
+> 👉 [`examples/ex18_dipolar_quantum_droplets.f90`](examples/ex18_dipolar_quantum_droplets.f90)
+> 👉 [`examples/ex19_strong_field_nsdi_recollision.f90`](examples/ex19_strong_field_nsdi_recollision.f90)
+> 👉 [`examples/ex20_feshbach_molecular_bound_states.f90`](examples/ex20_feshbach_molecular_bound_states.f90)
+> 对应理论文献详见：👉 [`LITERATURE.md`](LITERATURE.md) 第 11 节至第 20 节。
 
 ---
 

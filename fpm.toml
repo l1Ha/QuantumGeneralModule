@@ -120,6 +120,26 @@ name = "test_spinor_bec"
 source-dir = "tests"
 main = "test_spinor_bec.f90"
 
+[[test]]
+name = "test_hyperspherical_reactive"
+source-dir = "tests"
+main = "test_hyperspherical_reactive.f90"
+
+[[test]]
+name = "test_dipolar_droplets_lhy"
+source-dir = "tests"
+main = "test_dipolar_droplets_lhy.f90"
+
+[[test]]
+name = "test_strong_field_nsdi"
+source-dir = "tests"
+main = "test_strong_field_nsdi.f90"
+
+[[test]]
+name = "test_feshbach_bound_states"
+source-dir = "tests"
+main = "test_feshbach_bound_states.f90"
+
 [[example]]
 name = "ex01_fgh_diatomic_bound_states"
 source-dir = "examples"
@@ -199,3 +219,23 @@ main = "ex15_crossed_field_stark_zeeman.f90"
 name = "ex16_triatomic_reaction_berry_phase"
 source-dir = "examples"
 main = "ex16_triatomic_reaction_berry_phase.f90"
+
+[[example]]
+name = "ex17_hyperspherical_reaction_rates"
+source-dir = "examples"
+main = "ex17_hyperspherical_reaction_rates.f90"
+
+[[example]]
+name = "ex18_dipolar_quantum_droplets"
+source-dir = "examples"
+main = "ex18_dipolar_quantum_droplets.f90"
+
+[[example]]
+name = "ex19_strong_field_nsdi_recollision"
+source-dir = "examples"
+main = "ex19_strong_field_nsdi_recollision.f90"
+
+[[example]]
+name = "ex20_feshbach_molecular_bound_states"
+source-dir = "examples"
+main = "ex20_feshbach_molecular_bound_states.f90"

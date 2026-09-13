@@ -568,7 +568,173 @@
 
 ---
 
-## 17. 快速学术检索与代码对照总表
+---
+
+## 17. 三原子超球面反应动力学与过渡态理论 (Hyperspherical Reactive Scattering & TST)
+
+### 17.1 质量标度超球面坐标 (Delves/Smith 坐标) 与偏角动力学
+- **文献**:
+  - B. R. Johnson, *"The quantum dynamics of three-body reactive collisions in hyperspherical coordinates"*, **J. Chem. Phys.** 73, 5051 (1980). [DOI: 10.1063/1.440058](https://doi.org/10.1063/1.440058)
+  - R. T. Pack and G. A. Parker, *"Quantum reactive scattering in three dimensions: General theory and the hyperspherical representation"*, **J. Chem. Phys.** 87, 3888 (1987). [DOI: 10.1063/1.452944](https://doi.org/10.1063/1.452944)
+  - L. M. Delves, *"Tertiary and higher-order collision processes"*, **Nucl. Phys.** 9, 391 (1959); **Nucl. Phys.** 20, 275 (1960).
+- **核心理论**:
+  将三原子体系 $A + BC \to AB + C$ 的质心分离后，引入 Delves 质量标度坐标：
+  $$S = d \cdot R_{A,BC}, \quad s = d^{-1} \cdot r_{BC}, \quad d = \left(\frac{\mu_{A,BC}}{\mu_{BC}}\right)^{1/4}$$
+  超半径 $\rho = \sqrt{S^2 + s^2}$，超角 $\alpha = \arctan(s / S)$。三体运动动能项在超球面坐标中退化为各向同性拉普拉斯算符加上离心势与超角动量算符。反应散射通道间的偏转角（Reaction Skew Angle $\beta_{skew}$）仅由三核质量比决定：
+  $$\cos\beta_{skew} = \sqrt{\frac{m_A m_C}{(m_A + m_B)(m_B + m_C)}}, \quad \tan\beta_{skew} = \sqrt{\frac{m_B M}{m_A m_C}}$$
+  对于同核体系 $\text{H} + \text{H}_2 \to \text{H}_2 + \text{H}$，$\beta_{skew} = 60^\circ$；对于 $\text{D} + \text{H}_2 \to \text{HD} + \text{H}$，$\beta_{skew} = 54.74^\circ$。
+- **代码映射**:
+  - `src/mod_hyperspherical_reactive.f90`:
+    - `init_reaction_mass`: 自动计算反应体系 Delves 因子 $d$、各通道约化质量及反应偏转角 $\beta_{skew}$；
+    - `jacobi_to_hyperspherical` / `hyperspherical_to_jacobi`: 双向正逆解析坐标几何转换。
+
+### 17.2 量子隧穿、累积反应几率 $N(E)$ 与正则热反应速率常数 $k(T)$
+- **文献**:
+  - W. H. Miller, *"Semiclassical limit of quantum mechanical transition state theory for nonseparable systems"*, **J. Chem. Phys.** 62, 1899 (1975). [DOI: 10.1063/1.430676](https://doi.org/10.1063/1.430676)
+  - D. G. Truhlar and B. C. Garrett, *"Variational transition-state theory"*, **Acc. Chem. Res.** 13, 440 (1980). [DOI: 10.1021/ar50156a002](https://doi.org/10.1021/ar50156a002)
+  - C. Eckart, *"The penetration of a parabolic potential barrier"*, **Phys. Rev.** 35, 1303 (1930). [DOI: 10.1103/PhysRev.35.1303](https://doi.org/10.1103/PhysRev.35.1303)
+  - E. P. Wigner, *"Calculation of the rate of elementary association reactions"*, **J. Chem. Phys.** 5, 720 (1937).
+- **核心理论**:
+  反应鞍点过渡态处的量子隧穿传递几率采用 Eckart / 抛物线势垒严格解：
+  $$P(E) = \frac{1}{1 + \exp\left[ - \frac{2\pi (E - V_b)}{\hbar \omega^\ddagger} \right]}$$
+  累积反应几率 $N(E)$ 对跨越势垒的所有量化弯曲与伸缩振动态通道求和：
+  $$N(E) = \sum_{n_{bend}, n_{symm}} P\left( E - E_{vib}(n_{bend}, n_{symm}) \right)$$
+  由量子碰撞理论，正则热反应速率常数 $k(T)$ 由 $N(E)$ 进行玻尔兹曼热积分直接求得：
+  $$k(T) = \frac{1}{2\pi \hbar Q_R(T)} \int_{-\infty}^\infty dE \, N(E) e^{-E / (k_B T)}$$
+  在过渡态理论（TST）下，Wigner 势垒量子隧穿因子解析修正为 $\kappa(T) = 1 + \frac{1}{24}\left(\frac{\hbar \omega^\ddagger}{k_B T}\right)^2$。
+- **代码映射**:
+  - `src/mod_hyperspherical_reactive.f90`:
+    - `calc_eckart_transmission`: 鞍点精确量子隧穿传递几率计算；
+    - `calc_cumulative_reaction_probability`: 多量子振动态求和累积反应几率 $N(E)$；
+    - `calc_canonical_rate_constant`: 高斯-勒让德/自适应数值积分求取全量子反应速率常数 $k(T)$；
+    - `calc_tst_wigner_rate`: 经典 TST 与 Wigner 隧穿修正速率计算。
+
+---
+
+## 18. 超冷偶极量子液滴与李-黄-杨量子涨落修正 (Dipolar Droplets & LHY)
+
+### 18.1 磁偶极相互作用与 Pelster-Lima 涨落修正积分 $Q_5(\epsilon_{dd})$
+- **文献**:
+  - T. D. Lee, K. Huang, and C. N. Yang, *"Eigenvalues and Eigenfunctions of a System of Impenetrable Spheres"*, **Phys. Rev.** 106, 1135 (1957). [DOI: 10.1103/PhysRev.106.1135](https://doi.org/10.1103/PhysRev.106.1135)
+  - A. R. P. Lima and A. Pelster, *"Quantum fluctuations in dipolar Bose gases"*, **Phys. Rev. A** 84, 041604(R) (2011); **Phys. Rev. A** 86, 063609 (2012). [DOI: 10.1103/PhysRevA.84.041604](https://doi.org/10.1103/PhysRevA.84.041604)
+  - F. Chomaz et al., *"Dipolar physics: a review of experiments with magnetic atoms"*, **Rep. Prog. Phys.** 86, 026401 (2023). [DOI: 10.1088/1361-6633/aca8a4](https://doi.org/10.1088/1361-6633/aca8a4)
+- **核心理论**:
+  对于磁偶极原子（如 $^{162}\text{Dy}: \mu_m \approx 10 \mu_B, a_{dd} \approx 131 a_0$；$^{166}\text{Er}: \mu_m \approx 7 \mu_B, a_{dd} \approx 65 a_0$），偶极长度 $a_{dd} = \frac{\mu_0 \mu_m^2 m}{12 \pi \hbar^2}$，相对偶极相互作用强度 $\epsilon_{dd} = a_{dd} / a_s$。
+  超越平均场的李-黄-杨（LHY）零点量子涨落能量修正积分由 Pelster 与 Lima 解析导出：
+  $$Q_5(\epsilon_{dd}) = \frac{3}{2} \int_0^1 du \, (1 - u^2) \left[ 1 + \epsilon_{dd} (3u^2 - 1) \right]^{5/2}$$
+  当 $\epsilon_{dd} \to 0$ 时退化为纯接触相互作用普适 LHY 结果 $Q_5(0) = 1$；当 $\epsilon_{dd} > 1$ 时，$Q_5 > 1$，量子涨落排斥能被各向异性偶极激发显著增强。
+- **代码映射**:
+  - `src/mod_dipolar_droplets_lhy.f90`:
+    - `init_dipolar_droplet_param`: $^{162}\text{Dy}$ / $^{166}\text{Er}$ 磁偶极特征常数计算；
+    - `calc_pelster_lima_q5`: 高斯-勒让德高精度数值求积 $Q_5(\epsilon_{dd})$。
+
+### 18.2 拓展 Gross-Pitaevskii (eGPE) 理论与自由空间自束缚平衡态
+- **文献**:
+  - D. S. Petrov, *"Quantum Mechanical Stabilization of a Collapsing Bose-Bose Mixture"*, **Phys. Rev. Lett.** 115, 155301 (2015). [DOI: 10.1103/PhysRevLett.115.155301](https://doi.org/10.1103/PhysRevLett.115.155301)
+  - H. Kadau et al., *"Observing the Rosensweig instability of a quantum ferrofluid"*, **Nature** 530, 194 (2016). [DOI: 10.1038/nature16485](https://doi.org/10.1038/nature16485)
+  - I. Ferrier-Barbut et al., *"Observation of Quantum Droplets in a Strongly Dipolar Bose Gas"*, **Phys. Rev. Lett.** 116, 215301 (2016). [DOI: 10.1103/PhysRevLett.116.215301](https://doi.org/10.1103/PhysRevLett.116.215301)
+  - M. Schmitt et al., *"Self-bound droplets of a dilute magnetic quantum liquid"*, **Nature** 539, 259 (2016). [DOI: 10.1038/nature20126](https://doi.org/10.1038/nature20126)
+  - F. Chomaz et al., *"Quantum-Fluctuation-Driven Crossover from a Dilute Bose-Einstein Condensate to a Macrodroplet in a Dipolar Quantum Fluid"*, **Phys. Rev. X** 6, 041039 (2016). [DOI: 10.1103/PhysRevX.6.041039](https://doi.org/10.1103/PhysRevX.6.041039)
+- **核心理论**:
+  在平均场吸引占优区域（$\epsilon_{dd} > 1$），平均场能量密度负贡献与高阶正定 LHY 排斥能量密度相抗衡：
+  $$\mathcal{E}(n) = \frac{1}{2} g_{eff} n^2 + \frac{2}{5} \gamma_{LHY} n^{5/2}, \quad g_{eff} = g (1 - \epsilon_{dd}) < 0$$
+  $$\mu(n) = g_{eff} n + \gamma_{LHY} n^{3/2}, \quad \gamma_{LHY} = \frac{32}{3\sqrt{\pi}} g a_s^{3/2} Q_5(\epsilon_{dd})$$
+  热力学零压边界条件 $P = n\mu - \mathcal{E} = -\frac{1}{2}|g_{eff}| n^2 + \frac{3}{5}\gamma_{LHY} n^{5/2} = 0$ 严格决定了平顶自束缚量子液滴的核心平衡密度：
+  $$n_0 = \frac{25}{36} \left( \frac{|g_{eff}|}{\gamma_{LHY}} \right)^2 = \frac{25 \pi}{4096} \frac{(\epsilon_{dd} - 1)^2}{a_s^3 Q_5(\epsilon_{dd})^2}$$
+  在 $n = n_0$ 处，化学势 $\mu(n_0) = -\frac{1}{6}|g_{eff}| n_0 < 0$ 且结合能量密度 $\mathcal{E}(n_0) = -\frac{1}{6}|g_{eff}| n_0^2 < 0$，在第一性原理上严格保证了自由空间三维自束缚量子液滴的稳定存在；临界原子数由 Petrov-Chomaz 标度给出：$N_{crit} \approx 18.6 (\epsilon_{dd}-1)^{-5/2} / \sqrt{Q_5}$。
+- **代码映射**:
+  - `src/mod_dipolar_droplets_lhy.f90`:
+    - `calc_equilibrium_droplet_density`: 零压平顶核心平衡密度 $n_0$ 计算；
+    - `calc_droplet_chemical_potential`: 自束缚负化学势 $\mu(n_0) < 0$ 计算；
+    - `calc_critical_atom_number`: 液滴自束缚与气相蒸发临界原子数 $N_{crit}$；
+    - `calc_egpe_energy_density`: 局部拓展 Gross-Pitaevskii (eGPE) 能量密度。
+
+---
+
+## 19. 强场非顺序双电离与电子重碰撞相关动量动力学 (Strong-Field NSDI & Recollision)
+
+### 19.1 Corkum 三步模型、经典轨道与 $3.17 U_p$ 回碰截止
+- **文献**:
+  - P. B. Corkum, *"Plasma perspective on strong field multiphoton ionization"*, **Phys. Rev. Lett.** 71, 1994 (1993). [DOI: 10.1103/PhysRevLett.71.1994](https://doi.org/10.1103/PhysRevLett.71.1994)
+  - K. J. Schafer et al., *"Above threshold ionization beyond the high harmonic cutoff"*, **Phys. Rev. Lett.** 70, 1599 (1993). [DOI: 10.1103/PhysRevLett.70.1599](https://doi.org/10.1103/PhysRevLett.70.1599)
+  - M. Lewenstein et al., *"Theory of high-harmonic generation by low-frequency laser fields"*, **Phys. Rev. A** 49, 2117 (1994). [DOI: 10.1103/PhysRevA.49.2117](https://doi.org/10.1103/PhysRevA.49.2117)
+- **核心理论**:
+  第一电子在电场相位 $\phi_0 = \omega t_0$ 经由 ADK 准静态隧穿脱附母核，在激光场 $E(t) = F_0 \cos(\omega t)$ 中作自由振荡：
+  $$x(\phi) = \frac{F_0}{\omega^2} \left[ \cos\phi - \cos\phi_0 + \sin\phi_0 (\phi - \phi_0) \right]$$
+  回碰相位 $\phi_r$ 满足 $x(\phi_r) = 0$（$\phi_r > \phi_0$）。经典回碰动能为：
+  $$E_{rec}(\phi_0) = 2 U_p (\sin\phi_r - \sin\phi_0)^2, \quad U_p = \frac{F_0^2}{4\omega^2}$$
+  回碰能量存在著名的 Corkum 截断极限：当 $\phi_0 \approx 0.297$ rad（$\approx 17^\circ$）时，回碰相位 $\phi_r \approx 4.45$ rad（$\approx 255^\circ$），最大回碰动能精确达到：
+  $$E_{rec}^{max} \approx 3.173 U_p$$
+- **代码映射**:
+  - `src/mod_strong_field_nsdi.f90`:
+    - `init_nsdi_laser`: 激光场光强转换为原子单位峰值电场 $F_0$ 与有质动力势 $U_p$；
+    - `calc_adk_rate`: Ammosov-Delone-Krainov 准静态隧穿电离几率密度；
+    - `calc_recollision_trajectory`: 牛顿-拉夫逊法精确求解回碰轨道与动能 $E_{rec}(\phi_0)$。
+
+### 19.2 COLTRIMS 双电子相关动量谱 $P(p_{z1}, p_{z2})$ 与“膝盖结构” (Knee Structure)
+- **文献**:
+  - Th. Weber et al., *"Correlated electron emission in strong field double ionization"*, **Nature** 405, 658 (2000). [DOI: 10.1038/35015033](https://doi.org/10.1038/35015033)
+  - R. Moshammer et al., *"Momentum Distributions of Ne(n+) Ions Created by an Intense Ultrashort Laser Pulse"*, **Phys. Rev. Lett.** 84, 447 (2000). [DOI: 10.1103/PhysRevLett.84.447](https://doi.org/10.1103/PhysRevLett.84.447)
+  - B. Walker et al., *"Precision Measurement of Strong Field Double Ionization of Helium"*, **Phys. Rev. Lett.** 73, 1227 (1994). [DOI: 10.1103/PhysRevLett.73.1227](https://doi.org/10.1103/PhysRevLett.73.1227)
+  - A. Becker and F. H. M. Faisal, *"Mechanism of laser-induced double ionization of helium"*, **Phys. Rev. Lett.** 84, 3546 (2000); **J. Phys. B** 38, R1 (2005). [DOI: 10.1088/0953-4075/38/3/R01](https://doi.org/10.1088/0953-4075/38/3/R01)
+  - W. Lotz, *"An empirical formula for the electron-impact ionization cross-section"*, **Z. Phys.** 206, 205 (1967).
+- **核心理论**:
+  当 $E_{rec} > I_{p2}$ 时触发直接碰撞电离 $(e, 2e)$，其截面遵从 Lotz 经验公式 $\sigma(E) \propto \ln(E/I_{p2}) / (E I_{p2})$。出射电子分享剩余能量 $\Delta E = E_{rec} - I_{p2}$ 后，均受到剩余光场矢势赋予的共同漂移动量：
+  $$p_{drift}(\phi_r) = -A(t_r) = \frac{F_0}{\omega} \sin\phi_r$$
+  这使得两电子平行动量 $p_{z1}, p_{z2}$ 具有强烈同号关联性，概率高度聚拢在第一象限（$p_{z1}>0, p_{z2}>0$）与第三象限（$p_{z1}<0, p_{z2}<0$），统计关联系数 $C_{corr} = \frac{\langle p_{z1} p_{z2} \rangle}{\sqrt{\langle p_{z1}^2 \rangle \langle p_{z2}^2 \rangle}} > 0$，完美复现 COLTRIMS 实验指纹；若低于碰撞电离阈值，电子通过 RESI（碰撞激发-后续场致电离）产生跨越二、四象限的十字交叉谱；非顺序双电离产率在 $10^{14}-10^{15} \text{ W/cm}^2$ 强度下比顺序双电离高出数个数量级，形成著名的平坦“膝盖”平台。
+- **代码映射**:
+  - `src/mod_strong_field_nsdi.f90`:
+    - `calc_lotz_cross_section`: 碰撞电离截面计算；
+    - `calc_nsdi_drift_momenta`: 两电子剩余能分享与偏振轴最终漂移动量；
+    - `calc_nsdi_2d_momentum_dist`: 全周期数值积分生成 $P(p_{z1}, p_{z2})$ 与关联系数；
+    - `calc_double_ion_yield_curve`: 光强依赖非顺序与顺序电离产率曲线与“膝盖结构”。
+
+---
+
+## 20. 磁与光 Feshbach 共振、分子弱束缚态与光致非弹性损耗 (Feshbach Resonances)
+
+### 20.1 磁 Feshbach 共振 (MFR)、特征长度 $R^*$ 与闭通道几率 $Z(B)$
+- **文献**:
+  - C. Chin, R. Grimm, P. Julienne, and E. Tiesinga, *"Feshbach resonances in ultracold gases"*, **Rev. Mod. Phys.** 82, 1225 (2010). [DOI: 10.1103/RevModPhys.82.1225](https://doi.org/10.1103/RevModPhys.82.1225)
+  - T. Köhler, K. Góral, and P. S. Julienne, *"Production of cold molecules via magnetically tunable Feshbach resonances"*, **Rev. Mod. Phys.** 78, 1311 (2006). [DOI: 10.1103/RevModPhys.78.1311](https://doi.org/10.1103/RevModPhys.78.1311)
+  - B. Gao, *"Universal properties in ultracold atom-atom interactions"*, **Phys. Rev. A** 64, 010701(R) (2001). [DOI: 10.1103/PhysRevA.64.010701](https://doi.org/10.1103/PhysRevA.64.010701)
+  - D. S. Petrov, *"Three-boson problem near a narrow Feshbach resonance"*, **Phys. Rev. Lett.** 93, 143201 (2004). [DOI: 10.1103/PhysRevLett.93.143201](https://doi.org/10.1103/PhysRevLett.93.143201)
+- **核心理论**:
+  磁 Feshbach 共振通过外磁场 Zeeman 效应调节开通道与束缚闭通道间的能量失谐 $\delta\mu(B - B_0)$。s 波散射长度随磁场满足经典色散公式：
+  $$a(B) = a_{bg} \left( 1 - \frac{\Delta B}{B - B_0} \right)$$
+  由范德瓦尔斯特征尺度 $\bar{a} \approx 0.956 R_{vdW}$ 与微观共振相互作用长度 $R^* = \frac{\hbar^2}{2\mu_{red} |a_{bg} \delta\mu \Delta B|}$ 定义无量纲共振强度参数 $s_{res} = (a_{bg} / \bar{a}) (\delta\mu \Delta B / \bar{E})$。
+  在有效程展开与耦合通道两通道场论模型下，跨越普适宽共振（$s_{res} \gg 1, R^* \to 0$）与窄共振（$s_{res} \ll 1$）的分子态结合能解析解为（Chin et al. RMP 2010）：
+  $$E_b(B) = \frac{\hbar^2}{2\mu_{red} (R^*)^2} \left[ \sqrt{1 + \frac{2 R^*}{a(B)}} - 1 \right]^2 \quad (a(B) > 0)$$
+  由 Hellmann-Feynman 定理，弱束缚二聚体波函数中闭通道态几率成分 $Z(B) = \langle\psi|Q|\psi\rangle = \frac{\partial E_b / \partial B}{\delta\mu}$ 为：
+  $$Z(B) = 1 - \frac{1}{\sqrt{1 + 2 R^* / a(B)}}$$
+  在共振极点附近 $a \to \infty$ 时，$Z \to 0$（纯开通道大尺度晕轮二聚体 Halo Dimer）；在远共振区或窄共振中 $Z \to 1$（准经典闭通道分子）。
+- **代码映射**:
+  - `src/mod_feshbach_bound_states.f90`:
+    - `init_mfr_preset`: $^{6}\text{Li}$（宽共振 $s_{res} \approx 51$）、$^{40}\text{K}$（中等）与 $^{87}\text{Rb}$（窄共振 $s_{res} \approx 0.13$）物理参数；
+    - `calc_mfr_scattering_length`: 磁场依赖散射长度 $a(B)$；
+    - `calc_mfr_bound_energy_universal` / `calc_mfr_bound_energy_coupled`: 普适与有限程耦合通道二聚体结合能；
+    - `calc_mfr_closed_channel_fraction`: 闭通道权重分量 $Z(B)$。
+
+### 20.2 光 Feshbach 共振 (OFR)、复散射长度与双体损耗率 $K_2$
+- **文献**:
+  - P. O. Fedichev, Yu. Kagan, G. V. Shlyapnikov, and J. T. M. Walraven, *"Influence of nearly resonant light on the scattering length in low-temperature atomic gases"*, **Phys. Rev. Lett.** 77, 2913 (1996). [DOI: 10.1103/PhysRevLett.77.2913](https://doi.org/10.1103/PhysRevLett.77.2913)
+  - J. L. Bohn and P. S. Julienne, *"Semianalytic theory of laser-assisted ultracold collisions"*, **Phys. Rev. A** 60, 414 (1999). [DOI: 10.1103/PhysRevA.60.414](https://doi.org/10.1103/PhysRevA.60.414)
+  - M. Theis et al., *"Tuning the Scattering Length with an Optical Feshbach Resonance"*, **Phys. Rev. Lett.** 93, 123001 (2004). [DOI: 10.1103/PhysRevLett.93.123001](https://doi.org/10.1103/PhysRevLett.93.123001)
+- **核心理论**:
+  使用近共振激光场诱导基态散射态与激发电子分子态耦合，有效复散射长度随激光失谐 $\Delta_L$ 演化为：
+  $$\tilde{a}(\Delta_L) = a_{bg} + \delta a(\Delta_L) - i \frac{b(\Delta_L)}{2}$$
+  $$\delta a(\Delta_L) = \frac{\ell_{opt} \gamma_{mol} \Delta_L}{\Delta_L^2 + (\gamma_{mol} / 2)^2}, \quad b(\Delta_L) = \frac{2 \ell_{opt} (\gamma_{mol}/2)^2}{\Delta_L^2 + (\gamma_{mol} / 2)^2}$$
+  其中 $\ell_{opt}$ 为正比于激光光强的光学特征长度。虚部对应光缔合引起的非弹性自发辐射双体损失：
+  $$K_2(\Delta_L) = \frac{4\pi \hbar}{\mu_{red}} \left( -\text{Im}(\tilde{a}) \right) = \frac{2\pi \hbar}{\mu_{red}} b(\Delta_L)$$
+  在红失谐与蓝失谐 $\Delta_L = \pm \gamma_{mol} / 2$ 处，散射长度实部获得最大色散调制。
+- **代码映射**:
+  - `src/mod_feshbach_bound_states.f90`:
+    - `calc_ofr_complex_scattering_length`: 复散射长度实虚部分离计算；
+    - `calc_ofr_inelastic_loss_rate`: 实验可测双体非弹性损失速率常数 $K_2$（$\text{cm}^3/\text{s}$）。
+
+---
+
+## 21. 快速学术检索与代码对照总表
 
 | 物理模块 | 对应源文件 | 核心经典文献代表 | 主要导出 API 与算法 |
 | :--- | :--- | :--- | :--- |
@@ -592,6 +758,10 @@
 | **交叉场 Stark-Zeeman**| `mod_crossed_field_scattering.f90` | Tscherbul & Krems (2006), Friedrich & Herschbach (1996) | `init_crossed_field_config`, `solve_crossed_field_eigenstates`, `calc_crossed_field_observables`, `scan_tilt_angle_spectrum` |
 | **三原子反应 PES 与 CI**| `mod_triatomic_geometry.f90` | Sato (1955), Berry (1984), Longuet-Higgins (1958) | `jacobi_to_internuclear`, `calc_leps_potential`, `calc_conical_intersection_adiabats`, `calc_berry_phase_around_ci` |
 | **旋量 BEC 自旋动力学**| `mod_spinor_bec.f90` | Ho (1998), Ohmi & Machida (1998), Chang (2004) | `init_spinor_preset`, `calc_spinor_interaction_couplings`, `propagate_spinor_sma_rk4`, `simulate_spin_mixing_dynamics` |
+| **三原子超球面反应动力学**| `mod_hyperspherical_reactive.f90` | Johnson (1980), Pack & Parker (1987), Miller (1975) | `init_reaction_mass`, `calc_eckart_transmission`, `calc_cumulative_reaction_probability`, `calc_canonical_rate_constant` |
+| **偶极量子液滴与 LHY** | `mod_dipolar_droplets_lhy.f90` | Lee-Huang-Yang (1957), Petrov (2015), Chomaz (2016) | `init_dipolar_droplet_param`, `calc_pelster_lima_q5`, `calc_equilibrium_droplet_density`, `calc_egpe_energy_density` |
+| **强场 NSDI 与重碰撞**| `mod_strong_field_nsdi.f90` | Corkum (1993), Weber et al. (Nature 2000), Becker (2005) | `init_nsdi_laser`, `calc_recollision_trajectory`, `calc_nsdi_2d_momentum_dist`, `calc_double_ion_yield_curve` |
+| **磁/光 Feshbach 束缚态**| `mod_feshbach_bound_states.f90` | Chin et al. (RMP 2010), Gao (2001), Theis (PRL 2004) | `init_mfr_preset`, `calc_mfr_bound_energy_coupled`, `calc_mfr_closed_channel_fraction`, `calc_ofr_inelastic_loss_rate` |
 | **开放量子系统** | `mod_open_quantum.f90` | Lindblad (1976), Gorini (1976) | `propagate_lindblad_rk4`, `calculate_von_neumann_entropy` |
 | **量子最优控制** | `mod_optimal_control.f90` | Somlói & Tannor (1993), Krotov (1996) | `optimize_pulse_krotov` |
 
