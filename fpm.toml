@@ -90,6 +90,36 @@ name = "test_photoassociation"
 source-dir = "tests"
 main = "test_photoassociation.f90"
 
+[[test]]
+name = "test_three_body_recombination"
+source-dir = "tests"
+main = "test_three_body_recombination.f90"
+
+[[test]]
+name = "test_confined_scattering"
+source-dir = "tests"
+main = "test_confined_scattering.f90"
+
+[[test]]
+name = "test_autoionization_fano"
+source-dir = "tests"
+main = "test_autoionization_fano.f90"
+
+[[test]]
+name = "test_crossed_field_scattering"
+source-dir = "tests"
+main = "test_crossed_field_scattering.f90"
+
+[[test]]
+name = "test_triatomic_geometry"
+source-dir = "tests"
+main = "test_triatomic_geometry.f90"
+
+[[test]]
+name = "test_spinor_bec"
+source-dir = "tests"
+main = "test_spinor_bec.f90"
+
 [[example]]
 name = "ex01_fgh_diatomic_bound_states"
 source-dir = "examples"
@@ -139,3 +169,33 @@ main = "ex09_dipolar_relaxation_scattering.f90"
 name = "ex10_photoassociation_spectroscopy"
 source-dir = "examples"
 main = "ex10_photoassociation_spectroscopy.f90"
+
+[[example]]
+name = "ex11_three_body_efimov_recombination"
+source-dir = "examples"
+main = "ex11_three_body_efimov_recombination.f90"
+
+[[example]]
+name = "ex12_confined_cir_scattering"
+source-dir = "examples"
+main = "ex12_confined_cir_scattering.f90"
+
+[[example]]
+name = "ex13_autoionization_fano_resonance"
+source-dir = "examples"
+main = "ex13_autoionization_fano_resonance.f90"
+
+[[example]]
+name = "ex14_spinor_bec_dynamics"
+source-dir = "examples"
+main = "ex14_spinor_bec_dynamics.f90"
+
+[[example]]
+name = "ex15_crossed_field_stark_zeeman"
+source-dir = "examples"
+main = "ex15_crossed_field_stark_zeeman.f90"
+
+[[example]]
+name = "ex16_triatomic_reaction_berry_phase"
+source-dir = "examples"
+main = "ex16_triatomic_reaction_berry_phase.f90"

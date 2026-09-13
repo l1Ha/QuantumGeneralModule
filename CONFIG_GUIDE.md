@@ -35,6 +35,14 @@
    - [3.12 非含时散射理论与超冷散射长度配置 (`mod_ti_scattering`)](#312-非含时散射理论与超冷散射长度配置-mod_ti_scattering)
    - [3.13 含时波包散射理论与 S-矩阵元提取配置 (`mod_td_scattering`)](#313-含时波包散射理论与-s-矩阵元提取配置-mod_td_scattering)
    - [3.14 外加电磁场超冷散射与多基组密耦配置 (`mod_field_scattering`)](#314-外加电磁场超冷散射与多基组密耦配置-mod_field_scattering)
+   - [3.15 各向异性偶极超冷散射与极性分子配置 (`mod_dipolar_scattering`)](#315-各向异性偶极超冷散射与极性分子配置-mod_dipolar_scattering)
+   - [3.16 超冷光缔合谱学与分子生成配置 (`mod_photoassociation`)](#316-超冷光缔合谱学与分子生成配置-mod_photoassociation)
+   - [3.17 超冷少体物理与 Efimov 三体复合配置 (`mod_three_body_recombination`)](#317-超冷少体物理与-efimov-三体复合配置-mod_three_body_recombination)
+   - [3.18 低维光晶格受限量子散射与 CIR 配置 (`mod_confined_scattering`)](#318-低维光晶格受限量子散射与-cir-配置-mod_confined_scattering)
+   - [3.19 自电离体系与 Fano 共振 / 复坐标旋转法配置 (`mod_autoionization_fano`)](#319-自电离体系与-fano-共振--复坐标旋转法配置-mod_autoionization_fano)
+   - [3.20 交叉静电磁场分子量子动力学配置 (`mod_crossed_field_scattering`)](#320-交叉静电磁场分子量子动力学配置-mod_crossed_field_scattering)
+   - [3.21 三原子反应散射 Jacobi 几何与 LEPS 势能面配置 (`mod_triatomic_geometry`)](#321-三原子反应散射-jacobi-几何与-leps-势能面配置-mod_triatomic_geometry)
+   - [3.22 超冷旋量玻色爱因斯坦凝聚自旋动力学配置 (`mod_spinor_bec`)](#322-超冷旋量玻色爱因斯坦凝聚自旋动力学配置-mod_spinor_bec)
 4. [Python 伴侣库 `pygenmod` 配置与混合编程](#4-python-伴侣库-pygenmod-配置与混合编程)
    - [4.1 本地可编辑模式安装](#41-本地可编辑模式安装)
    - [4.2 数据交互规范（.dat 与无损二进制）](#42-数据交互规范-dat-与无损二进制)
@@ -775,6 +783,172 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 > 👉 [`examples/ex10_photoassociation_spectroscopy.f90`](examples/ex10_photoassociation_spectroscopy.f90)
 > 对应理论推导与学术文献全典，详见：
 > 👉 [`LITERATURE.md`](LITERATURE.md) 第 9 节与第 10 节。
+
+---
+
+### 3.17 超冷少体物理与 Efimov 三体复合配置 (`mod_three_body_recombination`)
+面向超冷原子少体物理、Efimov 普适三聚体能级与三体复合损耗速率：
+1. **Efimov 超径向超越方程根与离散标度因子**：
+   ```fortran
+   use mod_three_body_recombination
+   real(dp) :: s0, lambda_scale
+   ! 求解全同玻色子 Efimov 超越方程普遍根 (s_0 ~ 1.00624)
+   s0 = solve_efimov_s0_identical_bosons()
+   ! 离散标度因子 lambda = exp(pi / s_0) ~ 22.694
+   lambda_scale = calc_efimov_scale_factor(s0)
+   ```
+2. **Braaten-Hammer 普适三体复合速率 $K_3(a)$**：
+   ```fortran
+   type(efimov_param_t) :: param
+   type(three_body_loss_t) :: loss
+   integer :: stat
+   param%s0 = s0
+   param%scale_factor = lambda_scale
+   param%a_star = 200.0_dp   ! a_* 三体参数
+   param%a_minus = -100.0_dp ! a_- 三聚体共振极点
+   param%eta_star = 0.06_dp  ! 非弹性耗散因子
+
+   ! 计算正散射长度 a > 0 下的复合损耗（呈现 Efimov 干涉相消极小值）
+   call calc_three_body_recombination_a_positive(a_scat=500.0_dp, mass_atom=87.0_dp*AMU2AU, &
+                                                 param=param, res=loss, stat=stat)
+   print *, "K_3(a>0) [cm^6/s] = ", loss%k3_si
+   ```
+3. **幺正极限有限温度饱和幂律 $K_3 \propto T^{-2}$**：
+   ```fortran
+   real(dp) :: k3_t_au, k3_t_si
+   ! 计算 T = 1.0 uK 下幺正极限三体复合损耗速率
+   call calc_unitary_three_body_loss_temperature(temp_kelvin=1.0e-6_dp, mass_atom=87.0_dp*AMU2AU, &
+                                                 eta_star=0.06_dp, k3_au=k3_t_au, k3_si=k3_t_si, stat=stat)
+   ```
+
+---
+
+### 3.18 低维光晶格受限量子散射与 CIR 配置 (`mod_confined_scattering`)
+面向光晶格一维谐振波导与二维平面囚禁中的低维超冷量子散射与约束诱导共振：
+1. **一维光波导初始化与 Olshanii CIR 极点**：
+   ```fortran
+   use mod_confined_scattering
+   type(waveguide_1d_t) :: wg
+   type(cir_result_t)   :: cir
+   integer :: stat
+   ! 约束频率 omega_perp = 2*pi * 20 kHz，折合质量 mu = 43.5 amu
+   call init_waveguide_1d(omega_trans_au=7.61e-12_dp, reduced_mass_au=43.5_dp*AMU2AU, &
+                          wg=wg, stat=stat)
+   print *, "谐振子长度 a_perp (a0) = ", wg%a_perp_au
+   print *, "Olshanii CIR 极点 a_CIR = ", wg%a_cir_au
+   ```
+2. **重整化 1D 相互作用强度 $g_{\text{1D}}$ 与结合能 $E_b$**：
+   ```fortran
+   ! 计算 3D 散射长度 a_s 处的 1D 有效耦合常数与 Tonks 态判据
+   call calc_olshanii_cir_parameters(wg, a_scat_3d_au=500.0_dp, linear_density_au=5.0e-5_dp, &
+                                     res=cir, stat=stat)
+   ! 求解受限诱导双原子分子结合能 E_b
+   e_b = calc_confined_dimer_binding_energy(wg, a_scat_3d_au=500.0_dp)
+   ```
+
+---
+
+### 3.19 自电离体系与 Fano 共振 / 复坐标旋转法配置 (`mod_autoionization_fano`)
+面向原子分子双激发态自电离、组态相互作用与复能级共振寿命：
+1. **Fano 不对称吸收线型与抗共振零点**：
+   ```fortran
+   use mod_autoionization_fano
+   type(fano_profile_t) :: fano
+   real(dp) :: sigma, tau_au, tau_fs
+   integer :: stat
+   fano%e_resonance_au = 2.22_dp
+   fano%gamma_width_au = 0.00137_dp
+   fano%q_parameter    = -2.80_dp
+   fano%sigma_0_au     = 1.0_dp
+   call calc_autoionization_lifetime(fano%gamma_width_au, tau_au, tau_fs, stat)
+   sigma = calc_fano_profile(fano, energy_au=2.22_dp)
+   ```
+2. **复坐标旋转法 (CCR) 提取复本征能量 $E_R - i\Gamma/2$**：
+   ```fortran
+   type(ccr_resonance_t) :: ccr
+   ! 坐标复旋转角度 theta = 0.30 rad 求解准束缚共振态
+   call solve_ccr_resonance_model(e_bound_0=2.22_dp, e_cont_0=2.20_dp, v_coupl=0.015_dp, &
+                                  theta_rad=0.30_dp, res=ccr, stat=stat)
+   print *, "共振能量 E_R = ", ccr%e_r_au, " 衰变宽度 Gamma = ", ccr%gamma_au
+   ```
+
+---
+
+### 3.20 交叉静电磁场分子量子动力学配置 (`mod_crossed_field_scattering`)
+面向开壳层极性顺磁分子在非共线 $\mathbf{E} \times \mathbf{B}$ 交叉外场中的态混合与取向调控：
+1. **交叉场参数初始化与哈密顿量对角化**：
+   ```fortran
+   use mod_crossed_field_scattering
+   type(crossed_field_config_t) :: cfg
+   type(crossed_field_state_t)  :: state
+   integer :: stat
+   ! 电场 12 kV/cm，磁场 1000 G，夹角 theta_EB = 45 deg，转动常数 1.114 GHz，偶极 0.574 D
+   call init_crossed_field_config(e_field_kv_cm=12.0_dp, b_field_gauss=1000.0_dp, &
+                                  theta_eb_deg=45.0_dp, rot_ghz=1.114_dp, &
+                                  dipole_d=0.574_dp, j_max=2, cfg=cfg, stat=stat)
+   call solve_crossed_field_eigenstates(cfg, state, stat)
+   call calc_crossed_field_observables(cfg, state)
+   print *, "基态 Stark 定向度 <cos theta> = ", state%orientation(1)
+   ```
+
+---
+
+### 3.21 三原子反应散射 Jacobi 几何与 LEPS 势能面配置 (`mod_triatomic_geometry`)
+面向三原子反应动力学散射网格、LEPS 反应势能面与锥形交叉 Berry 几何相位：
+1. **Jacobi 反应坐标与核间距双向转换**：
+   ```fortran
+   use mod_triatomic_geometry
+   type(jacobi_coord_t)      :: jac_in, jac_out
+   type(internuclear_dist_t) :: dist
+   ! Jacobi (r, R, gamma) -> 核间距 (r12, r23, r31)
+   call jacobi_to_internuclear(jac_in, dist)
+   ! 核间距 -> Jacobi 坐标
+   call internuclear_to_jacobi(dist, m_a, m_b, m_c, jac_out)
+   ```
+2. **基准 H3 LEPS 反应势能面与鞍点活化能垒**：
+   ```fortran
+   type(leps_param_t) :: leps_h3
+   call init_default_h3_leps(leps_h3)
+   v_pot = calc_leps_potential(dist, leps_h3)
+   ```
+3. **锥形交叉 (CI) 绝热分裂与拓扑 Berry 几何相位**：
+   ```fortran
+   type(conical_intersection_t) :: ci
+   ci%x_ci = 0.0_dp; ci%y_ci = 0.0_dp; ci%kappa_tuning = 0.5_dp; ci%lambda_coupl = 0.5_dp
+   ! 环绕锥形交叉闭合回路积分获得拓扑 Berry 相位 Phi_B = pi
+   phi_b = calc_berry_phase_around_ci(ci, radius=0.20_dp, n_steps=1000)
+   ```
+
+---
+
+### 3.22 超冷旋量玻色爱因斯坦凝聚自旋动力学配置 (`mod_spinor_bec`)
+面向 $F=1$ 旋量凝聚体（$^{87}\text{Rb}$ 铁磁相 / $^{23}\text{Na}$ 极性反铁磁相）相干自旋混合与相变：
+1. **旋量凝聚体参数预设与分类**：
+   ```fortran
+   use mod_spinor_bec
+   type(spinor_param_t) :: param
+   integer :: stat
+   ! 装载 87Rb 凝聚体参数 (磁场 B = 0.25 G, 密度 n = 1e14 cm^-3)
+   call init_spinor_preset("87Rb", b_field_gauss=0.25_dp, density_cm3=1.0e14_dp, param=param, stat=stat)
+   print *, "自旋交换常数 c_2 = ", param%c2_au, " 是否铁磁: ", param%is_ferromagnet
+   ```
+2. **RK4 保全几率与保磁化强度相干自旋振荡演化**：
+   ```fortran
+   type(spinor_state_t) :: state
+   ! 单步步长 dt_au 推进单模近似 (SMA) 旋量动力学方程
+   call propagate_spinor_sma_rk4(param, dt_au=100.0_dp, state=state)
+   print *, "m=0 分量布居: ", state%pop_0, " 磁化强度: ", state%magnetization_mz
+   ```
+
+> [!TIP]
+> 包含全部 6 大新复杂体系的前沿应用工程算例（11 至 16），详见：
+> 👉 [`examples/ex11_three_body_efimov_recombination.f90`](examples/ex11_three_body_efimov_recombination.f90)
+> 👉 [`examples/ex12_confined_cir_scattering.f90`](examples/ex12_confined_cir_scattering.f90)
+> 👉 [`examples/ex13_autoionization_fano_resonance.f90`](examples/ex13_autoionization_fano_resonance.f90)
+> 👉 [`examples/ex14_spinor_bec_dynamics.f90`](examples/ex14_spinor_bec_dynamics.f90)
+> 👉 [`examples/ex15_crossed_field_stark_zeeman.f90`](examples/ex15_crossed_field_stark_zeeman.f90)
+> 👉 [`examples/ex16_triatomic_reaction_berry_phase.f90`](examples/ex16_triatomic_reaction_berry_phase.f90)
+> 对应理论文献详见：👉 [`LITERATURE.md`](LITERATURE.md) 第 11 节至第 16 节。
 
 ---
 

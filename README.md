@@ -3,8 +3,8 @@
 [![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
 [![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests: 199/199 Pass](https://img.shields.io/badge/Tests-199%2F199%20Pass%20(100%25)-brightgreen.svg)](tests/)
-[![Literature: 10 Topics](https://img.shields.io/badge/Literature-10%20Topics%20(PRL%2FPRA%2FRMP)-blue.svg)](LITERATURE.md)
+[![Tests: 228/228 Pass](https://img.shields.io/badge/Tests-228%2F228%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Literature: 16 Topics](https://img.shields.io/badge/Literature-16%20Topics%20(PRL%2FPRA%2FRMP)-blue.svg)](LITERATURE.md)
 
 `GeneralModule` 是一个面向超快强场物理、分子光物理与量子动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
 
@@ -14,17 +14,17 @@
 
 1. **零外部库依赖 (Zero External Dependencies)**
    - 内部集成高精度 Householder QL 实对称矩阵本征求解器、Gauss-Jordan 全主元实/复方阵求逆与 Cooley-Tukey 1D/2D 快速傅里叶变换（FFT）。
-   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射、各向异性偶极耦合与超冷光缔合速率求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
+   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射、各向异性偶极耦合、超冷光缔合速率、少体 Efimov 物理、低维光晶格 CIR、自电离 Fano/CCR、交叉电磁场、三原子反应 PES 与旋量 BEC 自旋动力学求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
 2. **现代 Fortran 2008 标准设计**
    - 统一强类型参数定义（`real(dp) => real64`）。
    - 纯函数（`pure function`）与显式 `intent(in/out/inout)` 契约，杜绝隐式全局变量副作用。
 3. **AI 友好型结构化接口 (AI-Friendly)**
    - 算法模块支持统一顶层聚合入口：`use general_module`。
-   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `absorbing_boundary_t`, `dvr_1d_t`, `spline_1d_t`, `scattering_state_t`, `multichannel_result_t`, `td_scattering_channel_t`, `cold_atom_t`, `field_channel_t`, `polar_molecule_t`, `pa_transition_t`），自解释、低耦合、便于大语言模型精确构造与调用。
+   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `absorbing_boundary_t`, `dvr_1d_t`, `spline_1d_t`, `scattering_state_t`, `multichannel_result_t`, `td_scattering_channel_t`, `cold_atom_t`, `field_channel_t`, `polar_molecule_t`, `pa_transition_t`, `efimov_param_t`, `waveguide_1d_t`, `fano_profile_t`, `crossed_field_config_t`, `leps_param_t`, `spinor_param_t`），自解释、低耦合、便于大语言模型精确构造与调用。
 4. **全链路双语生态支持**
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
 5. **全自动 CI/CD 持续集成**
-   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 15 大测试套件与 Python 验证。
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 21 大测试套件与 Python 验证。
 
 ---
 
@@ -39,7 +39,7 @@ GeneralModule/
 ├── CMakeLists.txt                 # CMake 跨平台构建系统
 ├── README.md                      # 本文档
 ├── .gitignore                     # Git 忽略规则
-├── src/                           # 核心 Fortran 源代码 (23 核心模块 + 1 聚合入口)
+├── src/                           # 核心 Fortran 源代码 (29 核心模块 + 1 聚合入口)
 │   ├── mod_constants.f90          # 1. 物理常数与各单位 a.u. 双向转换
 │   ├── mod_special_functions.f90  # 2. 勒让德、Wigner 3j/6j/9j、CG半整数代数、转动偶极/取向矩阵元
 │   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解 (EISPACK TRED2/TQL2)、实/复方阵求逆、1D/2D FFT
@@ -63,8 +63,14 @@ GeneralModule/
 │   ├── mod_field_scattering.f90   # 21. 外加电磁场超冷散射、四大经典基组严格幺正变换、Breit-Rabi本征态与磁Feshbach共振扫描
 │   ├── mod_dipolar_scattering.f90 # 22. 各向异性磁偶极/电偶极散射、自旋弛豫截面/热速率、极性分子Stark诱导偶极与耦合势
 │   ├── mod_photoassociation.f90   # 23. 超冷光缔合谱学、自由-束缚态Franck-Condon重叠积分、受激跃迁线宽与热平均光缔合速率
+│   ├── mod_three_body_recombination.f90 # 24. 超冷三体复合碰撞与 Efimov 少体物理、普适 K3 速率与离散标度不变性
+│   ├── mod_confined_scattering.f90 # 25. 低维光晶格受限量子散射与约束诱导共振 CIR、有效 1D 相互作用与 Tonks 气体
+│   ├── mod_autoionization_fano.f90 # 26. 自电离体系、Fano 组态相互作用线型与复坐标旋转法 CCR 共振寿命
+│   ├── mod_crossed_field_scattering.f90 # 27. 交叉静电磁场 E x B 转振-自旋动力学、宇称破缺与倾角扫描
+│   ├── mod_triatomic_geometry.f90 # 28. 三原子反应散射 Jacobi 坐标、LEPS 反应势能面与锥形交叉 Berry 几何相位
+│   ├── mod_spinor_bec.f90         # 29. 超冷旋量玻色爱因斯坦凝聚 F=1 多体自旋动力学、铁磁/极性相与相干自旋混合
 │   └── general_module.f90         # 顶层聚合入口模块 (use general_module)
-├── tests/                         # 自动化单元测试套件 (15 个套件，100% 全部通过)
+├── tests/                         # 自动化单元测试套件 (21 个套件，100% 全部通过)
 │   ├── test_constants.f90
 │   ├── test_special_functions.f90
 │   ├── test_dvr_grid.f90
@@ -80,8 +86,14 @@ GeneralModule/
 │   ├── test_field_scattering.f90  # 外场四大基组幺正变换、Breit-Rabi解析与数值比对、磁Feshbach共振拟合测试
 │   ├── test_dipolar_scattering.f90# 各向异性偶极张量、自旋弛豫截面、极性分子Stark感应与耦合势测试
 │   ├── test_photoassociation.f90  # 自由-束缚重叠积分、受激线宽、热光缔合速率与Raman双光子测试
-│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 199/199 断言)
-├── examples/                      # 典型物理应用算例 (10 大完整前沿算例)
+│   ├── test_three_body_recombination.f90 # Efimov 超越方程根、普适 K3 速率、干涉极小值与有限温度幂律
+│   ├── test_confined_scattering.f90      # 准 1D 波导 CIR 极点、结合能、Tonks-Girardeau 与各向异性分裂
+│   ├── test_autoionization_fano.f90      # Fano 抗共振零点、自电离寿命与复坐标旋转 CCR 极点
+│   ├── test_crossed_field_scattering.f90 # 交叉静电磁场非共线态混合、Stark 定向度与避免交叉能谱
+│   ├── test_triatomic_geometry.f90       # Jacobi 坐标可逆映射、LEPS 反应势能面与锥形交叉 Berry 几何相位
+│   ├── test_spinor_bec.f90               # F=1 旋量凝聚体铁磁/极性相、保全几率与保磁化强度 RK4 自旋混合
+│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 228/228 断言)
+├── examples/                      # 典型物理应用算例 (16 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90           # 啁啾、双色、太赫兹脉冲时频生成
 │   ├── ex03_split_operator_1d.f90         # 1D 波包动力学演化与 CAP 吸收边界
@@ -92,6 +104,12 @@ GeneralModule/
 │   ├── ex08_ultracold_feshbach_segmented.f90   # 多扇区分段网格超冷磁 Feshbach 共振与散射长度扫描
 │   ├── ex09_dipolar_relaxation_scattering.f90  # 各向异性磁偶极自旋弛豫与极性分子外电场 Stark 诱导偶极
 │   ├── ex10_photoassociation_spectroscopy.f90  # 超冷光缔合跃迁谱学、受激饱和展宽与双光子 Raman 缔合
+│   ├── ex11_three_body_efimov_recombination.f90 # 超冷三体 Efimov 复合速率与干涉极小值/共振峰扫描
+│   ├── ex12_confined_cir_scattering.f90         # 准一维光晶格波导中 87Rb 约束诱导共振 CIR 与分子结合能
+│   ├── ex13_autoionization_fano_resonance.f90   # 自电离 Fano 不对称吸收谱与复坐标旋转 CCR 寿命提取
+│   ├── ex14_spinor_bec_dynamics.f90             # 87Rb 与 23Na 凝聚体宏观自旋混合动力学与铁磁相图
+│   ├── ex15_crossed_field_stark_zeeman.f90      # 交叉电磁场中极性顺磁分子 Stark-Zeeman 态混合与空间定向
+│   ├── ex16_triatomic_reaction_berry_phase.f90  # 三原子反应路径 LEPS 势能面与锥形交叉 Berry 几何相位
 │   └── build_examples.sh          # 算例编译运行脚本
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml

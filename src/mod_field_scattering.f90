@@ -19,7 +19,8 @@
 !>      提取磁场依赖的散射长度 a_s(B)、多通道 S-矩阵与磁 Feshbach 共振极点 (B_0, \Delta B, a_bg)。
 !> \author LiHao
 module mod_field_scattering
-    use mod_constants, only: dp, PI, TWOPI, SQRTPI, EYE, HBAR, AMU2AU, AU2CM, CM2AU
+    use mod_constants, only: dp, PI, TWOPI, SQRTPI, EYE, HBAR, AMU2AU, AU2CM, CM2AU, &
+                             GAUSS2AU, AU2GAUSS
     use mod_special_functions, only: clebsch_gordan_half, wigner_3j_half, wigner_6j_half, wigner_9j_half
     use mod_ti_scattering, only: calc_multichannel_close_coupling_logder, multichannel_result_t
     implicit none
@@ -36,8 +37,6 @@ module mod_field_scattering
     ! --------------------------------------------------------------------------
     ! 物理单位换算常量
     ! --------------------------------------------------------------------------
-    real(dp), parameter, public :: GAUSS2AU = 4.254382e-10_dp           !< 1 Gauss -> a.u. (磁感应强度)
-    real(dp), parameter, public :: AU2GAUSS = 1.0_dp / GAUSS2AU         !< a.u. -> Gauss
     real(dp), parameter, public :: MU_B_AU  = 0.5_dp                    !< 玻尔磁子 (a.u., e*hbar/(2*m_e) = 1/2)
     real(dp), parameter, public :: MU_N_AU  = 0.5_dp / 1836.15267343_dp !< 核磁子 (a.u.)
     real(dp), parameter, public :: GHZ2AU   = 1.51982984600e-7_dp       !< 1 GHz (h*nu) -> a.u. (能量)

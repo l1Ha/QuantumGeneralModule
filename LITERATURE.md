@@ -15,7 +15,13 @@
 8. [开放量子系统 Lindblad 耗散与 Krotov 最优控制](#8-开放量子系统-lindblad-耗散与-krotov-最优控制)
 9. [各向异性磁偶极与电偶极超冷散射及自旋弛豫](#9-各向异性磁偶极与电偶极超冷散射及自旋弛豫)
 10. [超冷光缔合谱学与自由-束缚态量子跃迁](#10-超冷光缔合谱学与自由-束缚态量子跃迁)
-11. [快速学术检索与代码对照总表](#11-快速学术检索与代码对照总表)
+11. [超冷少体物理、三体复合与 Efimov 普适态](#11-超冷少体物理三体复合与-efimov-普适态)
+12. [低维光晶格受限量子散射与约束诱导共振 CIR](#12-低维光晶格受限量子散射与约束诱导共振-cir)
+13. [自电离体系、Fano 共振理论与复坐标旋转法 CCR](#13-自电离体系fano-共振理论与复坐标旋转法-ccr)
+14. [交叉静电磁场分子量子动力学与非共线 Stark-Zeeman 态混合](#14-交叉静电磁场分子量子动力学与非共线-stark-zeeman-态混合)
+15. [三原子反应碰撞几何、Jacobi 坐标、LEPS 势能面与锥形交叉几何相位](#15-三原子反应碰撞几何jacobi-坐标leps-势能面与锥形交叉几何相位)
+16. [超冷旋量玻色-爱因斯坦凝聚与宏观自旋混合动力学](#16-超冷旋量玻色-爱因斯坦凝聚与宏观自旋混合动力学)
+17. [快速学术检索与代码对照总表](#17-快速学术检索与代码对照总表)
 
 ---
 
@@ -373,11 +379,200 @@
 
 ---
 
-## 11. 快速学术检索与代码对照总表
+## 11. 超冷少体物理、三体复合与 Efimov 普适态
+
+### 11.1 Efimov 超径向超越方程与离散标度不变性
+- **文献**:
+  - V. Efimov, *"Energy levels arising from resonant two-body forces in a three-body system"*, **Phys. Lett. B** 33, 563 (1970). [DOI: 10.1016/0370-2693(70)90349-7](https://doi.org/10.1016/0370-2693(70)90349-7)
+  - E. Braaten and H.-W. Hammer, *"Universality in few-body systems with large scattering length"*, **Phys. Rep.** 428, 259 (2006). [DOI: 10.1016/j.physrep.2006.03.001](https://doi.org/10.1016/j.physrep.2006.03.001)
+- **核心理论**:
+  在共振两体相互作用极限下（$|a| \gg r_0$），全同玻色子三体超径向波函数方程导出特征超越方程：
+  $$s \cosh\left(\frac{\pi s}{2}\right) - \frac{8}{\sqrt{3}} \sinh\left(\frac{\pi s}{6}\right) = 0$$
+  该方程在实轴上具有唯一正根 $s_0 \approx 1.0062378$，决定了有效吸引超径向势 $V_{\text{eff}}(R) = -(s_0^2 + 1/4)\hbar^2 / (2\mu R^2)$。三体体系破缺连续标度对称性，展现几何递推常数的**离散标度不变性 (Discrete Scale Invariance)**：
+  $$\lambda = e^{\pi / s_0} \approx 22.69438$$
+  对于异核 $AAB$ 碰撞体系，该根依赖于轻-重质量比 $\beta$，当存在极轻原子时 $s_0$ 显著增大，使几何比率 $\lambda$ 压缩至易于实验观测的区间。
+- **代码映射**:
+  - `src/mod_three_body_recombination.f90`:
+    - `solve_efimov_s0_identical_bosons`: Newton-Raphson 精确求解 $s_0 = 1.0062378$；
+    - `solve_efimov_s0_heteronuclear`: 异核 $AAB$ 体系阻尼自适应牛顿迭代求根；
+    - `calc_efimov_scale_factor`: 离散标度因子 $\lambda = e^{\pi/s_0}$ 计算。
+
+### 11.2 Braaten-Hammer 普适三体复合损失速率 $K_3(a)$
+- **文献**:
+  - B. D. Esry, C. H. Greene, and J. P. Burke, Jr., *"Recombination of Three Atoms in the Ultracold Limit"*, **Phys. Rev. Lett.** 83, 1751 (1999). [DOI: 10.1103/PhysRevLett.83.1751](https://doi.org/10.1103/PhysRevLett.83.1751)
+  - T. Kraemer et al., *"Evidence for Efimov quantum states in an ultracold gas of caesium atoms"*, **Nature** 440, 315 (2006). [DOI: 10.1038/nature04626](https://doi.org/10.1038/nature04626)
+- **核心理论**:
+  三体非弹性复合速率 $K_3$ 依赖于两体散射长度 $a$：
+  - 正散射长度（$a > 0$）：发生多路径干涉相消，出现 Efimov 干涉极小值：
+    $$K_3(a > 0) = \frac{C_+ \hbar}{m} a^4 \left[ \sin^2\left(s_0 \ln(a / a_*)\right) + \sinh^2(\eta_*) \right]$$
+  - 负散射长度（$a < 0$）：当 Efimov 三聚体束缚态切入两体碰撞阈值时形成剧烈的共振损耗峰：
+    $$K_3(a < 0) = \frac{C_- \hbar}{m} a^4 \frac{\sinh(2\eta_*)}{\sin^2\left(s_0 \ln(|a| / a_-)\right) + \sinh^2(\eta_*)}$$
+  - 幺正极限有限温度饱和（$|a| \to \infty$）：受热波长 $k_T$ 截断，损失率服从普适 $T^{-2}$ 幂律：
+    $$K_3(T) = C_{\text{unit}} \frac{\hbar^5}{m^3 (k_B T)^2}$$
+- **代码映射**:
+  - `src/mod_three_body_recombination.f90`:
+    - `calc_three_body_recombination_a_positive`: 正散射长度三体复合与干涉极小值；
+    - `calc_three_body_recombination_a_negative`: 负散射长度三聚体共振峰；
+    - `calc_unitary_three_body_loss_temperature`: 幺正极限 $T^{-2}$ 温度饱和定律。
+
+---
+
+## 12. 低维光晶格受限量子散射与约束诱导共振 (CIR)
+
+### 12.1 Olshanii 准一维约束诱导共振理论
+- **文献**:
+  - M. Olshanii, *"Atomic Scattering in the Presence of an External Confinement and a Gas of Hard-Core Bosons"*, **Phys. Rev. Lett.** 81, 938 (1998). [DOI: 10.1103/PhysRevLett.81.938](https://doi.org/10.1103/PhysRevLett.81.938)
+  - E. Haller et al., *"Realization of an Excited, Strongly Correlated Quantum Gas Phase"*, **Science** 325, 1224 (2009). [DOI: 10.1126/science.1175850](https://doi.org/10.1126/science.1175850)
+- **核心理论**:
+  在横向谐振子紧束缚光波导 $V_\perp(\rho) = \frac{1}{2}\mu\omega_\perp^2\rho^2$ 下（振子特征长度 $a_\perp = \sqrt{\hbar/(\mu\omega_\perp)}$），准一维有效接触势耦合常数由横向模态多体格林函数重整化：
+  $$g_{\text{1D}}(a_s) = \frac{2\hbar^2 a_s}{\mu a_\perp^2} \frac{1}{1 - C \frac{a_s}{a_\perp}}, \quad C = \frac{|\zeta(1/2)|}{\sqrt{2}} \approx 1.0326$$
+  当三维散射长度逼近极点 $a_{\text{CIR}} = a_\perp / C \approx 0.96843 a_\perp$ 时，$g_{\text{1D}} \to \pm \infty$ 发生约束诱导共振（Confinement-Induced Resonance, CIR）。一维玻色气体跨入由 Lieb-Liniger 参数 $\gamma_{\text{LL}} = m |g_{\text{1D}}| / (\hbar^2 n_{\text{1D}}) \gg 1$ 支配的强关联 Tonks-Girardeau 硬球玻色极限。
+- **代码映射**:
+  - `src/mod_confined_scattering.f90`:
+    - `init_waveguide_1d`: 简谐波导振子尺寸 $a_\perp$ 与 CIR 极点 $a_{\text{CIR}}$ 计算；
+    - `calc_olshanii_cir_parameters`: 1D 重整化有效相互作用 $g_{\text{1D}}$ 与状态判据；
+    - `calc_confined_dimer_binding_energy`: 受限诱导分子束缚态结合能 $E_b$；
+    - `calc_lieb_liniger_parameter`: 一维无量纲关联度 $\gamma_{\text{LL}}$ 与 Tonks 气体判别。
+
+### 12.2 各向异性波导共振分裂与准二维散射
+- **文献**:
+  - T. Bergeman, M. G. Moore, and M. Olshanii, *"Atom-Atom Scattering under Cylindrical Harmonic Confinement"*, **Phys. Rev. Lett.** 91, 163201 (2003). [DOI: 10.1103/PhysRevLett.91.163201](https://doi.org/10.1103/PhysRevLett.91.163201)
+  - D. S. Petrov, M. Holzmann, and G. V. Shlyapnikov, *"Bose-Einstein Condensation in Quasi-2D Trapped Gases"*, **Phys. Rev. Lett.** 84, 2551 (2000). [DOI: 10.1103/PhysRevLett.84.2551](https://doi.org/10.1103/PhysRevLett.84.2551)
+- **核心理论**:
+  若横向谐振势阱各向异性（$\omega_x \neq \omega_y$），空间简并被打破，CIR 极点分裂为双峰：$a_{\text{CIR},x} \approx 0.9684 a_{\perp,x}$ 与 $a_{\text{CIR},y} \approx 0.9684 a_{\perp,y}$。准二维平面囚禁（$a_z$）中，两体散射由对数尺度散射长度 $a_{\text{2D}} = A_0 a_z \exp(-\sqrt{\pi/2} a_z / a_s)$ 描述。
+- **代码映射**:
+  - `src/mod_confined_scattering.f90`:
+    - `calc_anisotropic_cir_poles`: 各向异性 CIR 双极点分裂解析提取；
+    - `init_planar_2d`: 准二维平面势阱初始化；
+    - `calc_quasi_2d_scattering`: 准 2D 对数散射长度与低能复散射振幅 $f_{\text{2D}}$。
+
+---
+
+## 13. 自电离体系、Fano 共振理论与复坐标旋转法 (CCR)
+
+### 13.1 组态相互作用与不对称 Fano 线型
+- **文献**:
+  - U. Fano, *"Effects of Configuration Interaction on Intensities and Phase Shifts"*, **Phys. Rev.** 124, 1866 (1961). [DOI: 10.1103/PhysRev.124.1866](https://doi.org/10.1103/PhysRev.124.1866)
+- **核心理论**:
+  当离散双激发准束缚态 $|\phi\rangle$ 浸没在同能量连续电离谱带 $|\psi_E\rangle$ 中时，由库仑多体相互作用引起的组态混合 $V_E = \langle \phi | H | \psi_E \rangle$ 导致准束缚态发生自电离。跃迁吸收截面表现为非对称 Fano 线型：
+  $$\sigma(\epsilon) = \sigma_0 \frac{(q + \epsilon)^2}{1 + \epsilon^2}, \quad \epsilon = \frac{E - E_0}{\Gamma / 2}$$
+  其中 $\Gamma = 2\pi |V_E|^2$ 为自电离衰变宽度，自电离寿命为 $\tau = \hbar / \Gamma$。当 $\epsilon = -q$ 时跃迁振幅相消干涉至严格零点（抗共振 Anti-resonance），当 $\epsilon = 1/q$ 时跃迁相干相长达到最大峰值 $\sigma_{\text{max}} = \sigma_0(1 + q^2)$。
+- **代码映射**:
+  - `src/mod_autoionization_fano.f90`:
+    - `calc_fano_profile`: Fano 谱线截面计算；
+    - `calc_autoionization_lifetime`: 衰变宽度至飞秒寿命高精度换算；
+    - `calc_fano_q_parameter`: 偶极跃迁矩阵元组态不对称因子 $q$ 构造。
+
+### 13.2 复坐标旋转法 (Complex Coordinate Rotation, CCR)
+- **文献**:
+  - W. P. Reinhardt, *"Complex coordinates in the theory of atomic and molecular structure and dynamics"*, **Annu. Rev. Phys. Chem.** 33, 223 (1982). [DOI: 10.1146/annurev.pc.33.100182.001255](https://doi.org/10.1146/annurev.pc.33.100182.001255)
+  - N. Moiseyev, *"Quantum theory of resonances: calculating energies, widths and cross-sections by complex scaling"*, **Phys. Rep.** 302, 212 (1998). [DOI: 10.1016/S0370-1573(98)00002-7](https://doi.org/10.1016/S0370-1573(98)00002-7)
+- **核心理论**:
+  通过非厄米复标度算符 $U(\theta) = \exp(i\theta r \partial_r)$ 使坐标复平面旋转 $r \to r e^{i\theta}$，连续谱以分支点为顶点顺时针旋转 $2\theta$ 角度，将原本隐藏在第二黎曼叶上的 S-矩阵复极点暴露在物理区域中：
+  $$E_{\text{res}} = E_R - i \frac{\Gamma}{2}$$
+  时域波包展现纯指数衰变与连续电子出射通量 $J(t) = \Gamma P(t) / \hbar$。
+- **代码映射**:
+  - `src/mod_autoionization_fano.f90`:
+    - `solve_ccr_resonance_model`: 2x2 复对称非厄米模型本征求解提取共振极点 $(E_R, \Gamma)$；
+    - `calc_time_domain_autoionization_decay`: 时域生存几率与自电离出射通量。
+
+---
+
+## 14. 交叉静电磁场分子量子动力学与非共线 Stark-Zeeman 态混合
+
+### 14.1 任意倾角 $\theta_{EB}$ 交叉场宇称与投影对称性破缺
+- **文献**:
+  - T. V. Tscherbul and R. V. Krems, *"Controlling Central Collisions of Cold Molecules with Crossed Electric and Magnetic Fields"*, **Phys. Rev. Lett.** 97, 083201 (2006). [DOI: 10.1103/PhysRevLett.97.083201](https://doi.org/10.1103/PhysRevLett.97.083201)
+  - B. Friedrich and D. Herschbach, *"Spatial orientation of molecules in strong electric fields and nonresonant intense laser fields"*, **Z. Phys. D** 36, 221 (1996). [DOI: 10.1007/BF01426405](https://doi.org/10.1007/BF01426405)
+- **核心理论**:
+  极性开壳层分子（如 $^2\Sigma$ 自由基或顺磁偶极分子）在非共线静电场 $\mathbf{E} = E \hat{z}$ 与倾斜磁场 $\mathbf{B} = B(\sin\theta_{EB} \hat{x} + \cos\theta_{EB} \hat{z})$ 共同作用下：
+  $$H = B_{\text{rot}} \mathbf{J}^2 - d E \cos\theta_R + g_S \mu_B \left( B_z S_z + B_x S_x \right)$$
+  横向磁场分量 $B_x = B \sin\theta_{EB}$ 产生非对角算符 $S_x = (S_+ + S_-)/2$，驱动 $\Delta M_S = \pm 1$ 强耦合，彻底瓦解了沿电场轴的空间柱对称性，形成可由倾角连续调控的 Stark-Zeeman 密集反交叉谱结构与高定向度 $\langle \cos\theta_R \rangle$。
+- **代码映射**:
+  - `src/mod_crossed_field_scattering.f90`:
+    - `init_crossed_field_config`: 交叉场参数与倾斜坐标分解初始化；
+    - `build_crossed_field_hamiltonian`: 转动-自旋全耦合实对称哈密顿量矩阵组装；
+    - `solve_crossed_field_eigenstates`: 倾斜场绝热本征能级与本征波函数求解；
+    - `calc_crossed_field_observables`: 分子定向度 $\langle \cos\theta \rangle$ 与自旋极化 $\langle S_z \rangle$；
+    - `scan_tilt_angle_spectrum`: 倾角 $\theta_{EB}$ 从 $0^\circ$ 至 $90^\circ$ 全域连续扫描。
+
+---
+
+## 15. 三原子反应碰撞几何、Jacobi 坐标、LEPS 势能面与锥形交叉几何相位
+
+### 15.1 Jacobi 反应散射坐标体系与核间距可逆映射
+- **文献**:
+  - D. G. Truhlar and C. J. Horowitz, *"Functional representations of potential energy surfaces: The H + H2 reaction"*, **J. Chem. Phys.** 68, 2466 (1978). [DOI: 10.1063/1.436019](https://doi.org/10.1063/1.436019)
+- **核心理论**:
+  在 $A + BC \to AB + C$ 反应碰撞中，质心 Jacobi 坐标 $(r, R, \gamma)$（$r$ 为双原子间距，$R$ 为入射原子至双原子质心距离，$\gamma$ 为二者夹角）与三原子内部核间距 $(r_{12}, r_{23}, r_{31})$ 满足精确封闭解析几何转换，是构建反应散射通道波函数与势能曲面的基础数学工具。
+- **代码映射**:
+  - `src/mod_triatomic_geometry.f90`:
+    - `jacobi_to_internuclear`: Jacobi 坐标向互核欧几里得距离严格投影；
+    - `internuclear_to_jacobi`: 任意三原子构型向质心 Jacobi 反应坐标逆变换。
+
+### 15.2 Sato 修正 LEPS 反应势能面与过渡态活化势垒
+- **文献**:
+  - S. Sato, *"A New Method of Drawing the Potential Energy Surface"*, **J. Chem. Phys.** 23, 592 (1955). [DOI: 10.1063/1.1742050](https://doi.org/10.1063/1.1742050)
+- **核心理论**:
+  London-Eyring-Polanyi-Sato (LEPS) 势能面基于 Morse 单重态 $^1\Sigma$ 与反 Morse 三重态 $^3\Sigma$ 曲线构造库仑积分 $Q_i(r_i)$ 与交换积分 $J_i(r_i)$：
+  $$V(r_{12}, r_{23}, r_{31}) = Q_1 + Q_2 + Q_3 - \sqrt{\frac{1}{2} \left[ (J_1 - J_2)^2 + (J_2 - J_3)^2 + (J_3 - J_1)^2 \right]}$$
+  在 $H + H_2$ 基准反应体系中精确复现了解离渐近极限 $-D_e$ 与共线对称过渡态鞍点势垒（Barrier $\sim 9.8\text{ kcal/mol}$）。
+- **代码映射**:
+  - `src/mod_triatomic_geometry.f90`:
+    - `calc_leps_potential`: Sato 标度库仑与交换积分及 LEPS 反应势能面；
+    - `init_default_h3_leps`: $H_3$ 经典反应势能面参数初始化。
+
+### 15.3 线性锥形交叉 (CI) 与 Longuet-Higgins / Berry 拓扑几何相位
+- **文献**:
+  - H. C. Longuet-Higgins et al., *"Studies of the Jahn-Teller effect. II. The dynamical problem"*, **Proc. R. Soc. Lond. A** 244, 1 (1958). [DOI: 10.1098/rspa.1958.0022](https://doi.org/10.1098/rspa.1958.0022)
+  - M. V. Berry, *"Quantal phase factors accompanying adiabatic changes"*, **Proc. R. Soc. Lond. A** 392, 45 (1984). [DOI: 10.1098/rspa.1984.0023](https://doi.org/10.1098/rspa.1984.0023)
+- **核心理论**:
+  在两态 $E \otimes e$ 线性锥形交叉模型 $H_{\text{diab}} = \begin{pmatrix} \kappa x & \lambda y \\ \lambda y & -\kappa x \end{pmatrix}$ 中，绝热能级呈现双锥形退化劈裂 $\Delta E = 2\sqrt{\kappa^2 x^2 + \lambda^2 y^2}$。绕奇点闭合回路积分散布非绝热规范势 $\mathbf{A} = i\langle \psi_- | \nabla | \psi_- \rangle$，严格累积拓扑相 $\Phi_B = \oint \mathbf{A} \cdot d\mathbf{R} = \pi$，使绝热电子波函数环绕一周后产生拓扑变号 $|\psi(2\pi)\rangle = -|\psi(0)\rangle$。
+- **代码映射**:
+  - `src/mod_triatomic_geometry.f90`:
+    - `calc_conical_intersection_adiabats`: CI 锥形绝热势能面与能隙；
+    - `calc_berry_phase_around_ci`: 环绕退化奇点闭合回路拓扑 Berry 几何相位计算。
+
+---
+
+## 16. 超冷旋量玻色-爱因斯坦凝聚与宏观自旋混合动力学
+
+### 16.1 $F=1$ 旋量凝聚体相互作用与铁磁/反铁磁相分类
+- **文献**:
+  - T.-L. Ho, *"Spinor Bose Condensates in Optical Traps"*, **Phys. Rev. Lett.** 81, 742 (1998). [DOI: 10.1103/PhysRevLett.81.742](https://doi.org/10.1103/PhysRevLett.81.742)
+  - T. Ohmi and K. Machida, *"Bose-Einstein Condensation with Internal Degrees of Freedom in Alkali Atom Gases"*, **J. Phys. Soc. Jpn.** 67, 1822 (1998). [DOI: 10.1143/JPSJ.67.1822](https://doi.org/10.1143/JPSJ.67.1822)
+- **核心理论**:
+  自旋 $F=1$ 玻色气体在无外场光偶极阱中具有内部自旋自由度。低能碰撞由总自旋 $F_{\text{tot}} = 0, 2$ 两个通道的 $s$-波散射长度 $a_0, a_2$ 决定：
+  $$c_0 = \frac{4\pi\hbar^2(a_0 + 2a_2)}{3m} \quad (\text{密度相互作用}), \quad c_2 = \frac{4\pi\hbar^2(a_2 - a_0)}{3m} \quad (\text{自旋交换相互作用})$$
+  - $^{87}\text{Rb}$ 满足 $a_2 < a_0 \implies c_2 < 0$，基态倾向于自旋平行排列，表现为**铁磁相 (Ferromagnetic Phase)**；
+  - $^{23}\text{Na}$ 满足 $a_2 > a_0 \implies c_2 > 0$，基态倾向于自旋反平行排列，表现为**反铁磁/极性相 (Antiferromagnetic / Polar Phase)**。
+- **代码映射**:
+  - `src/mod_spinor_bec.f90`:
+    - `init_spinor_preset`: $^{87}\text{Rb}$ 与 $^{23}\text{Na}$ 实验标准散射参数装载；
+    - `calc_spinor_interaction_couplings`: 理论相互作用参数 $c_0, c_2$ 换算与相归属。
+
+### 16.2 单模近似 (SMA) 非线性运动方程与 RK4 宏观自旋振荡
+- **文献**:
+  - M.-S. Chang et al., *"Observation of Spinor Dynamics in Optically Trapped 87Rb Bose-Einstein Condensates"*, **Phys. Rev. Lett.** 92, 140403 (2004). [DOI: 10.1103/PhysRevLett.92.140403](https://doi.org/10.1103/PhysRevLett.92.140403)
+  - H. Pu et al., *"Spin mixing in a doubly degenerate ultracold atomic gas"*, **Phys. Rev. A** 60, 1463 (1999). [DOI: 10.1103/PhysRevA.60.1463](https://doi.org/10.1103/PhysRevA.60.1463)
+- **核心理论**:
+  在单模近似（SMA）下，宏观分量波函数空间分布相同，归一化多分量旋量标量满足含二阶塞曼位移 $q_Z \propto B^2$ 的非线性运动方程：
+  $$i\hbar \frac{d\zeta_{\pm 1}}{dt} = \left[ q_Z + c_2 n (\rho_0 + \rho_{\pm 1} - \rho_{\mp 1}) \right] \zeta_{\pm 1} + c_2 n \zeta_0^2 \zeta_{\mp 1}^*$$
+  $$i\hbar \frac{d\zeta_0}{dt} = c_2 n (\rho_{+1} + \rho_{-1}) \zeta_0 + 2 c_2 n \zeta_{+1} \zeta_{-1} \zeta_0^*$$
+  系统在时间演化中严格守恒全凝聚体几率与磁化强度 $m_z = |\zeta_{+1}|^2 - |\zeta_{-1}|^2$。
+- **代码映射**:
+  - `src/mod_spinor_bec.f90`:
+    - `calc_quadratic_zeeman_shift`: 超精细 Breit-Rabi 二阶塞曼能量位移 $q_Z(B)$；
+    - `propagate_spinor_sma_rk4`: 四阶 Runge-Kutta 保范数与保磁化强度动力学步进器；
+    - `simulate_spin_mixing_dynamics`: 宏观相干自旋混合长时时域模拟。
+
+---
+
+## 17. 快速学术检索与代码对照总表
 
 | 物理模块 | 对应源文件 | 核心经典文献代表 | 主要导出 API 与算法 |
 | :--- | :--- | :--- | :--- |
-| **基础常数与单位** | `mod_constants.f90` | CODATA 2018 / 2022 | `to_au`, `from_au` |
+| **基础常数与单位** | `mod_constants.f90` | CODATA 2018 / 2022 | `to_au`, `from_au`, `GAUSS2AU`, `AU2TESLA` |
 | **角动量代数** | `mod_special_functions.f90` | Varshalovich (1988) | `wigner_3j_half`, `clebsch_gordan_half`, `wigner_9j_half` |
 | **数值线性代数** | `mod_linear_algebra.f90` | EISPACK / Cooley-Tukey | `diag_symmetric_matrix`, `inv_real_matrix`, `fft_1d` |
 | **DVR 与格点谱方法**| `mod_dvr_grid.f90` | Colbert & Miller (1992) | `dvr_sinc_init`, `fgh_solve_bound_states` |
@@ -391,6 +586,12 @@
 | **外场多基组超冷散射**| `mod_field_scattering.f90` | Breit & Rabi (1931), Stoof (1988), Chin et al. (2010) | `calc_breit_rabi_energies`, `calc_basis_transform_matrix`, `calc_magnetic_feshbach_resonance_scan` |
 | **各向异性偶极散射** | `mod_dipolar_scattering.f90`| Stoof (1988), Moerdijk (1996), Bohn (2009) | `calc_mddi_total_matrix_element`, `calc_dipolar_relaxation_cross_section`, `calc_stark_induced_dipole` |
 | **超冷光缔合谱学** | `mod_photoassociation.f90` | Jones et al. (RMP 2006), Bohn & Julienne (1999) | `calc_free_bound_fc_overlap`, `calc_pa_cross_section`, `calc_pa_thermal_rate_coefficient` |
+| **三体 Efimov 复合**| `mod_three_body_recombination.f90` | Efimov (1970), Braaten & Hammer (2006), Esry (1999) | `solve_efimov_s0_identical_bosons`, `calc_three_body_recombination_a_positive`, `calc_unitary_three_body_loss_temperature` |
+| **低维受限散射与 CIR**| `mod_confined_scattering.f90` | Olshanii (1998), Bergeman (2003), Haller (2009) | `init_waveguide_1d`, `calc_olshanii_cir_parameters`, `calc_confined_dimer_binding_energy`, `calc_lieb_liniger_parameter` |
+| **自电离与 Fano/CCR** | `mod_autoionization_fano.f90` | Fano (1961), Reinhardt (1982), Moiseyev (1998) | `calc_fano_profile`, `calc_autoionization_lifetime`, `solve_ccr_resonance_model` |
+| **交叉场 Stark-Zeeman**| `mod_crossed_field_scattering.f90` | Tscherbul & Krems (2006), Friedrich & Herschbach (1996) | `init_crossed_field_config`, `solve_crossed_field_eigenstates`, `calc_crossed_field_observables`, `scan_tilt_angle_spectrum` |
+| **三原子反应 PES 与 CI**| `mod_triatomic_geometry.f90` | Sato (1955), Berry (1984), Longuet-Higgins (1958) | `jacobi_to_internuclear`, `calc_leps_potential`, `calc_conical_intersection_adiabats`, `calc_berry_phase_around_ci` |
+| **旋量 BEC 自旋动力学**| `mod_spinor_bec.f90` | Ho (1998), Ohmi & Machida (1998), Chang (2004) | `init_spinor_preset`, `calc_spinor_interaction_couplings`, `propagate_spinor_sma_rk4`, `simulate_spin_mixing_dynamics` |
 | **开放量子系统** | `mod_open_quantum.f90` | Lindblad (1976), Gorini (1976) | `propagate_lindblad_rk4`, `calculate_von_neumann_entropy` |
 | **量子最优控制** | `mod_optimal_control.f90` | Somlói & Tannor (1993), Krotov (1996) | `optimize_pulse_krotov` |
 

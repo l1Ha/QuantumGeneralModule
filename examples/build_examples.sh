@@ -15,7 +15,13 @@ echo "================================================================"
 cd "$DIR"
 
 FFLAGS="-O2 -fPIC -ffree-line-length-none"
-EXAMPLES=("ex01_fgh_diatomic_bound_states" "ex02_pulse_synthesis" "ex03_split_operator_1d" "ex04_field_free_orientation" "ex05_hhg_lewenstein_spectrum" "ex06_two_state_nonadiabatic" "ex07_scattering_wavefunctions_ti_td" "ex08_ultracold_feshbach_segmented" "ex09_dipolar_relaxation_scattering" "ex10_photoassociation_spectroscopy")
+EXAMPLES=("ex01_fgh_diatomic_bound_states" "ex02_pulse_synthesis" "ex03_split_operator_1d" \
+          "ex04_field_free_orientation" "ex05_hhg_lewenstein_spectrum" "ex06_two_state_nonadiabatic" \
+          "ex07_scattering_wavefunctions_ti_td" "ex08_ultracold_feshbach_segmented" \
+          "ex09_dipolar_relaxation_scattering" "ex10_photoassociation_spectroscopy" \
+          "ex11_three_body_efimov_recombination" "ex12_confined_cir_scattering" \
+          "ex13_autoionization_fano_resonance" "ex14_spinor_bec_dynamics" \
+          "ex15_crossed_field_stark_zeeman" "ex16_triatomic_reaction_berry_phase")
 
 for ex in "${EXAMPLES[@]}"; do
     echo ""

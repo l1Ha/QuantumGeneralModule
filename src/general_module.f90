@@ -25,11 +25,18 @@ module general_module
     use mod_field_scattering
     use mod_dipolar_scattering
     use mod_photoassociation
+    use mod_three_body_recombination
+    use mod_confined_scattering
+    use mod_autoionization_fano
+    use mod_crossed_field_scattering
+    use mod_triatomic_geometry
+    use mod_spinor_bec
     implicit none
 
     public :: dp, int32, int64
     public :: PI, TWOPI, HALFPI, SQRTPI, EYE
     public :: to_au, from_au
+    public :: GAUSS2AU, AU2GAUSS, AU2TESLA, TESLA2AU
 
     public :: legendre_poly, assoc_legendre_poly, wigner_3j, clebsch_gordan
     public :: wigner_3j_half, clebsch_gordan_half, wigner_6j_half, wigner_9j_half
@@ -128,7 +135,7 @@ module general_module
 
     ! 外加电磁场超冷量子碰撞散射 (Field-Dressed & Multi-Basis Scattering)
     public :: BASIS_UNCOUPLED, BASIS_F_COUPLED, BASIS_TOTAL_SPIN, BASIS_FIELD_DRESSED
-    public :: GAUSS2AU, AU2GAUSS, MU_B_AU, MU_N_AU, GHZ2AU, AU2GHZ
+    public :: MU_B_AU, MU_N_AU, GHZ2AU, AU2GHZ
     public :: cold_atom_t, field_channel_t, field_feshbach_result_t
     public :: get_cold_atom_preset, calc_breit_rabi_energies
     public :: build_field_collision_channels, calc_basis_transform_matrix
@@ -150,5 +157,42 @@ module general_module
     public :: calc_free_bound_fc_overlap, calc_pa_stimulated_width
     public :: calc_pa_cross_section, calc_pa_thermal_rate_coefficient
     public :: calc_pa_spectrum_scan, calc_two_photon_raman_association_coupling
+
+    ! 超冷三体复合与 Efimov 少体物理 (Three-Body Recombination & Efimov Physics)
+    public :: efimov_param_t, three_body_loss_t
+    public :: solve_efimov_s0_identical_bosons, solve_efimov_s0_heteronuclear
+    public :: calc_efimov_scale_factor, calc_three_body_recombination_a_positive
+    public :: calc_three_body_recombination_a_negative, calc_three_body_recombination_universal
+    public :: calc_unitary_three_body_loss_temperature, scan_efimov_recombination_spectrum
+
+    ! 低维微观光阱受限量子散射与约束诱导共振 (Confinement-Induced Resonances)
+    public :: waveguide_1d_t, planar_2d_t, cir_result_t
+    public :: init_waveguide_1d, init_planar_2d, calc_olshanii_cir_parameters
+    public :: calc_confined_dimer_binding_energy, calc_anisotropic_cir_poles
+    public :: calc_quasi_2d_scattering, calc_lieb_liniger_parameter
+
+    ! 自电离体系与 Fano 共振理论 (Autoionization & Complex Coordinate Rotation)
+    public :: fano_profile_t, ccr_resonance_t
+    public :: calc_fano_profile, calc_fano_cross_section_spectrum
+    public :: calc_autoionization_lifetime, calc_fano_q_parameter
+    public :: solve_ccr_resonance_model, calc_time_domain_autoionization_decay
+
+    ! 交叉外电磁场强耦合量子散射 (Crossed Electric & Magnetic Fields)
+    public :: crossed_field_config_t, crossed_field_state_t
+    public :: init_crossed_field_config, build_crossed_field_hamiltonian
+    public :: solve_crossed_field_eigenstates, calc_crossed_field_observables
+    public :: scan_tilt_angle_spectrum
+
+    ! 三原子反应散射、Jacobi 坐标与圆锥交叉几何相位 (Triatomic & Geometric Phase)
+    public :: jacobi_coord_t, internuclear_dist_t, leps_param_t, conical_intersection_t
+    public :: jacobi_to_internuclear, internuclear_to_jacobi
+    public :: calc_leps_potential, init_default_h3_leps
+    public :: calc_conical_intersection_adiabats, calc_berry_phase_around_ci
+
+    ! 超冷旋量玻色爱因斯坦凝聚与多体自旋动力学 (Spinor BEC Dynamics)
+    public :: spinor_param_t, spinor_state_t
+    public :: init_spinor_preset, calc_spinor_interaction_couplings
+    public :: calc_quadratic_zeeman_shift, propagate_spinor_sma_rk4
+    public :: calc_spinor_energy, simulate_spin_mixing_dynamics
 
 end module general_module

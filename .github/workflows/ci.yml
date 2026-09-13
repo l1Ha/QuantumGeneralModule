@@ -44,9 +44,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install numpy scipy matplotlib
 
-      - name: Run Fortran Unit Test Suite (15 Test Suites, 199 Assertions)
+      - name: Run Fortran Unit Test Suite (21 Test Suites, 228 Assertions)
         run: |
           bash tests/run_all_tests.sh
+
+      - name: Build & Run Frontier Physical Examples (16 Examples)
+        run: |
+          bash examples/build_examples.sh
 
       - name: Run Python Package Unit Tests (pygenmod)
         run: |

@@ -3,7 +3,7 @@
 !>          电子自旋交换势、全耦合哈密顿量与磁 Feshbach 共振色散扫描拟合。
 !> \author LiHao
 program test_field_scattering
-    use mod_constants, only: dp, PI, TWOPI
+    use mod_constants, only: dp, PI, TWOPI, GAUSS2AU
     use mod_special_functions, only: clebsch_gordan_half, wigner_3j_half, wigner_6j_half, wigner_9j_half
     use mod_field_scattering
     implicit none

@@ -17,6 +17,7 @@ module mod_constants
     public :: AU2M, M2AU, AU2ANG, ANG2AU, AU2NM, NM2AU
     public :: AU2VM, VM2AU, AU2MV_CM, MV_CM2AU
     public :: AU2DEBYE, DEBYE2AU, AU2W_CM2, W_CM2AU
+    public :: AU2GAUSS, GAUSS2AU, AU2TESLA, TESLA2AU
 
     ! 纯函数转换接口导出
     public :: to_au, from_au
@@ -78,6 +79,12 @@ module mod_constants
     real(dp), parameter :: AU2W_CM2 = 3.5094452e16_dp          !< 1 a.u. 光强 -> W/cm^2
     real(dp), parameter :: W_CM2AU  = 1.0_dp / AU2W_CM2        !< W/cm^2 -> a.u.
 
+    ! 磁感应强度单位转换 (1 a.u. = 2.35051756758e5 Tesla = 2.35051756758e9 Gauss)
+    real(dp), parameter :: AU2TESLA = 2.35051756758e5_dp       !< 1 a.u. 磁场 -> Tesla (T)
+    real(dp), parameter :: TESLA2AU = 1.0_dp / AU2TESLA        !< Tesla -> a.u.
+    real(dp), parameter :: AU2GAUSS = 2.35051756758e9_dp       !< 1 a.u. 磁场 -> Gauss (G)
+    real(dp), parameter :: GAUSS2AU = 1.0_dp / AU2GAUSS        !< Gauss -> a.u.
+
 contains
 
     !> \brief 统一将特定单位的标量值换算为原子单位 a.u.
@@ -117,6 +124,10 @@ contains
             val_au = val * DEBYE2AU
         case('w/cm2', 'W/cm^2')
             val_au = val * W_CM2AU
+        case('gauss', 'Gauss', 'G')
+            val_au = val * GAUSS2AU
+        case('tesla', 'Tesla', 'T')
+            val_au = val * TESLA2AU
         case default
             val_au = val
         end select
@@ -159,6 +170,10 @@ contains
             val = val_au * AU2DEBYE
         case('w/cm2', 'W/cm^2')
             val = val_au * AU2W_CM2
+        case('gauss', 'Gauss', 'G')
+            val = val_au * AU2GAUSS
+        case('tesla', 'Tesla', 'T')
+            val = val_au * AU2TESLA
         case default
             val = val_au
         end select
