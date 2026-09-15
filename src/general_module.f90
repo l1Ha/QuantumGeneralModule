@@ -40,6 +40,10 @@ module general_module
     use mod_bicircular_pecd
     use mod_ultracold_reaction_shielding
     use mod_rydberg_blockade
+    use mod_surface_scattering
+    use mod_surface_reaction_er
+    use mod_surface_electronic_friction
+    use mod_grazing_fast_atom_diffraction
     implicit none
 
     public :: dp, int32, int64
@@ -257,5 +261,29 @@ module general_module
     public :: rydberg_atom_t, rydberg_array_config_t
     public :: init_rydberg_atom, calc_rydberg_blockade_radius, init_rydberg_array
     public :: calc_two_atom_dynamics, calc_z2_order_parameter, calc_rydberg_scar_dynamics
+
+    ! 表面量子散射与选择性吸附共振 (Surface Quantum Scattering & SAR)
+    public :: surface_lattice_t, surface_potential_t, diffraction_beam_t
+    public :: init_surface_lattice, init_surface_potential_morse
+    public :: calc_surface_diffraction_channels, calc_hcs_diffraction_probabilities
+    public :: calc_selective_adsorption_resonance, calc_surface_debye_waller
+
+    ! 气-固表面催化与 Eley-Rideal 反应动力学 (Surface Eley-Rideal Reaction)
+    public :: er_reaction_system_t, er_energy_partition_t
+    public :: init_er_reaction_system, calc_er_potential_2d
+    public :: calc_er_energy_partitioning, calc_er_vibrational_populations
+    public :: calc_er_reaction_cross_section, calc_er_thermal_rate_constant
+
+    ! 表面非绝热动力学与电子摩擦耗散 (Surface Electronic Friction & GLE)
+    public :: metal_surface_t, scattering_loss_result_t
+    public :: init_metal_surface, calc_electronic_friction_coeff
+    public :: calc_surface_morse_force, integrate_gle_scattering_trajectory
+    public :: calc_vibrational_relaxation_rate
+
+    ! 掠入射快原子表面量子衍射与彩虹散射 (Grazing Incidence Fast Atom Diffraction - GIFAD)
+    public :: gifad_experiment_t, gifad_spectrum_t
+    public :: init_gifad_experiment, calc_gifad_transverse_kinematics
+    public :: calc_gifad_rainbow_angle, calc_gifad_diffraction_spectrum
+    public :: calc_surface_corrugation_from_rainbow
 
 end module general_module

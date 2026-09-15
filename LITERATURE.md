@@ -884,7 +884,147 @@
 
 ---
 
-## 25. 快速学术检索与代码对照总表
+## 25. 表面量子散射与选择性吸附共振 (Selective Adsorption Resonances)
+
+### 25.1 2D 周期晶格相干散射与硬波纹表面 (HCS) 程函近似
+- **文献**:
+  - R. Frisch and O. Stern, *"Beugung von Materiestrahlen an Kristallgitterflächen"*, **Z. Phys.** 84, 430 (1933).
+  - J. E. Lennard-Jones and A. F. Devonshire, *"Diffraction and selective adsorption of atoms by crystals"*, **Nature** 137, 1069 (1936).
+  - G. Boato, P. Cantini, and L. Mattera, *"Diffraction of He and H2 molecular beams from a LiF(001) crystal surface"*, **J. Phys. C: Solid State Phys.** 6, L394 (1973); **Surf. Sci.** 55, 141 (1976).
+  - J. R. Manson, *"Inelastic scattering from surfaces"*, **Phys. Rev. B** 43, 6924 (1991).
+  - G. Benedek and J. P. Toennies, *"Atomic Scale Dynamics at Surfaces: Theory and Experimental Methods with Helium Atom Scattering"*, **Springer Series in Surface Sciences** 63 (2018).
+- **核心理论**:
+  低能热原子（如 He 束，能量 10-100 meV）与刚性晶体表面碰撞时，横向周期势场产生离散二维布拉格衍射峰：
+  $$\mathbf{K}_{\mathbf{G}} = \mathbf{K}_0 + \mathbf{G} = \left( K_{0x} + m \frac{2\pi}{a_x}, K_{0y} + n \frac{2\pi}{a_y} \right)$$
+  出射法向动量满足能量守恒：$k_{Gz}^2 = k_0^2 - |\mathbf{K}_0 + \mathbf{G}|^2$。
+  在硬波纹表面（HCS）程函近似下，衍射振幅由二维贝塞尔函数卷积决定：
+  $$A_{\mathbf{G}} = (-i)^{|m|+|n|} J_m(u_x) J_n(u_y)$$
+  有限温度下表面声子非弹性热激发导致弹性峰按 Debye-Waller 因子指数衰减：$I_{\mathbf{G}}(T) = I_{\mathbf{G}}^{(0)} e^{-2W(T)}$。
+- **代码映射**:
+  - `src/mod_surface_scattering.f90`:
+    - `init_surface_lattice`: 二维晶格与波纹参数；
+    - `calc_surface_diffraction_channels`: 开/闭通道判据与出射角；
+    - `calc_hcs_diffraction_probabilities`: HCS 程函衍射几率与幺正归一化；
+    - `calc_surface_debye_waller`: 表面声子 Debye-Waller 热衰减。
+
+### 25.2 选择性吸附共振 (SAR) 与 Fano 不对称干涉线型
+- **文献**:
+  - K. L. Wolfe and J. H. Weare, *"Evidence of Fano-type interference in selective adsorption"*, **Phys. Rev. Lett.** 41, 1775 (1978).
+  - P. Cantini et al., *"Resonant scattering of He atoms from LiF(001)"*, **Surf. Sci.** 63, 104 (1977).
+- **核心理论**:
+  当某个倏逝衍射通道（闭通道，Evanescent Beam）的法向运动能量恰好与表面横向平均吸附势的离散束缚能级 $\epsilon_v < 0$ 重合时：
+  $$\frac{\hbar^2 k_{Gz}^2}{2M} = E_i - \frac{\hbar^2 (\mathbf{K}_0 + \mathbf{G})^2}{2M} = \epsilon_v$$
+  原子发生共振表面囚禁，通过虚态耦合向开放通道（尤其是镜面反射通道 $(0,0)$）产生强烈的相消/相长量子干涉，表现为典型的 Fano 不对称线型：
+  $$I_{\text{spec}}(\theta_i) \propto \frac{(q_{\text{SAR}} + \epsilon)^2}{1 + \epsilon^2}, \quad \epsilon = \frac{E_{Gz} - \epsilon_v}{\Gamma_v/2}$$
+- **代码映射**:
+  - `src/mod_surface_scattering.f90`:
+    - `init_surface_potential_morse`: 表面吸引阱深与束缚态求解；
+    - `calc_selective_adsorption_resonance`: 束缚态共振判定与 Fano 线型调制。
+
+---
+
+## 26. 气-固表面催化反应与 Eley-Rideal 提取机理
+
+### 26.1 反应放热量分配与非热化超热振动激发
+- **文献**:
+  - D. D. Eley and E. K. Rideal, *"The catalysis of the para-hydrogen conversion by tungsten"*, **Nature** 146, 401 (1940); **Proc. R. Soc. London A** 178, 429 (1941).
+  - C. T. Rettner, *"Reaction of an H atom beam with a hydrogen-passivated Si(100) surface"*, **Phys. Rev. Lett.** 69, 383 (1992).
+  - C. T. Rettner and D. J. Auerbach, *"Dynamics of the Eley-Rideal reaction: Hydrogen atom recombination on Cu(111)"*, **J. Chem. Phys.** 101, 1529 (1994).
+  - B. Jackson and M. Persson, *"Quantum mechanical study of the Eley-Rideal reaction of H(g) with H(ads) on a metal surface"*, **J. Chem. Phys.** 96, 2378 (1992).
+- **核心理论**:
+  Eley-Rideal (ER) 机理指入射气相超热原子 $A(g)$ 直接单次碰撞提取表面化学吸附原子 $B(\text{ads})$，形成激发态气相分子 $AB(g, v, j)$ 飞离表面：
+  $$A(g) + B(\text{ads})/\text{Surf} \to AB(g, v, j) + \text{Surf}$$
+  反应释放巨大放热量 $\Delta E_{\text{exo}} = D_{AB} - D_{\text{chem}}$（以 H+H/Cu(111) 为例高达 $2.30\ \text{eV}$）。
+  在数十飞秒碰撞时间内，体系远离热平衡：约 $50\%$ 的能量转化为分子的剧烈振动激发（导致振动布居反转如 $P(v=2) > P(v=0)$），约 $35\%$ 转化为高速平动，仅约 $10\%$ 耗散到基底。
+- **代码映射**:
+  - `src/mod_surface_reaction_er.f90`:
+    - `init_er_reaction_system`: 反应体系常数与放热量计算；
+    - `calc_er_potential_2d`: 反应路径 2D 势能面 $V(r, Z_{\text{cm}})$；
+    - `calc_er_energy_partitioning`: 放热能量通道分配（振动、平动、基底）；
+    - `calc_er_vibrational_populations`: 产物分态振动布居反转计算。
+
+### 26.2 反应截面与准无势垒热催化速率
+- **文献**:
+  - A. C. Luntz, *"Gas-surface reaction dynamics: From simple models to complex chemistry"*, **Science** 302, 1352 (2003).
+- **核心理论**:
+  ER 反应通常表现为极低或无进入势垒，反应截面在亚电子伏能区表现为几何碰撞截面 $\sigma_{\text{ER}} \sim 0.2 - 0.5\ \text{\AA}^2$，热反应速率常数满足阿伦尼乌斯型或通量积分形式：
+  $$k_{\text{ER}}(T) = \langle \sigma_{\text{ER}} v_{\text{gas}} \rangle_T$$
+- **代码映射**:
+  - `src/mod_surface_reaction_er.f90`:
+    - `calc_er_reaction_cross_section`: 入射能量依赖反应截面；
+    - `calc_er_thermal_rate_constant`: 温度依赖热催化速率常数。
+
+---
+
+## 27. 表面非绝热动力学与电子摩擦耗散 (Electronic Friction & GLE)
+
+### 27.1 局域密度摩擦近似 (LDFA) 与广义朗之万方程 (GLE)
+- **文献**:
+  - J. C. Tully, *"Dynamics of gas-surface interactions: Thermal accommodation and sticking"*, **Surf. Sci.** 111, 461 (1981); *"Nonadiabatic dynamics at surfaces"*, **Annu. Rev. Phys. Chem.** 51, 153 (2000).
+  - M. Head-Gordon and J. C. Tully, *"Molecular dynamics with electronic frictions"*, **J. Chem. Phys.** 103, 10137 (1995).
+  - J. I. Juaristi, M. Alducin, R. Díez Muiño, H. F. Busnengo, and A. Salin, *"Role of electron-hole pairs in the dissipation of energy during molecular adsorption on metal surfaces"*, **Phys. Rev. Lett.** 100, 116102 (2008).
+  - A. M. Wodtke, J. C. Tully, and D. J. Auerbach, *"Electronically nonadiabatic dynamics in molecule-surface interactions"*, **Science** 290, 1585 (2000).
+- **核心理论**:
+  金属表面存在连续无能隙的电子单粒子激发谱（电子-空穴对，EHPs）。高速核运动强耦合导带电子，导致机械动能非绝热耗散。
+  局域密度摩擦近似下电子阻尼力为 $\mathbf{F}_{\text{friction}} = -\eta(z) \mathbf{v}$，摩擦系数指数衰减：$\eta(z) = \eta_0 e^{-\gamma(z - z_{\text{surf}})}$。
+  分子运动遵循广义朗之万方程（GLE）：
+  $$M \frac{d^2 z}{dt^2} = -\frac{\partial V(z)}{\partial z} - \eta(z) \frac{dz}{dt} + \xi(t)$$
+  单次碰壁非绝热能量损耗为 $\Delta E_{\text{loss}} = \int \eta(z) v(t)^2 dt$。
+- **代码映射**:
+  - `src/mod_surface_electronic_friction.f90`:
+    - `init_metal_surface`: Au(111), Cu(111), Pt(111) 参数初始化；
+    - `calc_electronic_friction_coeff`: 摩擦系数分布 $\eta(z)$；
+    - `calc_surface_morse_force`: 绝热表面保守力；
+    - `integrate_gle_scattering_trajectory`: GLE 动力学步进与非绝热能损。
+
+### 27.2 吸附分子高频振动弛豫寿命与电子浴退相干
+- **文献**:
+  - B. N. J. Persson and M. Persson, *"Vibrational phase relaxation at surfaces"*, **Surf. Sci.** 97, 609 (1980).
+- **核心理论**:
+  高频分子化学键在金属表面吸附时，通过与电子-空穴对的共振耦合发生快速能量弛豫，其振动弛豫速率与寿命满足：
+  $$\Gamma_{\text{vib}} = \frac{1}{\tau_{\text{vib}}} = \frac{\eta(z_{\text{ads}})}{M}$$
+- **代码映射**:
+  - `src/mod_surface_electronic_friction.f90`:
+    - `calc_vibrational_relaxation_rate`: 表面吸附分子振动弛豫速率与寿命。
+
+---
+
+## 28. 掠入射快原子表面量子衍射与彩虹散射 (GIFAD)
+
+### 28.1 轴向沟道快慢自由度解耦与横向低能量子波长
+- **文献**:
+  - P. Rousseau, H. Khemliche, A. G. Borisov, and P. Roncin, *"Quantum Grazing Incidence Fast Atom Diffraction"*, **Phys. Rev. Lett.** 98, 016104 (2007).
+  - A. Schüller, S. Wethekam, and H. Winter, *"Diffraction of Fast Atoms under Axial Surface Channeling Conditions"*, **Phys. Rev. Lett.** 99, 136106 (2007).
+  - H. Winter and A. Aigner, *"Fast atom diffraction at surfaces"*, **Prog. Surf. Sci.** 86, 169 (2011).
+  - P. Roncin and H. Khemliche, *"Fast atom diffraction: A new tool for surface science"*, **Nucl. Instrum. Methods Phys. Res. B** 269, 1400 (2011).
+- **核心理论**:
+  GIFAD 使用 keV 准直轻原子束以掠角 $\theta_{\text{in}} < 1^\circ - 2^\circ$ 沿低指数晶向沟道入射。快轴向沟道效应使纵向与横向运动彻底解耦：
+  1. 纵向平行运动动能高达数 keV，$\lambda_\parallel \sim 10^{-3}\ \text{\AA}$，对晶向凹凸完全平滑化；
+  2. 横向垂直有效动能骤降：$E_\perp = E_{\text{beam}} \sin^2 \theta_{\text{in}} \sim 0.1 - 2.0\ \text{eV}$，横向德布罗意波长扩大至量子尺度：
+     $$\lambda_\perp = \frac{h}{\sqrt{2 M E_\perp}} \sim 0.2 - 1.0\ \text{\AA}$$
+  横向周期沟道产生一维 Bragg 衍射极点：$\sin\theta_m = m \frac{\lambda_\perp}{a_x}$。
+- **代码映射**:
+  - `src/mod_grazing_fast_atom_diffraction.f90`:
+    - `init_gifad_experiment`: 掠入射轴向沟道运动学初始化；
+    - `calc_gifad_transverse_kinematics`: 横向有效能量 $E_\perp$ 与德布罗意波长 $\lambda_\perp$。
+
+### 28.2 经典表面彩虹散射与亚皮米波纹度逆向反演
+- **文献**:
+  - E. A. Manson and V. Celli, *"Inelastic helium scattering from surfaces"*, **Surf. Sci.** 24, 495 (1971).
+- **核心理论**:
+  表面波纹度斜率在拐点处达到极大值，形成经典表面彩虹角：
+  $$\theta_R \approx \arctan\left( \frac{2\pi \zeta}{a_x} \right)$$
+  量子衍射在彩虹角处呈现明显的 Airy 级斑汇聚。通过彩虹角可高精度反演亚皮米表面波纹幅度：
+  $$\zeta = \frac{a_x \tan\theta_R}{2\pi}$$
+- **代码映射**:
+  - `src/mod_grazing_fast_atom_diffraction.f90`:
+    - `calc_gifad_rainbow_angle`: 表面经典彩虹散射角 $\theta_R$；
+    - `calc_gifad_diffraction_spectrum`: 1D 横向量子衍射谱；
+    - `calc_surface_corrugation_from_rainbow`: 表面亚皮米波纹度逆向反演重构。
+
+---
+
+## 29. 快速学术检索与代码对照总表
 
 | 物理模块 | 对应源文件 | 核心经典文献代表 | 主要导出 API 与算法 |
 | :--- | :--- | :--- | :--- |
@@ -916,6 +1056,10 @@
 | **双色圆偏振与 PECD** | `mod_bicircular_pecd.f90` | Kfir (Nat. Phot. 2015), Lux (2012), Böwering (2001) | `init_bicircular_field`, `calc_dynamical_symmetry_fold`, `calc_chirality_measure`, `calc_pecd_energy_resolved` |
 | **超冷反应与偶极遮蔽** | `mod_ultracold_reaction_shielding.f90` | Quéméner (PRA 2010), Anderegg (Science 2021), Schindewolf (2022) | `init_ultracold_molecule_preset`, `calc_shielding_barrier_height`, `calc_wkb_tunneling_probability`, `calc_shielded_scattering_rates` |
 | **里德堡阻塞与多体疤痕**| `mod_rydberg_blockade.f90` | Lukin (PRL 2001), Bernien (Nature 2017), Turner (2018) | `init_rydberg_atom`, `calc_rydberg_blockade_radius`, `calc_two_atom_dynamics`, `calc_rydberg_scar_dynamics` |
+| **表面量子散射与 SAR** | `mod_surface_scattering.f90` | Boato (1973), Manson (1991), Benedek (2018) | `init_surface_lattice`, `calc_surface_diffraction_channels`, `calc_hcs_diffraction_probabilities`, `calc_selective_adsorption_resonance` |
+| **气-固催化与 ER 反应** | `mod_surface_reaction_er.f90` | Eley & Rideal (1940), Rettner (1992), Jackson (1992) | `init_er_reaction_system`, `calc_er_energy_partitioning`, `calc_er_vibrational_populations`, `calc_er_reaction_cross_section` |
+| **表面非绝热与电子摩擦**| `mod_surface_electronic_friction.f90` | Tully (1981), Head-Gordon & Tully (1995), Wodtke (2000) | `init_metal_surface`, `calc_electronic_friction_coeff`, `integrate_gle_scattering_trajectory`, `calc_vibrational_relaxation_rate` |
+| **掠入射快原子衍射 (GIFAD)** | `mod_grazing_fast_atom_diffraction.f90` | Rousseau (PRL 2007), Schüller (PRL 2007), Winter (2011) | `init_gifad_experiment`, `calc_gifad_transverse_kinematics`, `calc_gifad_rainbow_angle`, `calc_surface_corrugation_from_rainbow` |
 | **开放量子系统** | `mod_open_quantum.f90` | Lindblad (1976), Gorini (1976) | `propagate_lindblad_rk4`, `calculate_von_neumann_entropy` |
 | **量子最优控制** | `mod_optimal_control.f90` | Somlói & Tannor (1993), Krotov (1996) | `optimize_pulse_krotov` |
 

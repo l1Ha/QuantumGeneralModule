@@ -56,12 +56,16 @@ gfortran $FFLAGS -c mod_attosecond_transient_absorption.f90
 gfortran $FFLAGS -c mod_bicircular_pecd.f90
 gfortran $FFLAGS -c mod_ultracold_reaction_shielding.f90
 gfortran $FFLAGS -c mod_rydberg_blockade.f90
+gfortran $FFLAGS -c mod_surface_scattering.f90
+gfortran $FFLAGS -c mod_surface_reaction_er.f90
+gfortran $FFLAGS -c mod_surface_electronic_friction.f90
+gfortran $FFLAGS -c mod_grazing_fast_atom_diffraction.f90
 gfortran $FFLAGS -c general_module.f90
 ar rcs libgeneral_module.a *.o
 
 cd "$DIR"
 
-# 2. 编译并运行各项测试 (共 29 大完整测试套件)
+# 2. 编译并运行各项测试 (共 33 大完整测试套件)
 TESTS=(
     "test_constants"
     "test_special_functions"
@@ -92,6 +96,10 @@ TESTS=(
     "test_bicircular_pecd"
     "test_ultracold_reaction_shielding"
     "test_rydberg_blockade"
+    "test_surface_scattering"
+    "test_surface_reaction_er"
+    "test_surface_electronic_friction"
+    "test_grazing_fast_atom_diffraction"
 )
 
 for test_name in "${TESTS[@]}"; do

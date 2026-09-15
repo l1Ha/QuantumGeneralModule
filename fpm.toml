@@ -160,6 +160,26 @@ name = "test_rydberg_blockade"
 source-dir = "tests"
 main = "test_rydberg_blockade.f90"
 
+[[test]]
+name = "test_surface_scattering"
+source-dir = "tests"
+main = "test_surface_scattering.f90"
+
+[[test]]
+name = "test_surface_reaction_er"
+source-dir = "tests"
+main = "test_surface_reaction_er.f90"
+
+[[test]]
+name = "test_surface_electronic_friction"
+source-dir = "tests"
+main = "test_surface_electronic_friction.f90"
+
+[[test]]
+name = "test_grazing_fast_atom_diffraction"
+source-dir = "tests"
+main = "test_grazing_fast_atom_diffraction.f90"
+
 [[example]]
 name = "ex01_fgh_diatomic_bound_states"
 source-dir = "examples"
@@ -279,3 +299,24 @@ main = "ex23_ultracold_molecule_shielding.f90"
 name = "ex24_rydberg_blockade_dynamics"
 source-dir = "examples"
 main = "ex24_rydberg_blockade_dynamics.f90"
+
+[[example]]
+name = "ex25_surface_corrugated_diffraction"
+source-dir = "examples"
+main = "ex25_surface_corrugated_diffraction.f90"
+
+[[example]]
+name = "ex26_eley_rideal_surface_reaction"
+source-dir = "examples"
+main = "ex26_eley_rideal_surface_reaction.f90"
+
+[[example]]
+name = "ex27_surface_electronic_friction_gle"
+source-dir = "examples"
+main = "ex27_surface_electronic_friction_gle.f90"
+
+[[example]]
+name = "ex28_grazing_fast_atom_diffraction"
+source-dir = "examples"
+main = "ex28_grazing_fast_atom_diffraction.f90"
+

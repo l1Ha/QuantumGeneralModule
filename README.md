@@ -3,10 +3,10 @@
 [![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
 [![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests: 280/280 Pass](https://img.shields.io/badge/Tests-280%2F280%20Pass%20(100%25)-brightgreen.svg)](tests/)
-[![Literature: 24 Topics](https://img.shields.io/badge/Literature-24%20Topics%20(PRL%2FPRA%2FRMP%2FScience%2FNature)-blue.svg)](LITERATURE.md)
+[![Tests: 300/300 Pass](https://img.shields.io/badge/Tests-300%2F300%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Literature: 28 Topics](https://img.shields.io/badge/Literature-28%20Topics%20(PRL%2FPRA%2FRMP%2FScience%2FNature)-blue.svg)](LITERATURE.md)
 
-`GeneralModule` 是一个面向超快强场物理、分子光物理与量子动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
+`GeneralModule` 是一个面向超快强场物理、分子光物理、前沿量子散射与表面动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
 
 ---
 
@@ -14,17 +14,17 @@
 
 1. **零外部库依赖 (Zero External Dependencies)**
    - 内部集成高精度 Householder QL 实对称矩阵本征求解器、Gauss-Jordan 全主元实/复方阵求逆与 Cooley-Tukey 1D/2D 快速傅里叶变换（FFT）。
-   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射、各向异性偶极耦合、超冷光缔合速率、少体 Efimov 物理、低维光晶格 CIR、自电离 Fano/CCR、交叉电磁场、三原子反应 PES、旋量 BEC 自旋动力学、三原子超球面反应动力学、偶极量子液滴 LHY、强场非顺序双电离 (NSDI)、磁/光 Feshbach 束缚态、阿秒瞬态吸收光谱 (ATAS)、双色反向圆偏振 PECD、超冷极性分子偶极遮蔽与里德堡原子阻塞求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
+   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射、各向异性偶极耦合、超冷光缔合速率、少体 Efimov 物理、低维光晶格 CIR、自电离 Fano/CCR、交叉电磁场、三原子反应 PES、旋量 BEC 自旋动力学、三原子超球面反应动力学、偶极量子液滴 LHY、强场非顺序双电离 (NSDI)、磁/光 Feshbach 束缚态、阿秒瞬态吸收光谱 (ATAS)、双色反向圆偏振 PECD、超冷极性分子偶极遮蔽、里德堡原子阻塞、2D 表面量子散射与 SAR、气-固催化 Eley-Rideal 反应、金属表面非绝热电子摩擦 (GLE) 与掠入射快原子衍射 (GIFAD) 求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
 2. **现代 Fortran 2008 标准设计**
    - 统一强类型参数定义（`real(dp) => real64`）。
    - 纯函数（`pure function`）与显式 `intent(in/out/inout)` 契约，杜绝隐式全局变量副作用。
 3. **AI 友好型结构化接口 (AI-Friendly)**
    - 算法模块支持统一顶层聚合入口：`use general_module`。
-   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `dvr_1d_t`, `atas_state_t`, `bicircular_field_t`, `chiral_tetrahedral_molecule_t`, `ultracold_molecule_t`, `shielding_config_t`, `rydberg_atom_t`, `rydberg_array_config_t` 等），自解释、低耦合、便于大语言模型精确构造与调用。
+   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `surface_lattice_t`, `er_reaction_system_t`, `metal_surface_t`, `gifad_experiment_t` 等），自解释、低耦合、便于大语言模型精确构造与调用。
 4. **全链路双语生态支持**
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
 5. **全自动 CI/CD 持续集成**
-   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 29 大测试套件与 Python 验证。
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 33 大测试套件（300 个单元断言 100% 通过）与 28 大物理应用工程算例。
 
 ---
 
@@ -39,7 +39,7 @@ GeneralModule/
 ├── CMakeLists.txt                 # CMake 跨平台构建系统
 ├── README.md                      # 本文档
 ├── .gitignore                     # Git 忽略规则
-├── src/                           # 核心 Fortran 源代码 (37 核心模块 + 1 聚合入口)
+├── src/                           # 核心 Fortran 源代码 (41 核心模块 + 1 聚合入口)
 │   ├── mod_constants.f90          # 1. 物理常数与各单位 a.u. 双向转换
 │   ├── mod_special_functions.f90  # 2. 勒让德、Wigner 3j/6j/9j、CG半整数代数、转动偶极/取向矩阵元
 │   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解 (EISPACK TRED2/TQL2)、实/复方阵求逆、1D/2D FFT
@@ -77,8 +77,12 @@ GeneralModule/
 │   ├── mod_bicircular_pecd.f90         # 35. 双色反向旋转圆偏振场、C3 动力学对称性、手性四面体势与光电子圆二色性 (PECD)
 │   ├── mod_ultracold_reaction_shielding.f90    # 36. 超冷极性分子反应动力学、微波/静电偶极遮蔽势垒、WKB 隧穿抑制与 gamma > 100
 │   ├── mod_rydberg_blockade.f90        # 37. 里德堡原子阻塞、C6 标度律、双原子动力学与 1D 阵列 PXP 量子多体疤痕
+│   ├── mod_surface_scattering.f90      # 38. 表面量子散射、2D 晶格相干衍射、硬波纹表面 (HCS) 与选择性吸附共振 (SAR)
+│   ├── mod_surface_reaction_er.f90     # 39. 气-固表面催化与 Eley-Rideal 提取机理、超热放热能量分配与振动反转
+│   ├── mod_surface_electronic_friction.f90 # 40. 金属表面非绝热动力学、局域密度摩擦 (LDFA)、广义朗之万 (GLE) 与电子-空穴对耗散
+│   ├── mod_grazing_fast_atom_diffraction.f90 # 41. 掠入射快原子表面量子衍射 (GIFAD)、轴向沟道快慢解耦与亚皮米波纹反演
 │   └── general_module.f90         # 顶层聚合入口模块 (use general_module)
-├── tests/                         # 自动化单元测试套件 (29 个套件，100% 全部通过，280/280 断言)
+├── tests/                         # 自动化单元测试套件 (33 个套件，100% 全部通过，300/300 断言)
 │   ├── test_constants.f90
 │   ├── test_special_functions.f90
 │   ├── test_dvr_grid.f90
@@ -108,8 +112,12 @@ GeneralModule/
 │   ├── test_bicircular_pecd.f90          # 双色反向圆偏振场 C3 对称、手性四面体不变量 chi 与 PECD 前后发射不对称测试
 │   ├── test_ultracold_reaction_shielding.f90    # KRb 微波遮蔽排斥势垒、WKB 隧穿几率与蒸发冷却比值 gamma > 100 测试
 │   ├── test_rydberg_blockade.f90         # 87Rb 70S 阻塞半径 Rb、双原子强阻塞抑制与 1D 阵列量子多体疤痕测试
-│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 280/280 断言)
-├── examples/                      # 典型物理应用算例 (24 大完整前沿算例)
+│   ├── test_surface_scattering.f90       # 2D 晶格 HCS 程函衍射幺正性、SAR Fano 线型与 Debye-Waller 声子衰减测试
+│   ├── test_surface_reaction_er.f90      # H+H/Cu(111) ER 反应放热量超热分配、振动布居反转与反应截面/速率常数测试
+│   ├── test_surface_electronic_friction.f90 # Au(111) 电子摩擦系数空间衰减、GLE 辛步进、电子-空穴对能损与振动寿命测试
+│   ├── test_grazing_fast_atom_diffraction.f90 # 快轴向沟道解耦、经典彩虹偏转角、1D 横向 Bragg 衍射谱与亚皮米波纹度反演测试
+│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 300/300 断言)
+├── examples/                      # 典型物理应用算例 (28 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90           # 啁啾、双色、太赫兹脉冲时频生成
 │   ├── ex03_split_operator_1d.f90         # 1D 波包动力学演化与 CAP 吸收边界
@@ -134,7 +142,11 @@ GeneralModule/
 │   ├── ex22_bicircular_pecd_chiral.f90          # 双色反向圆偏振场、手性分子对映体能量分辨 PECD 谱与 2D PAD
 │   ├── ex23_ultracold_molecule_shielding.f90    # KRb 超冷极性分子微波遮蔽势垒、隧穿抑制与蒸发冷却速率比 gamma
 │   ├── ex24_rydberg_blockade_dynamics.f90       # 87Rb 70S 阻塞半径、二原子双激发抑制与 1D 阵列量子多体疤痕动力学
-│   └── build_examples.sh          # 算例编译运行脚本 (全 24 算例编译运行通过)
+│   ├── ex25_surface_corrugated_diffraction.f90  # He/LiF(001) 2D 晶格衍射谱、选择性吸附共振 SAR 与 Debye-Waller 扫描
+│   ├── ex26_eley_rideal_surface_reaction.f90    # H+H/Cu(111) 气-固 ER 催化反应、超热放热能量分配与高振动激发态反转分布
+│   ├── ex27_surface_electronic_friction_gle.f90 # NO/Au(111) 表面非绝热散射、广义朗之万 GLE 碰撞轨迹与电子-空穴对能损
+│   ├── ex28_grazing_fast_atom_diffraction.f90   # keV He 掠入射快原子表面量子衍射 (GIFAD)、经典彩虹角与亚皮米波纹度反演
+│   └── build_examples.sh          # 算例编译运行脚本 (全 28 算例编译运行通过)
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
     ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 12/12 测试)
@@ -455,6 +467,36 @@ GeneralModule/
 - `calc_two_atom_dynamics(atom, spacing, rabi, delta, tmax, n_steps, t_arr, pg, ps, pd)`: 细化自适应步长 RK4 积分，验证强阻塞区双激发 $|rr\rangle$ 深度抑制与 $\sqrt{2}\Omega$ 集体纠缠态振荡。
 - `calc_z2_order_parameter(n_atoms, occ)`: 计算一维反铁磁 Néel 空间交错电荷密度波序参量 $\mathcal{O}_{Z_2}$。
 - `calc_rydberg_scar_dynamics(cfg, atom, tmax, n_steps, t_arr, z2_arr)`: 模拟 PXP 拓扑约束链量子多体疤痕长寿命宏观相干复苏。
+
+### 38. 表面量子散射与选择性吸附共振 (`mod_surface_scattering`)
+- `init_surface_lattice(lat, ax, ay, zetax, zetay, m_sub, theta_d)`: 2D 晶格常数、倒格矢 $\mathbf{G}$ 与表面波纹度配置。
+- `init_surface_potential_morse(pot, well_depth, alpha, mass, n_bound)`: 表面吸引阱深与 Morse 束缚态能级求解。
+- `calc_surface_diffraction_channels(lat, mass, energy, theta, phi, max_m, n_ch, channels)`: 2D 衍射通道开/闭判据与出射角。
+- `calc_hcs_diffraction_probabilities(lat, mass, energy, theta, phi, max_m, n_ch, channels)`: 硬波纹表面程函近似贝塞尔衍射强度与幺正归一化。
+- `calc_selective_adsorption_resonance(lat, pot, mass, energy, theta, phi, m, n, v, is_near, delta_e, fano_ratio)`: 闭通道束缚态共振与 Fano 线型调制。
+- `calc_surface_debye_waller(lat, mass, kiz, kzg, temp)`: 表面声子非弹性热激发 Debye-Waller 衰减因子。
+
+### 39. 气-固表面催化与 Eley-Rideal 反应动力学 (`mod_surface_reaction_er`)
+- `init_er_reaction_system(sys, name)`: 预置直接 Eley-Rideal 反应体系参数与巨大放热量 $\Delta E_{\text{exo}}$。
+- `calc_er_potential_2d(sys, r, z_cm, v_pot)`: 反应路径 2D 势能面 $V(r, Z_{\text{cm}})$。
+- `calc_er_energy_partitioning(sys, e_inc, partition)`: 超热放热能量通道分配（振动 $\sim 50\%$、平动 $\sim 35\%$、基底 $\sim 10\%$）。
+- `calc_er_vibrational_populations(sys, e_inc, max_v, v_dist)`: 产物分态振动布居反转分布 $P(v)$。
+- `calc_er_reaction_cross_section(sys, e_inc)`: 入射动能依赖反应截面 $\sigma_{\text{ER}}(E_i)$。
+- `calc_er_thermal_rate_constant(sys, temp)`: 温度依赖准无势垒热催化速率常数 $k_{\text{ER}}(T)$。
+
+### 40. 金属表面非绝热动力学与电子摩擦耗散 (`mod_surface_electronic_friction`)
+- `init_metal_surface(surf, name, temp)`: 金属基底 (Au, Cu, Pt) 费米能与峰值摩擦系数 $\eta_0$。
+- `calc_electronic_friction_coeff(surf, z)`: 局域密度摩擦近似 (LDFA) 空间指数衰减分布 $\eta(z)$。
+- `calc_surface_morse_force(z, well, alpha, ze, v_pot, force)`: 绝热表面保守 Morse 力与排斥壁。
+- `integrate_gle_scattering_trajectory(surf, mass, e_inc, dt, n_steps, t_arr, z_arr, v_arr, loss_res)`: 广义朗之万方程 (GLE) 动力学积分与电子-空穴对能损 $\Delta E_{\text{loss}}$。
+- `calc_vibrational_relaxation_rate(surf, z, mass)`: 表面吸附分子高频化学键振动弛豫速率与寿命 $\tau_{\text{vib}}$。
+
+### 41. 掠入射快原子表面量子衍射与彩虹散射 (`mod_grazing_fast_atom_diffraction`)
+- `init_gifad_experiment(cfg, projectile, mass, e_kev, theta_deg, ax, zeta)`: keV 准直束轴向沟道快慢自由度解耦与有效横向动能 $E_\perp \sim \text{eV}$。
+- `calc_gifad_transverse_kinematics(cfg, e_perp, lambda_perp)`: 横向垂直能量与德布罗意量子波长 $\lambda_\perp$。
+- `calc_gifad_rainbow_angle(cfg)`: 表面经典彩虹散射角 $\theta_R$。
+- `calc_gifad_diffraction_spectrum(cfg, max_order, spec)`: 1D 横向量子 Bragg 衍射谱与彩虹包络调制。
+- `calc_surface_corrugation_from_rainbow(ax, theta_r)`: 亚皮米级表面波纹幅度 $\zeta$ 逆向反演重构。
 
 ---
 

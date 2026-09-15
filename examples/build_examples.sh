@@ -40,6 +40,10 @@ EXAMPLES=(
     "ex22_bicircular_pecd_chiral"
     "ex23_ultracold_molecule_shielding"
     "ex24_rydberg_blockade_dynamics"
+    "ex25_surface_corrugated_diffraction"
+    "ex26_eley_rideal_surface_reaction"
+    "ex27_surface_electronic_friction_gle"
+    "ex28_grazing_fast_atom_diffraction"
 )
 
 for ex in "${EXAMPLES[@]}"; do

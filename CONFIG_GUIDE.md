@@ -1148,18 +1148,144 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
    ```
 2. **双原子阻塞动力学与 1D 阵列量子多体疤痕**：
    ```fortran
-   type(rydberg_array_config_t) :: chain
-   real(dp) :: t_arr(100), z2_arr(100)
-   ! 模拟 10 原子阵列从交错 Néel 态出发的 PXP 疤痕周期复苏
-   call init_rydberg_array(chain, n_atoms=10, spacing_um=5.0_dp, &
-                           rabi_mhz=2.0_dp, detuning_mhz=0.0_dp, boundary_cond=2)
-   call calc_rydberg_scar_dynamics(chain, rb70, t_max_us=2.5_dp, n_steps=100, &
-                                   t_arr=t_arr, z2_order_arr=z2_arr)
-   print *, "Z2 交错序参量初始 = ", z2_arr(1), " 周期复苏幅值 = ", maxval(z2_arr(20:))
+    type(rydberg_array_config_t) :: chain
+    real(dp) :: t_arr(100), z2_arr(100)
+    ! 模拟 10 原子阵列从交错 Néel 态出发的 PXP 疤痕周期复苏
+    call init_rydberg_array(chain, n_atoms=10, spacing_um=5.0_dp, &
+                            rabi_mhz=2.0_dp, detuning_mhz=0.0_dp, boundary_cond=2)
+    call calc_rydberg_scar_dynamics(chain, rb70, t_max_us=2.5_dp, n_steps=100, &
+                                    t_arr=t_arr, z2_order_arr=z2_arr)
+    print *, "Z2 交错序参量初始 = ", z2_arr(1), " 周期复苏幅值 = ", maxval(z2_arr(20:))
+    ```
+
+---
+
+### 3.31 表面量子散射与选择性吸附共振 (`mod_surface_scattering`)
+面向低能轻原子（如热 He 束）在晶体表面的相干弹性/非弹性衍射与吸附束缚态共振：
+1. **表面晶格与 Morse 吸引阱束缚态初始化**：
+   ```fortran
+   use mod_surface_scattering
+   type(surface_lattice_t) :: lif
+   type(surface_potential_t) :: he_pot
+   integer :: n_bound
+   ! LiF(001): ax=ay=2.84 A, corrugation=0.06 A, M_sub=25.94 amu, Theta_D=730 K
+   call init_surface_lattice(lif, ax_ang=2.84_dp, ay_ang=2.84_dp, &
+                             zeta_x_ang=0.06_dp, zeta_y_ang=0.06_dp, &
+                             m_sub_amu=25.94_dp, debye_temp_k=730.0_dp)
+   call init_surface_potential_morse(he_pot, well_depth_mev=7.5_dp, &
+                                     range_inv_ang=1.1_dp, mass_amu=4.0026_dp, &
+                                     n_bound=n_bound)
+   ```
+2. **2D 衍射通道与硬波纹表面 (HCS) 程函几率**：
+   ```fortran
+   type(diffraction_beam_t) :: channels(25)
+   integer :: n_ch
+   call calc_hcs_diffraction_probabilities(lif, mass_amu=4.0026_dp, energy_ev=0.020_dp, &
+                                           theta_i_deg=40.0_dp, phi_i_deg=0.0_dp, &
+                                           max_order=1, n_channels=n_ch, channels=channels)
+   ```
+3. **选择性吸附共振 (SAR) Fano 线型与声子 Debye-Waller 衰减**：
+   ```fortran
+   real(dp) :: de_mev, fano_ratio, dw_factor
+   logical :: is_near
+   call calc_selective_adsorption_resonance(lif, he_pot, mass_amu=4.0026_dp, &
+                                            energy_ev=0.020_dp, theta_i_deg=55.0_dp, &
+                                            phi_i_deg=0.0_dp, m_res=-1, n_res=0, &
+                                            v_bound=0, is_near_res=is_near, &
+                                            delta_e_mev=de_mev, fano_specular_ratio=fano_ratio)
+   dw_factor = calc_surface_debye_waller(lif, mass_amu=4.0026_dp, k_iz_au=1.8_dp, &
+                                         kz_g_au=1.8_dp, temp_k=300.0_dp)
+   ```
+
+---
+
+### 3.32 气-固界面催化反应与 Eley-Rideal 提取机理 (`mod_surface_reaction_er`)
+面向气相超热原子与表面化学吸附原子的直接碰撞提取反应动力学：
+1. **预置反应体系初始化与放热量计算**：
+   ```fortran
+   use mod_surface_reaction_er
+   type(er_reaction_system_t) :: er_sys
+   call init_er_reaction_system(er_sys, "H+H/Cu(111)")
+   print *, "反应放热量 Delta E = ", er_sys%delta_e_exo_ev, " eV"
+   ```
+2. **放热能量分配与产物振动布居反转**：
+   ```fortran
+   type(er_energy_partition_t) :: ep
+   real(dp) :: p_vib(0:5)
+   call calc_er_energy_partitioning(er_sys, e_incident_ev=0.15_dp, partition=ep)
+   call calc_er_vibrational_populations(er_sys, e_incident_ev=0.15_dp, max_v=5, v_dist=p_vib)
+   print *, "振动激发能量 E_vib = ", ep%e_vib_ev, " eV, P(v=2) = ", p_vib(2)
+   ```
+3. **反应截面与温度依赖催化速率常数**：
+   ```fortran
+   real(dp) :: sigma_er, k_rate
+   sigma_er = calc_er_reaction_cross_section(er_sys, e_incident_ev=0.15_dp)
+   k_rate   = calc_er_thermal_rate_constant(er_sys, temp_k=300.0_dp)
+   print *, "截面 sigma = ", sigma_er, " A^2, 速率常数 k = ", k_rate, " cm^3/s"
+   ```
+
+---
+
+### 3.33 金属表面非绝热动力学与电子摩擦耗散 (`mod_surface_electronic_friction`)
+面向分子撞击金属表面时电子-空穴对激发与广义朗之万方程 (GLE) 动力学：
+1. **金属基底初始化与指数空间摩擦系数分布**：
+   ```fortran
+   use mod_surface_electronic_friction
+   type(metal_surface_t) :: au111
+   real(dp) :: eta_val
+   call init_metal_surface(au111, "Au(111)", temp_k=300.0_dp)
+   eta_val = calc_electronic_friction_coeff(au111, z_bohr=2.0_dp)
+   ```
+2. **广义朗之万方程 (GLE) 轨迹步进与非绝热能损**：
+   ```fortran
+   type(scattering_loss_result_t) :: res
+   real(dp) :: t_fs(200), z_ang(200), v_ms(200)
+   call integrate_gle_scattering_trajectory(au111, mass_amu=30.006_dp, e_incident_ev=0.50_dp, &
+                                           dt_fs=0.5_dp, n_steps=200, t_arr_fs=t_fs, &
+                                           z_arr_ang=z_ang, v_arr_ms=v_ms, loss_res=res)
+   print *, "单次碰撞电子-空穴对能损 = ", res%e_lost_ev, " eV, 最近距离 = ", res%z_turnaround_ang, " A"
+   ```
+3. **吸附分子振动弛豫寿命计算**：
+   ```fortran
+   real(dp) :: gamma_vib, tau_ps
+   gamma_vib = calc_vibrational_relaxation_rate(au111, z_ang=1.058_dp, mass_amu=30.006_dp)
+   tau_ps = 1.0_dp / gamma_vib
+   print *, "表面振动耗散率 = ", gamma_vib, " ps^-1, 寿命 = ", tau_ps, " ps"
+   ```
+
+---
+
+### 3.34 掠入射快原子表面量子衍射与彩虹散射 (`mod_grazing_fast_atom_diffraction`)
+面向 keV 准直束快原子在低指数轴向沟道中的量子衍射与彩虹调制：
+1. **GIFAD 实验参数与快慢自由度解耦**：
+   ```fortran
+   use mod_grazing_fast_atom_diffraction
+   type(gifad_experiment_t) :: exp_cfg
+   real(dp) :: e_perp, lambda_perp
+   ! 1.0 keV He 束以 1.0 度掠射角入射 LiF(001) <110> 沟道 (ax=2.84 A, zeta=0.05 A)
+   call init_gifad_experiment(exp_cfg, projectile="He", mass_amu=4.0026_dp, &
+                             e_kev=1.0_dp, theta_deg=1.0_dp, &
+                             ax_ang=2.84_dp, corrugation_ang=0.05_dp)
+   call calc_gifad_transverse_kinematics(exp_cfg, e_perp, lambda_perp)
+   print *, "横向垂直能量 E_perp = ", e_perp, " eV, 横向德布罗意波长 = ", lambda_perp, " A"
+   ```
+2. **经典表面彩虹偏转角与 1D 横向量子衍射谱**：
+   ```fortran
+   type(gifad_spectrum_t) :: spec
+   real(dp) :: th_rainbow
+   th_rainbow = calc_gifad_rainbow_angle(exp_cfg)
+   call calc_gifad_diffraction_spectrum(exp_cfg, max_order=15, spec=spec)
+   print *, "经典表面彩虹角 theta_R = ", th_rainbow, " deg, 开通道数 = ", spec%n_open_orders
+   ```
+3. **表面亚皮米波纹度逆向反演重构**：
+   ```fortran
+   real(dp) :: zeta_recon
+   zeta_recon = calc_surface_corrugation_from_rainbow(exp_cfg%ax_channel_ang, th_rainbow)
+   print *, "逆向重构波纹幅度 zeta = ", zeta_recon, " A (精度达亚皮米量级)"
    ```
 
 > [!TIP]
-> 包含全部前沿复杂体系的应用工程算例（11 至 24），详见：
+> 包含全部前沿复杂体系的应用工程算例（11 至 28），详见：
 > 👉 [`examples/ex11_three_body_efimov_recombination.f90`](examples/ex11_three_body_efimov_recombination.f90)
 > 👉 [`examples/ex12_confined_cir_scattering.f90`](examples/ex12_confined_cir_scattering.f90)
 > 👉 [`examples/ex13_autoionization_fano_resonance.f90`](examples/ex13_autoionization_fano_resonance.f90)
@@ -1174,7 +1300,11 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 > 👉 [`examples/ex22_bicircular_pecd_chiral.f90`](examples/ex22_bicircular_pecd_chiral.f90)
 > 👉 [`examples/ex23_ultracold_molecule_shielding.f90`](examples/ex23_ultracold_molecule_shielding.f90)
 > 👉 [`examples/ex24_rydberg_blockade_dynamics.f90`](examples/ex24_rydberg_blockade_dynamics.f90)
-> 对应理论文献详见：👉 [`LITERATURE.md`](LITERATURE.md) 第 11 节至第 24 节。
+> 👉 [`examples/ex25_surface_corrugated_diffraction.f90`](examples/ex25_surface_corrugated_diffraction.f90)
+> 👉 [`examples/ex26_eley_rideal_surface_reaction.f90`](examples/ex26_eley_rideal_surface_reaction.f90)
+> 👉 [`examples/ex27_surface_electronic_friction_gle.f90`](examples/ex27_surface_electronic_friction_gle.f90)
+> 👉 [`examples/ex28_grazing_fast_atom_diffraction.f90`](examples/ex28_grazing_fast_atom_diffraction.f90)
+> 对应理论文献详见：👉 [`LITERATURE.md`](LITERATURE.md) 第 11 节至第 28 节。
 
 ---
 
