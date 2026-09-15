@@ -146,7 +146,7 @@ contains
 
         real(dp) :: energy_au, mass_au, k_tot, th_i, ph_i
         real(dp) :: k_ix, k_iy, k_iz
-        real(dp) :: gx, gy, k_gx, k_gy, kz2, k_norm, k_par
+        real(dp) :: gx, gy, k_gx, k_gy, kz2, k_par
         integer  :: m, n, idx
 
         energy_au = energy_ev * EV2AU
@@ -348,6 +348,11 @@ contains
 
         real(dp) :: delta_kz_m, m_sub_kg, theta_d, t_surf
         real(dp) :: two_w
+
+        if (mass_amu <= 0.0_dp) then
+            dw_factor = 0.0_dp
+            return
+        end if
 
         ! Delta kz in SI (m^-1)
         delta_kz_m = (k_iz_au + abs(kz_g_au)) * (1.0_dp / 0.529177210903e-10_dp)

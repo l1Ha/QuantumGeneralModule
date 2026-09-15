@@ -176,7 +176,7 @@ contains
 
         integer, parameter :: N_E = 128
         integer  :: i
-        real(dp) :: kb_t_au, e_max, de, e_curr, k_curr, gamma_stim_e
+        real(dp) :: kb_t_au, e_max, de, e_curr, gamma_stim_e
         real(dp) :: sum_rate, sum_weight, weight
         type(pa_transition_result_t) :: tr_res
 

@@ -18,7 +18,8 @@ program test_photofragment_flux
     ! 1. 测试波包自相关函数 C(0) = 1.0
     psi0 = (0.0_dp, 0.0_dp)
     psi0(64) = cmplx(1.0_dp / sqrt(0.1_dp), 0.0_dp, kind=dp)
-    call assert_close("Autocorrelation C(0) = 1.0", 1.0_dp, abs(calculate_autocorrelation(psi0, psi0, 0.1_dp)), 1.0e-12_dp)
+    call assert_close("Autocorrelation C(0) = 1.0", 1.0_dp, &
+        abs(calculate_autocorrelation(psi0, psi0, 0.1_dp)), 1.0e-12_dp)
 
     ! 2. 模拟高斯阻尼自相关函数 C(t) = exp(-i * omega_0 * t - 0.5 * (gamma * t)^2)
     ! 对应吸收截面应在 omega = omega_0 处呈现高斯吸收峰

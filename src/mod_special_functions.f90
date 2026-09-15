@@ -114,8 +114,8 @@ contains
         integer, intent(in) :: j1, j2, j3, m1, m2, m3
         real(dp) :: w3j
         integer :: t, t_min, t_max
-        real(dp) :: delta_coeff, sum_term, term, sign_t
-        real(dp) :: num, den
+        real(dp) :: delta_coeff, sum_term, sign_t
+        real(dp) :: den
 
         w3j = 0.0_dp
 

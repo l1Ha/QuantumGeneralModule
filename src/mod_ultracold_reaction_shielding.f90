@@ -162,7 +162,6 @@ contains
         real(dp), intent(out) :: v_barrier_kelvin
 
         real(dp) :: delta_au, r_est, v_eff
-        integer :: iter
 
         ! Analytic estimate of barrier radius: R_shield = (2 * C3 / Delta)^(1/3)
         delta_au = cfg%detuning_mhz * MHZ2AU
@@ -229,7 +228,7 @@ contains
 
         real(dp) :: t_kelvin, e_th_uk, t_tunnel
         real(dp) :: v_th_si, r_barrier, v_barrier
-        real(dp) :: a_eff_m, sigma_el_si, sigma_inel_si
+        real(dp) :: a_eff_m, sigma_el_si
         real(dp) :: mu_kg
 
         t_kelvin = max(1.0e-8_dp, temp_uk * 1.0e-6_dp)

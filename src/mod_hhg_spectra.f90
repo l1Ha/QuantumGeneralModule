@@ -130,7 +130,7 @@ contains
         real(dp), intent(in) :: ip_au, dt
         real(dp) :: dip
 
-        integer :: it, it_p, n_steps
+        integer :: it_p, n_steps
         real(dp) :: tp, tau, p_st, s_act, action_int
         real(dp) :: d_rec, d_ion, d_tau
         complex(dp) :: sum_dip, integrand

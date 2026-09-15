@@ -137,7 +137,7 @@ contains
         end do
 
         h = spl%x(khi) - spl%x(klo)
-        if (h == 0.0_dp) then
+        if (abs(h) < 1.0e-15_dp) then
             y_val = spl%y(klo)
             return
         end if
@@ -175,7 +175,7 @@ contains
         end do
 
         h = spl%x(khi) - spl%x(klo)
-        if (h == 0.0_dp) then
+        if (abs(h) < 1.0e-15_dp) then
             dy_val = 0.0_dp
             return
         end if
@@ -214,7 +214,7 @@ contains
         end do
 
         h = spl%x(khi) - spl%x(klo)
-        if (h == 0.0_dp) then
+        if (abs(h) < 1.0e-15_dp) then
             d2y_val = 0.0_dp
             return
         end if

@@ -31,7 +31,8 @@ program test_attosecond_transient_absorption
     n_total = n_total + 1
     if (stat == 0 .and. abs(he_state%energy_ev - 60.15_dp) < 1.0e-3_dp .and. &
         abs(he_state%gamma_ev - 0.037_dp) < 1.0e-4_dp) then
-        print *, " [PASS] Helium 2s2p benchmark initialized: E0 = ", he_state%energy_ev, " eV, Gamma = ", he_state%gamma_ev
+        print *, " [PASS] Helium 2s2p benchmark initialized: E0 = ", &
+            he_state%energy_ev, " eV, Gamma = ", he_state%gamma_ev
         n_pass = n_pass + 1
     else
         print *, " [FAIL] Helium benchmark initialization error"

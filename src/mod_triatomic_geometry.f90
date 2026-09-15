@@ -154,7 +154,7 @@ contains
         type(leps_param_t), intent(in)        :: leps
         real(dp) :: v_pot
 
-        real(dp) :: r(3), d_e, r_e, b, s, x, e_singlet, e_triplet
+        real(dp) :: r(3), d_e, r_e, b, s, x
         real(dp) :: q(3), j(3), diff1, diff2, diff3
         integer  :: k
 
@@ -238,7 +238,7 @@ contains
         real(dp) :: berry_phase
 
         integer :: i
-        real(dp) :: d_phi, phi, x, y, dx, dy, mixing_angle, last_angle, d_angle, total_angle
+        real(dp) :: d_phi, phi, dx, dy, mixing_angle, last_angle, d_angle, total_angle
 
         d_phi = TWOPI / real(n_steps, dp)
         total_angle = 0.0_dp

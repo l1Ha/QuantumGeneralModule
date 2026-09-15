@@ -96,11 +96,11 @@ contains
     !    A(E) = 1/sqrt(2*pi) * int_0^T psi(x_det, t) * exp(i * E * t / hbar) dt
     ! ==========================================================================
     subroutine accumulate_flux_amplitude(t, psi_at_det, dt, energy_grid, n_energies, hbar, amp_accum)
+        integer, intent(in)                       :: n_energies
         real(dp), intent(in)                      :: t
         complex(dp), intent(in)                   :: psi_at_det
         real(dp), intent(in)                      :: dt
         real(dp), dimension(n_energies), intent(in):: energy_grid
-        integer, intent(in)                       :: n_energies
         real(dp), intent(in)                      :: hbar
         complex(dp), dimension(n_energies), intent(inout) :: amp_accum
 
@@ -123,8 +123,8 @@ contains
     ! ==========================================================================
     subroutine calculate_td_transmission(energy_grid, n_energies, amp_trans, mass, hbar, &
                                          x0, sigma_x, k0, t_prob)
-        real(dp), dimension(n_energies), intent(in)   :: energy_grid
         integer, intent(in)                           :: n_energies
+        real(dp), dimension(n_energies), intent(in)   :: energy_grid
         complex(dp), dimension(n_energies), intent(in):: amp_trans
         real(dp), intent(in)                          :: mass
         real(dp), intent(in)                          :: hbar
@@ -166,9 +166,9 @@ contains
     !    delta(E) = 0.5 * arg(S(E))
     ! ==========================================================================
     subroutine calculate_td_smatrix_element(amp_scatter, amp_free, n_energies, s_matrix_e, phase_shift_e)
+        integer, intent(in)                             :: n_energies
         complex(dp), dimension(n_energies), intent(in)  :: amp_scatter
         complex(dp), dimension(n_energies), intent(in)  :: amp_free
-        integer, intent(in)                             :: n_energies
         complex(dp), dimension(n_energies), intent(out) :: s_matrix_e
         real(dp), dimension(n_energies), intent(out)    :: phase_shift_e
 
@@ -195,6 +195,7 @@ contains
     subroutine project_wavepacket_to_smatrix(x_grid, dx, psi_final, mass, hbar, &
                                             k0, sigma_x, x0, energy_grid, n_energies, &
                                             t_prob, r_prob)
+        integer, intent(in)                         :: n_energies
         real(dp), dimension(:), intent(in)          :: x_grid
         real(dp), intent(in)                        :: dx
         complex(dp), dimension(:), intent(in)       :: psi_final
@@ -204,7 +205,6 @@ contains
         real(dp), intent(in)                        :: sigma_x
         real(dp), intent(in)                        :: x0
         real(dp), dimension(n_energies), intent(in) :: energy_grid
-        integer, intent(in)                         :: n_energies
         real(dp), dimension(n_energies), intent(out):: t_prob
         real(dp), dimension(n_energies), intent(out):: r_prob
 
@@ -260,6 +260,7 @@ contains
     subroutine multichannel_td_smatrix_elements(amp_ch1, amp_ch2, mass, hbar, &
                                                energy_grid, delta_e, x0, sigma_x, k0, &
                                                s11_prob, s12_prob, n_energies)
+        integer, intent(in)                            :: n_energies
         complex(dp), dimension(n_energies), intent(in) :: amp_ch1
         complex(dp), dimension(n_energies), intent(in) :: amp_ch2
         real(dp), intent(in)                           :: mass
@@ -271,7 +272,6 @@ contains
         real(dp), intent(in)                           :: k0
         real(dp), dimension(n_energies), intent(out)   :: s11_prob
         real(dp), dimension(n_energies), intent(out)   :: s12_prob
-        integer, intent(in)                            :: n_energies
 
         integer  :: ie
         real(dp) :: e1, e2, k1, k2, p_inc
@@ -338,9 +338,9 @@ contains
     end function wavepacket_centroid_position
 
     subroutine wavepacket_wigner_delay(energy_grid, phase_shift, n_energies, hbar, delay_wigner)
+        integer, intent(in)                          :: n_energies
         real(dp), dimension(n_energies), intent(in)  :: energy_grid
         real(dp), dimension(n_energies), intent(in)  :: phase_shift
-        integer, intent(in)                          :: n_energies
         real(dp), intent(in)                         :: hbar
         real(dp), dimension(n_energies), intent(out) :: delay_wigner
 

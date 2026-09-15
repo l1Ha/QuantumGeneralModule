@@ -172,7 +172,7 @@ contains
         do i_idx = 1, dim_n
             h_c = diag_e(i_idx) * c_in(i_idx)
             do j_idx = 1, dim_n
-                if (dip_m(i_idx, j_idx) /= 0.0_dp) then
+                if (abs(dip_m(i_idx, j_idx)) > 1.0e-30_dp) then
                     h_c = h_c - e_t * dip_m(i_idx, j_idx) * c_in(j_idx)
                 end if
             end do

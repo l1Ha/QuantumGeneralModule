@@ -602,7 +602,7 @@ contains
         integer, optional, intent(out)       :: stat
 
         integer  :: l, istat
-        real(dp) :: k_wave, k_m, s_m_re, s_m_im, t_m_re, t_m_im
+        real(dp) :: k_wave, k_m
         complex(dp) :: s_m, t_m
 
         if (present(stat)) stat = 0
@@ -632,8 +632,8 @@ contains
     ! ==========================================================================
     pure function optical_theorem_cross_section(k_wave, delta_arr, l_max) result(sigma_opt)
         real(dp), intent(in)                 :: k_wave
-        real(dp), dimension(0:l_max), intent(in) :: delta_arr
         integer, intent(in)                  :: l_max
+        real(dp), dimension(0:l_max), intent(in) :: delta_arr
         real(dp)                             :: sigma_opt
 
         integer :: l
@@ -655,8 +655,8 @@ contains
     subroutine calc_differential_cross_section(energy, mass, delta_arr, l_max, theta_grid, dsigma_domega)
         real(dp), intent(in)                 :: energy
         real(dp), intent(in)                 :: mass
-        real(dp), dimension(0:l_max), intent(in) :: delta_arr
         integer, intent(in)                  :: l_max
+        real(dp), dimension(0:l_max), intent(in) :: delta_arr
         real(dp), dimension(:), intent(in)   :: theta_grid
         real(dp), dimension(:), intent(out)  :: dsigma_domega
 
@@ -694,8 +694,8 @@ contains
                                                         theta_grid, particle_stat, dsigma_domega)
         real(dp), intent(in)                 :: energy
         real(dp), intent(in)                 :: mass
-        real(dp), dimension(0:l_max), intent(in) :: delta_arr
         integer, intent(in)                  :: l_max
+        real(dp), dimension(0:l_max), intent(in) :: delta_arr
         real(dp), dimension(:), intent(in)   :: theta_grid
         integer, intent(in)                  :: particle_stat
         real(dp), dimension(:), intent(out)  :: dsigma_domega
@@ -754,8 +754,8 @@ contains
     subroutine calc_transport_cross_sections(energy, mass, delta_arr, l_max, sigma_momentum, sigma_viscosity)
         real(dp), intent(in)                 :: energy
         real(dp), intent(in)                 :: mass
-        real(dp), dimension(0:l_max), intent(in) :: delta_arr
         integer, intent(in)                  :: l_max
+        real(dp), dimension(0:l_max), intent(in) :: delta_arr
         real(dp), intent(out)                :: sigma_momentum
         real(dp), intent(out)                :: sigma_viscosity
 
@@ -794,9 +794,9 @@ contains
         real(dp), dimension(:), intent(in)            :: r_grid
         real(dp), dimension(:), intent(in)            :: v_pot
         real(dp), intent(in)                          :: mass
-        real(dp), dimension(n_energies), intent(in)   :: energy_grid
         integer, intent(in)                           :: n_energies
         integer, intent(in)                           :: l_max
+        real(dp), dimension(n_energies), intent(in)   :: energy_grid
         real(dp), dimension(n_energies), intent(out)  :: sigma_total
         real(dp), dimension(0:l_max, n_energies), optional, intent(out) :: sigma_partial
         integer, optional, intent(out)                :: stat
@@ -825,8 +825,8 @@ contains
     subroutine calc_generalized_cross_sections(k_wave, s_mat_arr, l_max, &
                                               sigma_elastic, sigma_inelastic, sigma_total)
         real(dp), intent(in)                     :: k_wave
-        complex(dp), dimension(0:l_max), intent(in) :: s_mat_arr
         integer, intent(in)                      :: l_max
+        complex(dp), dimension(0:l_max), intent(in) :: s_mat_arr
         real(dp), intent(out)                    :: sigma_elastic
         real(dp), intent(out)                    :: sigma_inelastic
         real(dp), intent(out)                    :: sigma_total
@@ -908,11 +908,11 @@ contains
     !    k * cot(delta_0(k)) = -1/a_s + 0.5 * r_0 * k^2
     ! ==========================================================================
     subroutine fit_effective_range_expansion(r_grid, v_pot, mass, k_list, n_k, a_s, r_0, stat)
+        integer, intent(in)                :: n_k
         real(dp), dimension(:), intent(in) :: r_grid
         real(dp), dimension(:), intent(in) :: v_pot
         real(dp), intent(in)               :: mass
         real(dp), dimension(n_k), intent(in) :: k_list
-        integer, intent(in)                :: n_k
         real(dp), intent(out)              :: a_s
         real(dp), intent(out)              :: r_0
         integer, optional, intent(out)     :: stat
@@ -992,9 +992,9 @@ contains
     !     在共振处 tau_max = 4 * hbar / Gamma => Gamma = 4 * hbar / tau_max
     ! ==========================================================================
     subroutine analyze_shape_resonance(energy_grid, delta_grid, n_pts, hbar, res_info, stat)
+        integer, intent(in)                    :: n_pts
         real(dp), dimension(n_pts), intent(in) :: energy_grid
         real(dp), dimension(n_pts), intent(in) :: delta_grid
-        integer, intent(in)                    :: n_pts
         real(dp), intent(in)                   :: hbar
         type(resonance_info_t), intent(out)    :: res_info
         integer, optional, intent(out)         :: stat
@@ -1059,12 +1059,11 @@ contains
         integer, optional, intent(out)       :: stat
 
         integer  :: n_pts, i
-        real(dp) :: dr, dr2_12, e1, e2, k1, k2, r_match
+        real(dp) :: dr, e1, e2, k1, k2, r_match
         real(dp) :: q11, q22, q12
         real(dp) :: j1, n1, dj1, dn1, j2, n2, dj2, dn2
-        real(dp), dimension(2, 2) :: u_curr, u_prev, u_next, r_rat
-        real(dp), dimension(2, 2) :: w_curr, w_prev, w_next, q_mat
-        real(dp), dimension(2, 2) :: k_mat, den_mat
+        real(dp), dimension(2, 2) :: u_curr, u_prev, u_next
+        real(dp), dimension(2, 2) :: k_mat
         complex(dp), dimension(2, 2) :: num_c, den_c, den_inv
         complex(dp) :: det_c
 
@@ -1085,7 +1084,6 @@ contains
         k1 = sqrt(2.0_dp * mass * e1)
         k2 = sqrt(2.0_dp * mass * e2)
         dr = r_grid(2) - r_grid(1)
-        dr2_12 = (dr * dr) / 12.0_dp
 
         ! 初始化两组独立解 (2x2 基矩阵)
         u_prev = 0.0_dp
@@ -1235,7 +1233,8 @@ contains
         if (res%n_closed > 0) then
             allocate(res%kappa_closed(res%n_closed))
             do i = 1, res%n_closed
-                res%kappa_closed(i) = sqrt(2.0_dp * mass * max(0.0_dp, thresholds(res%closed_channels(i)) - total_energy))
+                res%kappa_closed(i) = sqrt(2.0_dp * mass * &
+                    max(0.0_dp, thresholds(res%closed_channels(i)) - total_energy))
             end do
         end if
 
@@ -1595,12 +1594,8 @@ contains
         allocate(grid%sector_offset(n_sec))
 
         curr_idx = 1
+        r_curr_start = r_start
         do k = 1, n_sec
-            if (k == 1) then
-                r_curr_start = r_start
-            else
-                r_curr_start = r_bounds(k - 1)
-            end if
             r_curr_end = r_bounds(k)
             if (r_curr_end <= r_curr_start .or. dr_steps(k) <= 0.0_dp) then
                 if (present(stat)) stat = -2
@@ -1618,6 +1613,7 @@ contains
             grid%sector_offset(k) = curr_idx
 
             curr_idx = curr_idx + n_int
+            r_curr_start = r_curr_end
         end do
 
         grid%n_total = curr_idx
@@ -2000,7 +1996,8 @@ contains
         if (res%n_closed > 0) then
             allocate(res%kappa_closed(res%n_closed))
             do i = 1, res%n_closed
-                res%kappa_closed(i) = sqrt(2.0_dp * mass * max(0.0_dp, thresholds(res%closed_channels(i)) - total_energy))
+                res%kappa_closed(i) = sqrt(2.0_dp * mass * &
+                    max(0.0_dp, thresholds(res%closed_channels(i)) - total_energy))
             end do
         end if
 

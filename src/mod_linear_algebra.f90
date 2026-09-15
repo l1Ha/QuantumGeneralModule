@@ -48,7 +48,7 @@ contains
         absb = abs(b)
         if (absa > absb) then
             p = absa * sqrt(1.0_dp + (absb / absa)**2)
-        else if (absb /= 0.0_dp) then
+        else if (absb > 0.0_dp) then
             p = absb * sqrt(1.0_dp + (absa / absb)**2)
         else
             p = 0.0_dp
@@ -96,7 +96,7 @@ contains
                 scale = scale + abs(d(k))
             end do
 
-            if (scale == 0.0_dp) then
+            if (scale <= 1.0e-35_dp) then
                 e(i) = d(l)
                 do j = 1, l
                     d(j) = z(l, j)
@@ -162,7 +162,7 @@ contains
             z(n, l) = z(l, l)
             z(l, l) = 1.0_dp
             h = d(i)
-            if (h /= 0.0_dp) then
+            if (abs(h) > 1.0e-35_dp) then
                 do k = 1, l
                     d(k) = z(k, i) / h
                 end do
@@ -196,10 +196,12 @@ contains
         integer, intent(out) :: ierr
 
         integer :: i, j, k, l, m, ii, l1, l2, mml
-        real(dp) :: c, c2, c3, dl1, el1, f, g, h, p, r, s, s2, tst1, tst2
+        real(dp) :: c, c2, c3, dl1, el1, f, g, h, p, r, s, s2, tst1
+        real(dp) :: eps_prec
 
         ierr = 0
         if (n == 1) return
+        eps_prec = epsilon(1.0_dp)
 
         do i = 2, n
             e(i - 1) = e(i)
@@ -215,8 +217,7 @@ contains
 
             ! 查找极小次对角元素
             do m = l, n
-                tst2 = tst1 + abs(e(m))
-                if (tst2 == tst1) exit
+                if (abs(e(m)) <= eps_prec * tst1) exit
             end do
 
             if (m /= l) then
@@ -274,8 +275,7 @@ contains
                     p = -s * s2 * c3 * el1 * e(l) / dl1
                     e(l) = s * p
                     d(l) = c * p
-                    tst2 = tst1 + abs(e(l))
-                    if (tst2 <= tst1) exit
+                    if (abs(e(l)) <= eps_prec * tst1) exit
                 end do
             end if
             d(l) = d(l) + f

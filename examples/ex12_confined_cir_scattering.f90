@@ -76,8 +76,8 @@ program ex12_confined_cir_scattering
 
     a_s = a_cir * 0.99_dp
     call calc_olshanii_cir_parameters(wg, a_s, n_1d_au, res, stat)
-    gamma_ll = calc_lieb_liniger_parameter(res%g_1d_au, n_1d_au, mass_rb87)
-    write(*, '(A, F8.1, A, ES14.4, A)') " Near CIR pole     (a_s = ", a_s, " a0): gamma_LL = ", gamma_ll, " (Tonks-Girardeau Gas)"
+    write(*, '(A, F8.1, A, ES14.4, A)') " Near CIR pole     (a_s = ", a_s, &
+        " a0): gamma_LL = ", gamma_ll, " (Tonks-Girardeau Gas)"
 
     print *, "================================================================"
     print *, " Example 12 completed successfully.                             "

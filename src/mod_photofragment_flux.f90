@@ -145,7 +145,7 @@ contains
         real(dp), intent(out) :: yields(:)          !< 各通道积分产额 (n_channels)
         real(dp), intent(out) :: ratios(:)          !< 各通道分支百分比 [0, 1] (n_channels)
 
-        integer :: n_e, n_ch, ic, ie
+        integer :: n_e, n_ch, ic
         real(dp) :: de, total_yield
 
         n_e = size(e_grid)

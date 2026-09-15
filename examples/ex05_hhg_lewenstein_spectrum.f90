@@ -37,7 +37,8 @@ program ex05_hhg_lewenstein_spectrum
     print '(A, F10.4, A)',   " Ionization Potential:   ", ip_au * AU2EV, " eV"
     print '(A, F10.4, A)',   " Laser Frequency (800nm):", laser%freq_central * AU2EV, " eV"
     print '(A, F10.4, A)',   " Ponderomotive Energy Up:", up_val * AU2EV, " eV"
-    print '(A, F10.4, A)',   " Keldysh Parameter:      ", keldysh_parameter(laser%freq_central, laser%field_peak, ip_au), ""
+    print '(A, F10.4, A)',   " Keldysh Parameter:      ", &
+        keldysh_parameter(laser%freq_central, laser%field_peak, ip_au), ""
     print '(A, F10.2, A, F6.1)', " Theoretical HHG Cutoff: ", e_cutoff * AU2EV, " eV (Harmonic Order ~", order_cut, ")"
     print '(A)', "----------------------------------------------------------"
 

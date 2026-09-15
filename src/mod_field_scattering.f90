@@ -396,7 +396,7 @@ contains
         real(dp), intent(in)            :: b_gauss
         real(dp), intent(out)           :: U_mat(n_channels, n_channels)
 
-        integer  :: i, j, ms1, mi1, ms2, mi2, ms, mi, mf
+        integer  :: i, j, ms, mi
         real(dp) :: c1, c2, cg_s, cg_i, cg_f
         real(dp), allocatable :: h_asymp(:, :), eig_vals(:), eig_vecs(:, :)
         integer  :: info
@@ -523,6 +523,11 @@ contains
 
         H_asymp = 0.0_dp
         b_au = b_gauss * GAUSS2AU
+
+        ! DC 电场 Stark 位移预留扩展检查
+        if (abs(e_field) < 0.0_dp) then
+            H_asymp = 0.0_dp
+        end if
 
         ! 在非耦合基组中直接写出解析矩阵元
         allocate(H_uncoupled(n_channels, n_channels))
@@ -688,7 +693,7 @@ contains
 
         integer  :: n_pts, ir, i, j
         type(field_channel_t), allocatable :: channels(:)
-        real(dp), allocatable :: H_asymp(:, :), S_dot_S(:, :), U_mat(:, :)
+        real(dp), allocatable :: H_asymp(:, :), S_dot_S(:, :)
         real(dp), allocatable :: eig_vals(:), eig_vecs(:, :)
         real(dp) :: v_avg, v_diff
         integer  :: info
@@ -753,7 +758,8 @@ contains
         end if
 
         ! 4. 逐径向格点组装全多通道势矩阵:
-        !    V_{ij}(r) = [V_{avg}(r) * \delta_{ij} + V_{diff}(r) * (s_1 . s_2)_{ij}] + [H_{asymp, ij} - thresholds(i)*\delta_{ij}]
+        !    V_{ij}(r) = [V_{avg}(r) * \delta_{ij} + V_{diff}(r) * (s_1 . s_2)_{ij}]
+        !                + [H_{asymp, ij} - thresholds(i)*\delta_{ij}]
         do ir = 1, n_pts
             v_avg = 0.25_dp * v_singlet(ir) + 0.75_dp * v_triplet(ir)
             v_diff = v_triplet(ir) - v_singlet(ir)
@@ -889,13 +895,13 @@ contains
     ! 辅助子程序: 实对称矩阵 Jacobi 本征值与本征向量求解
     ! ==========================================================================
     subroutine diagonalize_real_symmetric(a_in, n, eigenvalues, eigenvectors, info)
-        real(dp), intent(in)  :: a_in(n, n)
         integer,  intent(in)  :: n
+        real(dp), intent(in)  :: a_in(n, n)
         real(dp), intent(out) :: eigenvalues(n)
         real(dp), intent(out) :: eigenvectors(n, n)
         integer,  intent(out) :: info
 
-        real(dp) :: a(n, n), d(n), v(n, n)
+        real(dp) :: a(n, n), d(n)
         real(dp) :: thresh, theta, t, c, s, tau, h, g
         integer  :: i, j, k, p, q, sweep
 
