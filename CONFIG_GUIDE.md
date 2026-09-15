@@ -1047,14 +1047,119 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
    real(dp) :: a_re, a_im, k2_loss
    call init_ofr_param("87Rb", mass_amu=86.91_dp, a_bg_bohr=100.0_dp, gamma_hz=1.0e7_dp, &
                        l_opt_bohr=50.0_dp, ofr=ofr, stat=stat)
-   ! 计算激光失谐 Delta_L = +5.0 MHz 下的复散射长度与双体非弹性损失常数 (cm^3/s)
-   call calc_ofr_complex_scattering_length(ofr, delta_hz=5.0e6_dp, a_real_au=a_re, a_imag_au=a_im)
-   k2_loss = calc_ofr_inelastic_loss_rate(ofr, delta_hz=5.0e6_dp)
-   print *, "调谐后散射长度 Re(a) = ", a_re, " a0, 双体损失率 K_2 = ", k2_loss, " cm^3/s"
+    ! 计算激光失谐 Delta_L = +5.0 MHz 下的复散射长度与双体非弹性损失常数 (cm^3/s)
+    call calc_ofr_complex_scattering_length(ofr, delta_hz=5.0e6_dp, a_real_au=a_re, a_imag_au=a_im)
+    k2_loss = calc_ofr_inelastic_loss_rate(ofr, delta_hz=5.0e6_dp)
+    print *, "调谐后散射长度 Re(a) = ", a_re, " a0, 双体损失率 K_2 = ", k2_loss, " cm^3/s"
+    ```
+
+---
+
+### 3.27 阿秒瞬态吸收光谱与光诱导态自电离干涉 (`mod_attosecond_transient_absorption`)
+面向 XUV 阿秒单脉冲与强 NIR 飞秒探针激光场操纵自电离态吸收动力学：
+1. **初始化氦原子自电离态与光诱导态 (LIS)**：
+   ```fortran
+   use mod_attosecond_transient_absorption
+   type(atas_state_t) :: he_state
+   real(dp) :: e_lis, t_beat
+   integer :: stat
+   call init_atas_helium_benchmark(he_state, stat)
+   e_lis  = calc_light_induced_state_energy(he_state%energy_ev, e_dark_ev=58.60_dp, &
+                                            omega_nir_ev=1.55_dp, rabi_ev=0.15_dp)
+   t_beat = calc_quantum_beat_period_fs(abs(he_state%energy_ev - 58.60_dp))
+   print *, "LIS 态能量 = ", e_lis, " eV, 量子拍频周期 = ", t_beat, " fs"
+   ```
+2. **全量计算二维时延瞬态吸收谱 $\Delta\text{OD}(\omega, \tau)$**：
+   ```fortran
+   real(dp) :: e_grid(31), tau_grid(25), spec_2d(31, 25)
+   call calc_atas_spectrum(he_state, nir_intensity_w_cm2=2.0e12_dp, nir_wavelength_nm=800.0_dp, &
+                           n_energy=31, e_min_ev=59.5_dp, e_max_ev=60.8_dp, &
+                           n_delay=25, tau_min_fs=-30.0_dp, tau_max_fs=30.0_dp, &
+                           e_grid_ev=e_grid, tau_grid_fs=tau_grid, spec_2d=spec_2d)
+   ```
+
+---
+
+### 3.28 双色反向圆偏振场与分子光电子圆二色性 PECD (`mod_bicircular_pecd`)
+面向 $\omega + 2\omega$ 双色旋转场与手性四面体势单/多光子光电子角分布不对称性：
+1. **双色圆偏振场合成与离散动力学对称性**：
+   ```fortran
+   use mod_bicircular_pecd
+   type(bicircular_field_t) :: field
+   integer :: n_fold
+   call init_bicircular_field(field, omega1_au=0.057_dp, r_freq=2.0_dp, &
+                              i1_wcm2=1.0e14_dp, i2_wcm2=5.0e13_dp, &
+                              h1=1, h2=-1, phi1=0.0_dp, phi2=0.0_dp, &
+                              fwhm_fs=25.0_dp, envelope_type=1)
+   n_fold = calc_dynamical_symmetry_fold(field%h1, field%h2, freq_ratio=2)
+   print *, "合成场离散旋转对称度: C_", n_fold  ! 反向旋转输出 C_3 (三叶草形)
+   ```
+2. **手性分子对映体初始化与 PECD 前后发射不对称度**：
+   ```fortran
+   type(chiral_tetrahedral_molecule_t) :: mol_r, mol_s
+   real(dp) :: chi_r, chi_s, b1_r, g_pecd_r
+   call init_chiral_tetrahedral_molecule(mol_r, "R")
+   call init_chiral_tetrahedral_molecule(mol_s, "S")
+   chi_r = calc_chirality_measure(mol_r)
+   chi_s = calc_chirality_measure(mol_s)  ! 满足严格反号 chi_s = -chi_r
+   b1_r  = calc_chiral_beta1_model(mol_r, energy_ev=5.0_dp, photon_energy_ev=10.0_dp)
+   g_pecd_r = calc_forward_backward_asymmetry(b1_r)
+   print *, "R 对映体手性不对称度 G_PECD = ", g_pecd_r * 100.0_dp, " %"
+   ```
+
+---
+
+### 3.29 超冷极性分子反应动力学与微波/静电偶极遮蔽 (`mod_ultracold_reaction_shielding`)
+面向超冷极性分子（KRb, NaRb）微波蓝失谐免交叉排斥势垒与非弹性损失抑制：
+1. **分子预设与屏蔽场配置**：
+   ```fortran
+   use mod_ultracold_reaction_shielding
+   type(ultracold_molecule_t) :: krb
+   type(shielding_config_t)   :: cfg
+   real(dp) :: r_bar, v_bar_k
+   call init_ultracold_molecule_preset(krb, "KRb")
+   call init_shielding_config(cfg, method=1, detuning_mhz=15.0_dp, rabi_mhz=5.0_dp, &
+                             e_field_kv_cm=0.0_dp, y_loss=1.0_dp)
+   call calc_shielding_barrier_height(krb, cfg, r_bar, v_bar_k)
+   print *, "遮蔽势垒半径 R_bar = ", r_bar, " a0, 势垒高度 = ", v_bar_k * 1.0e6_dp, " uK"
+   ```
+2. **WKB 隧穿抑制与蒸发冷却优良因子 $\gamma$**：
+   ```fortran
+   real(dp) :: k2_el, k2_inel, gamma_ratio
+   call calc_shielded_scattering_rates(krb, cfg, temp_uk=0.5_dp, &
+                                      k2_el_cm3s=k2_el, k2_inel_cm3s=k2_inel, &
+                                      gamma_ratio=gamma_ratio)
+   print *, "弹性散射率 K2_el = ", k2_el, " cm^3/s, 非弹性损失率 K2_inel = ", k2_inel, " cm^3/s"
+   print *, "冷却因子 gamma = ", gamma_ratio, " (>> 100 满足玻色/费米简并蒸发冷却准则)"
+   ```
+
+---
+
+### 3.30 里德堡原子阻塞、PXP 约束模型与量子多体疤痕 (`mod_rydberg_blockade`)
+面向里德堡原子量子模拟器二原子阻塞与 1D 链多体疤痕相干振荡：
+1. **里德堡态 $C_6 \propto n^{11}$ 标度律与阻塞半径 $R_b$**：
+   ```fortran
+   use mod_rydberg_blockade
+   type(rydberg_atom_t) :: rb70
+   real(dp) :: r_b
+   call init_rydberg_atom(rb70, "87Rb", n_principal=70, l_orbital=0)
+   r_b = calc_rydberg_blockade_radius(rb70, rabi_mhz=2.0_dp)
+   print *, "87Rb 70S C6/h = ", rb70%c6_mhz_um6, " MHz*um^6, 阻塞半径 R_b = ", r_b, " um"
+   ```
+2. **双原子阻塞动力学与 1D 阵列量子多体疤痕**：
+   ```fortran
+   type(rydberg_array_config_t) :: chain
+   real(dp) :: t_arr(100), z2_arr(100)
+   ! 模拟 10 原子阵列从交错 Néel 态出发的 PXP 疤痕周期复苏
+   call init_rydberg_array(chain, n_atoms=10, spacing_um=5.0_dp, &
+                           rabi_mhz=2.0_dp, detuning_mhz=0.0_dp, boundary_cond=2)
+   call calc_rydberg_scar_dynamics(chain, rb70, t_max_us=2.5_dp, n_steps=100, &
+                                   t_arr=t_arr, z2_order_arr=z2_arr)
+   print *, "Z2 交错序参量初始 = ", z2_arr(1), " 周期复苏幅值 = ", maxval(z2_arr(20:))
    ```
 
 > [!TIP]
-> 包含全部前沿复杂体系的应用工程算例（11 至 20），详见：
+> 包含全部前沿复杂体系的应用工程算例（11 至 24），详见：
 > 👉 [`examples/ex11_three_body_efimov_recombination.f90`](examples/ex11_three_body_efimov_recombination.f90)
 > 👉 [`examples/ex12_confined_cir_scattering.f90`](examples/ex12_confined_cir_scattering.f90)
 > 👉 [`examples/ex13_autoionization_fano_resonance.f90`](examples/ex13_autoionization_fano_resonance.f90)
@@ -1065,7 +1170,11 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 > 👉 [`examples/ex18_dipolar_quantum_droplets.f90`](examples/ex18_dipolar_quantum_droplets.f90)
 > 👉 [`examples/ex19_strong_field_nsdi_recollision.f90`](examples/ex19_strong_field_nsdi_recollision.f90)
 > 👉 [`examples/ex20_feshbach_molecular_bound_states.f90`](examples/ex20_feshbach_molecular_bound_states.f90)
-> 对应理论文献详见：👉 [`LITERATURE.md`](LITERATURE.md) 第 11 节至第 20 节。
+> 👉 [`examples/ex21_attosecond_transient_absorption.f90`](examples/ex21_attosecond_transient_absorption.f90)
+> 👉 [`examples/ex22_bicircular_pecd_chiral.f90`](examples/ex22_bicircular_pecd_chiral.f90)
+> 👉 [`examples/ex23_ultracold_molecule_shielding.f90`](examples/ex23_ultracold_molecule_shielding.f90)
+> 👉 [`examples/ex24_rydberg_blockade_dynamics.f90`](examples/ex24_rydberg_blockade_dynamics.f90)
+> 对应理论文献详见：👉 [`LITERATURE.md`](LITERATURE.md) 第 11 节至第 24 节。
 
 ---
 

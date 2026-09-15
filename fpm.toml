@@ -140,6 +140,26 @@ name = "test_feshbach_bound_states"
 source-dir = "tests"
 main = "test_feshbach_bound_states.f90"
 
+[[test]]
+name = "test_attosecond_transient_absorption"
+source-dir = "tests"
+main = "test_attosecond_transient_absorption.f90"
+
+[[test]]
+name = "test_bicircular_pecd"
+source-dir = "tests"
+main = "test_bicircular_pecd.f90"
+
+[[test]]
+name = "test_ultracold_reaction_shielding"
+source-dir = "tests"
+main = "test_ultracold_reaction_shielding.f90"
+
+[[test]]
+name = "test_rydberg_blockade"
+source-dir = "tests"
+main = "test_rydberg_blockade.f90"
+
 [[example]]
 name = "ex01_fgh_diatomic_bound_states"
 source-dir = "examples"
@@ -239,3 +259,23 @@ main = "ex19_strong_field_nsdi_recollision.f90"
 name = "ex20_feshbach_molecular_bound_states"
 source-dir = "examples"
 main = "ex20_feshbach_molecular_bound_states.f90"
+
+[[example]]
+name = "ex21_attosecond_transient_absorption"
+source-dir = "examples"
+main = "ex21_attosecond_transient_absorption.f90"
+
+[[example]]
+name = "ex22_bicircular_pecd_chiral"
+source-dir = "examples"
+main = "ex22_bicircular_pecd_chiral.f90"
+
+[[example]]
+name = "ex23_ultracold_molecule_shielding"
+source-dir = "examples"
+main = "ex23_ultracold_molecule_shielding.f90"
+
+[[example]]
+name = "ex24_rydberg_blockade_dynamics"
+source-dir = "examples"
+main = "ex24_rydberg_blockade_dynamics.f90"

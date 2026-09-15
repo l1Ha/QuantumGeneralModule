@@ -36,6 +36,10 @@ module general_module
     use mod_dipolar_droplets_lhy
     use mod_strong_field_nsdi
     use mod_feshbach_bound_states
+    use mod_attosecond_transient_absorption
+    use mod_bicircular_pecd
+    use mod_ultracold_reaction_shielding
+    use mod_rydberg_blockade
     implicit none
 
     public :: dp, int32, int64
@@ -228,5 +232,30 @@ module general_module
     public :: calc_mfr_bound_energy_universal, calc_mfr_bound_energy_coupled
     public :: calc_mfr_closed_channel_fraction
     public :: calc_ofr_complex_scattering_length, calc_ofr_inelastic_loss_rate
+
+    ! 阿秒瞬态吸收光谱与自电离干涉 (Attosecond Transient Absorption Spectroscopy)
+    public :: atas_state_t
+    public :: init_atas_helium_benchmark, calc_laser_dressed_fano_q
+    public :: calc_light_induced_state_energy, calc_quantum_beat_period_fs
+    public :: calc_atas_spectrum
+
+    ! 双色反向旋转圆偏振场与分子光电子圆二色性 (Bicircular Fields & PECD)
+    public :: bicircular_field_t, chiral_tetrahedral_molecule_t
+    public :: init_bicircular_field, calc_bicircular_field_at_t, calc_bicircular_trajectory
+    public :: calc_dynamical_symmetry_fold, init_chiral_tetrahedral_molecule
+    public :: calc_chirality_measure, calc_forward_backward_asymmetry
+    public :: calc_chiral_beta1_model, calc_pecd_pad_spectrum, calc_pecd_energy_resolved
+
+    ! 超冷极性分子化学反应与微波/静电偶极遮蔽 (Ultracold Reaction Shielding)
+    public :: ultracold_molecule_t, shielding_config_t
+    public :: init_ultracold_molecule_preset, init_shielding_config
+    public :: calc_effective_shielding_potential, calc_shielding_barrier_height
+    public :: calc_wkb_tunneling_probability, calc_shielded_scattering_rates
+    public :: calc_shielding_detuning_scan
+
+    ! 里德堡原子阻塞与多体量子动力学 (Rydberg Blockade & Many-Body Scars)
+    public :: rydberg_atom_t, rydberg_array_config_t
+    public :: init_rydberg_atom, calc_rydberg_blockade_radius, init_rydberg_array
+    public :: calc_two_atom_dynamics, calc_z2_order_parameter, calc_rydberg_scar_dynamics
 
 end module general_module

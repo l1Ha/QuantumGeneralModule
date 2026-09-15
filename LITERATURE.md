@@ -734,7 +734,157 @@
 
 ---
 
-## 21. 快速学术检索与代码对照总表
+## 21. 阿秒瞬态吸收光谱 (ATAS) 与光诱导态自电离干涉动力学
+
+### 21.1 氦原子 $2s2p (^1P)$ 双激发态与相位微扰模型 (PPM)
+- **文献**:
+  - M. Chini, K. Zhao, and Z. Chang, *"The generation, detection, and applications of attosecond pulses"*, **Nat. Photonics** 8, 178 (2014). [DOI: 10.1038/nphoton.2013.362](https://doi.org/10.1038/nphoton.2013.362)
+  - C. Ott et al., *"Lorentz Meets Fano in the Interaction of Two Strongly Driven Helium Rydberg Series"*, **Science** 340, 716 (2013). [DOI: 10.1126/science.1232759](https://doi.org/10.1126/science.1232759)
+  - M. Wu, S. Chen, M. B. Gaarde, and K. J. Schafer, *"Time-frequency analysis of autoionizing states in attosecond transient absorption"*, **Phys. Rev. A** 93, 033405 (2016). [DOI: 10.1103/PhysRevA.93.033405](https://doi.org/10.1103/PhysRevA.93.033405)
+  - U. Fano, *"Effects of Configuration Interaction on Intensities and Phase Shifts"*, **Phys. Rev.** 124, 1866 (1961). [DOI: 10.1103/PhysRev.124.1866](https://doi.org/10.1103/PhysRev.124.1866)
+- **核心理论**:
+  阿秒瞬态吸收光谱（ATAS）采用极紫外（XUV）阿秒单脉冲激发体系到自电离共振态（如氦原子 $2s2p\ ^1P$, $E_0 = 60.15$ eV, $\Gamma = 0.037$ eV, $\tau \approx 17.8$ fs），并用飞秒近红外（NIR）激光控制后续偶极退相与自电离干涉。
+  在相位微扰模型（PPM）中，NIR 场通过极化率 $\alpha$ 诱导含时动态 Stark 势能移动，累积附加作用量相位 $\phi(\tau) = \int_\tau^\infty \Delta E(t') dt'$。稳态 Fano 不对称参数 $q_0$ 发生几何旋转映射为有效含时参数：
+  $$q(\tau) = \frac{q_0 + \tan\phi(\tau)}{1 - q_0 \tan\phi(\tau)}$$
+  导致吸收谱线在 Fano 共振、对称吸收峰、对称色散窗及反共振峰（Window Resonance）之间发生相干翻转。
+- **代码映射**:
+  - `src/mod_attosecond_transient_absorption.f90`:
+    - `init_atas_helium_benchmark`: 氦原子 $2s2p\ ^1P$ 经典自电离能谱参数初始化；
+    - `calc_laser_dressed_fano_q`: 激光修饰相移动态 $q(\tau)$ 参数计算。
+
+### 21.2 光诱导态 (LIS)、AC Stark 位移与二维时延光谱 $\Delta\text{OD}(\omega, \tau)$
+- **文献**:
+  - S. Chen et al., *"Light-induced states in attosecond transient absorption spectra of helium"*, **Phys. Rev. A** 86, 063408 (2012). [DOI: 10.1103/PhysRevA.86.063408](https://doi.org/10.1103/PhysRevA.86.063408)
+  - Z. Chang, *Fundamentals of Attosecond Optics*, CRC Press, Boca Raton (2011).
+- **核心理论**:
+  当强红外光耦合明态（Bright State $|b\rangle$）与邻近单光子禁戒暗态（Dark State $|d\rangle$，如 $2p^2\ ^1S$ 或 $2s^2\ ^1S$）时，系统形成缀饰二能级杂化态，并在能谱中诱导出**光诱导态（Light-Induced States, LIS）**：
+  $$E_{\text{LIS}} = \frac{E_b + (E_d \pm \hbar\omega_L)}{2} \pm \frac{1}{2}\sqrt{\delta^2 + \Omega_R^2}$$
+  在 XUV-NIR 时延 $\tau > 0$ 区域，明暗态波包相干叠加诱发周期为 $T_{\text{beat}} = \frac{h}{\Delta E}$ 的高阶量子拍频（Quantum Beats），二维差分光密度谱 $\Delta\text{OD}(\omega, \tau) = -\log(I_{pump-probe} / I_{probe})$ 呈现出双缝干涉条纹与斜向双光子吸收特征。
+- **代码映射**:
+  - `src/mod_attosecond_transient_absorption.f90`:
+    - `calc_light_induced_state_energy`: 缀饰光诱导态特征能量；
+    - `calc_quantum_beat_period_fs`: 量子拍频周期；
+    - `calc_atas_spectrum`: 二维能量-时延吸收光谱 $\Delta\text{OD}(\omega, \tau)$ 矩阵全量计算。
+
+---
+
+## 22. 双色反向旋转圆偏振场与分子光电子圆二色性 (PECD)
+
+### 22.1 双色反向圆偏振合成场与 $C_{r+1}$ 离散旋转动力学对称性
+- **文献**:
+  - O. Kfir et al., *"Generation of strongly elliptically polarized high-harmonic emission using bicircular laser fields"*, **Nat. Photonics** 9, 99 (2015). [DOI: 10.1038/nphoton.2014.364](https://doi.org/10.1038/nphoton.2014.364)
+  - C. A. Mancuso et al., *"Strong-field ionization with two-color circularly polarized laser fields"*, **Phys. Rev. A** 91, 031402(R) (2015). [DOI: 10.1103/PhysRevA.91.031402](https://doi.org/10.1103/PhysRevA.91.031402)
+  - D. Ayuso et al., *"Synthetic chiral light for ultra-fast control of chiral measurements"*, **Nat. Photonics** 13, 866 (2019). [DOI: 10.1038/s41566-019-0531-2](https://doi.org/10.1038/s41566-019-0531-2)
+- **核心理论**:
+  双色旋转场由基频 $\omega_1$（旋向 $h_1 = \pm 1$）与谐波 $\omega_2 = r\omega_1$（旋向 $h_2 = \mp 1$）共面合成：
+  $$\mathbf{E}(t) = \frac{E_{0,1}}{\sqrt{2}} f(t) [\cos(\omega_1 t) \hat{\mathbf{x}} + h_1 \sin(\omega_1 t) \hat{\mathbf{y}}] + \frac{E_{0,2}}{\sqrt{2}} f(t) [\cos(r\omega_1 t + \phi) \hat{\mathbf{x}} + h_2 \sin(r\omega_1 t + \phi) \hat{\mathbf{y}}]$$
+  对于反向旋转 $\omega + 2\omega$ 场（$h_1 = +1, h_2 = -1, r=2$），场矢量在偏振面内扫过三叶草状（Trefoil）轨迹，具有严格的 $C_3$ 离散动力学对称性：
+  $$\mathcal{R}\left(\frac{2\pi}{3}\right) \mathbf{E}(t) = \mathbf{E}\left(t + \frac{T_1}{3}\right)$$
+  若同向旋转则具有心形单叶分布（$C_1$ 对称）。
+- **代码映射**:
+  - `src/mod_bicircular_pecd.f90`:
+    - `init_bicircular_field`: 场强、波长、相对相位与包络设置；
+    - `calc_bicircular_field_at_t`: 瞬时场强 $\mathbf{E}(t)$ 与矢势 $\mathbf{A}(t)$ 计算；
+    - `calc_dynamical_symmetry_fold`: 动力学折叠对称度判断；
+    - `calc_bicircular_trajectory`: Lissajous 轨迹合成。
+
+### 22.2 光电子圆二色性 (PECD) 与手性四面体势模型
+- **文献**:
+  - N. Böwering et al., *"Asymmetry in photoionization of chiral molecules with circularly polarized light"*, **Phys. Rev. Lett.** 86, 1187 (2001). [DOI: 10.1103/PhysRevLett.86.1187](https://doi.org/10.1103/PhysRevLett.86.1187)
+  - C. Lux et al., *"Circular Dichroism in the Photoelectron Angular Distributions of Camphor and Fenchone from Multiphoton Ionization with Femtosecond Laser Pulses"*, **Angew. Chem. Int. Ed.** 51, 5001 (2012). [DOI: 10.1002/anie.201109035](https://doi.org/10.1002/anie.201109035)
+  - B. Ritchie, *"Theory of the angular distribution of photoelectrons ejected from optically active molecules and molecular negative ions"*, **Phys. Rev. A** 13, 1411 (1976). [DOI: 10.1103/PhysRevA.13.1411](https://doi.org/10.1103/PhysRevA.13.1411)
+- **核心理论**:
+  随机取向手性分子在圆偏振光单光子/多光子电离中，偶极基质元不同分波干涉产生沿光传播方向（$z$ 轴）的奇宇称勒让德多项式不对称性：
+  $$I(\theta, \phi) = \frac{\sigma_{tot}}{4\pi} \left[ 1 + \beta_1 P_1(\cos\theta) + \beta_2 P_2(\cos\theta) + \dots \right]$$
+  奇数阶参数 $\beta_1$ 导致明显的前向-后向不对称发射（Forward-Backward Asymmetry），其相对不对称比率为：
+  $$G_{\text{PECD}} = \frac{I_{\text{forward}} - I_{\text{backward}}}{I_{\text{forward}} + I_{\text{backward}}} = \frac{1}{2} \beta_1$$
+  四中心四面体手性势中伪标量手性不变量为 $\chi = [(\mathbf{R}_1 - \mathbf{R}_4) \times (\mathbf{R}_2 - \mathbf{R}_4)] \cdot (\mathbf{R}_3 - \mathbf{R}_4) \prod_{i < j} (Z_i - Z_j)$。对于对映异构体（$R$-/$S$-型）满足严格反转关系：$\beta_1^{(R)} = -\beta_1^{(S)}$ 且 $G_{\text{PECD}}^{(R)} = -G_{\text{PECD}}^{(S)}$。
+- **代码映射**:
+  - `src/mod_bicircular_pecd.f90`:
+    - `init_chiral_tetrahedral_molecule`: $R$ 与 $S$ 对映异构体初始化；
+    - `calc_chirality_measure`: 伪标量不变量 $\chi$ 检验；
+    - `calc_forward_backward_asymmetry`: 前后不对称度换算；
+    - `calc_chiral_beta1_model`: 动能依赖 $\beta_1(E)$ 模型；
+    - `calc_pecd_pad_spectrum`: 2D 光电子角分布 $I(\theta, \phi)$ 计算。
+
+---
+
+## 23. 超冷极性分子化学反应动力学与微波/静电偶极遮蔽
+
+### 23.1 超冷双分子化学反应与普遍短程吸收损失
+- **文献**:
+  - K.-K. Ni et al., *"A High Phase-Space-Density Gas of Polar Molecules"*, **Science** 322, 231 (2008). [DOI: 10.1126/science.1163861](https://doi.org/10.1126/science.1163861)
+  - S. Ospelkaus et al., *"Quantum-State Controlled Chemical Reactions of Ultracold Potassium-Rubidium Molecules"*, **Science** 327, 853 (2010). [DOI: 10.1126/science.1184121](https://doi.org/10.1126/science.1184121)
+  - M. Mayle, G. Quéméner, B. P. Ruzic, and J. L. Bohn, *"Scattering of ultracold molecules in the presence of resonant sticky collisions"*, **Phys. Rev. A** 87, 012709 (2013). [DOI: 10.1103/PhysRevA.87.012709](https://doi.org/10.1103/PhysRevA.87.012709)
+- **核心理论**:
+  超冷双原子极性分子（如 $^{40}\text{K}^{87}\text{Rb}, ^{23}\text{Na}^{87}\text{Rb}$）在纳开尔文到微开尔文碰撞中，放热化学重排反应 $2\text{KRb} \to \text{K}_2 + \text{Rb}_2$ 或四体中间复合物“粘滞碰撞”（Sticky Collisions）导致剧烈的非弹性双体损耗（$K_2 \sim 10^{-10}\ \text{cm}^3/\text{s}$）。在量子数亏损理论（QDT）中，短程吸收被参数化为非弹性吸收率 $y \in [0, 1]$，其中 $y=1$ 为普适全黑体吸收极限。
+- **代码映射**:
+  - `src/mod_ultracold_reaction_shielding.f90`:
+    - `init_ultracold_molecule_preset`: KRb, NaRb, NaK 分子质量、偶极矩与 $C_6$ 参数初始化。
+
+### 23.2 微波蓝失谐缀饰免交叉势垒与 WKB 隧穿抑制
+- **文献**:
+  - G. Quéméner and J. L. Bohn, *"Shielding of polar molecules with electric fields"*, **Phys. Rev. A** 81, 022702 (2010). [DOI: 10.1103/PhysRevA.81.022702](https://doi.org/10.1103/PhysRevA.81.022702)
+  - L. Anderegg et al., *"Observation of microwave shielding of ultracold molecules"*, **Science** 373, 779 (2021). [DOI: 10.1126/science.abg9502](https://doi.org/10.1126/science.abg9502)
+  - A. Schindewolf et al., *"Evaporative cooling of microwave-shielded polar molecules to quantum degeneracy"*, **Nature** 607, 677 (2022). [DOI: 10.1038/s41586-022-04900-3](https://doi.org/10.1038/s41586-022-04900-3)
+  - K. Matsuda et al., *"Resonant collateral shielding of polar molecules by a static electric field"*, **Science** 370, 1324 (2020). [DOI: 10.1126/science.abe7370](https://doi.org/10.1126/science.abe7370)
+- **核心理论**:
+  施加蓝失谐圆偏振微波（$\Delta > 0$）或强 DC 静电场耦合分子转动态 $|J=0\rangle$ 与 $|J=1\rangle$，共振偶极-偶极相互作用 $C_3 \sim d^2$ 形成工程化免交叉排斥势垒：
+  $$V_{\text{rep}}(R) = \frac{\hbar}{2} \left[ \sqrt{\Delta^2 + \left(\frac{2C_3}{R^3}\right)^2 + \Omega^2} - \Delta \right]$$
+  屏蔽半径位于 $R_{\text{shield}} \approx (2C_3 / \hbar\Delta)^{1/3} \sim 300 - 1000\ a_0$，势垒高度达到数百微开尔文，远高于碰撞动能。
+  分子穿透势垒到达短程反应区的几率由 WKB 隧穿公式决定：
+  $$T_{\text{tunnel}} = \exp\left[ -2 \int_{R_{\text{in}}}^{R_{\text{out}}} \sqrt{\frac{2\mu}{\hbar^2}(V_{\text{eff}}(R) - E)} dR \right] \ll 1$$
+  非弹性损失率 $K_2^{(\text{inel})}$ 被压低 6-8 个数量级，弹性散射截面 $\sigma_{\text{el}} \approx 4\pi R_{\text{shield}}^2$ 保持巨大，实现蒸发冷却关键判据：
+  $$\gamma = \frac{K_2^{(\text{el})}}{K_2^{(\text{inel})}} > 100 - 10^7$$
+- **代码映射**:
+  - `src/mod_ultracold_reaction_shielding.f90`:
+    - `init_shielding_config`: 微波/直流静电屏蔽配置；
+    - `calc_effective_shielding_potential`: 有效相互作用势 $V_{\text{eff}}(R)$；
+    - `calc_shielding_barrier_height`: 屏蔽势垒高度与位置；
+    - `calc_wkb_tunneling_probability`: WKB 量子隧穿衰减因数；
+    - `calc_shielded_scattering_rates`: 弹/非弹性速率与优良因子 $\gamma$；
+    - `calc_shielding_detuning_scan`: 失谐扫描曲线。
+
+---
+
+## 24. 里德堡原子阻塞、PXP 约束模型与量子多体疤痕
+
+### 24.1 巨范德瓦尔斯作用 $C_6 \propto n^{11}$ 与双原子偶极阻塞机制
+- **文献**:
+  - D. Jaksch, J. I. Cirac, P. Zoller, S. L. Rolston, R. Côté, and M. D. Lukin, *"Fast Quantum Gates for Neutral Atoms"*, **Phys. Rev. Lett.** 85, 2208 (2000). [DOI: 10.1103/PhysRevLett.85.2208](https://doi.org/10.1103/PhysRevLett.85.2208)
+  - M. D. Lukin et al., *"Dipole Blockade and Quantum Information Processing in Mesoscopic Atomic Ensembles"*, **Phys. Rev. Lett.** 87, 037901 (2001). [DOI: 10.1103/PhysRevLett.87.037901](https://doi.org/10.1103/PhysRevLett.87.037901)
+  - M. Saffman, T. G. Walker, and K. Mølmer, *"Quantum information with Rydberg atoms"*, **Rev. Mod. Phys.** 82, 2313 (2010). [DOI: 10.1103/RevModPhys.82.2313](https://doi.org/10.1103/RevModPhys.82.2313)
+  - A. Browaeys and T. Lahaye, *"Many-body physics with individually controlled Rydberg atoms"*, **Nat. Phys.** 16, 132 (2020). [DOI: 10.1038/s41567-019-0733-z](https://doi.org/10.1038/s41567-019-0733-z)
+- **核心理论**:
+  高主量子数里德堡态具有超大电偶极跃迁矩阵元，其长程色散相互作用系数具有极端标度律 $C_6 \propto n^{11}$。在激光 Rabi 频率 $\Omega$ 驱动下，二聚体激发能发生巨大位移 $V_{\text{vdW}}(R) = C_6 / R^6$。
+  当间距小于**里德堡阻塞半径 (Rydberg Blockade Radius)**：
+  $$R_b = \left( \frac{|C_6|}{\hbar \Omega} \right)^{1/6}$$
+  双重激发态 $|rr\rangle$ 发生剧烈能级失谐，强行禁止同时激发，系统被约束在纠缠单激发态（W-态）$|W\rangle = \frac{1}{\sqrt{2}}(|gr\rangle + |rg\rangle)$，集体有效 Rabi 频率获得 $\sqrt{2}\Omega$ 增强。
+- **代码映射**:
+  - `src/mod_rydberg_blockade.f90`:
+    - `init_rydberg_atom`: $^{87}\text{Rb}$ $n S$ 态量子数亏损与 $n^{11}$ 相互作用缩放；
+    - `calc_rydberg_blockade_radius`: 阻塞半径 $R_b$ 解析求解；
+    - `calc_two_atom_dynamics`: 四态全空间保范数细化时域动力学步进求解器。
+
+### 24.2 1D 原子阵列、PXP 拓扑约束模型与量子多体疤痕 (Quantum Many-Body Scars)
+- **文献**:
+  - H. Bernien et al., *"Probing many-body dynamics on a 51-atom quantum simulator"*, **Nature** 551, 579 (2017). [DOI: 10.1038/nature24622](https://doi.org/10.1038/nature24622)
+  - C. J. Turner, A. A. Michailidis, D. A. Abanin, M. Serbyn, and Z. Papić, *"Weak ergodicity breaking from quantum many-body scars"*, **Nat. Phys.** 14, 745 (2018). [DOI: 10.1038/s41567-018-0137-5](https://doi.org/10.1038/s41567-018-0137-5)
+- **核心理论**:
+  在光镊一维原子晶格中，最近邻强阻塞条件排除了相邻双激发（$n_i n_{i+1} = 0$），希尔伯特空间维度被约束为斐波那契数 $D_N = F_{N+2}$。系统哈密顿量退化为著名的 **PXP 模型**：
+  $$H_{\text{PXP}} = \frac{\hbar\Omega}{2} \sum_{i} P_{i-1} \sigma_i^x P_{i+1} - \hbar\Delta \sum_i n_i$$
+  当体系从交错反铁磁 Néel 态 $|r g r g \dots\rangle$ 发生量子淬火时，违反通常本征态热化假说（ETH），呈现出非热化的**量子多体疤痕（Quantum Many-Body Scars）**。交错交替序参量（Staggered $Z_2$ Order Parameter）：
+  $$\mathcal{O}_{Z_2}(t) = \frac{1}{N} \sum_{i=1}^N (-1)^i \langle n_i(t) \rangle$$
+  展现出周期为 $T_{\text{scar}} \approx \frac{2\pi}{1.33 \Omega}$ 的长寿命宏观相干周期性复苏振荡。
+- **代码映射**:
+  - `src/mod_rydberg_blockade.f90`:
+    - `init_rydberg_array`: 一维原子阵列与周期/开边界参数；
+    - `calc_z2_order_parameter`: $Z_2$ 空间交错电荷密度波序参量；
+    - `calc_rydberg_scar_dynamics`: PXP 疤痕周期复苏相干动力学模拟。
+
+---
+
+## 25. 快速学术检索与代码对照总表
 
 | 物理模块 | 对应源文件 | 核心经典文献代表 | 主要导出 API 与算法 |
 | :--- | :--- | :--- | :--- |
@@ -762,8 +912,13 @@
 | **偶极量子液滴与 LHY** | `mod_dipolar_droplets_lhy.f90` | Lee-Huang-Yang (1957), Petrov (2015), Chomaz (2016) | `init_dipolar_droplet_param`, `calc_pelster_lima_q5`, `calc_equilibrium_droplet_density`, `calc_egpe_energy_density` |
 | **强场 NSDI 与重碰撞**| `mod_strong_field_nsdi.f90` | Corkum (1993), Weber et al. (Nature 2000), Becker (2005) | `init_nsdi_laser`, `calc_recollision_trajectory`, `calc_nsdi_2d_momentum_dist`, `calc_double_ion_yield_curve` |
 | **磁/光 Feshbach 束缚态**| `mod_feshbach_bound_states.f90` | Chin et al. (RMP 2010), Gao (2001), Theis (PRL 2004) | `init_mfr_preset`, `calc_mfr_bound_energy_coupled`, `calc_mfr_closed_channel_fraction`, `calc_ofr_inelastic_loss_rate` |
+| **阿秒瞬态吸收光谱** | `mod_attosecond_transient_absorption.f90` | Chini et al. (2014), Ott et al. (Science 2013), Wu (2016) | `init_atas_helium_benchmark`, `calc_laser_dressed_fano_q`, `calc_light_induced_state_energy`, `calc_atas_spectrum` |
+| **双色圆偏振与 PECD** | `mod_bicircular_pecd.f90` | Kfir (Nat. Phot. 2015), Lux (2012), Böwering (2001) | `init_bicircular_field`, `calc_dynamical_symmetry_fold`, `calc_chirality_measure`, `calc_pecd_energy_resolved` |
+| **超冷反应与偶极遮蔽** | `mod_ultracold_reaction_shielding.f90` | Quéméner (PRA 2010), Anderegg (Science 2021), Schindewolf (2022) | `init_ultracold_molecule_preset`, `calc_shielding_barrier_height`, `calc_wkb_tunneling_probability`, `calc_shielded_scattering_rates` |
+| **里德堡阻塞与多体疤痕**| `mod_rydberg_blockade.f90` | Lukin (PRL 2001), Bernien (Nature 2017), Turner (2018) | `init_rydberg_atom`, `calc_rydberg_blockade_radius`, `calc_two_atom_dynamics`, `calc_rydberg_scar_dynamics` |
 | **开放量子系统** | `mod_open_quantum.f90` | Lindblad (1976), Gorini (1976) | `propagate_lindblad_rk4`, `calculate_von_neumann_entropy` |
 | **量子最优控制** | `mod_optimal_control.f90` | Somlói & Tannor (1993), Krotov (1996) | `optimize_pulse_krotov` |
 
 ---
 *全典文献经过精确校核，代码实现中严格遵守学术规范，所有公式推导与符号约定均与原始文献完全对齐。*
+

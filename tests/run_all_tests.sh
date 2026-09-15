@@ -52,12 +52,16 @@ gfortran $FFLAGS -c mod_hyperspherical_reactive.f90
 gfortran $FFLAGS -c mod_dipolar_droplets_lhy.f90
 gfortran $FFLAGS -c mod_strong_field_nsdi.f90
 gfortran $FFLAGS -c mod_feshbach_bound_states.f90
+gfortran $FFLAGS -c mod_attosecond_transient_absorption.f90
+gfortran $FFLAGS -c mod_bicircular_pecd.f90
+gfortran $FFLAGS -c mod_ultracold_reaction_shielding.f90
+gfortran $FFLAGS -c mod_rydberg_blockade.f90
 gfortran $FFLAGS -c general_module.f90
 ar rcs libgeneral_module.a *.o
 
 cd "$DIR"
 
-# 2. 编译并运行各项测试 (共 25 大完整测试套件)
+# 2. 编译并运行各项测试 (共 29 大完整测试套件)
 TESTS=(
     "test_constants"
     "test_special_functions"
@@ -84,6 +88,10 @@ TESTS=(
     "test_dipolar_droplets_lhy"
     "test_strong_field_nsdi"
     "test_feshbach_bound_states"
+    "test_attosecond_transient_absorption"
+    "test_bicircular_pecd"
+    "test_ultracold_reaction_shielding"
+    "test_rydberg_blockade"
 )
 
 for test_name in "${TESTS[@]}"; do

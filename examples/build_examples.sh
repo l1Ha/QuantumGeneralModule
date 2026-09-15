@@ -36,6 +36,10 @@ EXAMPLES=(
     "ex18_dipolar_quantum_droplets"
     "ex19_strong_field_nsdi_recollision"
     "ex20_feshbach_molecular_bound_states"
+    "ex21_attosecond_transient_absorption"
+    "ex22_bicircular_pecd_chiral"
+    "ex23_ultracold_molecule_shielding"
+    "ex24_rydberg_blockade_dynamics"
 )
 
 for ex in "${EXAMPLES[@]}"; do

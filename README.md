@@ -3,8 +3,8 @@
 [![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
 [![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests: 260/260 Pass](https://img.shields.io/badge/Tests-260%2F260%20Pass%20(100%25)-brightgreen.svg)](tests/)
-[![Literature: 20 Topics](https://img.shields.io/badge/Literature-20%20Topics%20(PRL%2FPRA%2FRMP)-blue.svg)](LITERATURE.md)
+[![Tests: 280/280 Pass](https://img.shields.io/badge/Tests-280%2F280%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Literature: 24 Topics](https://img.shields.io/badge/Literature-24%20Topics%20(PRL%2FPRA%2FRMP%2FScience%2FNature)-blue.svg)](LITERATURE.md)
 
 `GeneralModule` 是一个面向超快强场物理、分子光物理与量子动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
 
@@ -14,17 +14,17 @@
 
 1. **零外部库依赖 (Zero External Dependencies)**
    - 内部集成高精度 Householder QL 实对称矩阵本征求解器、Gauss-Jordan 全主元实/复方阵求逆与 Cooley-Tukey 1D/2D 快速傅里叶变换（FFT）。
-   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射、各向异性偶极耦合、超冷光缔合速率、少体 Efimov 物理、低维光晶格 CIR、自电离 Fano/CCR、交叉电磁场、三原子反应 PES、旋量 BEC 自旋动力学、三原子超球面反应动力学、偶极量子液滴 LHY、强场非顺序双电离 (NSDI) 与磁/光 Feshbach 束缚态求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
+   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射、各向异性偶极耦合、超冷光缔合速率、少体 Efimov 物理、低维光晶格 CIR、自电离 Fano/CCR、交叉电磁场、三原子反应 PES、旋量 BEC 自旋动力学、三原子超球面反应动力学、偶极量子液滴 LHY、强场非顺序双电离 (NSDI)、磁/光 Feshbach 束缚态、阿秒瞬态吸收光谱 (ATAS)、双色反向圆偏振 PECD、超冷极性分子偶极遮蔽与里德堡原子阻塞求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
 2. **现代 Fortran 2008 标准设计**
    - 统一强类型参数定义（`real(dp) => real64`）。
    - 纯函数（`pure function`）与显式 `intent(in/out/inout)` 契约，杜绝隐式全局变量副作用。
 3. **AI 友好型结构化接口 (AI-Friendly)**
    - 算法模块支持统一顶层聚合入口：`use general_module`。
-   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `absorbing_boundary_t`, `dvr_1d_t`, `spline_1d_t`, `scattering_state_t`, `multichannel_result_t`, `td_scattering_channel_t`, `cold_atom_t`, `field_channel_t`, `polar_molecule_t`, `pa_transition_t`, `efimov_param_t`, `waveguide_1d_t`, `fano_profile_t`, `crossed_field_config_t`, `leps_param_t`, `spinor_param_t`, `reaction_mass_t`, `transition_state_t`, `dipolar_droplet_param_t`, `nsdi_laser_t`, `mfr_param_t`, `ofr_param_t`），自解释、低耦合、便于大语言模型精确构造与调用。
+   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `dvr_1d_t`, `atas_state_t`, `bicircular_field_t`, `chiral_tetrahedral_molecule_t`, `ultracold_molecule_t`, `shielding_config_t`, `rydberg_atom_t`, `rydberg_array_config_t` 等），自解释、低耦合、便于大语言模型精确构造与调用。
 4. **全链路双语生态支持**
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
 5. **全自动 CI/CD 持续集成**
-   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 25 大测试套件与 Python 验证。
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 29 大测试套件与 Python 验证。
 
 ---
 
@@ -39,7 +39,7 @@ GeneralModule/
 ├── CMakeLists.txt                 # CMake 跨平台构建系统
 ├── README.md                      # 本文档
 ├── .gitignore                     # Git 忽略规则
-├── src/                           # 核心 Fortran 源代码 (33 核心模块 + 1 聚合入口)
+├── src/                           # 核心 Fortran 源代码 (37 核心模块 + 1 聚合入口)
 │   ├── mod_constants.f90          # 1. 物理常数与各单位 a.u. 双向转换
 │   ├── mod_special_functions.f90  # 2. 勒让德、Wigner 3j/6j/9j、CG半整数代数、转动偶极/取向矩阵元
 │   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解 (EISPACK TRED2/TQL2)、实/复方阵求逆、1D/2D FFT
@@ -62,7 +62,7 @@ GeneralModule/
 │   ├── mod_td_scattering.f90      # 20. 含时波包散射理论、连续态能量通量透射率 T(E)、含时 S 矩阵提取与 Möller 动量投影
 │   ├── mod_field_scattering.f90   # 21. 外加电磁场超冷散射、四大经典基组严格幺正变换、Breit-Rabi本征态与磁Feshbach共振扫描
 │   ├── mod_dipolar_scattering.f90 # 22. 各向异性磁偶极/电偶极散射、自旋弛豫截面/热速率、极性分子Stark诱导偶极与耦合势
-│   ├── mod_photoassociation.f90   # 23. 超冷光缔合谱学、自由-束缚态Franck-Condon重叠积分、受激跃迁线宽与热平均光缔合速率
+│   ├── mod_photoassociation.f90   # 23. 超冷光缔合谱学、自由-束缚态Franck-Condon重叠积分、受激线宽与热平均光缔合速率
 │   ├── mod_three_body_recombination.f90 # 24. 超冷三体复合碰撞与 Efimov 少体物理、普适 K3 速率与离散标度不变性
 │   ├── mod_confined_scattering.f90 # 25. 低维光晶格受限量子散射与约束诱导共振 CIR、有效 1D 相互作用与 Tonks 气体
 │   ├── mod_autoionization_fano.f90 # 26. 自电离体系、Fano 组态相互作用线型与复坐标旋转法 CCR 共振寿命
@@ -73,8 +73,12 @@ GeneralModule/
 │   ├── mod_dipolar_droplets_lhy.f90    # 31. 超冷偶极量子液滴、Pelster-Lima 涨落积分 Q5、自束缚平衡密度 n0 与 eGPE 能量密度
 │   ├── mod_strong_field_nsdi.f90       # 32. 强场非顺序双电离、Corkum 三步模型、3.17 Up 截断、2D 动量关联谱与双电离膝盖结构
 │   ├── mod_feshbach_bound_states.f90   # 33. 磁与光 Feshbach 共振、Coupled-channel 弱束缚分子态 Eb(B)、闭通道权重与光致损耗
+│   ├── mod_attosecond_transient_absorption.f90 # 34. 阿秒瞬态吸收光谱 (ATAS)、相位微扰模型 (PPM)、动态 Fano 参数与光诱导态
+│   ├── mod_bicircular_pecd.f90         # 35. 双色反向旋转圆偏振场、C3 动力学对称性、手性四面体势与光电子圆二色性 (PECD)
+│   ├── mod_ultracold_reaction_shielding.f90    # 36. 超冷极性分子反应动力学、微波/静电偶极遮蔽势垒、WKB 隧穿抑制与 gamma > 100
+│   ├── mod_rydberg_blockade.f90        # 37. 里德堡原子阻塞、C6 标度律、双原子动力学与 1D 阵列 PXP 量子多体疤痕
 │   └── general_module.f90         # 顶层聚合入口模块 (use general_module)
-├── tests/                         # 自动化单元测试套件 (25 个套件，100% 全部通过，260/260 断言)
+├── tests/                         # 自动化单元测试套件 (29 个套件，100% 全部通过，280/280 断言)
 │   ├── test_constants.f90
 │   ├── test_special_functions.f90
 │   ├── test_dvr_grid.f90
@@ -100,8 +104,12 @@ GeneralModule/
 │   ├── test_dipolar_droplets_lhy.f90     # 162Dy 偶极长度、Pelster-Lima Q5 积分、自束缚平衡密度与 eGPE 负化学势
 │   ├── test_strong_field_nsdi.f90        # 强场 3.17 Up 回碰截止、(e,2e) Lotz 截面、2D 平行动量关联与双电离膝盖结构
 │   ├── test_feshbach_bound_states.f90    # 6Li/87Rb 磁 Feshbach 弱束缚态能谱 Eb(B)、闭通道权重 Z(B) 与 OFR 双体损耗率 K2
-│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 260/260 断言)
-├── examples/                      # 典型物理应用算例 (20 大完整前沿算例)
+│   ├── test_attosecond_transient_absorption.f90 # 氦原子 2s2p 自电离、动态 Fano q 与 2D ATAS 时延谱不对称性测试
+│   ├── test_bicircular_pecd.f90          # 双色反向圆偏振场 C3 对称、手性四面体不变量 chi 与 PECD 前后发射不对称测试
+│   ├── test_ultracold_reaction_shielding.f90    # KRb 微波遮蔽排斥势垒、WKB 隧穿几率与蒸发冷却比值 gamma > 100 测试
+│   ├── test_rydberg_blockade.f90         # 87Rb 70S 阻塞半径 Rb、双原子强阻塞抑制与 1D 阵列量子多体疤痕测试
+│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 280/280 断言)
+├── examples/                      # 典型物理应用算例 (24 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90           # 啁啾、双色、太赫兹脉冲时频生成
 │   ├── ex03_split_operator_1d.f90         # 1D 波包动力学演化与 CAP 吸收边界
@@ -122,7 +130,11 @@ GeneralModule/
 │   ├── ex18_dipolar_quantum_droplets.f90        # 162Dy 偶极量子液滴自束缚平衡密度、负化学势与气-液滴相变
 │   ├── ex19_strong_field_nsdi_recollision.f90   # 800nm 强场电子重碰撞动能 3.17 Up 截断、2D 动量关联谱与双电离膝盖结构
 │   ├── ex20_feshbach_molecular_bound_states.f90 # 6Li 磁 Feshbach 晕轮二聚体结合能、闭通道权重与 87Rb 光 Feshbach 损耗
-│   └── build_examples.sh          # 算例编译运行脚本 (全 20 算例编译运行通过)
+│   ├── ex21_attosecond_transient_absorption.f90 # 氦原子 2s2p 自电离、动态 Fano q、LIS 态与 2D ATAS 谱图
+│   ├── ex22_bicircular_pecd_chiral.f90          # 双色反向圆偏振场、手性分子对映体能量分辨 PECD 谱与 2D PAD
+│   ├── ex23_ultracold_molecule_shielding.f90    # KRb 超冷极性分子微波遮蔽势垒、隧穿抑制与蒸发冷却速率比 gamma
+│   ├── ex24_rydberg_blockade_dynamics.f90       # 87Rb 70S 阻塞半径、二原子双激发抑制与 1D 阵列量子多体疤痕动力学
+│   └── build_examples.sh          # 算例编译运行脚本 (全 24 算例编译运行通过)
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
     ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 12/12 测试)
@@ -413,6 +425,36 @@ GeneralModule/
 - `calc_mfr_closed_channel_fraction(mfr, b_gauss)`: Hellmann-Feynman 定理分子态闭通道成分占比 $Z(B) = 1 - 1/\sqrt{1 + 2R^*/a(B)}$。
 - `calc_ofr_complex_scattering_length(ofr, delta_hz, a_re, a_im)`: 光 Feshbach 共振（OFR）色散复散射长度 $\tilde{a}(\Delta_L)$。
 - `calc_ofr_inelastic_loss_rate(ofr, delta_hz)`: 实验可测光致双体非弹性损失速率常数 $K_2(\Delta_L)$（$\text{cm}^3/\text{s}$）。
+
+### 34. 阿秒瞬态吸收光谱与光诱导态自电离干涉 (`mod_attosecond_transient_absorption`)
+- `init_atas_helium_benchmark(bright_state)`: 氦原子 $2s2p (^1P)$ 经典双激发态基准 ($E_0 = 60.15\text{ eV}, \Gamma = 0.037\text{ eV}, q_0 = -2.80$)。
+- `calc_laser_dressed_fano_q(q0, phase_shift)`: 相位微扰模型 (PPM) 下激光修饰含时动态 Fano 不对称参数 $q(\tau)$。
+- `calc_light_induced_state_energy(e_bright, e_dark, omega_nir, rabi)`: 强激光缀饰诱导的光诱导态 (LIS) 特征能级位置。
+- `calc_quantum_beat_period_fs(delta_e_ev)`: 明暗态相干干涉拍频特征周期 $T_{\text{beat}} = h / \Delta E$。
+- `calc_atas_spectrum(state, nir_i, nir_lam, ne, emin, emax, ntau, taumin, taumax, e_grid, tau_grid, spec_2d)`: 全量计算二维能量-时延瞬态吸收差分光密度矩阵 $\Delta\text{OD}(\omega, \tau)$。
+
+### 35. 双色反向旋转圆偏振场与分子光电子圆二色性 (`mod_bicircular_pecd`)
+- `init_bicircular_field(field, omega1, r_freq, i1, i2, h1, h2, phi1, phi2, fwhm, env)`: 双色椭圆/圆偏振场合成与时频参数配置。
+- `calc_dynamical_symmetry_fold(h1, h2, freq_ratio)`: 计算离散动力学旋转对称度（反向旋转 $\omega+2\omega$ 输出 $C_3$ 三叶草对称）。
+- `init_chiral_tetrahedral_molecule(mol, enantiomer)`: 构建四中心手性对映体分子（$R$-型与 $S$-型）。
+- `calc_chirality_measure(mol)`: 计算并验证伪标量手性不变量 $\chi(R) = -\chi(S)$。
+- `calc_chiral_beta1_model(mol, e_ev, photon_ev)`: 手性四面体势奇宇称不对称参数 $\beta_1(E)$ 模型。
+- `calc_forward_backward_asymmetry(beta1)`: Ritchie 光电子前后发射不对称度百分比 $G_{\text{PECD}} = \beta_1 / 2$。
+- `calc_pecd_pad_spectrum(b1, b2, gamma33, n_th, n_ph, th_grid, ph_grid, pad)`: 合成三维手性螺旋浆光电子角分布 (PAD)。
+
+### 36. 超冷极性分子反应动力学与微波/静电偶极遮蔽 (`mod_ultracold_reaction_shielding`)
+- `init_ultracold_molecule_preset(mol, name)`: 初始化 $^{40}\text{K}^{87}\text{Rb}$, $^{23}\text{Na}^{87}\text{Rb}$, $^{23}\text{Na}^{40}\text{K}$ 实验质量与电偶极矩。
+- `calc_effective_shielding_potential(mol, cfg, r, l, v_eff)`: 计算微波蓝失谐免交叉排斥偶极屏蔽相互作用势 $V_{\text{eff}}(R)$。
+- `calc_shielding_barrier_height(mol, cfg, r_bar, v_bar)`: 计算长程工程化排斥势垒位置 $R_{\text{bar}} \sim 350\ a_0$ 与势垒高度 $V_{\text{bar}}$。
+- `calc_wkb_tunneling_probability(mol, cfg, e_coll, t_tunnel)`: WKB 量子隧穿衰减因数，验证短程反应区量子反射。
+- `calc_shielded_scattering_rates(mol, cfg, temp, k2_el, k2_inel, gamma)`: 提取弹性与反应损耗速率，满足蒸发冷却判据 $\gamma = K_2^{(\text{el})} / K_2^{(\text{inel})} > 100$。
+
+### 37. 里德堡原子阻塞、PXP 约束模型与量子多体疤痕 (`mod_rydberg_blockade`)
+- `init_rydberg_atom(atom, species, n, l)`: $^{87}\text{Rb}$ 高主量子数 $nS$ 态量子缺陷校正与 $C_6 \propto n^{11}$ 标度相互作用。
+- `calc_rydberg_blockade_radius(atom, rabi)`: 解析计算里德堡阻塞半径 $R_b = (|C_6| / \hbar\Omega)^{1/6}$。
+- `calc_two_atom_dynamics(atom, spacing, rabi, delta, tmax, n_steps, t_arr, pg, ps, pd)`: 细化自适应步长 RK4 积分，验证强阻塞区双激发 $|rr\rangle$ 深度抑制与 $\sqrt{2}\Omega$ 集体纠缠态振荡。
+- `calc_z2_order_parameter(n_atoms, occ)`: 计算一维反铁磁 Néel 空间交错电荷密度波序参量 $\mathcal{O}_{Z_2}$。
+- `calc_rydberg_scar_dynamics(cfg, atom, tmax, n_steps, t_arr, z2_arr)`: 模拟 PXP 拓扑约束链量子多体疤痕长寿命宏观相干复苏。
 
 ---
 
