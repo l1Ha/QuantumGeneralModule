@@ -1024,7 +1024,210 @@
 
 ---
 
-## 29. 快速学术检索与代码对照总表
+## 29. 冷离子-中性原子杂化散射与极化阱动力学 (Cold Ion-Atom Hybrid Scattering)
+
+### 29.1 长程 $1/r^4$ 极化势、Langevin 俘获截面与修正有效力程展开 (MERE)
+- **文献**:
+  - P. Langevin, *"Une formule fondamentale de théorie cinétique"*, **Ann. Chim. Phys.** 5, 245 (1905).
+  - R. Côté and A. Dalgarno, *"Ultracold atom-ion collisions"*, **Phys. Rev. A** 62, 012709 (2000). [DOI: 10.1103/PhysRevA.62.012709](https://doi.org/10.1103/PhysRevA.62.012709)
+  - R. Côté, *"Ultracold atom-ion interactions and collisions"*, **Phys. Rev. Lett.** 89, 083201 (2002). [DOI: 10.1103/PhysRevLett.89.083201](https://doi.org/10.1103/PhysRevLett.89.083201)
+  - Z. Idziaszek et al., *"Analytical solutions for energy-dependent s-wave ion-atom scattering lengths"*, **Phys. Rev. A** 83, 052713 (2011).
+- **核心理论**:
+  带电荷 $q$ 的离子与极化率为 $\alpha$ 的中性原子间由感应偶极相互作用主导：$V(r) \to -C_4 / (2 r^4)$，其中 $C_4 = \alpha q^2 / (4\pi \epsilon_0)$。
+  体系特征长度与特征能量标度为：$R^* = \sqrt{2\mu C_4/\hbar^2}$，$E^* = \hbar^2 / [2\mu (R^*)^2]$。
+  经典离心势垒极值确定临界碰撞参数 $b_c(E) = (2 C_4 / E)^{1/4}$，经典 Langevin 反应俘获截面为 $\sigma_L(E) = 2\pi \sqrt{C_4 / (2E)}$，对应的化学反应碰撞速率常数与能量无关：$K_L = 2\pi \sqrt{C_4 / \mu}$。
+  在极低温量子极限下，由于 $1/r^4$ 长程极化势具有反常奇点，经典 ERE 失效，由修正有效力程展开 (MERE) 给出：
+  $$k \cot\delta_0 = -\frac{1}{a_s} + \frac{\pi}{3 R^*} (k R^*)^2 + \frac{1}{2} r_0 k^2 + \dots$$
+- **代码映射**:
+  - `src/mod_ion_atom_scattering.f90`:
+    - `init_ion_atom_system`: 杂化原子-离子系统特征尺度初始化；
+    - `calc_langevin_cross_section`: 经典 Langevin 截面与临界碰撞参数；
+    - `calc_langevin_rate_coefficient`: 能量无关 Langevin 速率常数；
+    - `calc_mere_phase_shift_s_wave`: MERE 极化量子散射相移。
+
+### 29.2 Paul 射频阱离子微运动非弹性碰撞致热动力学
+- **文献**:
+  - M. Cetina, A. T. Grier, and V. Vuletić, *"Micromotion-induced limit to atom-ion sympathetic cooling in Paul traps"*, **Phys. Rev. Lett.** 109, 253201 (2012). [DOI: 10.1103/PhysRevLett.109.253201](https://doi.org/10.1103/PhysRevLett.109.253201)
+  - K. Chen, S. T. Sullivan, and E. R. Hudson, *"Neutral production of cold ions in Paul traps"*, **Phys. Rev. Lett.** 112, 143009 (2014).
+- **核心理论**:
+  在 Paul 射频四极阱中，时间周期交变场驱动离子产生高频微运动（Micromotion）。在单次碰撞中，微运动动能通过非弹性散射不可逆地转化为久期运动热能，导致同情冷却存在极限平衡温度：
+  $$T_{\text{limit}} \propto \left( \frac{m_{\text{atom}}}{m_{\text{ion}}} \right) \cdot T_{\text{secular}}$$
+  致热率与 Mathieu 稳定性参数 $q$ 及射频驱动频率 $\omega_{\text{rf}}$ 满足 $\frac{\text{d}E}{\text{d}t} \propto \frac{m_a}{m_i + m_a} q^2 \omega_{\text{rf}} E_{\text{sec}}$。
+- **代码映射**:
+  - `src/mod_ion_atom_scattering.f90`:
+    - `calc_rf_micromotion_heating`: 微运动非平衡碰撞致热率与平衡极限温度计算。
+
+---
+
+## 30. Tully 最少开关表面跳跃与非绝热分子动力学 (FSSH)
+
+### 30.1 最少开关表面跳跃几率算法与 Velocity Verlet 核演化
+- **文献**:
+  - J. C. Tully, *"Molecular dynamics with electronic transitions"*, **J. Chem. Phys.** 93, 1061 (1990). [DOI: 10.1063/1.459170](https://doi.org/10.1063/1.459170)
+  - S. Hammes-Schiffer and J. C. Tully, *"Vibrationally adiabatic surface hopping"*, **J. Chem. Phys.** 101, 4657 (1994). [DOI: 10.1063/1.467455](https://doi.org/10.1063/1.467455)
+  - J. E. Subotnik et al., *"Recent advances in surface hopping"*, **Annu. Rev. Phys. Chem.** 67, 387 (2016).
+- **核心理论**:
+  经典核坐标按当前绝热势能面 $V_k(R)$ 进行 Velocity Verlet 推进，电子相干波函数 $\mathbf{c}(t)$ 按含时薛定谔方程沿核轨迹幺正演化：
+  $$i\hbar \dot{c}_k(t) = V_k(R) c_k(t) - i\hbar \sum_j \dot{R} \cdot \mathbf{d}_{kj}(R) c_j(t)$$
+  其中 $\mathbf{d}_{kj} = \langle \phi_k | \nabla_R \phi_j \rangle$ 为非绝热导数耦合矢量 (NACV)。
+  Tully 最少开关规则定义态 $k \to j$ 的瞬时跳跃几率：
+  $$g_{k \to j} = \max\left(0, \frac{2 \Delta t}{\rho_{kk}} \text{Im}\left[\rho_{kj}^* (\dot{R} \cdot \mathbf{d}_{jk})\right]\right)$$
+  跳跃时沿 NACV 方向调整核动量保持全系统能量守恒；若能量不足则视为禁阻跳跃 (Forbidden Hopping) 并发生动量反向反射。
+- **代码映射**:
+  - `src/mod_surface_hopping_fssh.f90`:
+    - `init_tully_model`: Tully 三大基准解析势能面 (SAC, DAC, ECR) 模型；
+    - `calc_adiabatic_surface_and_nacv`: 势能面与 NACV 矢量解析求解；
+    - `propagate_fssh_step`: Tully 最少开关推进与动量重标度；
+    - `run_fssh_ensemble`: 蒙特卡洛系综统计通道透射/反射分支比。
+
+---
+
+## 31. 强场分子定向、取向与光学离心机超转子动力学 (Molecular Alignment & Superrotors)
+
+### 31.1 飞秒激光诱导非绝热对齐与无场转动复苏序参量
+- **文献**:
+  - H. Stapelfeldt and T. Seideman, *"Colloquium: Aligning molecules with strong laser pulses"*, **Rev. Mod. Phys.** 75, 543 (2003). [DOI: 10.1103/RevModPhys.75.543](https://doi.org/10.1103/RevModPhys.75.543)
+  - D. M. Villeneuve et al., *"Observation of the revivals of a molecular wave packet created by a strong femtosecond laser pulse"*, **Phys. Rev. Lett.** 85, 542 (2000).
+- **核心理论**:
+  短脉冲强激光各向异性极化势 $V(\theta, t) = -\frac{1}{4} \mathcal{E}^2(t) \Delta\alpha \cos^2\theta$ 驱动分子转动拉曼跃迁形成 $\Delta J = 0, \pm 2$ 的相干转动波包。
+  脉冲过后，波包在无场环境下发生相干周期复苏，完全复苏周期为 $T_{\text{rev}} = \frac{1}{2 B c}$。系综平均对齐度由序参量 $\langle\cos^2\theta\rangle(t)$ 表征。
+- **代码映射**:
+  - `src/mod_molecular_alignment.f90`:
+    - `init_rotor_molecule`: 刚体转子结构与极化参数；
+    - `simulate_laser_induced_alignment`: 非绝热脉冲激发与时域复苏谱计算。
+
+### 31.2 光学离心机超转子产生与极端离心破键
+- **文献**:
+  - J. Karczmarek, J. Wright, P. B. Corkum, and M. Ivanov, *"Optical centrifuge for molecules"*, **Phys. Rev. Lett.** 82, 3420 (1999). [DOI: 10.1103/PhysRevLett.82.3420](https://doi.org/10.1103/PhysRevLett.82.3420)
+  - U. Steinitz, R. Gopal, and I. Sh. Averbukh, *"Centrifugal breaking of molecules by an optical centrifuge"*, **Phys. Rev. Lett.** 109, 173001 (2012).
+- **核心理论**:
+  由反向旋转圆偏振场合成的光学离心机具备线性递增的角旋转速度 $\omega(t) = \alpha_{\text{chirp}} t$。分子被绝热捕获在极化势阱中加速至超高角动量超转子态（$J \gg 1$）：
+  $$J_{\text{terminal}} \approx \frac{\alpha_{\text{chirp}} T_{\text{pulse}}}{2 B}$$
+  巨大的离心能 $E_{\text{rot}} = B J(J+1)$ 压低共价结合势阱，当有效势垒完全消失时触发机械离心共价破键。
+- **代码映射**:
+  - `src/mod_molecular_alignment.f90`:
+    - `calc_optical_centrifuge_kick`: 离心机终端角动量与超转子生成；
+    - `calc_superrotor_dissociation`: 极端离心势能与共价键断裂判定。
+
+---
+
+## 32. 超冷光晶格与玻色-哈伯德微观映射 (Optical Lattice & Bose-Hubbard)
+
+### 32.1 Mathieu 能带、Wannier 函数与玻色-哈伯德参数 $(J, U)$ 映射
+- **文献**:
+  - D. Jaksch, C. Bruder, J. I. Cirac, C. W. Gardiner, and P. Zoller, *"Cold bosonic atoms in optical lattices"*, **Phys. Rev. Lett.** 81, 3108 (1998). [DOI: 10.1103/PhysRevLett.81.3108](https://doi.org/10.1103/PhysRevLett.81.3108)
+  - M. Greiner, O. Mandel, T. Esslinger, T. W. Hänsch, and I. Bloch, *"Quantum phase transition from a superfluid to a Mott insulator in a gas of ultracold atoms"*, **Nature** 415, 39 (2002). [DOI: 10.1038/415039a](https://doi.org/10.1038/415039a)
+  - I. Bloch, J. Dalibard, and W. Zwerger, *"Many-body physics with ultracold gases"*, **Rev. Mod. Phys.** 80, 885 (2008).
+- **核心理论**:
+  驻波激光形成周期势 $V(x) = V_0 \sin^2(k_L x)$。在紧束缚近似下，平面波展开 Mathieu 方程构造局域 Wannier 函数 $w(x)$。
+  玻色-哈伯德哈密顿量微观参数由重叠积分给出：
+  $$J = -\int dx \, w(x-d) \left[ -\frac{\hbar^2}{2m}\frac{d^2}{dx^2} + V(x) \right] w(x) \approx \frac{4}{\sqrt{\pi}} E_R s^{3/4} e^{-2\sqrt{s}}$$
+  $$U = \frac{4\pi\hbar^2 a_s}{m} \int dx \, |w(x)|^4 \approx \sqrt{\frac{8}{\pi}} k_L a_s E_R s^{1/4}$$
+  一维系统在 $(U/J)_c \approx 3.84$ 处经历超流体 (SF) 向 Mott 绝缘体 (MI) 的量子相变。
+- **代码映射**:
+  - `src/mod_optical_lattice_hubbard.f90`:
+    - `init_optical_lattice`: 光晶格反冲尺度初始化；
+    - `calc_bloch_band_energies`: Bloch 能带结构求解；
+    - `calc_bose_hubbard_parameters`: Wannier 微观紧束缚参数与相变判定。
+
+### 32.2 恒定外场布洛赫振荡与 Landau-Zener 带间隧穿
+- **文献**:
+  - M. Ben Dahan, E. Peik, J. Reichel, Y. Castin, and C. Salomon, *"Bloch oscillations of atoms in an optical lattice"*, **Phys. Rev. Lett.** 76, 4508 (1996). [DOI: 10.1103/PhysRevLett.76.4508](https://doi.org/10.1103/PhysRevLett.76.4508)
+  - C. Zener, *"A theory of the electrical breakdown of solid dielectrics"*, **Proc. R. Soc. Lond. A** 137, 696 (1932).
+- **核心理论**:
+  在微重力或外力 $F$ 下，准动量沿第一布里渊区扫描 $\hbar \dot{q} = F$，形成空间定域的布洛赫振荡，周期为 $T_B = \frac{2\pi\hbar}{F d} = \frac{h}{F d}$。
+  当扫描经过第一布里渊区边界时，向高能能带隧穿的几率由 Landau-Zener 公式决定：
+  $$P_{\text{LZ}} = \exp\left( - \frac{\pi \Delta_{\text{gap}}^2}{4 \hbar |F| v_R} \right)$$
+- **代码映射**:
+  - `src/mod_optical_lattice_hubbard.f90`:
+    - `calc_bloch_oscillation_dynamics`: 布洛赫振荡周期与 Landau-Zener 泄漏几率计算。
+
+---
+
+## 33. 多原子反应路径哈密顿量与变分过渡态理论 (RPH & Variational TST)
+
+### 33.1 反应路径哈密顿量 (RPH) 与正则变分过渡态理论 (CVT)
+- **文献**:
+  - W. H. Miller, N. C. Handy, and J. E. Adams, *"Reaction path Hamiltonian for polyatomic molecules"*, **J. Chem. Phys.** 72, 99 (1980). [DOI: 10.1063/1.438959](https://doi.org/10.1063/1.438959)
+  - D. G. Truhlar and B. C. Garrett, *"Variational transition-state theory"*, **Acc. Chem. Res.** 13, 440 (1980). [DOI: 10.1021/ar50156a002](https://doi.org/10.1021/ar50156a002)
+  - B. C. Garrett and D. G. Truhlar, *"Criterion of maximum free energy of activation for variational transition-state theory"*, **J. Phys. Chem.** 83, 1052 (1979).
+- **核心理论**:
+  内禀反应坐标 (IRC) 弧长 $s$ 描述沿最小能量路径的推进，垂直于路径的简正振动自由度 $Q_k$ 与路径曲率耦合。
+  广义过渡态理论 (GTST) 正则速率常数由分界面 $s$ 处决定：
+  $$k^{\text{GTST}}(T, s) = \frac{k_B T}{h} \frac{Q^\ddagger(T, s)}{\Phi^R(T)} \exp\left( - \frac{V_0(s)}{k_B T} \right)$$
+  正则变分过渡态理论 (CVT) 通过最小化速率常数寻找动力学自由能瓶颈分界面：
+  $$k^{\text{CVT}}(T) = \min_s k^{\text{GTST}}(T, s)$$
+- **代码映射**:
+  - `src/mod_reaction_path_hamiltonian.f90`:
+    - `init_rph_benchmark_reaction`: RPH 反应路径与曲率振动参数初始化；
+    - `calc_generalized_tst_rate`: 沿路径分界面的广义 TST 速率；
+    - `calc_cvt_rate_constant`: 正则变分 CVT 速率常数瓶颈优化。
+
+### 33.2 Eckart 势垒半经典量子穿透修正
+- **文献**:
+  - C. Eckart, *"The penetration of a parabolic potential barrier"*, **Phys. Rev.** 35, 1303 (1930). [DOI: 10.1103/PhysRev.35.1303](https://doi.org/10.1103/PhysRev.35.1303)
+- **核心理论**:
+  对于具有虚频 $\omega^\ddagger$ 的鞍点势垒，量子隧穿修正系数 $\kappa(T) = k^{\text{tunnel}}(T) / k^{\text{classical}}(T)$ 通过对不对称 Eckart 势垒穿透概率 $P(E)$ 的玻尔兹曼积分严格求得，低温下显著高于经典 1.0。
+- **代码映射**:
+  - `src/mod_reaction_path_hamiltonian.f90`:
+    - `calc_eckart_tunneling_factor`: Eckart 势垒高斯-勒让德量子隧穿修正因子计算。
+
+---
+
+## 34. 相对论原子结构与径向狄拉克方程 (Relativistic Atomic Structure & Dirac)
+
+### 34.1 径向狄拉克方程、Sommerfeld 能级与核心极化模型势
+- **文献**:
+  - P. A. M. Dirac, *"The Quantum Theory of the Electron"*, **Proc. R. Soc. Lond. A** 117, 610 (1928). [DOI: 10.1098/rspa.1928.0023](https://doi.org/10.1098/rspa.1928.0023)
+  - I. P. Grant, *Relativistic Quantum Theory of Atoms and Molecules*, Springer (2007).
+  - D. W. Norcross, *"Model potential calculations of alkali-metal negative-ion and neutral binding energies"*, **Phys. Rev. A** 7, 606 (1973). [DOI: 10.1103/PhysRevA.7.606](https://doi.org/10.1103/PhysRevA.7.606)
+- **核心理论**:
+  径向一阶耦合狄拉克方程组描述大分量 $P(r)$ 与小分量 $Q(r)$：
+  $$\frac{dP}{dr} = -\frac{\kappa}{r} P + \frac{1}{c} [E - V(r) + 2 c^2] Q, \quad \frac{dQ}{dr} = \frac{\kappa}{r} Q - \frac{1}{c} [E - V(r)] P$$
+  Sommerfeld 精细结构本征解析公式为：
+  $$E_D = c^2 \left[ \left(1 + \frac{(Z_{\text{eff}}/c)^2}{(n - |\kappa| + \sqrt{\kappa^2 - (Z_{\text{eff}}/c)^2})^2}\right)^{-1/2} - 1 \right]$$
+  Norcross-Klapisch 核心极化相互作用势：$V_{\text{pol}}(r) = -\frac{\alpha_{\text{core}}}{2 r^4} [1 - \exp(-(r/r_c)^6)]$。
+- **代码映射**:
+  - `src/mod_relativistic_atomic.f90`:
+    - `calc_dirac_model_potential`: 核心屏蔽与极化势；
+    - `solve_radial_dirac_eigenvalue`: 狄拉克方程本征能量与量子亏损求解；
+    - `calc_dirac_fine_structure_splitting`: 天然自旋-轨道耦合劈裂能计算；
+    - `calc_dirac_e1_matrix_element`: 相对论电偶极 (E1) 振子强度计算。
+
+---
+
+## 35. 共振非弹性 X 射线散射与内壳层光谱 (Resonant Inelastic X-ray Scattering - RIXS)
+
+### 35.1 Kramers-Heisenberg 二阶微扰截面与 2D RIXS 能损图谱
+- **文献**:
+  - H. A. Kramers and W. Heisenberg, *"Über die Streuung von Strahlung durch Atome"*, **Z. Phys.** 31, 681 (1925). [DOI: 10.1007/BF02980624](https://doi.org/10.1007/BF02980624)
+  - L. J. P. Ament, M. van Veenendaal, T. P. Devereaux, J. P. Hill, and J. van den Brink, *"Resonant inelastic x-ray scattering studies of elementary excitations"*, **Rev. Mod. Phys.** 83, 705 (2011). [DOI: 10.1103/RevModPhys.83.705](https://doi.org/10.1103/RevModPhys.83.705)
+  - F. M. F. de Groot and A. Kotani, *Core Level Spectroscopy of Solids*, CRC Press (2008).
+- **核心理论**:
+  入射光子 $\hbar\omega_1$ 激发核心电子至未占轨道，经飞秒级核心空穴寿命 $\Gamma_m$ 衰变发射光子 $\hbar\omega_2$，留下低能电子/轨道激发 $\hbar\Omega = \hbar\omega_1 - \hbar\omega_2$：
+  $$\frac{d^2\sigma}{d\Omega d\omega_2} \propto \sum_f \left| \sum_m \frac{\langle f | \hat{\mathcal{D}}_2^\dagger | m \rangle \langle m | \hat{\mathcal{D}}_1 | i \rangle}{E_i + \hbar\omega_1 - E_m + i\Gamma_m / 2} \right|^2 \mathcal{L}(\hbar\Omega - (E_f - E_i), \gamma_f)$$
+- **代码映射**:
+  - `src/mod_resonant_xray_scattering.f90`:
+    - `init_rixs_system`: RIXS 能级与偶极矩阵元初始化；
+    - `calc_xas_cross_section`: X 射线吸收谱 (XAS) 求解；
+    - `calc_kramers_heisenberg_cross_section`: 二阶 RIXS 散射截面计算；
+    - `calc_rixs_2d_map`: 2D RIXS 能量-能损响应矩阵生成。
+
+### 35.2 电-声耦合 Franck-Condon 伴峰与相联拉盖尔多项式严格展开
+- **文献**:
+  - K. Huang and A. Rhys, *"Theory of light absorption and non-radiative transitions in F-centres"*, **Proc. R. Soc. Lond. A** 204, 406 (1950).
+  - L. J. P. Ament et al., **Rev. Mod. Phys.** 83, 705 (2011), Section III.B (Phonon RIXS).
+- **核心理论**:
+  中间态核心空穴产生的晶格位移常数 $d = \sqrt{S}$（Huang-Rhys 因子 $S$）。各阶声子损失峰振幅采用相联拉盖尔多项式 $L_p^{(\alpha)}$ 严格解析重叠积分：
+  $$A_n(\omega_1) = \sum_{\nu=0}^\infty \frac{\langle n | \hat{D}(-d) | \nu \rangle \langle \nu | \hat{D}(d) | 0 \rangle}{\Delta\omega - \nu \omega_0 + i\Gamma_m / 2}$$
+  在快碰撞极限 $\Gamma_m \gg \omega_0$ 下，完备性求和 $\sum_\nu \langle n | \nu \rangle \langle \nu | 0 \rangle = \delta_{n, 0}$ 严格重现弹性主峰占优与声子发射级数单调衰减。
+- **代码映射**:
+  - `src/mod_resonant_xray_scattering.f90`:
+    - `calc_huang_rhys_vibrational_rixs`: 严格相联拉盖尔声子级数计算。
+
+---
+
+## 36. 快速学术检索与代码对照总表
 
 | 物理模块 | 对应源文件 | 核心经典文献代表 | 主要导出 API 与算法 |
 | :--- | :--- | :--- | :--- |
@@ -1060,6 +1263,13 @@
 | **气-固催化与 ER 反应** | `mod_surface_reaction_er.f90` | Eley & Rideal (1940), Rettner (1992), Jackson (1992) | `init_er_reaction_system`, `calc_er_energy_partitioning`, `calc_er_vibrational_populations`, `calc_er_reaction_cross_section` |
 | **表面非绝热与电子摩擦**| `mod_surface_electronic_friction.f90` | Tully (1981), Head-Gordon & Tully (1995), Wodtke (2000) | `init_metal_surface`, `calc_electronic_friction_coeff`, `integrate_gle_scattering_trajectory`, `calc_vibrational_relaxation_rate` |
 | **掠入射快原子衍射 (GIFAD)** | `mod_grazing_fast_atom_diffraction.f90` | Rousseau (PRL 2007), Schüller (PRL 2007), Winter (2011) | `init_gifad_experiment`, `calc_gifad_transverse_kinematics`, `calc_gifad_rainbow_angle`, `calc_surface_corrugation_from_rainbow` |
+| **冷离子-中性原子杂化散射** | `mod_ion_atom_scattering.f90` | Langevin (1905), Côté (PRA 2000), Cetina (PRL 2012) | `init_ion_atom_system`, `calc_langevin_cross_section`, `calc_rf_micromotion_heating` |
+| **最少开关表面跳跃 (FSSH)** | `mod_surface_hopping_fssh.f90` | Tully (JCP 1990), Hammes-Schiffer & Tully (1994) | `init_tully_model`, `propagate_fssh_step`, `run_fssh_ensemble` |
+| **分子定向与超转子** | `mod_molecular_alignment.f90` | Stapelfeldt & Seideman (RMP 2003), Karczmarek (1999) | `simulate_laser_induced_alignment`, `calc_optical_centrifuge_kick` |
+| **光晶格与 Bose-Hubbard** | `mod_optical_lattice_hubbard.f90` | Jaksch (PRL 1998), Greiner (Nature 2002), Ben Dahan (1996) | `init_optical_lattice`, `calc_bose_hubbard_parameters`, `calc_bloch_oscillation_dynamics` |
+| **反应路径哈密顿量 (RPH)** | `mod_reaction_path_hamiltonian.f90` | Miller (JCP 1980), Truhlar & Garrett (1980), Eckart (1930) | `init_rph_benchmark_reaction`, `calc_cvt_rate_constant`, `calc_eckart_tunneling_factor` |
+| **相对论原子与狄拉克方程** | `mod_relativistic_atomic.f90` | Dirac (1928), Norcross (PRA 1973), Grant (2007) | `solve_radial_dirac_eigenvalue`, `calc_dirac_fine_structure_splitting` |
+| **共振非弹性 X 射线散射 (RIXS)** | `mod_resonant_xray_scattering.f90` | Kramers-Heisenberg (1925), Ament et al. (RMP 2011) | `calc_xas_cross_section`, `calc_kramers_heisenberg_cross_section`, `calc_huang_rhys_vibrational_rixs` |
 | **开放量子系统** | `mod_open_quantum.f90` | Lindblad (1976), Gorini (1976) | `propagate_lindblad_rk4`, `calculate_von_neumann_entropy` |
 | **量子最优控制** | `mod_optimal_control.f90` | Somlói & Tannor (1993), Krotov (1996) | `optimize_pulse_krotov` |
 

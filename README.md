@@ -3,8 +3,8 @@
 [![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
 [![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests: 300/300 Pass](https://img.shields.io/badge/Tests-300%2F300%20Pass%20(100%25)-brightgreen.svg)](tests/)
-[![Literature: 28 Topics](https://img.shields.io/badge/Literature-28%20Topics%20(PRL%2FPRA%2FRMP%2FScience%2FNature)-blue.svg)](LITERATURE.md)
+[![Tests: 335/335 Pass](https://img.shields.io/badge/Tests-335%2F335%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Literature: 35 Topics](https://img.shields.io/badge/Literature-35%20Topics%20(PRL%2FPRA%2FRMP%2FScience%2FNature)-blue.svg)](LITERATURE.md)
 
 `GeneralModule` 是一个面向超快强场物理、分子光物理、前沿量子散射与表面动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
 
@@ -14,17 +14,17 @@
 
 1. **零外部库依赖 (Zero External Dependencies)**
    - 内部集成高精度 Householder QL 实对称矩阵本征求解器、Gauss-Jordan 全主元实/复方阵求逆与 Cooley-Tukey 1D/2D 快速傅里叶变换（FFT）。
-   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射、各向异性偶极耦合、超冷光缔合速率、少体 Efimov 物理、低维光晶格 CIR、自电离 Fano/CCR、交叉电磁场、三原子反应 PES、旋量 BEC 自旋动力学、三原子超球面反应动力学、偶极量子液滴 LHY、强场非顺序双电离 (NSDI)、磁/光 Feshbach 束缚态、阿秒瞬态吸收光谱 (ATAS)、双色反向圆偏振 PECD、超冷极性分子偶极遮蔽、里德堡原子阻塞、2D 表面量子散射与 SAR、气-固催化 Eley-Rideal 反应、金属表面非绝热电子摩擦 (GLE) 与掠入射快原子衍射 (GIFAD) 求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
+   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射、各向异性偶极耦合、超冷光缔合速率、少体 Efimov 物理、低维光晶格 CIR、自电离 Fano/CCR、交叉电磁场、三原子反应 PES、旋量 BEC 自旋动力学、三原子超球面反应动力学、偶极量子液滴 LHY、强场非顺序双电离 (NSDI)、磁/光 Feshbach 束缚态、阿秒瞬态吸收光谱 (ATAS)、双色反向圆偏振 PECD、超冷极性分子偶极遮蔽、里德堡原子阻塞、2D 表面量子散射与 SAR、气-固催化 Eley-Rideal 反应、金属表面非绝热电子摩擦 (GLE)、掠入射快原子衍射 (GIFAD)、冷离子-中性原子杂化极化散射、Tully 最少开关表面跳跃 (FSSH)、强场分子定向与超转子动力学、光晶格 Bose-Hubbard 映射、反应路径哈密顿量 (RPH/CVT)、相对论径向狄拉克方程以及共振非弹性 X 射线散射 (RIXS) 求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
 2. **现代 Fortran 2008 标准设计**
    - 统一强类型参数定义（`real(dp) => real64`）。
    - 纯函数（`pure function`）与显式 `intent(in/out/inout)` 契约，杜绝隐式全局变量副作用。
 3. **AI 友好型结构化接口 (AI-Friendly)**
    - 算法模块支持统一顶层聚合入口：`use general_module`。
-   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `surface_lattice_t`, `er_reaction_system_t`, `metal_surface_t`, `gifad_experiment_t` 等），自解释、低耦合、便于大语言模型精确构造与调用。
+   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `surface_lattice_t`, `ion_atom_system_t`, `tully_model_t`, `rotor_molecule_t`, `optical_lattice_t`, `rph_path_t`, `dirac_state_t`, `rixs_system_t` 等），自解释、低耦合、便于大语言模型精确构造与调用。
 4. **全链路双语生态支持**
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
 5. **全自动 CI/CD 持续集成**
-   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 33 大测试套件（300 个单元断言 100% 通过）与 28 大物理应用工程算例。
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 40 大测试套件（335 个单元断言 100% 通过）与 35 大物理应用工程算例。
 
 ---
 
@@ -81,8 +81,15 @@ GeneralModule/
 │   ├── mod_surface_reaction_er.f90     # 39. 气-固表面催化与 Eley-Rideal 提取机理、超热放热能量分配与振动反转
 │   ├── mod_surface_electronic_friction.f90 # 40. 金属表面非绝热动力学、局域密度摩擦 (LDFA)、广义朗之万 (GLE) 与电子-空穴对耗散
 │   ├── mod_grazing_fast_atom_diffraction.f90 # 41. 掠入射快原子表面量子衍射 (GIFAD)、轴向沟道快慢解耦与亚皮米波纹反演
-│   └── general_module.f90         # 顶层聚合入口模块 (use general_module)
-├── tests/                         # 自动化单元测试套件 (33 个套件，100% 全部通过，300/300 断言)
+│   ├── mod_ion_atom_scattering.f90     # 42. 冷离子-中性原子杂化散射、1/r^4 极化势、Langevin 截面与 Paul 阱微运动致热
+│   ├── mod_surface_hopping_fssh.f90    # 43. Tully 最少开关表面跳跃 (FSSH)、Velocity Verlet 核推进、能量守恒动量重标度与 NACV
+│   ├── mod_molecular_alignment.f90     # 44. 强场非绝热分子定向/取向、转动复苏序参量与光学离心机超转子动力学
+│   ├── mod_optical_lattice_hubbard.f90  # 45. 超冷光晶格、Mathieu 能带结构、Wannier 轨道、Bose-Hubbard 映射与 Bloch 振荡
+│   ├── mod_reaction_path_hamiltonian.f90 # 46. 多原子反应路径哈密顿量 (RPH)、内禀反应坐标 (IRC)、变分过渡态理论 (CVT) 与 Eckart 隧穿
+│   ├── mod_relativistic_atomic.f90     # 47. 相对论原子结构、径向狄拉克方程、精细结构分裂 (Cs D1/D2) 与核心极化模型势
+│   ├── mod_resonant_xray_scattering.f90 # 48. 共振非弹性 X 射线散射 (RIXS)、Kramers-Heisenberg 二阶截面、XAS/XES 与 Huang-Rhys 振动级数
+│   └── general_module.f90          # 顶层聚合入口模块 (use general_module)
+├── tests/                          # 自动化单元测试套件 (40 个套件，100% 全部通过，335/335 断言)
 │   ├── test_constants.f90
 │   ├── test_special_functions.f90
 │   ├── test_dvr_grid.f90
@@ -90,40 +97,47 @@ GeneralModule/
 │   ├── test_propagators.f90
 │   ├── test_atomic_hhg.f90
 │   ├── test_laser_rovibrational_control.f90 # 激光调控分子转振态布居转移综合测试
-│   ├── test_interpolation.f90     # 三次样条插值与渐近外推测试
-│   ├── test_photofragment_flux.f90# 自相关吸收谱与碎片 KER 分支比测试
-│   ├── test_open_quantum_opt.f90  # Lindblad 耗散退相干与 Krotov 最优控制测试
-│   ├── test_ti_scattering.f90     # 非含时散射长度、相移、S矩阵与分段网格多通道测试
-│   ├── test_td_scattering.f90     # 含时波包散射透射谱、S矩阵元与 Möller 投影测试
-│   ├── test_field_scattering.f90  # 外场四大基组幺正变换、Breit-Rabi解析与数值比对、磁Feshbach共振拟合测试
-│   ├── test_dipolar_scattering.f90# 各向异性偶极张量、自旋弛豫截面、极性分子Stark感应与耦合势测试
-│   ├── test_photoassociation.f90  # 自由-束缚重叠积分、受激线宽、热光缔合速率与Raman双光子测试
+│   ├── test_interpolation.f90      # 三次样条插值与渐近外推测试
+│   ├── test_photofragment_flux.f90 # 自相关吸收谱与碎片 KER 分支比测试
+│   ├── test_open_quantum_opt.f90   # Lindblad 耗散退相干与 Krotov 最优控制测试
+│   ├── test_ti_scattering.f90      # 非含时散射长度、相移、S矩阵与分段网格多通道测试
+│   ├── test_td_scattering.f90      # 含时波包散射透射谱、S矩阵元与 Möller 投影测试
+│   ├── test_field_scattering.f90   # 外场四大基组幺正变换、Breit-Rabi解析与数值比对、磁Feshbach共振拟合测试
+│   ├── test_dipolar_scattering.f90 # 各向异性偶极张量、自旋弛豫截面、极性分子Stark感应与耦合势测试
+│   ├── test_photoassociation.f90   # 自由-束缚重叠积分、受激线宽、热光缔合速率与Raman双光子测试
 │   ├── test_three_body_recombination.f90 # Efimov 超越方程根、普适 K3 速率、干涉极小值与有限温度幂律
-│   ├── test_confined_scattering.f90      # 准 1D 波导 CIR 极点、结合能、Tonks-Girardeau 与各向异性分裂
-│   ├── test_autoionization_fano.f90      # Fano 抗共振零点、自电离寿命与复坐标旋转 CCR 极点
-│   ├── test_crossed_field_scattering.f90 # 交叉静电磁场非共线态混合、Stark 定向度与避免交叉能谱
-│   ├── test_triatomic_geometry.f90       # Jacobi 坐标可逆映射、LEPS 反应势能面与锥形交叉 Berry 几何相位
-│   ├── test_spinor_bec.f90               # F=1 旋量凝聚体铁磁/极性相、保全几率与保磁化强度 RK4 自旋混合
-│   ├── test_hyperspherical_reactive.f90  # 三原子反应偏角、Eckart 隧穿传递几率、累积反应几率 N(E) 与热速率 k(T)
-│   ├── test_dipolar_droplets_lhy.f90     # 162Dy 偶极长度、Pelster-Lima Q5 积分、自束缚平衡密度与 eGPE 负化学势
-│   ├── test_strong_field_nsdi.f90        # 强场 3.17 Up 回碰截止、(e,2e) Lotz 截面、2D 平行动量关联与双电离膝盖结构
-│   ├── test_feshbach_bound_states.f90    # 6Li/87Rb 磁 Feshbach 弱束缚态能谱 Eb(B)、闭通道权重 Z(B) 与 OFR 双体损耗率 K2
+│   ├── test_confined_scattering.f90       # 准 1D 波导 CIR 极点、结合能、Tonks-Girardeau 与各向异性分裂
+│   ├── test_autoionization_fano.f90       # Fano 抗共振零点、自电离寿命与复坐标旋转 CCR 极点
+│   ├── test_crossed_field_scattering.f90  # 交叉静电磁场非共线态混合、Stark 定向度与避免交叉能谱
+│   ├── test_triatomic_geometry.f90        # Jacobi 坐标可逆映射、LEPS 反应势能面与锥形交叉 Berry 几何相位
+│   ├── test_spinor_bec.f90                # F=1 旋量凝聚体铁磁/极性相、保全几率与保磁化强度 RK4 自旋混合
+│   ├── test_hyperspherical_reactive.f90   # 三原子反应偏角、Eckart 隧穿传递几率、累积反应几率 N(E) 与热速率 k(T)
+│   ├── test_dipolar_droplets_lhy.f90      # 162Dy 偶极长度、Pelster-Lima Q5 积分、自束缚平衡密度与 eGPE 负化学势
+│   ├── test_strong_field_nsdi.f90         # 强场 3.17 Up 回碰截止、(e,2e) Lotz 截面、2D 平行动量关联与双电离膝盖结构
+│   ├── test_feshbach_bound_states.f90     # 6Li/87Rb 磁 Feshbach 弱束缚态能谱 Eb(B)、闭通道权重 Z(B) 与 OFR 双体损耗率 K2
 │   ├── test_attosecond_transient_absorption.f90 # 氦原子 2s2p 自电离、动态 Fano q 与 2D ATAS 时延谱不对称性测试
-│   ├── test_bicircular_pecd.f90          # 双色反向圆偏振场 C3 对称、手性四面体不变量 chi 与 PECD 前后发射不对称测试
-│   ├── test_ultracold_reaction_shielding.f90    # KRb 微波遮蔽排斥势垒、WKB 隧穿几率与蒸发冷却比值 gamma > 100 测试
-│   ├── test_rydberg_blockade.f90         # 87Rb 70S 阻塞半径 Rb、双原子强阻塞抑制与 1D 阵列量子多体疤痕测试
-│   ├── test_surface_scattering.f90       # 2D 晶格 HCS 程函衍射幺正性、SAR Fano 线型与 Debye-Waller 声子衰减测试
-│   ├── test_surface_reaction_er.f90      # H+H/Cu(111) ER 反应放热量超热分配、振动布居反转与反应截面/速率常数测试
-│   ├── test_surface_electronic_friction.f90 # Au(111) 电子摩擦系数空间衰减、GLE 辛步进、电子-空穴对能损与振动寿命测试
+│   ├── test_bicircular_pecd.f90           # 双色反向圆偏振场 C3 对称、手性四面体不变量 chi 与 PECD 前后发射不对称测试
+│   ├── test_ultracold_reaction_shielding.f90     # KRb 微波遮蔽排斥势垒、WKB 隧穿几率与蒸发冷却比值 gamma > 100 测试
+│   ├── test_rydberg_blockade.f90          # 87Rb 70S 阻塞半径 Rb、双原子强阻塞抑制与 1D 阵列量子多体疤痕测试
+│   ├── test_surface_scattering.f90        # 2D 晶格 HCS 程函衍射幺正性、SAR Fano 线型与 Debye-Waller 声子衰减测试
+│   ├── test_surface_reaction_er.f90       # H+H/Cu(111) ER 反应放热量超热分配、振动布居反转与反应截面/速率常数测试
+│   ├── test_surface_electronic_friction.f90  # Au(111) 电子摩擦系数空间衰减、GLE 辛步进、电子-空穴对能损与振动寿命测试
 │   ├── test_grazing_fast_atom_diffraction.f90 # 快轴向沟道解耦、经典彩虹偏转角、1D 横向 Bragg 衍射谱与亚皮米波纹度反演测试
-│   └── run_all_tests.sh           # 自动化测试运行脚本 (100% Pass, 300/300 断言)
-├── examples/                      # 典型物理应用算例 (28 大完整前沿算例)
+│   ├── test_ion_atom_scattering.f90       # 极化尺度 R*、Langevin 标度律、MERE 相移与微运动致热率测试
+│   ├── test_surface_hopping_fssh.f90      # Tully SAC 能隙、核动能守恒、系综分支比与 Ehrenfest 模范数测试
+│   ├── test_molecular_alignment.f90       # 转动复苏周期、瞬态定向峰值、光学离心机加速与离心破键测试
+│   ├── test_optical_lattice_hubbard.f90   # Bloch 能带极限、超流-Mott 判据、带隙演化与引力 Bloch 振荡测试
+│   ├── test_reaction_path_hamiltonian.f90 # RPH 鞍点势垒、CVT 变分界、Eckart 隧穿与高温极限测试
+│   ├── test_relativistic_atomic.f90       # 狄拉克氢 1s 基态、2p 精细结构劈裂、Cs 核心极化与相对论 E1 振子强度测试
+│   ├── test_resonant_xray_scattering.f90  # Cu L3 XAS 吸收峰、Kramers-Heisenberg 共振放大、2D RIXS 图谱与 Laguerre 声子级数测试
+│   └── run_all_tests.sh            # 自动化测试运行脚本 (100% Pass, 335/335 断言, 40 测试套件)
+├── examples/                       # 典型物理应用算例 (35 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
-│   ├── ex02_pulse_synthesis.f90           # 啁啾、双色、太赫兹脉冲时频生成
-│   ├── ex03_split_operator_1d.f90         # 1D 波包动力学演化与 CAP 吸收边界
-│   ├── ex04_field_free_orientation.f90    # 刚体转子无场定向与玻尔兹曼热平均
-│   ├── ex05_hhg_lewenstein_spectrum.f90   # 强场阿秒高次谐波发射与半经典截止能
-│   ├── ex06_two_state_nonadiabatic.f90    # 双态避差穿越非绝热动力学与分支比
+│   ├── ex02_pulse_synthesis.f90            # 啁啾、双色、太赫兹脉冲时频生成
+│   ├── ex03_split_operator_1d.f90          # 1D 波包动力学演化与 CAP 吸收边界
+│   ├── ex04_field_free_orientation.f90     # 刚体转子无场定向与玻尔兹曼热平均
+│   ├── ex05_hhg_lewenstein_spectrum.f90    # 强场阿秒高次谐波发射与半经典截止能
+│   ├── ex06_two_state_nonadiabatic.f90     # 双态避差穿越非绝热动力学与分支比
 │   ├── ex07_scattering_wavefunctions_ti_td.f90 # 连续态能量本征波函数非含时与含时双向求解对比
 │   ├── ex08_ultracold_feshbach_segmented.f90   # 多扇区分段网格超冷磁 Feshbach 共振与散射长度扫描
 │   ├── ex09_dipolar_relaxation_scattering.f90  # 各向异性磁偶极自旋弛豫与极性分子外电场 Stark 诱导偶极
@@ -146,7 +160,14 @@ GeneralModule/
 │   ├── ex26_eley_rideal_surface_reaction.f90    # H+H/Cu(111) 气-固 ER 催化反应、超热放热能量分配与高振动激发态反转分布
 │   ├── ex27_surface_electronic_friction_gle.f90 # NO/Au(111) 表面非绝热散射、广义朗之万 GLE 碰撞轨迹与电子-空穴对能损
 │   ├── ex28_grazing_fast_atom_diffraction.f90   # keV He 掠入射快原子表面量子衍射 (GIFAD)、经典彩虹角与亚皮米波纹度反演
-│   └── build_examples.sh          # 算例编译运行脚本 (全 28 算例编译运行通过)
+│   ├── ex29_cold_ion_atom_scattering.f90        # Yb+/Li 与 Ba+/Rb 冷离子-原子杂化碰撞截面与 Paul 阱微运动致热率
+│   ├── ex30_tully_surface_hopping.f90           # Tully SAC 与 DAC 双避免交叉斯托克斯干涉系综非绝热动力学
+│   ├── ex31_molecular_alignment_revival.f90     # N2 与 CO2 飞秒无场转动复苏与光学离心机超转子加速
+│   ├── ex32_optical_lattice_bose_hubbard.f90    # 87Rb 光晶格深度扫描、Bose-Hubbard U/J 相变与引力 Bloch 振荡
+│   ├── ex33_rph_variational_transition_state.f90 # 多原子反应路径变分 CVT 速率与 Eckart 量子隧穿增强因子
+│   ├── ex34_relativistic_dirac_cesium.f90       # 铯原子 6s/6p/5d 相对论狄拉克能级、精细结构分裂与 D1/D2 振子强度
+│   ├── ex35_rixs_core_level_spectroscopy.f90    # 铜氧化物 Cu L3 共振非弹性 X 射线散射 2D 能损图谱与声子伴峰
+│   └── build_examples.sh           # 算例编译运行脚本 (全 35 算例编译运行通过)
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
     ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 12/12 测试)
@@ -497,6 +518,52 @@ GeneralModule/
 - `calc_gifad_rainbow_angle(cfg)`: 表面经典彩虹散射角 $\theta_R$。
 - `calc_gifad_diffraction_spectrum(cfg, max_order, spec)`: 1D 横向量子 Bragg 衍射谱与彩虹包络调制。
 - `calc_surface_corrugation_from_rainbow(ax, theta_r)`: 亚皮米级表面波纹幅度 $\zeta$ 逆向反演重构。
+
+### 42. 冷离子-中性原子杂化散射与极化阱动力学 (`mod_ion_atom_scattering`)
+- `init_ion_atom_system(sys, m_ion, m_atom, q_ion, alpha_atom, stat)`: 初始化杂化冷碰撞系统特征尺度 $R^*$ 与能量尺度 $E^*$。
+- `calc_langevin_cross_section(sys, e_coll_ev)` / `calc_langevin_rate_coefficient(sys)`: 经典 Langevin 螺旋俘获临界碰撞参数 $b_c$、截面 $\sigma_L(E)$ 与能量无关速率 $K_L$。
+- `calc_ion_atom_phase_shift(sys, l_orb, e_coll_ev, r_match)`: $1/r^4$ 极化势分波相移与微分散射求解。
+- `calc_mere_phase_shift_s_wave(sys, a_s, r_eff, e_coll_ev)`: 修正有效力程展开 (MERE) 极化奇异散射修正。
+- `calc_rf_micromotion_heating(sys, omega_rf, q_param, temp_ion, temp_atom, heat_rate, t_limit)`: Paul 射频阱中微运动导致的离-原碰撞致热率与平衡极限温度。
+
+### 43. 最少开关表面跳跃与非绝热混合量子-经典动力学 (`mod_surface_hopping_fssh`)
+- `init_tully_model(model, model_type, stat)`: Tully 经典非绝热三大基准模型 (SAC 单避免交叉, DAC 双避免交叉与斯托克斯干涉, ECR 扩展耦合反射)。
+- `calc_adiabatic_surface_and_nacv(model, r, v_adia, d_nacv)`: 绝热势能面与非绝热导数耦合矢量 (NACV) 解析投影。
+- `init_fssh_trajectory(traj, r_init, p_init, init_state)`: 初始化 Velocity Verlet 核推进与电子态波函数相干矢量。
+- `propagate_fssh_step(model, traj, dt, jumped)`: Tully 最少开关几率判断、能量守恒核动量沿 NACV 重标度与禁阻跳跃反射修正。
+- `run_fssh_ensemble(...)` / `propagate_ehrenfest_step(...)`: 蒙特卡洛系综分支比统计与 Ehrenfest 平均场动力学比对。
+
+### 44. 强场分子定向、取向与超转子动力学 (`mod_molecular_alignment`)
+- `init_rotor_molecule(mol, name, b_rot, delta_alpha, dipole, d_e, stat)`: 刚体线性分子转动结构、各向异性极化率与电偶极矩。
+- `calc_cos2_matrix_elements(...)` / `calc_cos_matrix_elements(...)`: 球谐角动量基底偶极矩阵元与外场极化耦合矩阵。
+- `simulate_laser_induced_alignment(mol, dt, t_max, i_laser, duration, t_grid, cos2_trace, stat)`: 飞秒非绝热激光脉冲驱动转动波包形成、无场复苏序参量 $\langle\cos^2\theta\rangle(t)$。
+- `calc_optical_centrifuge_kick(mol, alpha_chirp, duration, j_super)`: 光学离心机恒定角加速度将分子加速至极端高角动量超转子态 ($J \gg 1$)。
+- `calc_superrotor_dissociation(mol, j_rot, is_dissociated, e_rot)`: 极端离心旋转势垒高度与分子共价键机械破键判定。
+
+### 45. 超冷光晶格与玻色-哈伯德微观映射 (`mod_optical_lattice_hubbard`)
+- `init_optical_lattice(latt, mass, lambda_nm, s_depth, stat)`: 光晶格激光波矢、反冲能量 $E_R$ 与周期驻波深度 $V_0/E_R$。
+- `calc_bloch_band_energies(latt, q_quasi, n_bands, energies)`: Mathieu 方程动量空间展开、Bloch 能带结构与带隙。
+- `calc_bose_hubbard_parameters(latt, a_s_nm, bh, stat)`: Wannier 局域轨道重叠积分、严格紧束缚参数（跃迁能 $J$ 与在位能 $U$）以及超流-Mott 相变判据 $(U/J)_c$。
+- `calc_bloch_oscillation_dynamics(latt, force, t_bloch, nu_bloch, p_lz)`: 恒定外力下布洛赫振荡周期 $T_B$ 与第一激发带 Landau-Zener 带间隧穿几率 $P_{\text{LZ}}$。
+
+### 46. 多原子反应路径哈密顿量与变分过渡态理论 (`mod_reaction_path_hamiltonian`)
+- `init_rph_benchmark_reaction(path, reaction_type, stat)`: 内禀反应坐标 (IRC) 路径曲率、能量梯度与垂直正交振动模频率演化。
+- `calc_generalized_tst_rate(path, s_idx, temp_k, rate_gtst)`: 沿反应坐标任意分界面的广义过渡态理论 (GTST) 正则速率。
+- `calc_cvt_rate_constant(path, temp_k, s_opt, rate_cvt, stat)`: 正则变分过渡态理论 (CVT) 自由能最大瓶颈寻优 $k^{\text{CVT}}(T) = \min_s k^{\text{GTST}}(T, s)$。
+- `calc_eckart_tunneling_factor(v_barrier, imag_freq, temp_k, kappa_tunnel)`: 解析不对称 Eckart 势垒半经典量子穿透系数 $\kappa(T)$。
+
+### 47. 相对论原子结构与径向狄拉克方程 (`mod_relativistic_atomic`)
+- `calc_dirac_model_potential(z_nuclear, z_ion, alpha_core, r_cut, r)`: Norcross-Klapisch 相对论核心屏蔽库仑势与极化模型势。
+- `solve_radial_dirac_eigenvalue(z_nuclear, z_ion, alpha_core, r_cut, n_princ, kappa, state, stat)`: 求解径向狄拉克方程，获得 Sommerfeld 相对论本征能量与有效量子亏损 $\mu$。
+- `calc_dirac_fine_structure_splitting(state_lower, state_upper, delta_fs_ev, delta_fs_cm1)`: 纯相对论天然自旋-轨道耦合劈裂能（如类氢 $2p_{3/2} - 2p_{1/2}$ 与重碱金属双线）。
+- `calc_dirac_e1_matrix_element(state_i, state_f, r_overlap, osc_strength)`: 大小分量径向重叠积分与相对论电偶极 (E1) 跃迁吸收振子强度 $f_{if}$。
+
+### 48. 共振非弹性 X 射线散射与内壳层光谱 (`mod_resonant_xray_scattering`)
+- `init_rixs_system(sys, e_init, e_inter, gamma_core, d_in, e_fin, gamma_fin, d_out, stat)`: 配置初态、核心激发中间态与低能终态流形。
+- `calc_xas_cross_section(sys, omega_in_ev)`: 基于光学定理计算一阶 X 射线吸收截面 (XAS)。
+- `calc_kramers_heisenberg_cross_section(sys, omega_in_ev, omega_loss_ev)`: Kramers-Heisenberg 二阶微扰公式相干干涉与能损截面。
+- `calc_rixs_2d_map(sys, n_in, w_in_grid, n_loss, w_loss_grid, rixs_map)`: 生成高精度 2D RIXS 入射能量-能量损失散射强度图谱。
+- `calc_huang_rhys_vibrational_rixs(omega_0, s_factor, gamma_core, detuning, n_max, loss_intensity)`: 基于相联拉盖尔多项式严格解析求解电-声耦合 Huang-Rhys 振动 Franck-Condon 伴峰级数。
 
 ---
 

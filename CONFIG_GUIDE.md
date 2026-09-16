@@ -1284,8 +1284,210 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
    print *, "逆向重构波纹幅度 zeta = ", zeta_recon, " A (精度达亚皮米量级)"
    ```
 
+---
+
+### 3.32 冷离子-中性原子杂化散射与极化阱动力学 (`mod_ion_atom_scattering`)
+面向 Paul 射频阱与光偶极阱杂化系统中的超冷带电离子与中性原子碰撞：
+1. **杂化系统初始化与极化物理特征尺度**：
+   ```fortran
+   use mod_ion_atom_scattering
+   type(ion_atom_system_t) :: sys
+   integer :: stat
+   ! Yb+ 离子 (174 amu, +1e) 与 6Li 原子 (6 amu, alpha = 164 a.u.)
+   call init_ion_atom_system(sys, m_ion_amu=174.0_dp, m_atom_amu=6.0_dp, &
+                             charge_ion=1.0_dp, alpha_atom_au=164.0_dp, stat=stat)
+   print *, "特征极化长度 R* (a0) = ", sqrt(2.0_dp * sys%mu_au * sys%c4_au)
+   ```
+2. **Langevin 经典反应俘获截面与速率常数**：
+   ```fortran
+   real(dp) :: b_crit, sigma_langevin, k_langevin
+   ! 计算碰撞能量 1.0 meV 下的临界碰撞参数与截面
+   call calc_langevin_critical_impact_parameter(sys, e_coll_ev=1.0e-3_dp, b_crit_au=b_crit)
+   sigma_langevin = calc_langevin_cross_section(sys, e_coll_ev=1.0e-3_dp)
+   k_langevin = calc_langevin_rate_coefficient(sys)
+   ```
+3. **Paul 阱射频微运动非弹性致热与平衡极限温度**：
+   ```fortran
+   real(dp) :: dE_dt, t_limit
+   ! 射频频率 2*pi * 2.0 MHz, Mathieu 稳定性参数 q = 0.25
+   call calc_rf_micromotion_heating(sys, omega_rf_hz=1.256e7_dp, q_param=0.25_dp, &
+                                    temp_ion_k=1.0e-3_dp, temp_atom_k=1.0e-6_dp, &
+                                    heating_rate_k_per_s=dE_dt, temp_limit_k=t_limit)
+   ```
+
+---
+
+### 3.33 最少开关表面跳跃与非绝热混合量子-经典动力学 (`mod_surface_hopping_fssh`)
+面向光化学反应通道分支与非绝热势能面跃迁动力学：
+1. **Tully 经典非绝热模型初始化与 NACV 导数耦合**：
+   ```fortran
+   use mod_surface_hopping_fssh
+   type(tully_model_t) :: model
+   real(dp) :: v_adia(2), d_nacv(2, 2)
+   integer :: stat
+   call init_tully_model(model, TULLY_SAC, stat)
+   call calc_adiabatic_surface_and_nacv(model, r=0.0_dp, v_adia=v_adia, d_nacv=d_nacv)
+   ```
+2. **单条轨迹 Velocity Verlet 与 Tully 表面跳跃推进**：
+   ```fortran
+   type(fssh_trajectory_t) :: traj
+   logical :: hopped
+   call init_fssh_trajectory(traj, r_init=-5.0_dp, p_init=20.0_dp, init_state=1)
+   call propagate_fssh_step(model, traj, dt=0.5_dp, jumped=hopped)
+   ```
+3. **蒙特卡洛系综与透射/反射分支比统计**：
+   ```fortran
+   real(dp) :: t1, t2, r1, r2
+   call run_fssh_ensemble(model, n_trajectories=1000, r_init=-5.0_dp, p_init=20.0_dp, &
+                          init_state=1, dt=0.5_dp, t_final=1000.0_dp, &
+                          trans_1=t1, trans_2=t2, refl_1=r1, refl_2=r2)
+   ```
+
+---
+
+### 3.34 强场分子定向、取向与超转子动力学 (`mod_molecular_alignment`)
+面向短脉冲激光驱动的非绝热分子转动对齐与光学离心机超转子加速：
+1. **转子分子初始化与转动复苏周期**：
+   ```fortran
+   use mod_molecular_alignment
+   type(rotor_molecule_t) :: mol
+   integer :: stat
+   call init_rotor_molecule(mol, "N2", b_rot_cm1=1.9982_dp, delta_alpha_au=6.70_dp, &
+                            dipole_debye=0.0_dp, d_dissoc_ev=9.76_dp, stat=stat)
+   print *, "转动完全复苏周期 T_rev (ps) = ", mol%t_rev_ps
+   ```
+2. **飞秒激光诱导对齐与无场序参量 $\langle\cos^2\theta\rangle(t)$**：
+   ```fortran
+   real(dp) :: t_grid(100), cos2_trace(100)
+   call simulate_laser_induced_alignment(mol, dt_fs=10.0_dp, t_max_ps=10.0_dp, &
+                                        i_laser_wcm2=3.0e13_dp, duration_fs=100.0_dp, &
+                                        t_grid_ps=t_grid, cos2_trace=cos2_trace, stat=stat)
+   ```
+3. **光学离心机角加速度驱动至超转子态与离心势垒破键**：
+   ```fortran
+   integer :: j_super
+   logical :: is_broken
+   real(dp) :: e_rot
+   ! 线性啁啾加速度 alpha = 0.5 THz/ps, 脉宽 100 ps
+   call calc_optical_centrifuge_kick(mol, alpha_chirp_thz_ps=0.5_dp, duration_ps=100.0_dp, &
+                                     j_superrotor=j_super)
+   call calc_superrotor_dissociation(mol, j_rot=j_super, is_dissociated=is_broken, e_rot_ev=e_rot)
+   ```
+
+---
+
+### 3.35 超冷光晶格与玻色-哈伯德微观映射 (`mod_optical_lattice_hubbard`)
+面向驻波光晶格中的周期量子输运与强关联玻色-哈伯德超流-Mott 绝缘体相变：
+1. **光晶格系统初始化与 Mathieu 能带展开**：
+   ```fortran
+   use mod_optical_lattice_hubbard
+   type(optical_lattice_t) :: latt
+   real(dp) :: band_energies(4)
+   integer :: stat
+   ! 87Rb 原子，激光波长 1064 nm，晶格深度 s = 10 E_R
+   call init_optical_lattice(latt, mass_amu=86.9_dp, lambda_nm=1064.0_dp, s_depth=10.0_dp, stat=stat)
+   call calc_bloch_band_energies(latt, q_quasi=0.0_dp, n_bands=4, band_energies=band_energies)
+   ```
+2. **Bose-Hubbard 微观参数 $J$ 与 $U$ 映射**：
+   ```fortran
+   type(bose_hubbard_param_t) :: bh
+   call calc_bose_hubbard_parameters(latt, a_s_nm=5.28_dp, bh=bh, stat=stat)
+   print *, "跃迁矩阵元 J/h (Hz) = ", bh%tunneling_j_hz
+   print *, "在位相互作用 U/h (Hz) = ", bh%onsite_u_hz
+   print *, "超流-Mott 判定比值 U/J = ", bh%u_over_j
+   ```
+3. **引力布洛赫振荡周期与 Landau-Zener 带间隧穿几率**：
+   ```fortran
+   real(dp) :: t_bloch, nu_bloch, p_lz
+   call calc_bloch_oscillation_dynamics(latt, force_grav_au=1.0e-25_dp, &
+                                        t_bloch_s=t_bloch, nu_bloch_hz=nu_bloch, p_lz=p_lz)
+   ```
+
+---
+
+### 3.36 多原子反应路径哈密顿量与变分过渡态理论 (`mod_reaction_path_hamiltonian`)
+面向气相与凝聚相化学反应速率常数变分优化及量子隧穿穿透：
+1. **反应路径参数化与垂直简正模频率**：
+   ```fortran
+   use mod_reaction_path_hamiltonian
+   type(rph_path_t) :: path
+   integer :: stat
+   call init_rph_benchmark_reaction(path, reaction_type=1, stat=stat)
+   ```
+2. **变分过渡态理论 (CVT) 正则速率常数寻优**：
+   ```fortran
+   real(dp) :: s_bottleneck, rate_cvt
+   call calc_cvt_rate_constant(path, temp_k=300.0_dp, s_opt=s_bottleneck, &
+                               rate_cvt=rate_cvt, stat=stat)
+   ```
+3. **Eckart 势垒半经典量子隧穿修正系数**：
+   ```fortran
+   real(dp) :: kappa_tunnel
+   call calc_eckart_tunneling_factor(path%barrier_height_ev, path%imag_freq_ts_cm1, &
+                                     temp_k=300.0_dp, kappa_tunnel=kappa_tunnel)
+   print *, "量子隧穿增强总速率 k(T) = ", kappa_tunnel * rate_cvt
+   ```
+
+---
+
+### 3.37 相对论原子结构与径向狄拉克方程 (`mod_relativistic_atomic`)
+面向重原子/高离化态相对论效应、自旋-轨道耦合与多极辐射矩阵元：
+1. **Sommerfeld 狄拉克本征态与有效量子亏损**：
+   ```fortran
+   use mod_relativistic_atomic
+   type(dirac_state_t) :: state_6s, state_6p12, state_6p32
+   integer :: stat
+   ! 铯 Cs (Z=55, z_ion=1.0, alpha_core=19.0 a.u., r_cut=2.0 a.u.)
+   call solve_radial_dirac_eigenvalue(z_nuclear=55.0_dp, z_ion=1.0_dp, &
+                                      alpha_core=19.0_dp, r_cut=2.0_dp, &
+                                      n_princ=6, kappa=-1, state=state_6s, stat=stat)
+   call solve_radial_dirac_eigenvalue(55.0_dp, 1.0_dp, 19.0_dp, 2.0_dp, 6, 1, state_6p12)
+   call solve_radial_dirac_eigenvalue(55.0_dp, 1.0_dp, 19.0_dp, 2.0_dp, 6, -2, state_6p32)
+   ```
+2. **天然自旋-轨道耦合精细结构分裂 $\Delta E_{\text{FS}}$**：
+   ```fortran
+   real(dp) :: delta_ev, delta_cm1
+   call calc_dirac_fine_structure_splitting(state_6p12, state_6p32, delta_ev, delta_cm1)
+   print *, "6p 双重态精细分裂 = ", delta_cm1, " cm^-1"
+   ```
+3. **相对论电偶极 (E1) 振子强度 $f_{if}$**：
+   ```fortran
+   real(dp) :: f_d1, f_d2
+   call calc_dirac_e1_matrix_element(state_6s, state_6p12, r_overlap_au=3.8_dp, osc_strength=f_d1)
+   call calc_dirac_e1_matrix_element(state_6s, state_6p32, r_overlap_au=3.8_dp, osc_strength=f_d2)
+   ```
+
+---
+
+### 3.38 共振非弹性 X 射线散射与内壳层光谱 (`mod_resonant_xray_scattering`)
+面向同步辐射与 X 射线自由电子激光 (XFEL) 探测关联电子材料、低能集体激发与声子边带：
+1. **RIXS 多能级系统配置**：
+   ```fortran
+   use mod_resonant_xray_scattering
+   type(rixs_system_t) :: sys
+   integer :: stat
+   ! 配置 Cu L3 边 (931.5 eV, Gamma=0.35 eV) 与 dd 轨道激发终态 (1.80 eV)
+   call init_rixs_system(sys, e_init=0.0_dp, e_inter=[931.5_dp], gamma_core=[0.35_dp], &
+                         d_in=[1.0_dp], e_fin=[0.0_dp, 1.80_dp], gamma_fin=[0.05_dp, 0.08_dp], &
+                         d_out=reshape([0.85_dp, 0.70_dp], [2, 1]), stat=stat)
+   ```
+2. **Kramers-Heisenberg 二阶散射截面与 2D RIXS Map**：
+   ```fortran
+   real(dp) :: sigma_rixs, rixs_2d(5, 5)
+   sigma_rixs = calc_kramers_heisenberg_cross_section(sys, omega_in_ev=931.5_dp, omega_loss_ev=1.80_dp)
+   call calc_rixs_2d_map(sys, 5, w_in_grid, 5, w_loss_grid, rixs_2d)
+   ```
+3. **电-声耦合 Huang-Rhys 振动 Franck-Condon 伴峰级数**：
+   ```fortran
+   real(dp) :: vib_intensity(0:4)
+   ! 振动特征能量 70 meV, Huang-Rhys 常数 S = 0.40
+   call calc_huang_rhys_vibrational_rixs(omega_0_ev=0.070_dp, s_factor=0.40_dp, &
+                                        gamma_core_ev=0.35_dp, detuning_ev=0.0_dp, &
+                                        n_max_loss=4, loss_intensity=vib_intensity)
+   ```
+
 > [!TIP]
-> 包含全部前沿复杂体系的应用工程算例（11 至 28），详见：
+> 包含全部前沿复杂体系的应用工程算例（11 至 35），详见：
 > 👉 [`examples/ex11_three_body_efimov_recombination.f90`](examples/ex11_three_body_efimov_recombination.f90)
 > 👉 [`examples/ex12_confined_cir_scattering.f90`](examples/ex12_confined_cir_scattering.f90)
 > 👉 [`examples/ex13_autoionization_fano_resonance.f90`](examples/ex13_autoionization_fano_resonance.f90)
@@ -1304,7 +1506,14 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 > 👉 [`examples/ex26_eley_rideal_surface_reaction.f90`](examples/ex26_eley_rideal_surface_reaction.f90)
 > 👉 [`examples/ex27_surface_electronic_friction_gle.f90`](examples/ex27_surface_electronic_friction_gle.f90)
 > 👉 [`examples/ex28_grazing_fast_atom_diffraction.f90`](examples/ex28_grazing_fast_atom_diffraction.f90)
-> 对应理论文献详见：👉 [`LITERATURE.md`](LITERATURE.md) 第 11 节至第 28 节。
+> 👉 [`examples/ex29_cold_ion_atom_scattering.f90`](examples/ex29_cold_ion_atom_scattering.f90)
+> 👉 [`examples/ex30_tully_surface_hopping.f90`](examples/ex30_tully_surface_hopping.f90)
+> 👉 [`examples/ex31_molecular_alignment_revival.f90`](examples/ex31_molecular_alignment_revival.f90)
+> 👉 [`examples/ex32_optical_lattice_bose_hubbard.f90`](examples/ex32_optical_lattice_bose_hubbard.f90)
+> 👉 [`examples/ex33_rph_variational_transition_state.f90`](examples/ex33_rph_variational_transition_state.f90)
+> 👉 [`examples/ex34_relativistic_dirac_cesium.f90`](examples/ex34_relativistic_dirac_cesium.f90)
+> 👉 [`examples/ex35_rixs_core_level_spectroscopy.f90`](examples/ex35_rixs_core_level_spectroscopy.f90)
+> 对应理论文献详见：👉 [`LITERATURE.md`](LITERATURE.md) 第 11 节至第 35 节。
 
 ---
 

@@ -60,12 +60,19 @@ gfortran $FFLAGS -c mod_surface_scattering.f90
 gfortran $FFLAGS -c mod_surface_reaction_er.f90
 gfortran $FFLAGS -c mod_surface_electronic_friction.f90
 gfortran $FFLAGS -c mod_grazing_fast_atom_diffraction.f90
+gfortran $FFLAGS -c mod_ion_atom_scattering.f90
+gfortran $FFLAGS -c mod_surface_hopping_fssh.f90
+gfortran $FFLAGS -c mod_molecular_alignment.f90
+gfortran $FFLAGS -c mod_optical_lattice_hubbard.f90
+gfortran $FFLAGS -c mod_reaction_path_hamiltonian.f90
+gfortran $FFLAGS -c mod_relativistic_atomic.f90
+gfortran $FFLAGS -c mod_resonant_xray_scattering.f90
 gfortran $FFLAGS -c general_module.f90
 ar rcs libgeneral_module.a *.o
 
 cd "$DIR"
 
-# 2. 编译并运行各项测试 (共 33 大完整测试套件)
+# 2. 编译并运行各项测试 (共 40 大完整测试套件)
 TESTS=(
     "test_constants"
     "test_special_functions"
@@ -100,6 +107,13 @@ TESTS=(
     "test_surface_reaction_er"
     "test_surface_electronic_friction"
     "test_grazing_fast_atom_diffraction"
+    "test_ion_atom_scattering"
+    "test_surface_hopping_fssh"
+    "test_molecular_alignment"
+    "test_optical_lattice_hubbard"
+    "test_reaction_path_hamiltonian"
+    "test_relativistic_atomic"
+    "test_resonant_xray_scattering"
 )
 
 for test_name in "${TESTS[@]}"; do

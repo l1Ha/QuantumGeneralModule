@@ -44,6 +44,13 @@ module general_module
     use mod_surface_reaction_er
     use mod_surface_electronic_friction
     use mod_grazing_fast_atom_diffraction
+    use mod_ion_atom_scattering
+    use mod_surface_hopping_fssh
+    use mod_molecular_alignment
+    use mod_optical_lattice_hubbard
+    use mod_reaction_path_hamiltonian
+    use mod_relativistic_atomic
+    use mod_resonant_xray_scattering
     implicit none
 
     public :: dp, int32, int64
@@ -285,5 +292,43 @@ module general_module
     public :: init_gifad_experiment, calc_gifad_transverse_kinematics
     public :: calc_gifad_rainbow_angle, calc_gifad_diffraction_spectrum
     public :: calc_surface_corrugation_from_rainbow
+
+    ! 冷离子-中性原子杂化散射与极化阱动力学 (Cold Ion-Atom Hybrid Scattering)
+    public :: ion_atom_system_t
+    public :: init_ion_atom_system, calc_ion_atom_potential
+    public :: calc_langevin_critical_impact_parameter, calc_langevin_cross_section
+    public :: calc_langevin_rate_coefficient, calc_ion_atom_phase_shift
+    public :: calc_mere_phase_shift_s_wave, calc_rf_micromotion_heating
+
+    ! 最少开关非绝热表面跳跃动力学 (Tully's Fewest Switches Surface Hopping - FSSH)
+    public :: fssh_trajectory_t, tully_model_t
+    public :: TULLY_SAC, TULLY_DAC, TULLY_ECR
+    public :: init_tully_model, calc_adiabatic_surface_and_nacv, init_fssh_trajectory
+    public :: propagate_fssh_step, run_fssh_ensemble, propagate_ehrenfest_step
+
+    ! 强场分子定向、取向与超转子动力学 (Molecular Alignment, Orientation & Superrotors)
+    public :: rotor_molecule_t
+    public :: init_rotor_molecule, calc_cos2_matrix_elements, calc_cos_matrix_elements
+    public :: simulate_laser_induced_alignment, calc_optical_centrifuge_kick, calc_superrotor_dissociation
+
+    ! 超冷光晶格与玻色-哈伯德微观映射 (Optical Lattice & Bose-Hubbard)
+    public :: optical_lattice_t, bose_hubbard_param_t
+    public :: init_optical_lattice, calc_bloch_band_energies
+    public :: calc_bose_hubbard_parameters, calc_bloch_oscillation_dynamics
+
+    ! 多原子反应路径哈密顿量与变分过渡态理论 (Reaction Path Hamiltonian & Variational TST)
+    public :: rph_point_t, rph_path_t
+    public :: init_rph_benchmark_reaction, calc_generalized_tst_rate, calc_cvt_rate_constant
+    public :: calc_eckart_tunneling_factor
+
+    ! 相对论原子结构与径向狄拉克方程 (Relativistic Atomic Structure & Dirac Solver)
+    public :: dirac_state_t
+    public :: calc_dirac_model_potential, solve_radial_dirac_eigenvalue
+    public :: calc_dirac_fine_structure_splitting, calc_dirac_e1_matrix_element
+
+    ! 共振非弹性 X 射线散射与内壳层光谱 (Resonant Inelastic X-ray Scattering - RIXS)
+    public :: rixs_system_t
+    public :: init_rixs_system, calc_xas_cross_section, calc_kramers_heisenberg_cross_section
+    public :: calc_rixs_2d_map, calc_huang_rhys_vibrational_rixs
 
 end module general_module

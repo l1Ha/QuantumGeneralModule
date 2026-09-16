@@ -44,6 +44,13 @@ EXAMPLES=(
     "ex26_eley_rideal_surface_reaction"
     "ex27_surface_electronic_friction_gle"
     "ex28_grazing_fast_atom_diffraction"
+    "ex29_cold_ion_atom_scattering"
+    "ex30_tully_surface_hopping"
+    "ex31_molecular_alignment_revival"
+    "ex32_optical_lattice_bose_hubbard"
+    "ex33_rph_variational_transition_state"
+    "ex34_relativistic_dirac_cesium"
+    "ex35_rixs_core_level_spectroscopy"
 )
 
 for ex in "${EXAMPLES[@]}"; do
