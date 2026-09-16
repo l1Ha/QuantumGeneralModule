@@ -41,7 +41,13 @@
 34. [相对论原子结构与径向狄拉克方程 (Relativistic Atomic Structure & Dirac)](#34-相对论原子结构与径向狄拉克方程-relativistic-atomic-structure--dirac)
 35. [共振非弹性 X 射线散射与内壳层光谱 (Resonant Inelastic X-ray Scattering - RIXS)](#35-共振非弹性-x-射线散射与内壳层光谱-resonant-inelastic-x-ray-scattering---rixs)
 36. [亚稳态原子潘宁电离与缔合电离动力学 (Penning & Associative Ionization / Chemi-ionization)](#36-亚稳态原子潘宁电离与缔合电离动力学-penning--associative-ionization--chemi-ionization)
-37. [快速学术检索与代码对照总表](#37-快速学术检索与代码对照总表)
+37. [分子光解离动力学、时间自相关函数与光碎片动能释放谱 (KER)](#37-分子光解离动力学时间自相关函数与光碎片动能释放谱-ker)
+38. [多通道非绝热避差穿越、Landau-Zener 跃迁与 Hellmann-Feynman 耦合](#38-多通道非绝热避差穿越landau-zener-跃迁与-hellmann-feynman-耦合)
+39. [双原子分子转振跃迁调控、STIRAP 绝热受激跃迁与 Franck-Condon 原理](#39-双原子分子转振跃迁调控stirap-绝热受激跃迁与-franck-condon-原理)
+40. [含时波包散射动力学、通量时间-能量积分与 Möller 算符投影](#40-含时波包散射动力学通量时间-能量积分与-möller-算符投影)
+41. [复吸收势 (CAP) 最佳边界参数化与量子概率流连续性方程](#41-复吸收势-cap-最佳边界参数化与量子概率流连续性方程)
+42. [库仑三体系统、Perkeris 坐标变换与两电子关联](#42-库仑三体系统perkeris-坐标变换与两电子关联)
+43. [快速学术检索与代码对照总表](#43-快速学术检索与代码对照总表)
 
 ---
 
@@ -1289,53 +1295,287 @@
 
 ---
 
-## 37. 快速学术检索与代码对照总表
+## 37. 分子光解离动力学、时间自相关函数与光碎片动能释放谱 (KER)
 
-| 物理模块 | 对应源文件 | 核心经典文献代表 | 主要导出 API 与算法 |
-| :--- | :--- | :--- | :--- |
-| **基础常数与单位** | `mod_constants.f90` | CODATA 2018 / 2022 | `to_au`, `from_au`, `GAUSS2AU`, `AU2TESLA` |
-| **角动量代数** | `mod_special_functions.f90` | Varshalovich (1988) | `wigner_3j_half`, `clebsch_gordan_half`, `wigner_9j_half` |
-| **数值线性代数** | `mod_linear_algebra.f90` | EISPACK / Cooley-Tukey | `diag_symmetric_matrix`, `inv_real_matrix`, `fft_1d` |
-| **DVR 与格点谱方法**| `mod_dvr_grid.f90` | Colbert & Miller (1992) | `dvr_sinc_init`, `fgh_solve_bound_states` |
-| **激光脉冲合成** | `mod_laser_pulse.f90` | Diels & Rudolph (2006) | `create_gaussian_pulse`, `create_chirped_pulse` |
-| **复吸收势边界** | `mod_absorbing_boundary.f90` | Riss & Meyer (1993) | `cap_init`, `calculate_probability_flux` |
-| **强场超快物理** | `mod_coulomb_atomic.f90` | Keldysh (1965), Corkum (1993) | `keldysh_parameter`, `adk_ionization_rate` |
-| **高次谐波发射** | `mod_hhg_spectra.f90` | Lewenstein et al. (1994) | `hhg_power_spectrum`, `lewenstein_sfa_dipole` |
-| **分子转振控制** | `mod_rovibrational.f90` | Bergmann, Theuer & Shore (1998)| `calc_franck_condon_factors`, `solve_rovibrational_spectrum` |
-| **非含时单/多通道散射**| `mod_ti_scattering.f90` | Wigner (1948), Johnson (1973), Manolopoulos (1986) | `calc_scattering_length_numerov`, `calc_multichannel_close_coupling_logder`, `create_segmented_grid` |
-| **含时波包散射** | `mod_td_scattering.f90` | Feit & Fleck (1982), Möller (1945) | `calculate_td_transmission`, `project_wavepacket_to_smatrix` |
-| **外场多基组超冷散射**| `mod_field_scattering.f90` | Breit & Rabi (1931), Stoof (1988), Chin et al. (2010) | `calc_breit_rabi_energies`, `calc_basis_transform_matrix`, `calc_magnetic_feshbach_resonance_scan` |
-| **各向异性偶极散射** | `mod_dipolar_scattering.f90`| Stoof (1988), Moerdijk (1996), Bohn (2009) | `calc_mddi_total_matrix_element`, `calc_dipolar_relaxation_cross_section`, `calc_stark_induced_dipole` |
-| **超冷光缔合谱学** | `mod_photoassociation.f90` | Jones et al. (RMP 2006), Bohn & Julienne (1999) | `calc_free_bound_fc_overlap`, `calc_pa_cross_section`, `calc_pa_thermal_rate_coefficient` |
-| **三体 Efimov 复合**| `mod_three_body_recombination.f90` | Efimov (1970), Braaten & Hammer (2006), Esry (1999) | `solve_efimov_s0_identical_bosons`, `calc_three_body_recombination_a_positive`, `calc_unitary_three_body_loss_temperature` |
-| **低维受限散射与 CIR**| `mod_confined_scattering.f90` | Olshanii (1998), Bergeman (2003), Haller (2009) | `init_waveguide_1d`, `calc_olshanii_cir_parameters`, `calc_confined_dimer_binding_energy`, `calc_lieb_liniger_parameter` |
-| **自电离与 Fano/CCR** | `mod_autoionization_fano.f90` | Fano (1961), Reinhardt (1982), Moiseyev (1998) | `calc_fano_profile`, `calc_autoionization_lifetime`, `solve_ccr_resonance_model` |
-| **交叉场 Stark-Zeeman**| `mod_crossed_field_scattering.f90` | Tscherbul & Krems (2006), Friedrich & Herschbach (1996) | `init_crossed_field_config`, `solve_crossed_field_eigenstates`, `calc_crossed_field_observables`, `scan_tilt_angle_spectrum` |
-| **三原子反应 PES 与 CI**| `mod_triatomic_geometry.f90` | Sato (1955), Berry (1984), Longuet-Higgins (1958) | `jacobi_to_internuclear`, `calc_leps_potential`, `calc_conical_intersection_adiabats`, `calc_berry_phase_around_ci` |
-| **旋量 BEC 自旋动力学**| `mod_spinor_bec.f90` | Ho (1998), Ohmi & Machida (1998), Chang (2004) | `init_spinor_preset`, `calc_spinor_interaction_couplings`, `propagate_spinor_sma_rk4`, `simulate_spin_mixing_dynamics` |
-| **三原子超球面反应动力学**| `mod_hyperspherical_reactive.f90` | Johnson (1980), Pack & Parker (1987), Miller (1975) | `init_reaction_mass`, `calc_eckart_transmission`, `calc_cumulative_reaction_probability`, `calc_canonical_rate_constant` |
-| **偶极量子液滴与 LHY** | `mod_dipolar_droplets_lhy.f90` | Lee-Huang-Yang (1957), Petrov (2015), Chomaz (2016) | `init_dipolar_droplet_param`, `calc_pelster_lima_q5`, `calc_equilibrium_droplet_density`, `calc_egpe_energy_density` |
-| **强场 NSDI 与重碰撞**| `mod_strong_field_nsdi.f90` | Corkum (1993), Weber et al. (Nature 2000), Becker (2005) | `init_nsdi_laser`, `calc_recollision_trajectory`, `calc_nsdi_2d_momentum_dist`, `calc_double_ion_yield_curve` |
-| **磁/光 Feshbach 束缚态**| `mod_feshbach_bound_states.f90` | Chin et al. (RMP 2010), Gao (2001), Theis (PRL 2004) | `init_mfr_preset`, `calc_mfr_bound_energy_coupled`, `calc_mfr_closed_channel_fraction`, `calc_ofr_inelastic_loss_rate` |
-| **阿秒瞬态吸收光谱** | `mod_attosecond_transient_absorption.f90` | Chini et al. (2014), Ott et al. (Science 2013), Wu (2016) | `init_atas_helium_benchmark`, `calc_laser_dressed_fano_q`, `calc_light_induced_state_energy`, `calc_atas_spectrum` |
-| **双色圆偏振与 PECD** | `mod_bicircular_pecd.f90` | Kfir (Nat. Phot. 2015), Lux (2012), Böwering (2001) | `init_bicircular_field`, `calc_dynamical_symmetry_fold`, `calc_chirality_measure`, `calc_pecd_energy_resolved` |
-| **超冷反应与偶极遮蔽** | `mod_ultracold_reaction_shielding.f90` | Quéméner (PRA 2010), Anderegg (Science 2021), Schindewolf (2022) | `init_ultracold_molecule_preset`, `calc_shielding_barrier_height`, `calc_wkb_tunneling_probability`, `calc_shielded_scattering_rates` |
-| **里德堡阻塞与多体疤痕**| `mod_rydberg_blockade.f90` | Lukin (PRL 2001), Bernien (Nature 2017), Turner (2018) | `init_rydberg_atom`, `calc_rydberg_blockade_radius`, `calc_two_atom_dynamics`, `calc_rydberg_scar_dynamics` |
-| **表面量子散射与 SAR** | `mod_surface_scattering.f90` | Boato (1973), Manson (1991), Benedek (2018) | `init_surface_lattice`, `calc_surface_diffraction_channels`, `calc_hcs_diffraction_probabilities`, `calc_selective_adsorption_resonance` |
-| **气-固催化与 ER 反应** | `mod_surface_reaction_er.f90` | Eley & Rideal (1940), Rettner (1992), Jackson (1992) | `init_er_reaction_system`, `calc_er_energy_partitioning`, `calc_er_vibrational_populations`, `calc_er_reaction_cross_section` |
-| **表面非绝热与电子摩擦**| `mod_surface_electronic_friction.f90` | Tully (1981), Head-Gordon & Tully (1995), Wodtke (2000) | `init_metal_surface`, `calc_electronic_friction_coeff`, `integrate_gle_scattering_trajectory`, `calc_vibrational_relaxation_rate` |
-| **掠入射快原子衍射 (GIFAD)** | `mod_grazing_fast_atom_diffraction.f90` | Rousseau (PRL 2007), Schüller (PRL 2007), Winter (2011) | `init_gifad_experiment`, `calc_gifad_transverse_kinematics`, `calc_gifad_rainbow_angle`, `calc_surface_corrugation_from_rainbow` |
-| **冷离子-中性原子杂化散射** | `mod_ion_atom_scattering.f90` | Langevin (1905), Côté (PRA 2000), Cetina (PRL 2012) | `init_ion_atom_system`, `calc_langevin_cross_section`, `calc_rf_micromotion_heating` |
-| **最少开关表面跳跃 (FSSH)** | `mod_surface_hopping_fssh.f90` | Tully (JCP 1990), Hammes-Schiffer & Tully (1994) | `init_tully_model`, `propagate_fssh_step`, `run_fssh_ensemble` |
-| **分子定向与超转子** | `mod_molecular_alignment.f90` | Stapelfeldt & Seideman (RMP 2003), Karczmarek (1999) | `simulate_laser_induced_alignment`, `calc_optical_centrifuge_kick` |
-| **光晶格与 Bose-Hubbard** | `mod_optical_lattice_hubbard.f90` | Jaksch (PRL 1998), Greiner (Nature 2002), Ben Dahan (1996) | `init_optical_lattice`, `calc_bose_hubbard_parameters`, `calc_bloch_oscillation_dynamics` |
-| **反应路径哈密顿量 (RPH)** | `mod_reaction_path_hamiltonian.f90` | Miller (JCP 1980), Truhlar & Garrett (1980), Eckart (1930) | `init_rph_benchmark_reaction`, `calc_cvt_rate_constant`, `calc_eckart_tunneling_factor` |
-| **相对论原子与狄拉克方程** | `mod_relativistic_atomic.f90` | Dirac (1928), Norcross (PRA 1973), Grant (2007) | `solve_radial_dirac_eigenvalue`, `calc_dirac_fine_structure_splitting` |
-| **共振非弹性 X 射线散射 (RIXS)** | `mod_resonant_xray_scattering.f90` | Kramers-Heisenberg (1925), Ament et al. (RMP 2011) | `calc_xas_cross_section`, `calc_kramers_heisenberg_cross_section`, `calc_huang_rhys_vibrational_rixs` |
-| **潘宁与缔合电离动力学** | `mod_penning_associative_ionization.f90` | Hotop & Niehaus (1969), Siska (RMP 1993), Miller (1970) | `init_penning_system`, `calc_penning_cross_sections`, `calc_pies_spectrum`, `calc_penning_thermal_rate` |
-| **开放量子系统** | `mod_open_quantum.f90` | Lindblad (1976), Gorini (1976) | `propagate_lindblad_rk4`, `calculate_von_neumann_entropy` |
-| **量子最优控制** | `mod_optimal_control.f90` | Somlói & Tannor (1993), Krotov (1996) | `optimize_pulse_krotov` |
+### 37.1 Heller 时间波包相关函数与光吸收截面
+- **文献**:
+  - E. J. Heller, *"The semiclassical way to molecular spectroscopy"*, **Acc. Chem. Res.** 14, 368 (1981). [DOI: 10.1021/ar00072a002](https://doi.org/10.1021/ar00072a002)
+  - R. Schinke, *Photodissociation Dynamics: Spectroscopy and Fragmentation of Small Polyatomic Molecules*, Cambridge University Press, Cambridge (1993). [DOI: 10.1017/CBO9780511599934](https://doi.org/10.1017/CBO9780511599934)
+  - K. C. Kulander and E. J. Heller, *"Time-dependent approach to molecular photodissociation: Interpretation of absorption spectra"*, **J. Chem. Phys.** 69, 2439 (1978). [DOI: 10.1063/1.436919](https://doi.org/10.1063/1.436919)
+- **核心理论**:
+  分子在电子基态波函数 $|\phi_0\rangle$ 下受紫外/极紫外光子垂直 Franck-Condon 激发跃迁至解离态激发能面 $V_{\text{exc}}(R)$，初态波包由电偶极跃迁矩 $\hat{\mu}$ 诱导生成：
+  $$|\psi(0)\rangle = \hat{\mu}(R) |\phi_0\rangle$$
+  核波包在激发态势能面上的量子含时演化受激发态哈密顿量 $\hat{H}_{\text{exc}}$ 驱动：
+  $$i\hbar \frac{\partial \psi(R, t)}{\partial t} = \hat{H}_{\text{exc}} \psi(R, t) = \left[ -\frac{\hbar^2}{2\mu}\frac{d^2}{dR^2} + V_{\text{exc}}(R) \right] \psi(R, t)$$
+  光子吸收截面 $\sigma(\omega)$ 由波包含时自相关函数 $C(t) = \langle \psi(0) | \psi(t) \rangle$ 的全时半傅里叶变换解析给出：
+  $$\sigma(\omega) = \frac{4\pi \alpha \omega}{3 c} \text{Re} \int_0^\infty C(t) e^{i(E_0 + \hbar\omega)t/\hbar} e^{-\gamma t/\hbar} dt$$
+  式中 $\gamma$ 为唯象谱线展宽或阻尼因子，$E_0$ 为初态基态能量。
+- **代码映射**:
+  - `src/mod_photofragment_flux.f90`:
+    - `calc_autocorrelation_function`: 计算核波包在激发态势能面上含时投影自相关函数 $C(t) = \langle\psi(0)|\psi(t)\rangle$；
+    - `calc_heller_absorption_spectrum`: 基于 Heller 时间相关函数积分求解连续光吸收截面谱 $\sigma(\omega)$。
+
+### 37.2 渐近概率流通量与光碎片动能释放 (KER) 谱
+- **文献**:
+  - G. G. Balint-Kurti, R. N. Dixon, and C. C. Marston, *"Grid methods for calculating photodissociation cross sections and product state distributions"*, **Int. Rev. Phys. Chem.** 11, 269 (1992). [DOI: 10.1080/01442359209353274](https://doi.org/10.1080/01442359209353274)
+  - R. N. Zare, *Angular Momentum: Understanding Spatial Aspects in Chemistry and Physics*, Wiley-Interscience, New York (1988).
+- **核心理论**:
+  在解离渐近区 $R = R_{\infty}$ 设立虚动能分析仪面，出射光碎片的量子概率流通量为：
+  $$J(R_{\infty}, t) = \frac{\hbar}{\mu} \text{Im}\left[ \psi^*(R_{\infty}, t) \left. \frac{\partial \psi(R, t)}{\partial R} \right|_{R_{\infty}} \right]$$
+  能量分辨动能释放谱 (Kinetic Energy Release, KER) $P(E_k)$ 通过渐近通量算符的时频能量投影给出：
+  $$P(E_k) = \frac{\hbar}{\mu k} \left| \int_0^\infty J(R_{\infty}, t) e^{i E_k t / \hbar} dt \right|^2, \quad E_k = \frac{\hbar^2 k^2}{2\mu}$$
+  对于线偏振激光场诱导单光子解离，光碎片的空间出射角分布服从双极展开：
+  $$I(\theta) = \frac{\sigma_{\text{tot}}}{4\pi} \left[ 1 + \beta P_2(\cos\theta) \right]$$
+  其中 $\beta$ 为各向异性参数，平行跃迁时 $\beta = +2$（碎片沿激光偏振轴喷射），垂直跃迁时 $\beta = -1$（碎片在偏振垂直平面展开）。
+- **代码映射**:
+  - `src/mod_photofragment_flux.f90`:
+    - `calc_ker_spectrum_from_flux`: 渐近概率流时间-能量半傅里叶变换提取动能释放谱 $P(E_k)$；
+    - `calc_photofragment_angular_distribution`: Zare 各向异性双极展开角分布 $I(\theta)$。
+
+---
+
+## 38. 多通道非绝热避差穿越、Landau-Zener 跃迁与 Hellmann-Feynman 耦合
+
+### 38.1 透热-绝热基组表象变换与导数耦合矢量 (NACV)
+- **文献**:
+  - F. T. Smith, *"Diabatic and adiabatic representations for atomic collision problems"*, **Phys. Rev.** 179, 111 (1969). [DOI: 10.1103/PhysRev.179.111](https://doi.org/10.1103/PhysRev.179.111)
+  - M. Baer, *Beyond Born-Oppenheimer: Electronic Nonadiabatic Effects in Chemical Reactions*, Wiley, New York (2006). [DOI: 10.1002/0471780081](https://doi.org/10.1002/0471780081)
+  - H. Hellmann, *Einführung in die Quantenchemie*, Franz Deuticke, Leipzig (1937); R. P. Feynman, *"Forces in Molecules"*, **Phys. Rev.** 56, 340 (1939). [DOI: 10.1103/PhysRev.56.340](https://doi.org/10.1103/PhysRev.56.340)
+- **核心理论**:
+  在双态透热表象中，电子哈密顿矩阵形式为：
+  $$\mathbf{H}_{\text{diab}}(R) = \begin{pmatrix} V_{11}(R) & V_{12}(R) \\ V_{21}(R) & V_{22}(R) \end{pmatrix}$$
+  通过局域正交旋转矩阵 $\mathbf{U}(R) = \begin{pmatrix} \cos\theta(R) & \sin\theta(R) \\ -\sin\theta(R) & \cos\theta(R) \end{pmatrix}$ 对角化获得绝热势能面：
+  $$E_{\pm}(R) = \frac{V_{11} + V_{22}}{2} \pm \frac{1}{2} \sqrt{(V_{11} - V_{22})^2 + 4 V_{12}^2}, \quad \tan(2\theta) = \frac{2 V_{12}}{V_{11} - V_{22}}$$
+  核动能算符作用于绝热基态导致一阶非绝热导数耦合矢量 (NACV)：
+  $$d_{12}(R) = \langle \psi_1(R) | \frac{d}{dR} | \psi_2(R) \rangle = \frac{d\theta}{dR} = \frac{V_{12} \frac{d(V_{11}-V_{22})}{dR} - (V_{11}-V_{22})\frac{dV_{12}}{dR}}{(V_{11}-V_{22})^2 + 4 V_{12}^2}$$
+  利用 Hellmann-Feynman 定理，非对角导数耦合可严格重写为电子哈密顿量动量梯度除以绝热能级差：
+  $$d_{jk}(R) = \frac{\langle \psi_j | \nabla_R \hat{H}_{\text{el}} | \psi_k \rangle}{E_k(R) - E_j(R)} \quad (j \ne k)$$
+- **代码映射**:
+  - `src/mod_multistate.f90`:
+    - `diabatic_to_adiabatic`: 透热势能矩阵解析对角化与绝热本征能级输出；
+    - `calc_nonadiabatic_coupling_vector`: 解析计算非绝热一阶导数耦合标量 $d_{12}(R)$。
+
+### 38.2 Landau-Zener 跃迁几率与多态波包动力学
+- **文献**:
+  - L. D. Landau, *"Zur Theorie der Energieübertragung. II"*, **Phys. Z. Sowjetunion** 2, 46 (1932).
+  - C. Zener, *"Non-adiabatic crossing of energy levels"*, **Proc. R. Soc. Lond. A** 137, 696 (1932). [DOI: 10.1098/rspa.1932.0165](https://doi.org/10.1098/rspa.1932.0165)
+  - E. C. G. Stueckelberg, *"Theorie der unelastischen Stösse zwischen Atomen"*, **Helv. Phys. Acta** 5, 369 (1932). [DOI: 10.5169/seals-110177](https://doi.org/10.5169/seals-110177)
+- **核心理论**:
+  当核以速度 $v = \dot{R}$ 穿过避免交叉点 $R_c$（此处 $V_{11}(R_c) = V_{22}(R_c)$）时，体系在透热态之间的非绝热跃迁几率满足 Landau-Zener 公式：
+  $$P_{\text{LZ}} = \exp\left( -2\pi \delta_{\text{LZ}} \right) = \exp\left( -\frac{2\pi V_{12}^2}{\hbar v |\Delta F|} \right), \quad \Delta F = \left| \left.\frac{dV_{11}}{dR}\right|_{R_c} - \left.\frac{dV_{22}}{dR}\right|_{R_c} \right|$$
+  在强耦合或极慢碰撞极限下（$\delta_{\text{LZ}} \gg 1$），$P_{\text{LZ}} \to 0$，系统绝热跟随本征态演化；在弱耦合或高速碰撞极限下（$\delta_{\text{LZ}} \ll 1$），$P_{\text{LZ}} \to 1$，系统保持透热状态穿越。
+  多态含时波包动力学演化采用包含势能耦合项的分裂算符推进：
+  $$|\Psi(t+\Delta t)\rangle = e^{-i \hat{T} \Delta t / (2\hbar)} e^{-i \hat{\mathbf{V}}(R) \Delta t / \hbar} e^{-i \hat{T} \Delta t / (2\hbar)} |\Psi(t)\rangle$$
+- **代码映射**:
+  - `src/mod_multistate.f90`:
+    - `calc_landau_zener_probability`: 解析计算不同穿行速度与耦合参数下的 Landau-Zener 跃迁几率；
+    - `propagate_two_state_wavepacket`: 双通道多态分裂算符量子波包非绝热协同推进。
+
+---
+
+## 39. 双原子分子转振跃迁调控、STIRAP 绝热受激跃迁与 Franck-Condon 原理
+
+### 39.1 离心修正转振能谱与 Franck-Condon 因子 (FCF)
+- **文献**:
+  - P. M. Morse, *"Diatomic molecules according to the wave mechanics. II. Vibrational levels"*, **Phys. Rev.** 34, 57 (1929). [DOI: 10.1103/PhysRev.34.57](https://doi.org/10.1103/PhysRev.34.57)
+  - E. U. Condon, *"A theory of intensity distribution in band systems"*, **Phys. Rev.** 28, 1182 (1926). [DOI: 10.1103/PhysRev.28.1182](https://doi.org/10.1103/PhysRev.28.1182)
+  - G. Herzberg, *Molecular Spectra and Molecular Structure: I. Spectra of Diatomic Molecules*, D. Van Nostrand, Princeton (1950).
+- **核心理论**:
+  双原子分子在转动量子数 $J$ 与振动态 $v$ 下的有效径向薛定谔方程为：
+  $$\left[ -\frac{\hbar^2}{2\mu}\frac{d^2}{dR^2} + V_0(R) + \frac{\hbar^2 J(J+1)}{2\mu R^2} \right] \chi_{v, J}(R) = E_{v, J} \chi_{v, J}(R)$$
+  若势能函数采用 Morse 解析形式 $V_{\text{Morse}}(R) = D_e [1 - e^{-\alpha(R - R_e)}]^2$，纯振动态能量为：
+  $$E_v = \hbar\omega_e \left( v + \frac{1}{2} \right) - \hbar\omega_e x_e \left( v + \frac{1}{2} \right)^2$$
+  电子跃迁辐射带强度由初态振动波函数 $\chi_{v}(R)$ 与终态振动波函数 $\chi_{v'}'(R)$ 的 Franck-Condon 因子 (FCF) 支配：
+  $$q_{v v'} = |\langle \chi_v | \chi_{v'}' \rangle|^2 = \left| \int_0^\infty \chi_v^*(R) \chi_{v'}'(R) dR \right|^2, \quad \sum_{v'} q_{v v'} = 1$$
+- **代码映射**:
+  - `src/mod_rovibrational.f90`:
+    - `solve_rovibrational_spectrum`: 结合离心势修正求解双原子分子转振本征能级与波函数；
+    - `calc_franck_condon_factors`: 跨电子态振动态 Franck-Condon 重叠积分矩阵与正交归一校验。
+
+### 39.2 受激拉曼绝热通道 (STIRAP) 暗态高保真度布居转移
+- **文献**:
+  - U. Gaubatz, P. Rudecki, S. Schiemann, and K. Bergmann, *"Population transfer between molecular vibrational levels by stimulated Raman scattering with partially overlapping laser pulses: A new technique"*, **J. Chem. Phys.** 92, 5363 (1990). [DOI: 10.1063/1.458514](https://doi.org/10.1063/1.458514)
+  - K. Bergmann, H. Theuer, and B. W. Shore, *"Coherent population transfer among quantum states of atoms and molecules"*, **Rev. Mod. Phys.** 70, 1003 (1998). [DOI: 10.1103/RevModPhys.70.1003](https://doi.org/10.1103/RevModPhys.70.1003)
+  - N. V. Vitanov, A. A. Rangelov, B. W. Shore, and K. Bergmann, *"Stimulated Raman adiabatic passage in physics, chemistry, and beyond"*, **Rev. Mod. Phys.** 89, 015006 (2017). [DOI: 10.1103/RevModPhys.89.015006](https://doi.org/10.1103/RevModPhys.89.015006)
+- **核心理论**:
+  在三能级 $\Lambda$ 系统中（初态 $|1\rangle$、激发中间态 $|2\rangle$、终态基态 $|3\rangle$），泵浦激光 $\Omega_P(t)$ 耦合 $|1\rangle \leftrightarrow |2\rangle$，斯托克斯激光 $\Omega_S(t)$ 耦合 $|2\rangle \leftrightarrow |3\rangle$。双光子共振（$\delta = 0$）哈密顿量为：
+  $$\hat{H}_{\text{STIRAP}}(t) = \frac{\hbar}{2} \begin{pmatrix} 0 & \Omega_P(t) & 0 \\ \Omega_P(t) & 2\Delta & \Omega_S(t) \\ 0 & \Omega_S(t) & 0 \end{pmatrix}$$
+  该系统的零本征值本征矢为不含激发态 $|2\rangle$ 成分的辐射“暗态” (Dark State)：
+  $$|D(t)\rangle = \cos\Theta(t) |1\rangle - \sin\Theta(t) |3\rangle, \quad \tan\Theta(t) = \frac{\Omega_P(t)}{\Omega_S(t)}$$
+  施加“反常延时序”（Counter-intuitive sequence，即 $\Omega_S(t)$ 脉冲先于 $\Omega_P(t)$ 达到峰值）：
+  $$t \to -\infty: \quad \Omega_S \gg \Omega_P \implies \Theta \to 0 \implies |D\rangle \to |1\rangle$$
+  $$t \to +\infty: \quad \Omega_P \gg \Omega_S \implies \Theta \to \frac{\pi}{2} \implies |D\rangle \to -|3\rangle$$
+  在绝热准则 $\Omega_{\text{eff}} \Delta\tau = \sqrt{\Omega_P^2 + \Omega_S^2} \Delta\tau \gg 10$ 满足下，量子系统沿暗态平滑演化，以理论接近 $100\%$ 的转移效率实现分子由弱束缚 Feshbach 态向振转基态的无辐射损耗传输。
+- **代码映射**:
+  - `src/mod_rovibrational.f90`:
+    - `simulate_stirap_transfer`: 三能级 $\Lambda$ 体系含时拉比脉冲序列演化与终态保真度计算。
+
+---
+
+## 40. 含时波包散射动力学、通量时间-能量积分与 Möller 算符投影
+
+### 40.1 高斯初态波包与自由传播谱展开
+- **文献**:
+  - M. D. Feit, J. A. Fleck, Jr., and A. Steiger, *"Solution of the Schrödinger equation by a spectral method"*, **J. Comput. Phys.** 47, 412 (1982). [DOI: 10.1016/0021-9991(82)90091-2](https://doi.org/10.1016/0021-9991(82)90091-2)
+  - D. J. Tannor, *Introduction to Quantum Mechanics: A Time-Dependent Perspective*, University Science Books, Sausalito (2007).
+  - C. Leforestier et al., *"A comparison of different propagation schemes for the time dependent Schrödinger equation"*, **J. Comput. Phys.** 94, 59 (1991). [DOI: 10.1016/0021-9991(91)90137-A](https://doi.org/10.1016/0021-9991(91)90137-A)
+- **核心理论**:
+  在含时波包散射框架中，单次长时间波包演化即可解析提取全能区连续散射信息。初态构造为远离势能区中心位于 $x_0$、平均动量为 $p_0 = \hbar k_0$ 的最小不确定度高斯波包：
+  $$\psi(x, 0) = \frac{1}{(2\pi \sigma_x^2)^{1/4}} \exp\left[ -\frac{(x - x_0)^2}{4\sigma_x^2} + i k_0 x \right]$$
+  其在连续能量表象上的正交振幅权重分量为：
+  $$A(E) = \left( \frac{\mu}{\hbar k(E)} \right)^{1/2} \frac{1}{\sqrt{2\pi\hbar}} \int_{-\infty}^{+\infty} \psi(x, 0) e^{-i k(E) x} dx, \quad k(E) = \frac{\sqrt{2\mu E}}{\hbar}$$
+- **代码映射**:
+  - `src/mod_td_scattering.f90`:
+    - `init_gaussian_wavepacket`: 空间与动量空间精确归一化初始高斯波包构筑。
+
+### 40.2 跨势垒通量半傅里叶变换与 Möller 散射矩阵提取
+- **文献**:
+  - C. Möller, *"General properties of the characteristic matrix in the theory of elementary particles I"*, **K. Dan. Vidensk. Selsk. Mat. Fys. Medd.** 23, 1 (1945).
+  - D. Neuhauser and M. Baer, *"The time-dependent Schrödinger equation including a complex absorbing potential: Application to the reactive collinear H + H_2 system"*, **J. Chem. Phys.** 90, 4351 (1989). [DOI: 10.1063/1.456644](https://doi.org/10.1063/1.456644)
+  - W. H. Miller, S. D. Schwartz, and J. W. Tromp, *"Statistical functional theory of chemical reaction rates"*, **J. Chem. Phys.** 79, 4889 (1983). [DOI: 10.1063/1.445581](https://doi.org/10.1063/1.445581)
+- **核心理论**:
+  在相互作用势垒后方渐近探测面 $x = x_{\text{det}}$ 处记录随时间流逝的含时概率流密度：
+  $$J(x_{\text{det}}, t) = \frac{\hbar}{\mu} \text{Im}\left[ \psi^*(x_{\text{det}}, t) \left. \frac{\partial \psi(x, t)}{\partial x} \right|_{x_{\text{det}}} \right]$$
+  跨越势垒的总透射几率谱 $T(E)$ 通过时间-能量半傅里叶变换与初态动量振幅归一化给出：
+  $$T(E) = \frac{1}{|A(E)|^2} \text{Re} \int_0^\infty J(x_{\text{det}}, t) e^{i E t / \hbar} dt$$
+  基于 Möller 波动算符 $\hat{\Omega}^{(\pm)} = \lim_{t \to \mp \infty} e^{i \hat{H} t / \hbar} e^{-i \hat{H}_0 t / \hbar}$，通过对散射出射波在渐近本征基上的直接动量投影，提取散射 $S$ 矩阵元：
+  $$S(E) = \frac{\langle \phi_{\text{out}}(E) | \psi(T) \rangle}{\langle \phi_{\text{in}}(E) | \psi(0) \rangle} e^{i E T / \hbar}$$
+- **代码映射**:
+  - `src/mod_td_scattering.f90`:
+    - `calculate_td_transmission`: 渐近概率流通量时间-能量半傅里叶变换提取全能区透射谱 $T(E)$；
+    - `project_wavepacket_to_smatrix`: Möller 动量基渐近投影法提取散射矩阵元 $S(E)$ 与弹性散射相移。
+
+---
+
+## 41. 复吸收势 (CAP) 最佳边界参数化与量子概率流连续性方程
+
+### 41.1 非厄米复吸收势 (CAP) 吸收与量子力学反射抑制
+- **文献**:
+  - U. V. Riss and H.-D. Meyer, *"Calculation of resonance energies and widths using the complex absorbing potential method"*, **J. Phys. B: At. Mol. Opt. Phys.** 26, 4503 (1993). [DOI: 10.1088/0953-4075/26/23/021](https://doi.org/10.1088/0953-4075/26/23/021)
+  - U. V. Riss and H.-D. Meyer, *"Reflection by and transmission through complex absorbing potentials"*, **J. Chem. Phys.** 105, 1409 (1996). [DOI: 10.1063/1.472003](https://doi.org/10.1063/1.472003)
+  - J. G. Muga, J. P. Palao, B. Navarro, and I. L. Egusquiza, *"Complex absorbing potentials"*, **Phys. Rep.** 395, 357 (2004). [DOI: 10.1016/j.physrep.2004.03.002](https://doi.org/10.1016/j.physrep.2004.03.002)
+- **核心理论**:
+  在开体系有限格点波包动力学计算中，自由粒子解离波在计算边界处的反弹反射会引起假干涉现象。通过在哈密顿量边界区添加纯虚负吸收势构造非厄米有效势：
+  $$\hat{H}_{\text{eff}} = \hat{H}_0 - i W(x), \quad W(x) \ge 0$$
+  多项式吸收层型剖面（起始点 $x_c$，厚度 $L_{\text{cap}}$）：
+  $$W(x) = \eta \left( \frac{x - x_c}{L_{\text{cap}}} \right)^n \Theta(x - x_c) \quad (n=2, 3)$$
+  或光滑余弦平滑包络（Manolopoulos 形式）：
+  $$W(x) = \frac{\hbar^2}{2\mu} \left( \frac{2\pi}{L_{\text{cap}}} \right)^2 \left[ \frac{1}{\cos^2\left(\frac{\pi(x - x_c)}{2 L_{\text{cap}}}\right)} - 1 \right]$$
+  吸收势强度 $\eta$ 的选取需平衡高能穿透透射与势突变引起的量子反射：
+  $$\eta_{\text{opt}} \approx \frac{\hbar^2}{2\mu L_{\text{cap}}^2} f(n)$$
+- **代码映射**:
+  - `src/mod_absorbing_boundary.f90`:
+    - `cap_init`: 二次方、三次方、余弦吸收边界层几何厚度与最优吸收强度参数配置；
+    - `cap_apply_damping`: 分裂算符单步波函数局域指数吸收衰减算子 $\exp[-W(x)\Delta t / \hbar]$ 作用。
+
+### 41.2 非厄米连续性方程与概率流通量衰减律
+- **文献**:
+  - A. S. Dickinson et al., *"Energy-loss and probability flux in wavepacket scattering"*, **Mol. Phys.** 48, 1221 (1983).
+- **核心理论**:
+  在非厄米复吸收势作用下，概率密度 $\rho(x, t) = |\psi(x, t)|^2$ 的时间导数满足带有耗散汇项的连续性方程：
+  $$\frac{\partial \rho(x, t)}{\partial t} + \frac{\partial j(x, t)}{\partial x} = -\frac{2}{\hbar} W(x) \rho(x, t)$$
+  空间积分后系统总保全几率随时间单调衰减：
+  $$\frac{d}{dt} \int_{-\infty}^{+\infty} |\psi(x, t)|^2 dx = -\frac{2}{\hbar} \int_{x_c}^{x_{\max}} W(x) |\psi(x, t)|^2 dx \le 0$$
+  通过在时间轴上累积吸收汇项，可严格恢复跨越吸收边界的总解离几率。
+- **代码映射**:
+  - `src/mod_absorbing_boundary.f90`:
+    - `calculate_probability_flux`: 计算格点局域量子概率流密度 $j(x, t)$ 及边界吸收汇项平衡。
+
+---
+
+## 42. 库仑三体系统、Perkeris 坐标变换与两电子关联
+
+### 42.1 库仑三体两电子关联与 Kato 尖点条件
+- **文献**:
+  - E. A. Hylleraas, *"Neue Berechnung des Grundzustands des Heliumatoms sowie des negativen Wasserstoffions H^-"*, **Z. Phys.** 54, 347 (1929). [DOI: 10.1007/BF01375457](https://doi.org/10.1007/BF01375457)
+  - T. Kato, *"On the eigenfunctions of many-particle systems in quantum mechanics"*, **Commun. Pure Appl. Math.** 10, 151 (1957). [DOI: 10.1002/cpa.3160100201](https://doi.org/10.1002/cpa.3160100201)
+  - C. L. Pekéris, *"Ground State of Two-Electron Atoms"*, **Phys. Rev.** 112, 1649 (1958). [DOI: 10.1103/PhysRev.112.1649](https://doi.org/10.1103/PhysRev.112.1649)
+- **核心理论**:
+  类氦双电子库仑三体体系（原子核电荷 $Z$，无限大质量极限）全哈密顿量为：
+  $$\hat{H} = -\frac{\hbar^2}{2m} \left( \nabla_1^2 + \nabla_2^2 \right) - \frac{Z e^2}{4\pi\epsilon_0 r_1} - \frac{Z e^2}{4\pi\epsilon_0 r_2} + \frac{e^2}{4\pi\epsilon_0 r_{12}}$$
+  在电子-核碰撞点 $r_i \to 0$ 与电子-电子重合点 $r_{12} \to 0$ 处，库仑势发散导致波函数一阶导数不连续，满足严格的 Kato 尖点条件：
+  $$\left. \frac{\partial \bar{\psi}}{\partial r_i} \right|_{r_i=0} = -Z \psi(r_i=0), \quad \left. \frac{\partial \bar{\psi}}{\partial r_{12}} \right|_{r_{12}=0} = \frac{1}{2} \psi(r_{12}=0)$$
+  标准轨道乘积基组（如 Hartree-Fock）完全忽略了 $r_{12}$ 显式项，收敛极其迟缓；显式关联 Hylleraas-Pekéris 基组能够以指数精度直接满足该两电子关联。
+- **代码映射**:
+  - `src/mod_coulomb_threebody.f90`:
+    - `calc_hylleraas_analytical_integral`: 求解两电子显式关联关联矩阵元三维解析 Gamma 递推积分。
+
+### 42.2 正交 Pekéris 坐标变换与变分高精度本征求解
+- **文献**:
+  - C. L. Pekéris, *"1^1S and 2^3S states of Helium"*, **Phys. Rev.** 115, 1216 (1959). [DOI: 10.1103/PhysRev.115.1216](https://doi.org/10.1103/PhysRev.115.1216)
+  - G. W. F. Drake, *"High precision calculations for helium"*, in *Springer Handbook of Atomic, Molecular, and Optical Physics*, Springer (2006).
+- **核心理论**:
+  三角形核间距几何约束条件（$|r_1 - r_2| \le r_{12} \le r_1 + r_2$）使得三维积分边界极其复杂。Pekéris 引入保正交线性坐标变换：
+  $$u = r_1 + r_2 - r_{12}, \quad v = r_1 - r_2 + r_{12}, \quad w = -r_1 + r_2 + r_{12} \quad (u \ge 0, \; v \ge 0, \; w \ge 0)$$
+  反变换为：
+  $$r_1 = \frac{u + v}{2}, \quad r_2 = \frac{u + w}{2}, \quad r_{12} = \frac{v + w}{2}$$
+  Pekéris 坐标将复杂的三原子核间距积分区间完全解耦为三个独立的半无限区间 $[0, \infty) \times [0, \infty) \times [0, \infty)$。变换的雅可比行列式为：
+  $$d\tau = \frac{1}{8} (u + v)(u + w)(v + w) \, du dv dw$$
+  在变分 Laguerre 正交多项式基组上展开，全部动能矩阵元与势能矩阵元均能解析化为高阶阶乘组合，彻底消除数值积分误差，将基态能量精算至亚赫兹精度。
+- **代码映射**:
+  - `src/mod_coulomb_threebody.f90`:
+    - `perkeris_coordinate_transform`: 物理核间距与正交解耦 Pekéris 坐标间可逆解析变换；
+    - `calc_perkeris_volume_element`: Pekéris 坐标变换雅可比体积元计算；
+    - `solve_helium_ground_state_variational`: 氦原子/类氦离子基态能量超高精度变分对角化求解。
+
+---
+
+## 43. 快速学术检索与代码对照总表
+
+| 序号 | 物理算法模块 | 对应源文件 | 核心经典学术文献代表 | 主要导出 API 与核心算法 |
+| :---: | :--- | :--- | :--- | :--- |
+| 1 | **基础物理常数与单位换算** | `src/mod_constants.f90` | CODATA 2018 / 2022 | `to_au`, `from_au`, `GAUSS2AU`, `AU2TESLA`, `AU2EV` |
+| 2 | **角动量代数与 Wigner 符号** | `src/mod_special_functions.f90` | Varshalovich (1988), Racah (1942) | `wigner_3j_half`, `clebsch_gordan_half`, `wigner_6j_half`, `wigner_9j_half` |
+| 3 | **数值线性代数与快速傅里叶** | `src/mod_linear_algebra.f90` | EISPACK, Cooley & Tukey (1965) | `diag_symmetric_matrix`, `inv_real_matrix`, `fft_1d`, `matrix_norm` |
+| 4 | **离散变量表象 (DVR) 与 FGH** | `src/mod_dvr_grid.f90` | Colbert & Miller (1992), Marston (1989) | `dvr_sinc_init`, `fgh_solve_bound_states`, `dvr_kinetic_matrix` |
+| 5 | **飞秒超快激光脉冲合成** | `src/mod_laser_pulse.f90` | Diels & Rudolph (2006) | `create_gaussian_pulse`, `create_chirped_pulse`, `ac_stark_shift` |
+| 6 | **复吸收势 (CAP) 边界与连续性** | `src/mod_absorbing_boundary.f90` | Riss & Meyer (1993), Muga (2004) | `cap_init`, `cap_apply_damping`, `calculate_probability_flux` |
+| 7 | **转动/振动热力学玻尔兹曼统计** | `src/mod_boltzmann_weights.f90` | McQuarrie (2000), Herzberg (1950) | `calc_rotational_partition_function`, `calc_boltzmann_weights` |
+| 8 | **波包分裂算符与 Bloch 方程** | `src/mod_time_propagation.f90` | Feit & Fleck (1982), Strang (1968) | `propagate_wavepacket_strang`, `solve_bloch_equations_rk4` |
+| 9 | **强场库仑、Keldysh 与 ADK 电离** | `src/mod_coulomb_atomic.f90` | Keldysh (1965), ADK (1986) | `keldysh_parameter`, `adk_ionization_rate`, `soft_core_coulomb` |
+| 10 | **高次谐波发射与 SFA 理论** | `src/mod_hhg_spectra.f90` | Lewenstein et al. (1994), Corkum (1993) | `hhg_power_spectrum`, `lewenstein_sfa_dipole`, `gabor_transform` |
+| 11 | **切比雪夫展开与能窗算子 PES** | `src/mod_polynomial_expansion.f90` | Tal-Ezer & Kosloff (1984), Schafer (1990) | `propagate_chebyshev_step`, `calc_energy_window_operator` |
+| 12 | **多态非绝热避差与 Landau-Zener** | `src/mod_multistate.f90` | Landau (1932), Zener (1932), Hellmann-Feynman | `diabatic_to_adiabatic`, `calc_nonadiabatic_coupling_vector`, `calc_landau_zener_probability` |
+| 13 | **双原子转振能谱与 STIRAP** | `src/mod_rovibrational.f90` | Bergmann (1998), Vitanov (2017), Condon (1926) | `solve_rovibrational_spectrum`, `calc_franck_condon_factors`, `simulate_stirap_transfer` |
+| 14 | **科学计算 I/O 与矩阵序列化** | `src/mod_io_utils.f90` | HDF5 Group, NetCDF | `save_matrix_binary`, `load_matrix_binary`, `compute_checksum` |
+| 15 | **三次样条插值与 Thomas 算法** | `src/mod_spline_interpolation.f90` | de Boor (1978), Stoer & Bulirsch (2002) | `spline_cubic_fit`, `spline_cubic_eval`, `thomas_algorithm_tridiag` |
+| 16 | **分子光解离与光碎片 KER 谱** | `src/mod_photofragment_flux.f90` | Heller (1981), Schinke (1993), Zare (1988) | `calc_autocorrelation_function`, `calc_heller_absorption_spectrum`, `calc_ker_spectrum_from_flux` |
+| 17 | **开放量子系统 Lindblad 耗散主方程**| `src/mod_open_quantum.f90` | Lindblad (1976), Gorini (1976), Breuer (2002) | `propagate_lindblad_rk4`, `calculate_von_neumann_entropy`, `calc_purity` |
+| 18 | **Krotov 量子最优控制泛函** | `src/mod_optimal_control.f90` | Somlói & Tannor (1993), Krotov (1996), Reich (2012) | `optimize_pulse_krotov`, `calc_control_fidelity` |
+| 19 | **非含时散射、分波法与 Log-Der** | `src/mod_ti_scattering.f90` | Wigner (1948), Johnson (1973), Manolopoulos (1986) | `calc_scattering_length_numerov`, `calc_multichannel_close_coupling_logder` |
+| 20 | **含时波包散射动力学与 Möller 投影**| `src/mod_td_scattering.f90` | Feit & Fleck (1982), Möller (1945), Tannor (2007) | `init_gaussian_wavepacket`, `calculate_td_transmission`, `project_wavepacket_to_smatrix` |
+| 21 | **塞曼 Breit-Rabi 与磁 Feshbach** | `src/mod_field_scattering.f90` | Breit & Rabi (1931), Stoof (1988), Chin (2010) | `calc_breit_rabi_energies`, `calc_basis_transform_matrix`, `calc_magnetic_feshbach_resonance_scan` |
+| 22 | **各向异性磁/电偶极超冷散射** | `src/mod_dipolar_scattering.f90`| Stoof (1988), Moerdijk (1996), Bohn (2009) | `calc_mddi_total_matrix_element`, `calc_dipolar_relaxation_cross_section`, `calc_stark_induced_dipole` |
+| 23 | **超冷光缔合谱学与自由-束缚跃迁** | `src/mod_photoassociation.f90` | Jones (RMP 2006), Bohn & Julienne (1999) | `calc_free_bound_fc_overlap`, `calc_pa_cross_section`, `calc_pa_thermal_rate_coefficient` |
+| 24 | **三体 Efimov 普适态与复合损失** | `src/mod_three_body_recombination.f90` | Efimov (1970), Braaten & Hammer (2006), Esry (1999) | `solve_efimov_s0_identical_bosons`, `calc_three_body_recombination_a_positive` |
+| 25 | **低维约束诱导共振 CIR 与波导** | `src/mod_confined_scattering.f90` | Olshanii (1998), Bergeman (2003), Haller (2009) | `init_waveguide_1d`, `calc_olshanii_cir_parameters`, `calc_confined_dimer_binding_energy` |
+| 26 | **自电离 Fano 不对称线型与 CCR** | `src/mod_autoionization_fano.f90` | Fano (1961), Reinhardt (1982), Moiseyev (1998) | `calc_fano_profile`, `calc_autoionization_lifetime`, `solve_ccr_resonance_model` |
+| 27 | **交叉电磁场宇称破缺分子能谱** | `src/mod_crossed_field_scattering.f90` | Tscherbul & Krems (2006), Friedrich (1996) | `init_crossed_field_config`, `solve_crossed_field_eigenstates`, `calc_crossed_field_observables` |
+| 28 | **三原子反应 Jacobi 与 Berry 相位** | `src/mod_triatomic_geometry.f90` | Sato (1955), Berry (1984), Longuet-Higgins (1958) | `jacobi_to_internuclear`, `calc_leps_potential`, `calc_conical_intersection_adiabats`, `calc_berry_phase_around_ci` |
+| 29 | **旋量 BEC 宏观自旋动力学** | `src/mod_spinor_bec.f90` | Ho (1998), Ohmi & Machida (1998), Chang (2004) | `init_spinor_preset`, `calc_quadratic_zeeman_shift`, `propagate_spinor_sma_rk4` |
+| 30 | **三原子超球面反应与热速率常数** | `src/mod_hyperspherical_reactive.f90` | Johnson (1980), Pack & Parker (1987), Miller (1975) | `init_reaction_mass`, `calc_eckart_transmission`, `calc_cumulative_reaction_probability`, `calc_canonical_rate_constant` |
+| 31 | **偶极量子液滴与 LHY 涨落修正** | `src/mod_dipolar_droplets_lhy.f90` | Lee-Huang-Yang (1957), Petrov (2015), Chomaz (2016) | `init_dipolar_droplet_param`, `calc_pelster_lima_q5`, `calc_equilibrium_droplet_density` |
+| 32 | **强场 NSDI 电子重碰撞动量谱** | `src/mod_strong_field_nsdi.f90` | Corkum (1993), Weber et al. (Nature 2000), Becker (2005) | `init_nsdi_laser`, `calc_recollision_trajectory`, `calc_lotz_cross_section`, `calc_nsdi_2d_momentum_dist` |
+| 33 | **磁/光 Feshbach 束缚态与损耗** | `src/mod_feshbach_bound_states.f90` | Chin et al. (RMP 2010), Gao (2001), Theis (PRL 2004) | `init_mfr_preset`, `calc_mfr_bound_energy_coupled`, `calc_mfr_closed_channel_fraction`, `calc_ofr_inelastic_loss_rate` |
+| 34 | **阿秒瞬态吸收光谱 (ATAS)** | `src/mod_attosecond_transient_absorption.f90` | Chini et al. (2014), Ott et al. (Science 2013), Wu (2016) | `init_atas_helium_benchmark`, `calc_laser_dressed_fano_q`, `calc_light_induced_state_energy`, `calc_atas_spectrum` |
+| 35 | **双色圆偏振场与分子 PECD** | `src/mod_bicircular_pecd.f90` | Kfir (Nat. Phot. 2015), Lux (2012), Böwering (2001) | `init_bicircular_field`, `calc_dynamical_symmetry_fold`, `calc_chirality_measure`, `calc_pecd_pad_spectrum` |
+| 36 | **超冷极性分子反应与微波遮蔽** | `src/mod_ultracold_reaction_shielding.f90` | Quéméner (PRA 2010), Anderegg (Science 2021), Schindewolf (2022) | `init_ultracold_molecule_preset`, `calc_effective_shielding_potential`, `calc_wkb_tunneling_probability`, `calc_shielded_scattering_rates` |
+| 37 | **里德堡原子阻塞与量子多体疤痕** | `src/mod_rydberg_blockade.f90` | Lukin (PRL 2001), Bernien (Nature 2017), Turner (2018) | `init_rydberg_atom`, `calc_rydberg_blockade_radius`, `calc_two_atom_dynamics`, `calc_rydberg_scar_dynamics` |
+| 38 | **表面量子散射与选择性吸附 (SAR)** | `src/mod_surface_scattering.f90` | Boato (1973), Manson (1991), Benedek (2018) | `init_surface_lattice`, `calc_surface_diffraction_channels`, `calc_hcs_diffraction_probabilities`, `calc_selective_adsorption_resonance` |
+| 39 | **气-固表面催化与 Eley-Rideal 反应**| `src/mod_surface_reaction_er.f90` | Eley & Rideal (1940), Rettner (1992), Jackson (1992) | `init_er_reaction_system`, `calc_er_potential_2d`, `calc_er_energy_partitioning`, `calc_er_vibrational_populations` |
+| 40 | **金属表面非绝热与电子摩擦 (GLE)** | `src/mod_surface_electronic_friction.f90` | Tully (1981), Head-Gordon & Tully (1995), Wodtke (2000) | `init_metal_surface`, `calc_electronic_friction_coeff`, `integrate_gle_scattering_trajectory`, `calc_vibrational_relaxation_rate` |
+| 41 | **掠入射快原子表面衍射 (GIFAD)** | `src/mod_grazing_fast_atom_diffraction.f90` | Rousseau (PRL 2007), Schüller (PRL 2007), Winter (2011) | `init_gifad_experiment`, `calc_gifad_transverse_kinematics`, `calc_gifad_rainbow_angle`, `calc_surface_corrugation_from_rainbow` |
+| 42 | **冷离子-中性原子杂化散射极化阱** | `src/mod_ion_atom_scattering.f90` | Langevin (1905), Côté (PRA 2000), Cetina (PRL 2012) | `init_ion_atom_system`, `calc_langevin_cross_section`, `calc_mere_phase_shift_s_wave`, `calc_rf_micromotion_heating` |
+| 43 | **最少开关表面跳跃 (FSSH)** | `src/mod_surface_hopping_fssh.f90` | Tully (JCP 1990), Hammes-Schiffer & Tully (1994) | `init_tully_model`, `calc_adiabatic_surface_and_nacv`, `propagate_fssh_step`, `run_fssh_ensemble` |
+| 44 | **强场分子定向取向与超转子动力学** | `src/mod_molecular_alignment.f90` | Stapelfeldt & Seideman (RMP 2003), Karczmarek (1999) | `init_rotor_molecule`, `simulate_laser_induced_alignment`, `calc_optical_centrifuge_kick`, `calc_superrotor_dissociation` |
+| 45 | **超冷光晶格与玻色-哈伯德微观映射**| `src/mod_optical_lattice_hubbard.f90` | Jaksch (PRL 1998), Greiner (Nature 2002), Ben Dahan (1996) | `init_optical_lattice`, `calc_bloch_band_energies`, `calc_bose_hubbard_parameters`, `calc_bloch_oscillation_dynamics` |
+| 46 | **反应路径哈密顿量与变分过渡态** | `src/mod_reaction_path_hamiltonian.f90` | Miller (JCP 1980), Truhlar & Garrett (1980), Eckart (1930) | `init_rph_benchmark_reaction`, `calc_generalized_tst_rate`, `calc_cvt_rate_constant`, `calc_eckart_tunneling_factor` |
+| 47 | **相对论原子结构与径向狄拉克方程** | `src/mod_relativistic_atomic.f90` | Dirac (1928), Norcross (PRA 1973), Grant (2007) | `calc_dirac_model_potential`, `solve_radial_dirac_eigenvalue`, `calc_dirac_fine_structure_splitting`, `calc_dirac_e1_matrix_element` |
+| 48 | **共振非弹性 X 射线散射 (RIXS)** | `src/mod_resonant_xray_scattering.f90` | Kramers-Heisenberg (1925), Ament et al. (RMP 2011) | `init_rixs_system`, `calc_xas_cross_section`, `calc_kramers_heisenberg_cross_section`, `calc_huang_rhys_vibrational_rixs` |
+| 49 | **亚稳态原子潘宁电离与缔合电离** | `src/mod_penning_associative_ionization.f90` | Hotop & Niehaus (1969), Siska (RMP 1993), Miller (1970) | `init_penning_system`, `calc_penning_classical_turning_point`, `calc_penning_cross_sections`, `calc_pies_spectrum` |
+| 50 | **库仑三体系统与两电子关联** | `src/mod_coulomb_threebody.f90` | Hylleraas (1929), Pekéris (1958), Drake (2006) | `perkeris_coordinate_transform`, `calc_hylleraas_analytical_integral`, `solve_helium_ground_state_variational` |
 
 ---
 *全典文献经过精确校核，代码实现中严格遵守学术规范，所有公式推导与符号约定均与原始文献完全对齐。*
+
 
