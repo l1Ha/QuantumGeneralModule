@@ -39,7 +39,7 @@ GeneralModule/
 ├── CMakeLists.txt                 # CMake 跨平台构建系统
 ├── README.md                      # 本文档
 ├── .gitignore                     # Git 忽略规则
-├── src/                           # 核心 Fortran 源代码 (41 核心模块 + 1 聚合入口)
+├── src/                           # 核心 Fortran 源代码 (48 核心模块 + 1 聚合入口)
 │   ├── mod_constants.f90          # 1. 物理常数与各单位 a.u. 双向转换
 │   ├── mod_special_functions.f90  # 2. 勒让德、Wigner 3j/6j/9j、CG半整数代数、转动偶极/取向矩阵元
 │   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解 (EISPACK TRED2/TQL2)、实/复方阵求逆、1D/2D FFT
@@ -659,23 +659,48 @@ chmod +x run_all_tests.sh
 ================================================================
           Running GeneralModule Test Suite Suite                
 ================================================================
-Constants Tests:             12 / 12 PASSED
-Special Function Tests:      12 / 12 PASSED
-DVR Grid Tests:               8 /  8 PASSED
-Laser Pulse Tests:            9 /  9 PASSED
-Propagator Tests:             8 /  8 PASSED
-Extended Atomic Tests:       14 / 14 PASSED
-Rovibrational Control Tests:  8 /  8 PASSED
-Interpolation Tests:          7 /  7 PASSED
-Photofragment & Flux Tests:   6 /  6 PASSED
-Open Quantum & OCT Tests:    10 / 10 PASSED
-TI Scattering Tests:         19 / 19 PASSED
-TD Scattering Tests:          9 /  9 PASSED
-Field Scattering Tests:      42 / 42 PASSED
-Dipolar Scattering Tests:    21 / 21 PASSED
-Photoassociation Tests:      14 / 14 PASSED
+ 1. Constants Tests:                    10 / 10 PASSED
+ 2. Special Function Tests:             12 / 12 PASSED
+ 3. DVR Grid Tests:                      8 /  8 PASSED
+ 4. Laser Pulse Tests:                   9 /  9 PASSED
+ 5. Propagator Tests:                    8 /  8 PASSED
+ 6. Extended Atomic Tests:              14 / 14 PASSED
+ 7. Rovibrational Control Tests:         8 /  8 PASSED
+ 8. Interpolation Tests:                 7 /  7 PASSED
+ 9. Photofragment & Flux Tests:          6 /  6 PASSED
+10. Open Quantum & OCT Tests:           10 / 10 PASSED
+11. TI Scattering Tests:                19 / 19 PASSED
+12. TD Scattering Tests:                 9 /  9 PASSED
+13. Field Scattering Tests:             42 / 42 PASSED
+14. Dipolar Scattering Tests:           21 / 21 PASSED
+15. Photoassociation Tests:             14 / 14 PASSED
+16. Three-Body Recombination Tests:      5 /  5 PASSED
+17. Confined Scattering CIR Tests:       5 /  5 PASSED
+18. Autoionization Fano/CCR Tests:       5 /  5 PASSED
+19. Crossed-Field Scattering Tests:      5 /  5 PASSED
+20. Triatomic Geometry & Berry Tests:    5 /  5 PASSED
+21. Spinor BEC Dynamics Tests:           5 /  5 PASSED
+22. Hyperspherical Reactive Tests:       5 /  5 PASSED
+23. Dipolar Droplets LHY Tests:          5 /  5 PASSED
+24. Strong-Field NSDI Tests:             5 /  5 PASSED
+25. Feshbach Bound States Tests:         5 /  5 PASSED
+26. ATAS Transient Absorption Tests:     5 /  5 PASSED
+27. Bicircular PECD Tests:               5 /  5 PASSED
+28. Ultracold Reaction Shielding Tests:  5 /  5 PASSED
+29. Rydberg Blockade Tests:              5 /  5 PASSED
+30. Surface Scattering & SAR Tests:      5 /  5 PASSED
+31. Surface Eley-Rideal Reaction Tests:  5 /  5 PASSED
+32. Surface Electronic Friction Tests:   5 /  5 PASSED
+33. GIFAD Fast Atom Diffraction Tests:   5 /  5 PASSED
+34. Cold Ion-Atom Scattering Tests:      5 /  5 PASSED
+35. Surface Hopping FSSH Tests:          5 /  5 PASSED
+36. Molecular Alignment Tests:           5 /  5 PASSED
+37. Optical Lattice & Hubbard Tests:     5 /  5 PASSED
+38. RPH & Variational TST Tests:         5 /  5 PASSED
+39. Relativistic Atomic & Dirac Tests:   5 /  5 PASSED
+40. Resonant X-ray RIXS Tests:           5 /  5 PASSED
 ----------------------------------------------------------------
-ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 199/199 断言通过)
+ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 335/335 断言通过)
 ================================================================
 ```
 
@@ -683,7 +708,7 @@ ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 199/199 断言通过)
 
 ## 📊 典型物理算例 (Examples)
 
-位于 `GeneralModule/examples/`，一键编译运行全部 10 大物理算例：
+位于 `GeneralModule/examples/`，一键编译运行全部 35 大物理前沿算例：
 ```bash
 cd GeneralModule/examples
 chmod +x build_examples.sh
@@ -710,6 +735,56 @@ chmod +x build_examples.sh
    - **超冷磁偶极自旋弛豫与极性分子外电场 Stark 诱导偶极扫描**：模拟弱磁阱中 $^{87}\text{Rb}$ 原子受各向异性磁偶极相互作用驱动的二阶超精细两体自旋弛豫过程，计算碰撞能量扫描与微开尔文热平均弛豫速率 $K_{\text{rel}}(T)$；同步模拟刚体超冷极性双原子分子 $^{40}\text{K}^{87}\text{Rb}$ 在直流外电场 $\mathcal{E}$ 下的本征转动态 Stark 混叠，追踪诱导电偶极矩 $d_{\text{ind}}(\mathcal{E})$ 趋于永久偶极矩饱和，并计算电偶极相互作用特征长度 $a_d$。
 10. **`ex10_photoassociation_spectroscopy.f90`**
     - **超冷原子光缔合光谱学与双光子 Raman 缔合分子态**：模拟超冷 $^{87}\text{Rb}$ 碰撞对由自由连续态受激跃迁至激发束缚态分子（$0_u^+ / 1_g$ 振动态）的光缔合吸收过程，计算自由-束缚态 Franck-Condon 重叠积分 $I_{\text{FB}}$、激光强度依赖的受激线宽 $\Gamma_{\text{stim}}$、单能量吸收截面与不同温度下的光缔合速率系数 $K_{\text{PA}}(T, \Delta)$ 洛伦兹-不对称展宽能谱，并计算利用双光子 STIRAP 绝热转移至超冷振转基态分子所需的有效双光子拉比耦合强度 $\Omega_{\text{eff}}$。
+11. **`ex11_three_body_efimov_recombination.f90`**
+    - **超冷三体 Efimov 复合速率与干涉极小值/共振峰扫描**：精确解算 Efimov 超越代数方程超越根 $s_0 = 1.00624$，在 $a < 0$ 区域扫描 Efimov 三体束缚态引起的共振复合损耗峰 $a_-^{(n)}$ 与在 $a > 0$ 区域由不同 Stueckelberg 几何路径干涉导致的复合速率极小值（Efimov 窗口 $a_+^{(n)}$），并给出强幺正极限下有限温度普适 $T^{-2}$ 速率标度。
+12. **`ex12_confined_cir_scattering.f90`**
+    - **准一维光晶格波导中 87Rb 约束诱导共振 CIR 与分子结合能**：解算横向简谐受限势阱下 Olshanii 约束诱导共振（CIR）发散极点，模拟外加磁场调控下 3D 自由空间散射长度越过临界阈值 $a_s = a_\perp / C$ 时有效 1D 相互作用强度 $g_{1D}$ 的极点发散与束缚分子二聚体结合能 $E_b$，展示低维强关联 Tonks-Girardeau 极限。
+13. **`ex13_autoionization_fano_resonance.f90`**
+    - **自电离 Fano 不对称吸收谱与复坐标旋转 CCR 寿命提取**：模拟连续态与离散态组态干涉产生的 Fano 非对称吸收轮廓（抗共振零点与不对称参数 $q$），结合复坐标旋转法（CCR）实现无反射人工边界，在复能量平面上准确对角化并分离非物理连续态与物理自电离极点共振寿命 $\Gamma$。
+14. **`ex14_spinor_bec_dynamics.f90`**
+    - **87Rb 与 23Na 凝聚体宏观自旋混合动力学与铁磁相图**：针对 $F=1$ 旋量玻色爱因斯坦凝聚体，计算单模近似（SMA）下相干自旋振荡动力学，精确保持总粒子数归一化与纵向磁化强度守恒，重现反铁磁（极性）与铁磁基态相图。
+15. **`ex15_crossed_field_stark_zeeman.f90`**
+    - **交叉电磁场中极性顺磁分子 Stark-Zeeman 态混合与空间定向**：模拟同时处在外加静电场与静磁场（夹角 $\beta$ 可调）中的双原子自由基分子，精确对角化非共线转动-超精细哈密顿量，揭示空间宇称破坏、交错免交叉能谱与空间取向度演化。
+16. **`ex16_triatomic_reaction_berry_phase.f90`**
+    - **三原子反应路径 LEPS 势能面与锥形交叉 Berry 几何相位**：基于质心 Jacobi 坐标严格映射三原子核构型，构建 London-Eyring-Polanyi-Sato (LEPS) 反应过渡态势垒，并在势能面避免交叉附近沿闭合回路数值积分非绝热几何相，精确提取 $\pi$ 模 Berry 几何相位。
+17. **`ex17_hyperspherical_reaction_rates.f90`**
+    - **三原子超球面反应动力学、Eckart 隧穿累积反应几率与正则热速率常数**：利用超球面坐标与质量标度坐标处理三原子重排反应，计算 Delves 反应偏角、Eckart 势垒传递几率、累积反应几率 $N(E)$ 以及宽温区正则反应热速率常数 $k(T)$。
+18. **`ex18_dipolar_quantum_droplets.f90`**
+    - **162Dy 偶极量子液滴自束缚平衡密度、负化学势与气-液滴相变**：求解含 Lee-Huang-Yang (LHY) 量子涨落修正与 Pelster-Lima $Q_5$ 各向异性极化积分的扩展 Gross-Pitaevskii 方程 (eGPE)，模拟超冷偶极原子自束缚量子液滴相变与平衡密度。
+19. **`ex19_strong_field_nsdi_recollision.f90`**
+    - **800nm 强场电子重碰撞动能 3.17 Up 截断、2D 动量关联谱与双电离膝盖结构**：基于 Corkum 三步半经典模型与电离相位抽样，模拟强激光场下隧穿电子回碰母离子过程，复现 $3.17\,U_p$ 经典重碰撞动能截止、(e,2e) 碰撞电离截面与双电离电离率“膝盖 (Knee)”台阶结构。
+20. **`ex20_feshbach_molecular_bound_states.f90`**
+    - **6Li 磁 Feshbach 晕轮二聚体结合能、闭通道权重与 87Rb 光 Feshbach 损耗**：求解双通道密耦哈密顿量，给出外加磁场下开-闭通道耦合对弱束缚分子结合能 $E_b(B)$ 与闭通道占据权重 $Z(B)$ 的调制，并计算光 Feshbach 共振受激吸收与非弹性光致双体损耗速率常数 $K_2$。
+21. **`ex21_attosecond_transient_absorption.f90`**
+    - **氦原子 2s2p 自电离、动态 Fano q、LIS 态与 2D ATAS 谱图**：结合阿秒极紫外 (XUV) 脉冲与强近红外 (NIR) 激光场，基于相位微扰模型 (PPM) 计算双激发态自电离吸收谱，演示动态 Fano 参数演化、光诱导态 (LIS) 杂化与 2D 延迟吸收图谱。
+22. **`ex22_bicircular_pecd_chiral.f90`**
+    - **双色反向圆偏振场、手性分子对映体能量分辨 PECD 谱与 2D PAD**：构建角动量对称性具备 $C_3$ 动力学对称的双色反向旋转椭圆偏振激光场，结合具有手性势能面的分子模型，计算光电子前后发射不对称度与能量分辨光电子圆二色性 (PECD)。
+23. **`ex23_ultracold_molecule_shielding.f90`**
+    - **KRb 超冷极性分子微波遮蔽势垒、隧穿抑制与蒸发冷却速率比 gamma**：针对微波场驱动的分子旋转态偶极相互作用工程，构建具有短程排斥势垒的长程修饰势，利用 WKB 积分评估短程反应非弹性损失抑制，计算弹性-非弹性碰撞截面比 $\gamma > 100$ 的蒸发冷却可行域。
+24. **`ex24_rydberg_blockade_dynamics.f90`**
+    - **87Rb 70S 阻塞半径、二原子双激发抑制与 1D 阵列量子多体疤痕动力学**：模拟主量子数 $n=70$ 里德堡原子 $C_6/R^6$ 范德华相互作用导致的激光激发阻塞，演示两原子能级阻塞抑制，并在 1D Rydberg 链上求解 PXP 受限哈密顿量，重现高纠缠下的非热化量子多体疤痕相干振荡。
+25. **`ex25_surface_corrugated_diffraction.f90`**
+    - **He/LiF(001) 2D 晶格衍射谱、选择性吸附共振 SAR 与 Debye-Waller 扫描**：模拟热中性原子掠射至硬波纹周期表面晶格 (HCS)，计算程函近似 2D Bragg 衍射分支几率、表面束缚能级选择性吸附共振 (SAR) Fano 线型与晶格温度依赖的 Debye-Waller 声子非弹性衰减。
+26. **`ex26_eley_rideal_surface_reaction.f90`**
+    - **H+H/Cu(111) 气-固 ER 催化反应、超热放热能量分配与高振动激发态反转分布**：构建二维反应表面，模拟入射气相原子与表面吸附质直接碰撞反应的 Eley-Rideal 机理，输出超热反应焓在产物振动、转动与平动能中的非统计分配，并展现强烈的振动态布居反转 (Population Inversion)。
+27. **`ex27_surface_electronic_friction_gle.f90`**
+    - **NO/Au(111) 表面非绝热散射、广义朗之万 GLE 碰撞轨迹与电子-空穴对能损**：采用局域密度摩擦近似 (LDFA) 计算金属表面自由电子气摩擦张量，运行辛步进广义朗之万方程 (GLE) 轨迹，定量计算分子碰撞过程中电子-空穴对激发所造成的超快能量耗散与振动弛豫寿命。
+28. **`ex28_grazing_fast_atom_diffraction.f90`**
+    - **keV He 掠入射快原子表面量子衍射 (GIFAD)、经典彩虹角与亚皮米波纹度反演**：模拟高能快原子掠入射解耦，分离轴向高速沟道平动与亚电子伏横向量子干涉运动，计算经典表面彩虹偏转角，并通过彩虹极大值解析重构晶体表面亚皮米量级的微观波纹振幅。
+29. **`ex29_cold_ion_atom_scattering.f90`**
+    - **Yb+/Li 与 Ba+/Rb 冷离子-原子杂化碰撞截面与 Paul 阱微运动致热率**：模拟 $1/r^4$ 极化势引导的超冷离子-原子混合系统，解算有效微运动致热速率、临界 Langevin 碰撞参数与微开尔文极限温度。
+30. **`ex30_tully_surface_hopping.f90`**
+    - **Tully SAC 与 DAC 双避免交叉斯托克斯干涉系综非绝热动力学**：运行最少开关表面跳跃 (FSSH) 蒙特卡洛系综，计算核动量重标度、非绝热跃迁概率与斯托克斯量子相干干涉条纹。
+31. **`ex31_molecular_alignment_revival.f90`**
+    - **N2 与 CO2 飞秒无场转动复苏与光学离心机超转子加速**：模拟强激光场诱导分子非绝热取向对齐，追踪全复苏与分式复苏波包演化，并演示光学离心机角加速度驱动至超转子态引起离心破键。
+32. **`ex32_optical_lattice_bose_hubbard.f90`**
+    - **87Rb 光晶格深度扫描、Bose-Hubbard U/J 相变与引力 Bloch 振荡**：数值求解 Mathieu 方程计算晶格能带与 Wannier 局域化基底，映射 Bose-Hubbard 跃迁参数 $J$ 与在位相互作用 $U$，模拟引力场驱动的布洛赫振荡。
+33. **`ex33_rph_variational_transition_state.f90`**
+    - **多原子反应路径变分 CVT 速率与 Eckart 量子隧穿增强因子**：沿着内禀反应坐标 (IRC) 寻优自由能瓶颈，计算正则变分过渡态理论 (CVT) 反应速率与 Eckart 势垒半经典隧穿修正因子 $\kappa(T)$。
+34. **`ex34_relativistic_dirac_cesium.f90`**
+    - **铯原子 6s/6p/5d 相对论狄拉克能级、精细结构分裂与 D1/D2 振子强度**：数值求解全相对论径向狄拉克方程，精确计算自旋-轨道耦合天然精细结构裂分与电偶极吸收振子强度。
+35. **`ex35_rixs_core_level_spectroscopy.f90`**
+    - **铜氧化物 Cu L3 共振非弹性 X 射线散射 2D 能损图谱与声子伴峰**：利用 Kramers-Heisenberg 二阶截面公式模拟同步辐射共振非弹性 X 射线散射，生成入射能量-能量损失 2D 光谱，并计算 Huang-Rhys 声子级数。
 
 ---
 
@@ -719,7 +794,7 @@ chmod +x build_examples.sh
 
 ```bash
 cd GeneralModule/python
-python3 test_pygenmod.py   # 运行 9 大单元测试 (100% Pass)
+python3 test_pygenmod.py   # 运行 12 大单元测试 (100% Pass)
 ```
 
 ### 1. 超冷散射长度与零能波函数渐近线可视化 (`scattering.py`)

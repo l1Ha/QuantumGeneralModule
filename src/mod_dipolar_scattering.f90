@@ -231,6 +231,14 @@ contains
         real(dp) :: c_angle_dm1, c_angle_dm2, coupling_sq
         real(dp) :: matrix_r_integral, v_rel
 
+        res%b_field_gauss    = b_field_gauss
+        res%e_incident       = e_incident_au
+        res%e_released       = 0.0_dp
+        res%k_incident       = 0.0_dp
+        res%k_exit           = 0.0_dp
+        res%cross_section_au = 0.0_dp
+        res%rate_coeff_cm3_s = 0.0_dp
+
         if (present(stat)) stat = 0
         if (mass_amu <= 0.0_dp .or. b_field_gauss < 0.0_dp .or. e_incident_au <= 0.0_dp) then
             if (present(stat)) stat = -1
@@ -296,6 +304,7 @@ contains
         real(dp) :: kb_t_au, e_max, de, e_curr, weight, sum_k, sum_w
         type(dipolar_relaxation_result_t) :: res
 
+        k_thermal = 0.0_dp
         if (present(stat)) stat = 0
         if (temp_k <= 0.0_dp) then
             if (present(stat)) stat = -1

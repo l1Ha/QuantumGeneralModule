@@ -43,6 +43,25 @@
    - [3.20 交叉静电磁场分子量子动力学配置 (`mod_crossed_field_scattering`)](#320-交叉静电磁场分子量子动力学配置-mod_crossed_field_scattering)
    - [3.21 三原子反应散射 Jacobi 几何与 LEPS 势能面配置 (`mod_triatomic_geometry`)](#321-三原子反应散射-jacobi-几何与-leps-势能面配置-mod_triatomic_geometry)
    - [3.22 超冷旋量玻色爱因斯坦凝聚自旋动力学配置 (`mod_spinor_bec`)](#322-超冷旋量玻色爱因斯坦凝聚自旋动力学配置-mod_spinor_bec)
+   - [3.23 三原子超球面反应动力学与热速率常数配置 (`mod_hyperspherical_reactive`)](#323-三原子超球面反应动力学与热速率常数配置-mod_hyperspherical_reactive)
+   - [3.24 超冷偶极量子液滴与李-黄-杨量子涨落配置 (`mod_dipolar_droplets_lhy`)](#324-超冷偶极量子液滴与李-黄-杨量子涨落配置-mod_dipolar_droplets_lhy)
+   - [3.25 强场非顺序双电离与电子重碰撞相关动量谱配置 (`mod_strong_field_nsdi`)](#325-强场非顺序双电离与电子重碰撞相关动量谱配置-mod_strong_field_nsdi)
+   - [3.26 磁与光 Feshbach 共振与弱束缚分子态配置 (`mod_feshbach_bound_states`)](#326-磁与光-feshbach-共振与弱束缚分子态配置-mod_feshbach_bound_states)
+   - [3.27 阿秒瞬态吸收光谱与光诱导态自电离干涉 (`mod_attosecond_transient_absorption`)](#327-阿秒瞬态吸收光谱与光诱导态自电离干涉-mod_attosecond_transient_absorption)
+   - [3.28 双色反向圆偏振场与分子光电子圆二色性 PECD (`mod_bicircular_pecd`)](#328-双色反向圆偏振场与分子光电子圆二色性-pecd-mod_bicircular_pecd)
+   - [3.29 超冷极性分子反应动力学与微波/静电偶极遮蔽 (`mod_ultracold_reaction_shielding`)](#329-超冷极性分子反应动力学与微波静电偶极遮蔽-mod_ultracold_reaction_shielding)
+   - [3.30 里德堡原子阻塞、PXP 约束模型与量子多体疤痕 (`mod_rydberg_blockade`)](#330-里德堡原子阻塞pxp-约束模型与量子多体疤痕-mod_rydberg_blockade)
+   - [3.31 表面量子散射与选择性吸附共振 (`mod_surface_scattering`)](#331-表面量子散射与选择性吸附共振-mod_surface_scattering)
+   - [3.32 气-固界面催化反应与 Eley-Rideal 提取机理 (`mod_surface_reaction_er`)](#332-气-固界面催化反应与-eley-rideal-提取机理-mod_surface_reaction_er)
+   - [3.33 金属表面非绝热动力学与电子摩擦耗散 (`mod_surface_electronic_friction`)](#333-金属表面非绝热动力学与电子摩擦耗散-mod_surface_electronic_friction)
+   - [3.34 掠入射快原子表面量子衍射与彩虹散射 (`mod_grazing_fast_atom_diffraction`)](#334-掠入射快原子表面量子衍射与彩虹散射-mod_grazing_fast_atom_diffraction)
+   - [3.35 冷离子-中性原子杂化散射与极化阱动力学 (`mod_ion_atom_scattering`)](#335-冷离子-中性原子杂化散射与极化阱动力学-mod_ion_atom_scattering)
+   - [3.36 最少开关表面跳跃与非绝热混合量子-经典动力学 (`mod_surface_hopping_fssh`)](#336-最少开关表面跳跃与非绝热混合量子-经典动力学-mod_surface_hopping_fssh)
+   - [3.37 强场分子定向、取向与超转子动力学 (`mod_molecular_alignment`)](#337-强场分子定向取向与超转子动力学-mod_molecular_alignment)
+   - [3.38 超冷光晶格与玻色-哈伯德微观映射 (`mod_optical_lattice_hubbard`)](#338-超冷光晶格与玻色-哈伯德微观映射-mod_optical_lattice_hubbard)
+   - [3.39 多原子反应路径哈密顿量与变分过渡态理论 (`mod_reaction_path_hamiltonian`)](#339-多原子反应路径哈密顿量与变分过渡态理论-mod_reaction_path_hamiltonian)
+   - [3.40 相对论原子结构与径向狄拉克方程 (`mod_relativistic_atomic`)](#340-相对论原子结构与径基狄拉克方程-mod_relativistic_atomic)
+   - [3.41 共振非弹性 X 射线散射与内壳层光谱 (`mod_resonant_xray_scattering`)](#341-共振非弹性-x-射线散射与内壳层光谱-mod_resonant_xray_scattering)
 4. [Python 伴侣库 `pygenmod` 配置与混合编程](#4-python-伴侣库-pygenmod-配置与混合编程)
    - [4.1 本地可编辑模式安装](#41-本地可编辑模式安装)
    - [4.2 数据交互规范（.dat 与无损二进制）](#42-数据交互规范-dat-与无损二进制)
@@ -1286,7 +1305,7 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 
 ---
 
-### 3.32 冷离子-中性原子杂化散射与极化阱动力学 (`mod_ion_atom_scattering`)
+### 3.35 冷离子-中性原子杂化散射与极化阱动力学 (`mod_ion_atom_scattering`)
 面向 Paul 射频阱与光偶极阱杂化系统中的超冷带电离子与中性原子碰撞：
 1. **杂化系统初始化与极化物理特征尺度**：
    ```fortran
@@ -1317,7 +1336,7 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 
 ---
 
-### 3.33 最少开关表面跳跃与非绝热混合量子-经典动力学 (`mod_surface_hopping_fssh`)
+### 3.36 最少开关表面跳跃与非绝热混合量子-经典动力学 (`mod_surface_hopping_fssh`)
 面向光化学反应通道分支与非绝热势能面跃迁动力学：
 1. **Tully 经典非绝热模型初始化与 NACV 导数耦合**：
    ```fortran
@@ -1345,7 +1364,7 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 
 ---
 
-### 3.34 强场分子定向、取向与超转子动力学 (`mod_molecular_alignment`)
+### 3.37 强场分子定向、取向与超转子动力学 (`mod_molecular_alignment`)
 面向短脉冲激光驱动的非绝热分子转动对齐与光学离心机超转子加速：
 1. **转子分子初始化与转动复苏周期**：
    ```fortran
@@ -1376,7 +1395,7 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 
 ---
 
-### 3.35 超冷光晶格与玻色-哈伯德微观映射 (`mod_optical_lattice_hubbard`)
+### 3.38 超冷光晶格与玻色-哈伯德微观映射 (`mod_optical_lattice_hubbard`)
 面向驻波光晶格中的周期量子输运与强关联玻色-哈伯德超流-Mott 绝缘体相变：
 1. **光晶格系统初始化与 Mathieu 能带展开**：
    ```fortran
@@ -1405,7 +1424,7 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 
 ---
 
-### 3.36 多原子反应路径哈密顿量与变分过渡态理论 (`mod_reaction_path_hamiltonian`)
+### 3.39 多原子反应路径哈密顿量与变分过渡态理论 (`mod_reaction_path_hamiltonian`)
 面向气相与凝聚相化学反应速率常数变分优化及量子隧穿穿透：
 1. **反应路径参数化与垂直简正模频率**：
    ```fortran
@@ -1430,7 +1449,7 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 
 ---
 
-### 3.37 相对论原子结构与径向狄拉克方程 (`mod_relativistic_atomic`)
+### 3.40 相对论原子结构与径基狄拉克方程 (`mod_relativistic_atomic`)
 面向重原子/高离化态相对论效应、自旋-轨道耦合与多极辐射矩阵元：
 1. **Sommerfeld 狄拉克本征态与有效量子亏损**：
    ```fortran
@@ -1459,7 +1478,7 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 
 ---
 
-### 3.38 共振非弹性 X 射线散射与内壳层光谱 (`mod_resonant_xray_scattering`)
+### 3.41 共振非弹性 X 射线散射与内壳层光谱 (`mod_resonant_xray_scattering`)
 面向同步辐射与 X 射线自由电子激光 (XFEL) 探测关联电子材料、低能集体激发与声子边带：
 1. **RIXS 多能级系统配置**：
    ```fortran

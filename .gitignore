@@ -1,25 +1,51 @@
-# Fortran build artifacts
+# Fortran compilation artifacts
 *.o
 *.mod
+*.s
 *.a
 *.so
 *.dylib
+*.dSYM/
 
-# Compiled binaries
+# Build & output directories
+build/
+bin/
+include/
+.fpm/
+
+# Compiled test & example binaries
 test_*
 !test_*.f90
 !test_*.py
-ex01
-ex02
-ex03
-ex04
-build/
+!test_*.sh
+ex[0-9]*
+!ex*.f90
+!ex*.sh
 
 # Output data & plots
 *.dat
+*.out
+*.log
 *.png
+*.jpg
+*.jpeg
+*.svg
 *.pdf
 
-# Python cache
+# Python cache & build
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+dist/
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

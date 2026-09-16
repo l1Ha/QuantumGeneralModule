@@ -248,8 +248,10 @@ contains
                     p = d(m)
                     c = 1.0_dp
                     c2 = c
+                    c3 = c
                     el1 = e(l1)
                     s = 0.0_dp
+                    s2 = s
                     mml = m - l
 
                     do ii = 1, mml

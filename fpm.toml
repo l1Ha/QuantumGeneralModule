@@ -180,6 +180,41 @@ name = "test_grazing_fast_atom_diffraction"
 source-dir = "tests"
 main = "test_grazing_fast_atom_diffraction.f90"
 
+[[test]]
+name = "test_ion_atom_scattering"
+source-dir = "tests"
+main = "test_ion_atom_scattering.f90"
+
+[[test]]
+name = "test_surface_hopping_fssh"
+source-dir = "tests"
+main = "test_surface_hopping_fssh.f90"
+
+[[test]]
+name = "test_molecular_alignment"
+source-dir = "tests"
+main = "test_molecular_alignment.f90"
+
+[[test]]
+name = "test_optical_lattice_hubbard"
+source-dir = "tests"
+main = "test_optical_lattice_hubbard.f90"
+
+[[test]]
+name = "test_reaction_path_hamiltonian"
+source-dir = "tests"
+main = "test_reaction_path_hamiltonian.f90"
+
+[[test]]
+name = "test_relativistic_atomic"
+source-dir = "tests"
+main = "test_relativistic_atomic.f90"
+
+[[test]]
+name = "test_resonant_xray_scattering"
+source-dir = "tests"
+main = "test_resonant_xray_scattering.f90"
+
 [[example]]
 name = "ex01_fgh_diatomic_bound_states"
 source-dir = "examples"
@@ -319,4 +354,40 @@ main = "ex27_surface_electronic_friction_gle.f90"
 name = "ex28_grazing_fast_atom_diffraction"
 source-dir = "examples"
 main = "ex28_grazing_fast_atom_diffraction.f90"
+
+[[example]]
+name = "ex29_cold_ion_atom_scattering"
+source-dir = "examples"
+main = "ex29_cold_ion_atom_scattering.f90"
+
+[[example]]
+name = "ex30_tully_surface_hopping"
+source-dir = "examples"
+main = "ex30_tully_surface_hopping.f90"
+
+[[example]]
+name = "ex31_molecular_alignment_revival"
+source-dir = "examples"
+main = "ex31_molecular_alignment_revival.f90"
+
+[[example]]
+name = "ex32_optical_lattice_bose_hubbard"
+source-dir = "examples"
+main = "ex32_optical_lattice_bose_hubbard.f90"
+
+[[example]]
+name = "ex33_rph_variational_transition_state"
+source-dir = "examples"
+main = "ex33_rph_variational_transition_state.f90"
+
+[[example]]
+name = "ex34_relativistic_dirac_cesium"
+source-dir = "examples"
+main = "ex34_relativistic_dirac_cesium.f90"
+
+[[example]]
+name = "ex35_rixs_core_level_spectroscopy"
+source-dir = "examples"
+main = "ex35_rixs_core_level_spectroscopy.f90"
+
 

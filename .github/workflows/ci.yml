@@ -24,12 +24,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y gfortran
+          sudo apt-get install -y gfortran cmake
 
       - name: Setup Fortran Compiler (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install gcc || true
+          brew install gcc cmake || true
           which gfortran || true
           gfortran --version
 
@@ -44,11 +44,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install numpy scipy matplotlib
 
-      - name: Run Fortran Unit Test Suite (33 Test Suites, 300 Assertions)
+      - name: Build and Test via CMake (40 Test Suites, 35 Examples)
+        run: |
+          cmake -B build -S .
+          cmake --build build -j 4
+          ctest --test-dir build --output-on-failure
+
+      - name: Run Direct Fortran Unit Test Suite (40 Test Suites, 335 Assertions)
         run: |
           bash tests/run_all_tests.sh
 
-      - name: Build & Run Frontier Physical Examples (28 Examples)
+      - name: Build & Run Frontier Physical Examples (35 Examples)
         run: |
           bash examples/build_examples.sh
 

@@ -132,6 +132,10 @@ contains
 
         real(dp) :: mu_au, k_wave, v_rel, denom, gamma_tot_half
 
+        res%gamma_stim_au    = 0.0_dp
+        res%cross_section_au = 0.0_dp
+        res%rate_coeff_cm3_s = 0.0_dp
+
         if (present(stat)) stat = 0
         if (collision_energy_au <= 0.0_dp .or. mass_amu <= 0.0_dp) then
             if (present(stat)) stat = -1
@@ -180,6 +184,7 @@ contains
         real(dp) :: sum_rate, sum_weight, weight
         type(pa_transition_result_t) :: tr_res
 
+        k_pa_cm3_s = 0.0_dp
         if (present(stat)) stat = 0
         if (temp_k <= 0.0_dp .or. mass_amu <= 0.0_dp) then
             if (present(stat)) stat = -1
