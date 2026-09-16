@@ -51,6 +51,7 @@ module general_module
     use mod_reaction_path_hamiltonian
     use mod_relativistic_atomic
     use mod_resonant_xray_scattering
+    use mod_penning_associative_ionization
     implicit none
 
     public :: dp, int32, int64
@@ -330,5 +331,12 @@ module general_module
     public :: rixs_system_t
     public :: init_rixs_system, calc_xas_cross_section, calc_kramers_heisenberg_cross_section
     public :: calc_rixs_2d_map, calc_huang_rhys_vibrational_rixs
+
+    ! 潘宁电离与缔合电离动力学 (Penning & Associative Ionization / Chemi-ionization)
+    public :: penning_system_t, penning_trajectory_result_t, penning_cross_section_result_t
+    public :: init_penning_system, init_penning_preset_he_star_ar, eval_penning_potentials
+    public :: calc_penning_turning_point, calc_penning_trajectory_prob
+    public :: calc_penning_cross_sections, calc_penning_electron_spectrum
+    public :: calc_penning_thermal_rate, calc_ultracold_penning_complex_length
 
 end module general_module

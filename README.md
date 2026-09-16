@@ -3,8 +3,8 @@
 [![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
 [![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests: 335/335 Pass](https://img.shields.io/badge/Tests-335%2F335%20Pass%20(100%25)-brightgreen.svg)](tests/)
-[![Literature: 35 Topics](https://img.shields.io/badge/Literature-35%20Topics%20(PRL%2FPRA%2FRMP%2FScience%2FNature)-blue.svg)](LITERATURE.md)
+[![Tests: 340/340 Pass](https://img.shields.io/badge/Tests-340%2F340%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Literature: 36 Topics](https://img.shields.io/badge/Literature-36%20Topics%20(PRL%2FPRA%2FRMP%2FScience%2FNature)-blue.svg)](LITERATURE.md)
 
 `GeneralModule` 是一个面向超快强场物理、分子光物理、前沿量子散射与表面动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
 
@@ -14,17 +14,17 @@
 
 1. **零外部库依赖 (Zero External Dependencies)**
    - 内部集成高精度 Householder QL 实对称矩阵本征求解器、Gauss-Jordan 全主元实/复方阵求逆与 Cooley-Tukey 1D/2D 快速傅里叶变换（FFT）。
-   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射、各向异性偶极耦合、超冷光缔合速率、少体 Efimov 物理、低维光晶格 CIR、自电离 Fano/CCR、交叉电磁场、三原子反应 PES、旋量 BEC 自旋动力学、三原子超球面反应动力学、偶极量子液滴 LHY、强场非顺序双电离 (NSDI)、磁/光 Feshbach 束缚态、阿秒瞬态吸收光谱 (ATAS)、双色反向圆偏振 PECD、超冷极性分子偶极遮蔽、里德堡原子阻塞、2D 表面量子散射与 SAR、气-固催化 Eley-Rideal 反应、金属表面非绝热电子摩擦 (GLE)、掠入射快原子衍射 (GIFAD)、冷离子-中性原子杂化极化散射、Tully 最少开关表面跳跃 (FSSH)、强场分子定向与超转子动力学、光晶格 Bose-Hubbard 映射、反应路径哈密顿量 (RPH/CVT)、相对论径向狄拉克方程以及共振非弹性 X 射线散射 (RIXS) 求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
+   - 纯 Fortran 自包含样条插值、Lindblad 主方程、Krotov 最优控制、通用多通道定态密耦（Johnson Log-Derivative）、外场多基组散射、各向异性偶极耦合、超冷光缔合速率、少体 Efimov 物理、低维光晶格 CIR、自电离 Fano/CCR、交叉电磁场、三原子反应 PES、旋量 BEC 自旋动力学、三原子超球面反应动力学、偶极量子液滴 LHY、强场非顺序双电离 (NSDI)、磁/光 Feshbach 束缚态、阿秒瞬态吸收光谱 (ATAS)、双色反向圆偏振 PECD、超冷极性分子偶极遮蔽、里德堡原子阻塞、2D 表面量子散射与 SAR、气-固催化 Eley-Rideal 反应、金属表面非绝热电子摩擦 (GLE)、掠入射快原子衍射 (GIFAD)、冷离子-中性原子杂化极化散射、Tully 最少开关表面跳跃 (FSSH)、强场分子定向与超转子动力学、光晶格 Bose-Hubbard 映射、反应路径哈密顿量 (RPH/CVT)、相对论径向狄拉克方程、共振非弹性 X 射线散射 (RIXS) 以及亚稳态原子碰撞潘宁电离与缔合电离 (Penning & Associative Ionization) 求解器，无需强制链接外部 LAPACK/BLAS 或 FFTW，开箱即用。
 2. **现代 Fortran 2008 标准设计**
    - 统一强类型参数定义（`real(dp) => real64`）。
    - 纯函数（`pure function`）与显式 `intent(in/out/inout)` 契约，杜绝隐式全局变量副作用。
 3. **AI 友好型结构化接口 (AI-Friendly)**
    - 算法模块支持统一顶层聚合入口：`use general_module`。
-   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `surface_lattice_t`, `ion_atom_system_t`, `tully_model_t`, `rotor_molecule_t`, `optical_lattice_t`, `rph_path_t`, `dirac_state_t`, `rixs_system_t` 等），自解释、低耦合、便于大语言模型精确构造与调用。
+   - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `surface_lattice_t`, `ion_atom_system_t`, `tully_model_t`, `rotor_molecule_t`, `optical_lattice_t`, `rph_path_t`, `dirac_state_t`, `rixs_system_t`, `penning_system_t` 等），自解释、低耦合、便于大语言模型精确构造与调用。
 4. **全链路双语生态支持**
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
 5. **全自动 CI/CD 持续集成**
-   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 40 大测试套件（335 个单元断言 100% 通过）与 35 大物理应用工程算例。
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 41 大测试套件（340 个单元断言 100% 通过）与 36 大物理应用工程算例。
 
 ---
 
@@ -88,8 +88,9 @@ GeneralModule/
 │   ├── mod_reaction_path_hamiltonian.f90 # 46. 多原子反应路径哈密顿量 (RPH)、内禀反应坐标 (IRC)、变分过渡态理论 (CVT) 与 Eckart 隧穿
 │   ├── mod_relativistic_atomic.f90     # 47. 相对论原子结构、径向狄拉克方程、精细结构分裂 (Cs D1/D2) 与核心极化模型势
 │   ├── mod_resonant_xray_scattering.f90 # 48. 共振非弹性 X 射线散射 (RIXS)、Kramers-Heisenberg 二阶截面、XAS/XES 与 Huang-Rhys 振动级数
-│   └── general_module.f90          # 顶层聚合入口模块 (use general_module)
-├── tests/                          # 自动化单元测试套件 (40 个套件，100% 全部通过，335/335 断言)
+│   ├── mod_penning_associative_ionization.f90 # 49. 亚稳态原子潘宁电离与缔合化学电离动力学、光学势自电离宽度、PIES 电子发射能谱与自旋抑制
+│   └── general_module.f90          # 顶层聚合入口模块 (use general_module, 49 大核心物理模块)
+├── tests/                          # 自动化单元测试套件 (41 个套件，100% 全部通过，340/340 断言)
 │   ├── test_constants.f90
 │   ├── test_special_functions.f90
 │   ├── test_dvr_grid.f90
@@ -130,8 +131,9 @@ GeneralModule/
 │   ├── test_reaction_path_hamiltonian.f90 # RPH 鞍点势垒、CVT 变分界、Eckart 隧穿与高温极限测试
 │   ├── test_relativistic_atomic.f90       # 狄拉克氢 1s 基态、2p 精细结构劈裂、Cs 核心极化与相对论 E1 振子强度测试
 │   ├── test_resonant_xray_scattering.f90  # Cu L3 XAS 吸收峰、Kramers-Heisenberg 共振放大、2D RIXS 图谱与 Laguerre 声子级数测试
-│   └── run_all_tests.sh            # 自动化测试运行脚本 (100% Pass, 335/335 断言, 40 测试套件)
-├── examples/                       # 典型物理应用算例 (35 大完整前沿算例)
+│   ├── test_penning_associative_ionization.f90 # 潘宁电离与缔合电离势能面、自电离宽度、低能 AI 俘获主导至高能 PI 转变与 PIES 能谱测试
+│   └── run_all_tests.sh            # 自动化测试运行脚本 (100% Pass, 340/340 断言, 41 测试套件)
+├── examples/                       # 典型物理应用算例 (36 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90            # 啁啾、双色、太赫兹脉冲时频生成
 │   ├── ex03_split_operator_1d.f90          # 1D 波包动力学演化与 CAP 吸收边界
@@ -167,7 +169,8 @@ GeneralModule/
 │   ├── ex33_rph_variational_transition_state.f90 # 多原子反应路径变分 CVT 速率与 Eckart 量子隧穿增强因子
 │   ├── ex34_relativistic_dirac_cesium.f90       # 铯原子 6s/6p/5d 相对论狄拉克能级、精细结构分裂与 D1/D2 振子强度
 │   ├── ex35_rixs_core_level_spectroscopy.f90    # 铜氧化物 Cu L3 共振非弹性 X 射线散射 2D 能损图谱与声子伴峰
-│   └── build_examples.sh           # 算例编译运行脚本 (全 35 算例编译运行通过)
+│   ├── ex36_penning_associative_ionization.f90  # 亚稳态 He*(2^3S)+Ar 潘宁电离与缔合电离空间分流比、PIES 电子能谱与自旋极化抑制
+│   └── build_examples.sh           # 算例编译运行脚本 (全 36 算例编译运行通过)
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
     ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 12/12 测试)
@@ -565,6 +568,14 @@ GeneralModule/
 - `calc_rixs_2d_map(sys, n_in, w_in_grid, n_loss, w_loss_grid, rixs_map)`: 生成高精度 2D RIXS 入射能量-能量损失散射强度图谱。
 - `calc_huang_rhys_vibrational_rixs(omega_0, s_factor, gamma_core, detuning, n_max, loss_intensity)`: 基于相联拉盖尔多项式严格解析求解电-声耦合 Huang-Rhys 振动 Franck-Condon 伴峰级数。
 
+### 49. 亚稳态原子碰撞潘宁电离与缔合电离 (`mod_penning_associative_ionization`)
+- `init_penning_system(sys, v_star, v_plus, gamma_w, red_mass, r_max_au, stat)`: 配置初态亚稳态中性复合势 $V_*(R)$、终态离子势 $V_+(R)$、局域自电离宽度 $\Gamma(R)$ 及体系约化质量 $\mu$。
+- `calc_penning_classical_turning_point(v_pot, e_coll, b_impact, r_max, r_turn)`: 求解给定碰撞能 $E_{\text{coll}}$ 与碰撞参数 $b$ 下的有效势离心势垒经典转折点 $R_{\text{turn}}$。
+- `calc_penning_cross_sections(sys, e_coll_ev, b_max_ang, nb, sigma_pi, sigma_ai, sigma_tot)`: 求解光学势半经典存活几率，输出潘宁电离（PI）截面、缔合电离（AI）束缚截面与总化学电离截面 $\sigma_{\text{tot}}$。
+- `calc_pies_spectrum(sys, e_coll_ev, n_pts, e_elec_grid, pies_spec)`: 计算潘宁电离电子能谱 (PIES) 局域静止相干积分解，捕获电子跃迁奇异峰与展宽结构。
+- `calc_penning_thermal_rate(sys, temp_k, n_e, e_max_ev, rate_k)`: 麦克斯韦-玻尔兹曼热平衡能量分布加权积分求解两体化学电离热速率常数 $k(T)$。
+- `calc_ultracold_penning_rates(alpha_scat_m, beta_loss_m, mass_kg, temp_uk, k_elastic, k_loss)`: 基于复散射长度 $a = \alpha - i\beta$ 求解超冷 Wigner 阈值定律下的弹性速率与非弹性自电离损失速率（支持自旋极化自旋禁止寿命抑制比估算）。
+
 ---
 
 ## 📖 详细配置手册
@@ -699,8 +710,9 @@ chmod +x run_all_tests.sh
 38. RPH & Variational TST Tests:         5 /  5 PASSED
 39. Relativistic Atomic & Dirac Tests:   5 /  5 PASSED
 40. Resonant X-ray RIXS Tests:           5 /  5 PASSED
+41. Penning & Associative Ioniz Tests:  5 /  5 PASSED
 ----------------------------------------------------------------
-ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 335/335 断言通过)
+ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 340/340 断言通过)
 ================================================================
 ```
 
@@ -708,7 +720,7 @@ ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 335/335 断言通过)
 
 ## 📊 典型物理算例 (Examples)
 
-位于 `GeneralModule/examples/`，一键编译运行全部 35 大物理前沿算例：
+位于 `GeneralModule/examples/`，一键编译运行全部 36 大物理前沿算例：
 ```bash
 cd GeneralModule/examples
 chmod +x build_examples.sh
@@ -785,6 +797,8 @@ chmod +x build_examples.sh
     - **铯原子 6s/6p/5d 相对论狄拉克能级、精细结构分裂与 D1/D2 振子强度**：数值求解全相对论径向狄拉克方程，精确计算自旋-轨道耦合天然精细结构裂分与电偶极吸收振子强度。
 35. **`ex35_rixs_core_level_spectroscopy.f90`**
     - **铜氧化物 Cu L3 共振非弹性 X 射线散射 2D 能损图谱与声子伴峰**：利用 Kramers-Heisenberg 二阶截面公式模拟同步辐射共振非弹性 X 射线散射，生成入射能量-能量损失 2D 光谱，并计算 Huang-Rhys 声子级数。
+36. **`ex36_penning_associative_ionization.f90`**
+    - **亚稳态 He*(2^3S)+Ar 潘宁电离与缔合电离空间分流比、PIES 电子能谱与自旋极化抑制**：构建高激发亚稳态中性原子碰撞光学势模型，演示极低碰撞动能下缔合电离 $AB^+$ 形成占据绝对主导（分流比 $>85\%$），随动能增大平滑渡越至解离潘宁电离 $A+B^++e^-$ 主导（高能区 AI 占比降至 0%）；精确输出潘宁电离电子发射能谱 (PIES) 奇异峰；计算微开尔文超冷区复散射长度损耗，复现自旋极化禁阻自旋反平行电离通道高达 $10^4$ 倍的超冷量子气体寿命抑制效应。
 
 ---
 

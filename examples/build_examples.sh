@@ -51,6 +51,7 @@ EXAMPLES=(
     "ex33_rph_variational_transition_state"
     "ex34_relativistic_dirac_cesium"
     "ex35_rixs_core_level_spectroscopy"
+    "ex36_penning_associative_ionization"
 )
 
 for ex in "${EXAMPLES[@]}"; do

@@ -62,6 +62,7 @@
    - [3.39 多原子反应路径哈密顿量与变分过渡态理论 (`mod_reaction_path_hamiltonian`)](#339-多原子反应路径哈密顿量与变分过渡态理论-mod_reaction_path_hamiltonian)
    - [3.40 相对论原子结构与径向狄拉克方程 (`mod_relativistic_atomic`)](#340-相对论原子结构与径基狄拉克方程-mod_relativistic_atomic)
    - [3.41 共振非弹性 X 射线散射与内壳层光谱 (`mod_resonant_xray_scattering`)](#341-共振非弹性-x-射线散射与内壳层光谱-mod_resonant_xray_scattering)
+   - [3.42 亚稳态原子碰撞潘宁电离与缔合电离 (`mod_penning_associative_ionization`)](#342-亚稳态原子碰撞潘宁电离与缔合电离-mod_penning_associative_ionization)
 4. [Python 伴侣库 `pygenmod` 配置与混合编程](#4-python-伴侣库-pygenmod-配置与混合编程)
    - [4.1 本地可编辑模式安装](#41-本地可编辑模式安装)
    - [4.2 数据交互规范（.dat 与无损二进制）](#42-数据交互规范-dat-与无损二进制)
@@ -1505,8 +1506,41 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
                                         n_max_loss=4, loss_intensity=vib_intensity)
    ```
 
+---
+
+### 3.42 亚稳态原子碰撞潘宁电离与缔合电离 (`mod_penning_associative_ionization`)
+面向高激发态亚稳态稀有气体原子（如 $\text{He}^*(2^3S), \text{Ne}^*(^3P_{0,2})$）与靶原子/分子的化学电离、反应动力学与超冷量子气体寿命控制：
+1. **潘宁与缔合电离光学势体系配置**：
+   ```fortran
+   use mod_penning_associative_ionization
+   type(penning_system_t) :: sys
+   integer :: stat
+   ! 配置 He*(2^3S) + Ar 体系: Morse 势入口阱深 De=0.005 eV, 离子阱深 De=4.0 eV, 自电离宽度 A=5.0 eV, alpha=2.0 /A
+   call init_penning_system(sys, &
+                            v_star=morse_param_t(de_ev=0.005_dp, re_ang=4.5_dp, a_ang=1.2_dp), &
+                            v_plus=morse_param_t(de_ev=4.0_dp, re_ang=2.4_dp, a_ang=1.8_dp), &
+                            gamma_w=gamma_width_t(a_ev=5.0_dp, alpha_ang=2.0_dp), &
+                            red_mass_amu=3.636_dp, r_max_au=30.0_dp, stat=stat)
+   ```
+2. **半经典光学势存活几率与分流截面**：
+   ```fortran
+   real(dp) :: sig_pi, sig_ai, sig_tot
+   ! 求解 E_coll = 0.05 eV 下的潘宁电离截面与缔合离子生成截面
+   call calc_penning_cross_sections(sys, e_coll_ev=0.05_dp, b_max_ang=6.0_dp, nb=1000, &
+                                    sigma_pi=sig_pi, sigma_ai=sig_ai, sigma_tot=sig_tot)
+   ```
+3. **潘宁电离电子发射能谱 (PIES) 与超冷复散射长度**：
+   ```fortran
+   real(dp) :: pies(200), e_elec(200), k_el, k_loss
+   call calc_pies_spectrum(sys, e_coll_ev=0.05_dp, n_pts=200, e_elec_grid=e_elec, pies_spec=pies)
+   ! 超冷温度 1 uK 下基于复散射长度 a = alpha - i*beta 评估自旋极化寿命与损失速率
+   call calc_ultracold_penning_rates(alpha_scat_m=1.0e-9_dp, beta_loss_m=1.0e-13_dp, &
+                                     mass_kg=6.64e-27_dp, temp_uk=1.0_dp, &
+                                     k_elastic=k_el, k_loss=k_loss)
+   ```
+
 > [!TIP]
-> 包含全部前沿复杂体系的应用工程算例（11 至 35），详见：
+> 包含全部前沿复杂体系的应用工程算例（11 至 36），详见：
 > 👉 [`examples/ex11_three_body_efimov_recombination.f90`](examples/ex11_three_body_efimov_recombination.f90)
 > 👉 [`examples/ex12_confined_cir_scattering.f90`](examples/ex12_confined_cir_scattering.f90)
 > 👉 [`examples/ex13_autoionization_fano_resonance.f90`](examples/ex13_autoionization_fano_resonance.f90)
@@ -1532,7 +1566,8 @@ $$\Delta t \le \frac{2 m \Delta x^2}{\pi \hbar}$$
 > 👉 [`examples/ex33_rph_variational_transition_state.f90`](examples/ex33_rph_variational_transition_state.f90)
 > 👉 [`examples/ex34_relativistic_dirac_cesium.f90`](examples/ex34_relativistic_dirac_cesium.f90)
 > 👉 [`examples/ex35_rixs_core_level_spectroscopy.f90`](examples/ex35_rixs_core_level_spectroscopy.f90)
-> 对应理论文献详见：👉 [`LITERATURE.md`](LITERATURE.md) 第 11 节至第 35 节。
+> 👉 [`examples/ex36_penning_associative_ionization.f90`](examples/ex36_penning_associative_ionization.f90)
+> 对应理论文献详见：👉 [`LITERATURE.md`](LITERATURE.md) 第 11 节至第 36 节。
 
 ---
 

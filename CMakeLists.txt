@@ -48,7 +48,7 @@ target_include_directories(GeneralModule_shared PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
-# 单元测试构建配置 (40 个单元测试套件)
+# 单元测试构建配置 (41 个单元测试套件)
 include(CTest)
 if(BUILD_TESTING)
     file(GLOB TEST_SOURCES "tests/*.f90")
@@ -64,7 +64,7 @@ if(BUILD_TESTING)
     endforeach()
 endif()
 
-# 示例程序构建配置 (35 个前沿物理应用示例)
+# 示例程序构建配置 (36 个前沿物理应用示例)
 option(BUILD_EXAMPLES "Build physics examples" ON)
 if(BUILD_EXAMPLES)
     file(GLOB EXAMPLE_SOURCES "examples/*.f90")

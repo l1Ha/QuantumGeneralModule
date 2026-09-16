@@ -65,6 +65,7 @@ MODULE_SRCS = \
 	$(SRC_DIR)/mod_reaction_path_hamiltonian.f90 \
 	$(SRC_DIR)/mod_relativistic_atomic.f90 \
 	$(SRC_DIR)/mod_resonant_xray_scattering.f90 \
+	$(SRC_DIR)/mod_penning_associative_ionization.f90 \
 	$(SRC_DIR)/general_module.f90
 
 MODULE_OBJS = $(MODULE_SRCS:.f90=.o)

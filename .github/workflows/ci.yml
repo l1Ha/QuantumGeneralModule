@@ -44,17 +44,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install numpy scipy matplotlib
 
-      - name: Build and Test via CMake (40 Test Suites, 35 Examples)
+      - name: Build and Test via CMake (41 Test Suites, 36 Examples)
         run: |
           cmake -B build -S .
           cmake --build build -j 4
           ctest --test-dir build --output-on-failure
 
-      - name: Run Direct Fortran Unit Test Suite (40 Test Suites, 335 Assertions)
+      - name: Run Direct Fortran Unit Test Suite (41 Test Suites, 340 Assertions)
         run: |
           bash tests/run_all_tests.sh
 
-      - name: Build & Run Frontier Physical Examples (35 Examples)
+      - name: Build & Run Frontier Physical Examples (36 Examples)
         run: |
           bash examples/build_examples.sh
 

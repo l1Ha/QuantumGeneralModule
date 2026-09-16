@@ -215,6 +215,11 @@ name = "test_resonant_xray_scattering"
 source-dir = "tests"
 main = "test_resonant_xray_scattering.f90"
 
+[[test]]
+name = "test_penning_associative_ionization"
+source-dir = "tests"
+main = "test_penning_associative_ionization.f90"
+
 [[example]]
 name = "ex01_fgh_diatomic_bound_states"
 source-dir = "examples"
@@ -389,5 +394,11 @@ main = "ex34_relativistic_dirac_cesium.f90"
 name = "ex35_rixs_core_level_spectroscopy"
 source-dir = "examples"
 main = "ex35_rixs_core_level_spectroscopy.f90"
+
+[[example]]
+name = "ex36_penning_associative_ionization"
+source-dir = "examples"
+main = "ex36_penning_associative_ionization.f90"
+
 
 

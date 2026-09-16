@@ -40,7 +40,8 @@
 33. [多原子反应路径哈密顿量与变分过渡态理论 (RPH & Variational TST)](#33-多原子反应路径哈密顿量与变分过渡态理论-rph--variational-tst)
 34. [相对论原子结构与径向狄拉克方程 (Relativistic Atomic Structure & Dirac)](#34-相对论原子结构与径向狄拉克方程-relativistic-atomic-structure--dirac)
 35. [共振非弹性 X 射线散射与内壳层光谱 (Resonant Inelastic X-ray Scattering - RIXS)](#35-共振非弹性-x-射线散射与内壳层光谱-resonant-inelastic-x-ray-scattering---rixs)
-36. [快速学术检索与代码对照总表](#36-快速学术检索与代码对照总表)
+36. [亚稳态原子潘宁电离与缔合电离动力学 (Penning & Associative Ionization / Chemi-ionization)](#36-亚稳态原子潘宁电离与缔合电离动力学-penning--associative-ionization--chemi-ionization)
+37. [快速学术检索与代码对照总表](#37-快速学术检索与代码对照总表)
 
 ---
 
@@ -1246,7 +1247,49 @@
 
 ---
 
-## 36. 快速学术检索与代码对照总表
+## 36. 亚稳态原子潘宁电离与缔合电离动力学 (Penning & Associative Ionization / Chemi-ionization)
+
+### 36.1 半经典光学势自电离理论、分支截面与能量分流
+- **文献**:
+  - H. Hotop and A. Niehaus, *"Reactions of excited atoms and molecules with atoms and molecules: II. Energy analysis of electrons from reactions with He*(2^1S) and He*(2^3S)"*, **Z. Phys.** 228, 68 (1969). [DOI: 10.1007/BF01392439](https://doi.org/10.1007/BF01392439)
+  - P. E. Siska, *"Molecular-beam studies of Penning ionization"*, **Rev. Mod. Phys.** 65, 337 (1993). [DOI: 10.1103/RevModPhys.65.337](https://doi.org/10.1103/RevModPhys.65.337)
+  - W. H. Miller, *"Theory of Penning ionization. I. Atoms"*, **J. Chem. Phys.** 52, 3563 (1970). [DOI: 10.1063/1.1673523](https://doi.org/10.1063/1.1673523)
+  - J. S. Cohen and N. F. Lane, *"Chemi-ionization of He(2^3S, 2^1S) by H: Optical-potential calculation"*, **J. Chem. Phys.** 66, 586 (1977). [DOI: 10.1063/1.433980](https://doi.org/10.1063/1.433980)
+- **核心理论**:
+  当电子激发能超过靶原子第一电离能的亚稳态激发原子 $A^*$（如 $\text{He}^*(2^3S), E_{\text{exc}} \approx 19.82\text{ eV}$）与中性靶 $B$ 发生慢碰撞时，体系嵌入电子连续态：
+  $$A^* + B \to \begin{cases} A + B^+ + e^- & (\text{Penning Ionization, PI}) \\ AB^+ + e^- & (\text{Associative Ionization, AI}) \end{cases}$$
+  复光学势有效哈密顿量定义为 $W(R) = V_*(R) - \frac{i}{2}\Gamma(R)$。半经典碰撞轨道（碰撞参数 $b$、相对动能 $E_{\text{coll}}$）沿经典径向转折点 $R_{\text{turn}}$ 前后积分存活几率：
+  $$P_{\text{surv}}(b) = \exp\left( -2 \int_{R_{\text{turn}}}^\infty \frac{\Gamma(R)}{\hbar v_r(R, b)} dR \right)$$
+  两体碰撞产生自电离的总电离截面为：
+  $$\sigma_{\text{tot}} = 2\pi \int_0^\infty b [1 - P_{\text{surv}}(b)] db$$
+  当在核间距 $R$ 处发射电子时，释放电子能量由局域势差守恒决定 $E_e(R) = V_*(R) - V_+(R)$。根据核相对动能守恒，若碰撞电离后 $AB^+$ 核运动能量落入束缚阱中（$E_{\text{coll}} + V_+(R) < 0$），则产物形成分子离子 $AB^+$（缔合电离 AI）；反之若 $E_{\text{coll}} + V_+(R) > 0$，则克服离子势解离为自由产物 $A + B^+$（潘宁电离 PI）。极低碰撞能量下粒子易被离子深阱捕获，AI 占据绝对优势；而在高能量碰撞下 AI 分支急剧衰减至零。
+- **代码映射**:
+  - `src/mod_penning_associative_ionization.f90`:
+    - `init_penning_system`: 亚稳态入口势、离子势与自电离宽度初始化；
+    - `calc_penning_classical_turning_point`: 有效势经典转折点高精度二分求解；
+    - `calc_penning_cross_sections`: 半经典光学势存活几率、PI/AI 空间分流截面与总截面求解；
+    - `calc_penning_thermal_rate`: 麦克斯韦-玻尔兹曼热平均反应速率常数 $k(T)$ 计算。
+
+### 36.2 潘宁电离电子能谱 (PIES) 与超冷自旋极化寿命抑制
+- **文献**:
+  - H. Hotop, *"Penning ionization electron spectroscopy"*, **Adv. Mass Spectrom.** 7A, 9 (1978).
+  - A. Niehaus, *"Spontaneous transitions to a continuum"*, **Adv. Chem. Phys.** 48, 399 (1981).
+  - G. V. Shlyapnikov, J. T. M. Walraven, U. M. Rahmanov, and M. W. Reynolds, *"Penning ionization in spin-polarized ultracold metastable helium"*, **Phys. Rev. Lett.** 73, 3247 (1994). [DOI: 10.1103/PhysRevLett.73.3247](https://doi.org/10.1103/PhysRevLett.73.3247)
+- **核心理论**:
+  潘宁电离电子能谱 (PIES) 反映初末态势能面垂直跃迁差 $E_e(R) = V_*(R) - V_+(R)$ 的态密度加权分布：
+  $$\frac{d\sigma}{dE_e} = \int_{R_{\min}}^\infty \frac{\Gamma(R)}{\hbar v_r(R)} \delta(E_e - [V_*(R) - V_+(R)]) dR = \sum_{R_c} \frac{\Gamma(R_c)}{\hbar v_r(R_c) \left| \frac{d}{dR}(V_*(R) - V_+(R)) \right|_{R_c}}$$
+  在势差极值点 $\frac{d}{dR}(V_*(R) - V_+(R)) = 0$ 处，PIES 能谱呈现出类经典彩虹奇异性（Airy 峰），灵敏反映相互作用短程势井参数。
+  在超冷微开尔文（$\mu\text{K}$）极限下，碰撞处于 $s$-波 Wigner 阈值律，总相互作用由复散射长度 $a = \alpha - i\beta$ 刻画：
+  $$K_{\text{elastic}} = \frac{4\pi\hbar}{\mu}(\alpha^2 + \beta^2), \quad K_{\text{loss}} = \frac{4\pi\hbar}{\mu}\beta$$
+  对于自旋极化三线态亚稳态原子（如全极化 $\text{He}^*(2^3S_1, m_s=+1)$），碰撞双原子总自旋为 $S=2$（五重态），而产物电子 $e^-$ 与离子基态 $\text{He}_2^+(^2\Sigma_u^+)$ 耦合最高仅能形成三重态 ($S=1$)，导致电离过程因 Wigner 自旋守恒规则而自旋禁阻，自电离损失速率 $K_{\text{loss}}$ 受到 $10^4 \sim 10^5$ 倍的巨大抑制，使得亚稳态氦原子超冷玻色-爱因斯坦凝聚（BEC）成为可能。
+- **代码映射**:
+  - `src/mod_penning_associative_ionization.f90`:
+    - `calc_pies_spectrum`: 局域静止相干与高斯展宽 PIES 发射电子能谱；
+    - `calc_ultracold_penning_rates`: 复散射长度 $a=\alpha-i\beta$ 弹性与非弹性电离速率及自旋极化抑制寿命估算。
+
+---
+
+## 37. 快速学术检索与代码对照总表
 
 | 物理模块 | 对应源文件 | 核心经典文献代表 | 主要导出 API 与算法 |
 | :--- | :--- | :--- | :--- |
@@ -1289,6 +1332,7 @@
 | **反应路径哈密顿量 (RPH)** | `mod_reaction_path_hamiltonian.f90` | Miller (JCP 1980), Truhlar & Garrett (1980), Eckart (1930) | `init_rph_benchmark_reaction`, `calc_cvt_rate_constant`, `calc_eckart_tunneling_factor` |
 | **相对论原子与狄拉克方程** | `mod_relativistic_atomic.f90` | Dirac (1928), Norcross (PRA 1973), Grant (2007) | `solve_radial_dirac_eigenvalue`, `calc_dirac_fine_structure_splitting` |
 | **共振非弹性 X 射线散射 (RIXS)** | `mod_resonant_xray_scattering.f90` | Kramers-Heisenberg (1925), Ament et al. (RMP 2011) | `calc_xas_cross_section`, `calc_kramers_heisenberg_cross_section`, `calc_huang_rhys_vibrational_rixs` |
+| **潘宁与缔合电离动力学** | `mod_penning_associative_ionization.f90` | Hotop & Niehaus (1969), Siska (RMP 1993), Miller (1970) | `init_penning_system`, `calc_penning_cross_sections`, `calc_pies_spectrum`, `calc_penning_thermal_rate` |
 | **开放量子系统** | `mod_open_quantum.f90` | Lindblad (1976), Gorini (1976) | `propagate_lindblad_rk4`, `calculate_von_neumann_entropy` |
 | **量子最优控制** | `mod_optimal_control.f90` | Somlói & Tannor (1993), Krotov (1996) | `optimize_pulse_krotov` |
 
