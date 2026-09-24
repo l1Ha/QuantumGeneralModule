@@ -41,7 +41,7 @@ __pycache__/
 *.egg-info/
 dist/
 
-# OS & Editor files
+# OS, editor, and local assistant files
 .DS_Store
 Thumbs.db
 *.swp
@@ -49,3 +49,16 @@ Thumbs.db
 *~
 .vscode/
 .idea/
+.zcode/
+.marscode/
+tmp/
+
+# Earlier local textbook drafts
+docs/GeneralModule项目教科书.docx
+docs/GeneralModule项目教科书.pdf
+docs/GeneralModule项目教科书.tex
+docs/tex_media/
+
+# Keep the final textbook and its LaTeX assets
+!docs/*_深化版.pdf
+!docs/tex_media_deep/media/*.png
