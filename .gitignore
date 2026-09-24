@@ -60,5 +60,5 @@ docs/GeneralModule项目教科书.tex
 docs/tex_media/
 
 # Keep the final textbook and its LaTeX assets
-!docs/*_深化版.pdf
+!docs/量子动力学数值计算_GeneralModule_Fortran2008.pdf
 !docs/tex_media_deep/media/*.png
