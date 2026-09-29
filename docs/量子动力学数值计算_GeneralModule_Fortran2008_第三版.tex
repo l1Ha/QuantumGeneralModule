@@ -1,0 +1,3209 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{dvipsnames,svgnames*,x11names*}{xcolor}
+%
+\documentclass[
+  a4paper,
+]{ctexbook}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+  \setmainfont[]{Noto Serif CJK SC}
+  \setsansfont[]{Noto Sans CJK SC}
+  \setmonofont[]{DejaVu Sans Mono}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={量子动力学数值计算},
+  pdfauthor={李皓},
+  colorlinks=true,
+  linkcolor=teal,
+  filecolor=Maroon,
+  citecolor=Blue,
+  urlcolor=teal,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\newenvironment{Shaded}{}{}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\usepackage{longtable,booktabs}
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+
+\title{量子动力学数值计算}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{基于 GeneralModule 的 Fortran 2008 理论与实践}
+\author{李皓}
+\date{2026-09-25}
+
+\begin{document}
+\maketitle
+
+{
+\hypersetup{linkcolor=}
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+\hypertarget{ux5173ux4e8eux672cux4e66}{%
+\section{关于本书}\label{ux5173ux4e8eux672cux4e66}}
+
+本书围绕 GeneralModule
+开源代码库，系统讨论量子动力学问题的数学表述、离散化方法、数值算法和工程实现。本书的写作目标不是罗列
+API，而是建立一条从物理模型到可验证代码的完整链条。
+
+本书强调三个原则：
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  理论先行。每一个数值方法都从算符、表象和边界条件出发。
+\item
+  算法明确。每一个实现都说明其数学假设、复杂度和适用范围。
+\item
+  结果可验证。每一个物理量都必须有解析极限、守恒量或独立实现作为对照。
+\end{enumerate}
+
+本书对应的代码仓库为：
+
+\begin{itemize}
+\tightlist
+\item
+  仓库主页：\url{https://github.com/l1Ha/QuantumGeneralModule}
+\item
+  源码二维码：
+\end{itemize}
+
+\includegraphics[width=2cm,height=\textheight]{qr/repo_root.png}
+
+本书使用 GeneralModule 的 MIT
+许可版本。所有公式和算法均给出文献来源或项目内源码定位。若未来引入第三方代码，必须在仓库许可证和变更记录中明确说明其来源、许可证和修改范围。
+
+\hypertarget{ux7b26ux53f7ux4e0eux7ea6ux5b9a}{%
+\section{符号与约定}\label{ux7b26ux53f7ux4e0eux7ea6ux5b9a}}
+
+本书使用以下符号：
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule
+符号 & 含义\tabularnewline
+\midrule
+\endhead
+\(\hbar\) & 约化普朗克常数\tabularnewline
+\(\hat H\) & 哈密顿算符\tabularnewline
+\(\hat T\) & 动能算符\tabularnewline
+\(\hat V\) & 势能算符\tabularnewline
+\(\psi\) & 波函数\tabularnewline
+\(\rho\) & 密度矩阵\tabularnewline
+\(a_s\) & 散射长度\tabularnewline
+\(S_{ij}\) & 散射矩阵元\tabularnewline
+\(J\) & 总角动量量子数\tabularnewline
+\(L\) & 轨道角动量量子数\tabularnewline
+\(DVR\) & 离散变量表象\tabularnewline
+\(FGH\) & Fourier Grid Hamiltonian\tabularnewline
+\bottomrule
+\end{longtable}
+
+除特别说明外，本书在原子单位下工作：
+
+\[
+\hbar=1,\qquad m_e=1,\qquad e=1,\qquad 4\pi\varepsilon_0=1.
+\]
+
+能量单位为 Hartree，长度单位为 Bohr。若使用实验单位，应先通过
+\texttt{mod\_constants} 中的接口转换为原子单位。
+
+\hypertarget{ux7b2cux4e00ux90e8ux5206-ux91cfux5b50ux529bux5b66ux4e0eux5750ux6807ux8868ux8c61}{%
+\section{第一部分　量子力学与坐标表象}\label{ux7b2cux4e00ux90e8ux5206-ux91cfux5b50ux529bux5b66ux4e0eux5750ux6807ux8868ux8c61}}
+
+\hypertarget{ux7b2c-1-ux7ae0-ux6001ux7b97ux7b26ux4e0eux6f14ux5316}{%
+\section{第 1
+章　态、算符与演化}\label{ux7b2c-1-ux7ae0-ux6001ux7b97ux7b26ux4e0eux6f14ux5316}}
+
+\hypertarget{ux5e0cux5c14ux4f2fux7279ux7a7aux95f4ux4e0eux5185ux79ef}{%
+\subsection{1.1　希尔伯特空间与内积}\label{ux5e0cux5c14ux4f2fux7279ux7a7aux95f4ux4e0eux5185ux79ef}}
+
+量子态属于复希尔伯特空间 \(\mathcal{H}\)。设
+\(|\psi\rangle,|\phi\rangle\in\mathcal{H}\)，内积为
+
+\[
+\langle \psi|\phi\rangle
+=
+\int_{\Omega}\psi^{*}(\mathbf{x})\phi(\mathbf{x})\,d\mathbf{x}.
+\]
+
+在离散网格上，该内积变为
+
+\[
+\langle \psi|\phi\rangle_N
+=
+\sum_{i=1}^{N}w_i\psi_i^{*}\phi_i,
+\]
+
+其中 \(w_i\)
+是数值积分权重。若忽略权重，即使本征值看起来收敛，期望值和归一化仍可能错误。
+
+\hypertarget{ux7b97ux7b26ux4e0eux5384ux7c73ux6027}{%
+\subsection{1.2　算符与厄米性}\label{ux7b97ux7b26ux4e0eux5384ux7c73ux6027}}
+
+可观测量由自伴算符表示。若
+
+\[
+\hat A=\hat A^{\dagger},
+\]
+
+则其本征值为实数，且不同本征值对应的本征态正交。对任意态
+\(|\psi\rangle\)，
+
+\[
+\langle A\rangle
+=
+\langle\psi|\hat A|\psi\rangle.
+\]
+
+哈密顿算符的自伴性保证封闭系统演化保持范数：
+
+\[
+\frac{d}{dt}\langle\psi|\psi\rangle=0.
+\]
+
+若离散哈密顿量不满足
+\(H=H^{\dagger}\)，则演化算符不再幺正，必须检查离散化过程是否破坏对称性。
+
+\hypertarget{ux6f14ux5316ux7b97ux7b26}{%
+\subsection{1.3　演化算符}\label{ux6f14ux5316ux7b97ux7b26}}
+
+对不含时哈密顿量，含时薛定谔方程
+
+\[
+i\hbar\frac{\partial}{\partial t}|\psi(t)\rangle
+=
+\hat H|\psi(t)\rangle
+\]
+
+的形式解为
+
+\[
+|\psi(t)\rangle
+=
+\hat U(t,t_0)|\psi(t_0)\rangle,
+\]
+
+\[
+\hat U(t,t_0)
+=
+\exp\left[-\frac{i}{\hbar}\hat H(t-t_0)\right].
+\]
+
+若哈密顿量随时间变化，则
+
+\[
+\hat U(t,t_0)
+=
+\mathcal{T}
+\exp\left[
+-\frac{i}{\hbar}
+\int_{t_0}^{t}\hat H(t')\,dt'
+\right],
+\]
+
+其中 \(\mathcal{T}\)
+为时间排序算符。数值传播器的作用是近似该时间排序指数。
+
+\hypertarget{ux5b88ux6052ux91cfux4e0eux6570ux503cux8bcaux65ad}{%
+\subsection{1.4　守恒量与数值诊断}\label{ux5b88ux6052ux91cfux4e0eux6570ux503cux8bcaux65ad}}
+
+若 \([\hat H,\hat A]=0\)，则
+
+\[
+\frac{d}{dt}\langle A\rangle=0.
+\]
+
+在数值计算中，至少应检查以下守恒量或近似守恒量：
+
+\begin{itemize}
+\tightlist
+\item
+  波函数范数 \(\langle\psi|\psi\rangle\)；
+\item
+  能量 \(\langle H\rangle\)；
+\item
+  总角动量 \(\hat J^2\)；
+\item
+  总磁量子数 \(M\)；
+\item
+  密度矩阵迹 \(\operatorname{Tr}\rho\)。
+\end{itemize}
+
+若某守恒量出现漂移，应先区分物理近似（例如吸收边界）和数值误差（例如时间步长过大）。
+
+\hypertarget{ux4ee3ux7801ux5b9aux4f4d}{%
+\subsection{1.5　代码定位}\label{ux4ee3ux7801ux5b9aux4f4d}}
+
+实对称本征求解和矩阵求逆位于：
+
+\begin{itemize}
+\tightlist
+\item
+  \href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90}{src/mod\_linear\_algebra.f90}
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_linear_algebra.f90.png}
+
+\hypertarget{ux7b2c-2-ux7ae0-ux5355ux4f4dux5236ux4e0eux6570ux503cux7cbeux5ea6}{%
+\section{第 2
+章　单位制与数值精度}\label{ux7b2c-2-ux7ae0-ux5355ux4f4dux5236ux4e0eux6570ux503cux7cbeux5ea6}}
+
+\hypertarget{ux539fux5b50ux5355ux4f4d}{%
+\subsection{2.1　原子单位}\label{ux539fux5b50ux5355ux4f4d}}
+
+原子单位定义为
+
+\[
+\hbar=1,\qquad m_e=1,\qquad e=1,\qquad 4\pi\varepsilon_0=1.
+\]
+
+由此得到 Hartree 能量
+
+\[
+E_h=\frac{\hbar^2}{m_e a_0^2},
+\]
+
+和原子单位时间
+
+\[
+t_0=\frac{\hbar}{E_h}.
+\]
+
+若将哈密顿量写为
+
+\[
+\hat H=E_h\,\tilde{\hat H},
+\]
+
+则薛定谔方程变为
+
+\[
+i\frac{\partial\tilde\psi}{\partial\tilde t}
+=
+\tilde{\hat H}\tilde\psi.
+\]
+
+\hypertarget{ux5355ux4f4dux8f6cux6362ux63a5ux53e3}{%
+\subsection{2.2　单位转换接口}\label{ux5355ux4f4dux8f6cux6362ux63a5ux53e3}}
+
+GeneralModule 的 \texttt{mod\_constants} 提供 \texttt{to\_au} 和
+\texttt{from\_au} 接口。核心源码为：
+
+\begin{itemize}
+\tightlist
+\item
+  \href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_constants.f90}{src/mod\_constants.f90}
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_constants.f90.png}
+
+该模块集中定义了：
+
+\begin{itemize}
+\tightlist
+\item
+  长度：Bohr、Å、nm、m；
+\item
+  能量：Hartree、eV、\(\mathrm{cm^{-1}}\)、K、J；
+\item
+  时间：原子单位、fs、ps、s；
+\item
+  电场：V/m、MV/cm；
+\item
+  磁场：Tesla、Gauss。
+\end{itemize}
+
+推荐做法是：输入端立即转换为原子单位，计算全程保持原子单位，输出端再转换为目标单位。这样可以将单位错误限制在输入和输出层。
+
+\hypertarget{ux8befux5deeux4f20ux64ad}{%
+\subsection{2.3　误差传播}\label{ux8befux5deeux4f20ux64ad}}
+
+设观测量为 \(f(\mathbf{x})\)，输入扰动为
+\(\delta x_i\)，则一阶误差传播为
+
+\[
+\delta f
+=
+\sum_i
+\frac{\partial f}{\partial x_i}\delta x_i.
+\]
+
+对矩阵问题，若哈密顿量存在扰动 \(\delta H\)，则本征值扰动满足
+
+\[
+|\delta\lambda_i|
+\le
+\|\delta H\|_2.
+\]
+
+本征向量扰动由能隙控制：
+
+\[
+\sin\theta_i
+\lesssim
+\frac{\|\delta H\|_2}{\operatorname{gap}_i},
+\qquad
+\operatorname{gap}_i=\min_{j\ne i}|\lambda_i-\lambda_j|.
+\]
+
+因此，近简并态的本征向量对数值扰动敏感，但其子空间仍然稳定。
+
+\hypertarget{ux7b2c-3-ux7ae0-ux89d2ux52a8ux91cfux7406ux8bba}{%
+\section{第 3
+章　角动量理论}\label{ux7b2c-3-ux7ae0-ux89d2ux52a8ux91cfux7406ux8bba}}
+
+\hypertarget{ux89d2ux52a8ux91cfux7b97ux7b26}{%
+\subsection{3.1　角动量算符}\label{ux89d2ux52a8ux91cfux7b97ux7b26}}
+
+角动量算符满足
+
+\[
+[\hat J_i,\hat J_j]
+=
+i\hbar\sum_k\varepsilon_{ijk}\hat J_k.
+\]
+
+共同本征态为
+
+\[
+\hat J^2|jm\rangle
+=
+\hbar^2j(j+1)|jm\rangle,
+\]
+
+\[
+\hat J_z|jm\rangle
+=
+\hbar m|jm\rangle.
+\]
+
+升降算符为
+
+\[
+\hat J_\pm=\hat J_x\pm i\hat J_y,
+\]
+
+且
+
+\[
+\hat J_\pm|jm\rangle
+=
+\hbar\sqrt{j(j+1)-m(m\pm1)}\,|j,m\pm1\rangle.
+\]
+
+\hypertarget{clebschgordan-ux7cfbux6570}{%
+\subsection{3.2　Clebsch--Gordan
+系数}\label{clebschgordan-ux7cfbux6570}}
+
+两个角动量耦合为
+
+\[
+|j_1m_1\rangle|j_2m_2\rangle
+=
+\sum_{JM}
+C^{JM}_{j_1m_1j_2m_2}|JM\rangle.
+\]
+
+非零系数要求
+
+\[
+M=m_1+m_2,
+\]
+
+\[
+|j_1-j_2|\le J\le j_1+j_2.
+\]
+
+Wigner \(3j\) 符号与 Clebsch--Gordan 系数的关系为
+
+\[
+C^{JM}_{j_1m_1j_2m_2}
+=
+(-1)^{j_1-j_2+M}\sqrt{2J+1}
+\begin{pmatrix}
+j_1 & j_2 & J\\
+m_1 & m_2 & -M
+\end{pmatrix}.
+\]
+
+\hypertarget{ux91cdux8026ux5408ux4e0e-6j9j-ux7b26ux53f7}{%
+\subsection{3.3　重耦合与 6j、9j
+符号}\label{ux91cdux8026ux5408ux4e0e-6j9j-ux7b26ux53f7}}
+
+三个角动量的重耦合系数可用 \(6j\) 符号表示：
+
+\[
+\langle (j_1j_2)J_{12},j_3;JM|j_1,(j_2j_3)J_{23};JM\rangle
+=
+(-1)^{j_1+j_2+j_3+J}
+\sqrt{(2J_{12}+1)(2J_{23}+1)}
+\begin{Bmatrix}
+j_1 & j_2 & J_{12}\\
+j_3 & J & J_{23}
+\end{Bmatrix}.
+\]
+
+四个角动量重耦合则由 \(9j\) 符号描述。GeneralModule 的
+\texttt{mod\_special\_functions} 实现了 Legendre 多项式、缔合 Legendre
+函数、Wigner \(3j\)、Clebsch--Gordan、\(6j\) 和 \(9j\) 符号。
+
+\begin{itemize}
+\tightlist
+\item
+  源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90}{src/mod\_special\_functions.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_special_functions.f90.png}
+
+\hypertarget{ux7b2c-4-ux7ae0-ux7a7aux95f4ux56faux5b9aux4e0eux4f53ux56faux5b9aux5750ux6807}{%
+\section{第 4
+章　空间固定与体固定坐标}\label{ux7b2c-4-ux7ae0-ux7a7aux95f4ux56faux5b9aux4e0eux4f53ux56faux5b9aux5750ux6807}}
+
+\hypertarget{ux7a7aux95f4ux56faux5b9aux5750ux6807}{%
+\subsection{4.1　空间固定坐标}\label{ux7a7aux95f4ux56faux5b9aux5750ux6807}}
+
+空间固定坐标也称实验室坐标。其原点通常取分子质心，坐标轴由外部实验装置定义。设分子轴与空间固定
+\(Z\) 轴夹角为 \(\theta\)，则外场耦合常写为
+
+\[
+\hat H_{\mathrm{ext}}
+=
+-d\mathcal{E}\cos\theta
++
+g\mu_B B S_Z.
+\]
+
+空间固定表象适合描述外场方向、散射方向、光子偏振和实验观测角分布。
+
+\hypertarget{ux4f53ux56faux5b9aux5750ux6807}{%
+\subsection{4.2　体固定坐标}\label{ux4f53ux56faux5b9aux5750ux6807}}
+
+体固定坐标随分子一起转动。空间固定坐标 \(\mathbf{r}^{(S)}\) 与体固定坐标
+\(\mathbf{r}^{(B)}\) 通过 Euler 角 \(\alpha,\beta,\gamma\) 联系：
+
+\[
+\mathbf{r}^{(S)}
+=
+\mathsf{R}(\alpha,\beta,\gamma)\mathbf{r}^{(B)}.
+\]
+
+球张量算符在两套坐标之间的变换为
+
+\[
+T^{(k)}_q(S)
+=
+\sum_{q'=-k}^{k}
+D^{(k)*}_{q'q}(\alpha,\beta,\gamma)
+T^{(k)}_{q'}(B).
+\]
+
+体固定表象适合描述分子内部振动、转动常数、Coriolis
+耦合、离心畸变和分子对称性。
+
+\hypertarget{watson-ux8f6cux632fux54c8ux5bc6ux987fux91cf}{%
+\subsection{4.3　Watson
+转振哈密顿量}\label{watson-ux8f6cux632fux54c8ux5bc6ux987fux91cf}}
+
+对非线性分子，体固定坐标中的转振哈密顿量可写为
+
+\[
+\hat H_{\mathrm{vr}}
+=
+\hat T_{\mathrm{vib}}
++
+\hat T_{\mathrm{rot}}
++
+\hat T_{\mathrm{Cor}}
++
+V(\mathbf q)
++
+\hat V_{\mathrm{cd}}.
+\]
+
+振动动能为
+
+\[
+\hat T_{\mathrm{vib}}
+=
+-\frac{\hbar^2}{2}
+\sum_{i,j}^{3N-6}
+\frac{\partial}{\partial q_i}
+G_{ij}(\mathbf q)
+\frac{\partial}{\partial q_j}.
+\]
+
+转动动能为
+
+\[
+\hat T_{\mathrm{rot}}
+=
+\frac12
+(\hat{\mathbf J}-\hat{\boldsymbol{\pi}})^T
+\mathbf A(\mathbf q)
+(\hat{\mathbf J}-\hat{\boldsymbol{\pi}}),
+\]
+
+其中 \(\hat{\boldsymbol{\pi}}\) 是振动角动量，\(\mathbf A(\mathbf q)\)
+是逆惯量张量。展开得到
+
+\[
+\hat T_{\mathrm{rot}}
++
+\hat T_{\mathrm{Cor}}
+=
+\frac12
+\hat{\mathbf J}^T\mathbf A\hat{\mathbf J}
+-
+\hat{\mathbf J}^T\mathbf A\hat{\boldsymbol{\pi}}
++
+\frac12
+\hat{\boldsymbol{\pi}}^T\mathbf A\hat{\boldsymbol{\pi}}.
+\]
+
+中间项为 Coriolis 耦合。刚性转子极限下，
+
+\[
+\hat H_{\mathrm{rot}}=B\hat{\mathbf J}^2.
+\]
+
+对称陀螺分子满足
+
+\[
+\hat H_{\mathrm{rot}}
+=
+B\hat{\mathbf J}^2
++
+(A-B)\hat J_z^2.
+\]
+
+离心畸变的最低阶修正为
+
+\[
+\hat V_{\mathrm{cd}}
+=
+-D_J\hat{\mathbf J}^4
+-
+D_{JK}\hat{\mathbf J}^2\hat J_z^2
+-
+D_K\hat J_z^4.
+\]
+
+\hypertarget{jacobi-ux5750ux6807ux4e0eux8d85ux7403ux5750ux6807}{%
+\subsection{4.4　Jacobi
+坐标与超球坐标}\label{jacobi-ux5750ux6807ux4e0eux8d85ux7403ux5750ux6807}}
+
+三原子反应 \(A+BC\) 常用 Jacobi 坐标
+
+\[
+(r,R,\gamma),
+\]
+
+其中 \(r\) 是 \(BC\) 键长，\(R\) 是原子 \(A\) 到 \(BC\)
+质心的距离，\(\gamma\) 是两者夹角。三原子核间距
+\((r_{AB},r_{BC},r_{CA})\) 与 Jacobi 坐标存在解析映射。
+
+在超球坐标中，总尺度 \(\rho\) 和超角 \(\Omega\) 满足
+
+\[
+d\mathbf{R}
+=
+\rho^2\sin\chi\,d\rho\,d\chi\,d\Omega.
+\]
+
+这使多个反应通道可以组织为单一超径向坐标与一组角坐标。
+
+\begin{itemize}
+\tightlist
+\item
+  Jacobi 坐标源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_triatomic_geometry.f90}{src/mod\_triatomic\_geometry.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_triatomic_geometry.f90.png}
+
+\begin{itemize}
+\tightlist
+\item
+  超球反应源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_hyperspherical_reactive.f90}{src/mod\_hyperspherical\_reactive.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_hyperspherical_reactive.f90.png}
+
+\hypertarget{ux7b2cux4e8cux90e8ux5206-ux79bbux6563ux8868ux793aux4e0eux8c31ux65b9ux6cd5}{%
+\section{第二部分　离散表示与谱方法}\label{ux7b2cux4e8cux90e8ux5206-ux79bbux6563ux8868ux793aux4e0eux8c31ux65b9ux6cd5}}
+
+\hypertarget{ux7b2c-5-ux7ae0-ux57faux7ec4ux5c55ux5f00ux4e0e-dvr}{%
+\section{第 5 章　基组展开与
+DVR}\label{ux7b2c-5-ux7ae0-ux57faux7ec4ux5c55ux5f00ux4e0e-dvr}}
+
+\hypertarget{ux57faux7ec4ux5c55ux5f00}{%
+\subsection{5.1　基组展开}\label{ux57faux7ec4ux5c55ux5f00}}
+
+设
+
+\[
+|\psi\rangle=\sum_{n=1}^{N}c_n|\chi_n\rangle.
+\]
+
+将薛定谔方程投影到基组得广义本征值问题
+
+\[
+\sum_j H_{ij}c_j
+=
+E\sum_j S_{ij}c_j,
+\]
+
+其中
+
+\[
+H_{ij}=\langle\chi_i|\hat H|\chi_j\rangle,
+\qquad
+S_{ij}=\langle\chi_i|\chi_j\rangle.
+\]
+
+若基组正交，则 \(S_{ij}=\delta_{ij}\)，问题退化为
+
+\[
+H\mathbf c=E\mathbf c.
+\]
+
+\hypertarget{ux79bbux6563ux53d8ux91cfux8868ux8c61}{%
+\subsection{5.2　离散变量表象}\label{ux79bbux6563ux53d8ux91cfux8868ux8c61}}
+
+DVR 的核心性质是势能矩阵近似对角：
+
+\[
+V_{ij}
+\approx
+V(x_i)\delta_{ij}.
+\]
+
+于是哈密顿矩阵为
+
+\[
+H_{ij}
+=
+T_{ij}
++
+V(x_i)\delta_{ij}.
+\]
+
+这与传统基函数展开不同：在谐振子基或 Morse
+基中，势能矩阵通常是稠密的；在 DVR
+中，势能矩阵是对角的，而动能矩阵的结构由所选 DVR 决定。
+
+\hypertarget{ux7b2c-6-ux7ae0-sinc-dvrfourier-ux7f51ux683cux4e0e-legendre-dvr}{%
+\section{第 6 章　Sinc-DVR、Fourier 网格与
+Legendre-DVR}\label{ux7b2c-6-ux7ae0-sinc-dvrfourier-ux7f51ux683cux4e0e-legendre-dvr}}
+
+\hypertarget{sinc-dvr}{%
+\subsection{6.1　Sinc-DVR}\label{sinc-dvr}}
+
+对均匀网格
+
+\[
+x_i=x_{\min}+i\Delta x,
+\qquad
+i=1,\ldots,N,
+\]
+
+Colbert--Miller Sinc-DVR 的动能矩阵元为
+
+\[
+T_{ij}
+=
+\frac{\hbar^2}{2m\Delta x^2}
+\begin{cases}
+\pi^2/3, & i=j,\\[4pt]
+2(-1)^{i-j}/(i-j)^2, & i\ne j.
+\end{cases}
+\]
+
+在原子单位下，
+
+\[
+T_{ij}
+=
+\frac{1}{2m\Delta x^2}
+\begin{cases}
+\pi^2/3, & i=j,\\[4pt]
+2(-1)^{i-j}/(i-j)^2, & i\ne j.
+\end{cases}
+\]
+
+总哈密顿量为
+
+\[
+H_{ij}
+=
+T_{ij}
++
+V(x_i)\delta_{ij}.
+\]
+
+若离散内积权重为 \(w_i=\Delta x\)，则连续归一化波函数为
+
+\[
+\psi(x_i)=\frac{c_i}{\sqrt{\Delta x}}.
+\]
+
+\hypertarget{fourier-ux7f51ux683cux4e0e-fgh}{%
+\subsection{6.2　Fourier 网格与
+FGH}\label{fourier-ux7f51ux683cux4e0e-fgh}}
+
+长度为 \(L\) 的周期域上，Fourier 基为
+
+\[
+\phi_k(x)
+=
+\frac{1}{\sqrt L}e^{ikx},
+\qquad
+k=\frac{2\pi n}{L}.
+\]
+
+动量算符在该基下对角：
+
+\[
+\hat p\,\phi_k(x)=\hbar k\,\phi_k(x),
+\]
+
+因此
+
+\[
+T_k=\frac{\hbar^2k^2}{2m}.
+\]
+
+FGH 方法使用坐标网格表示势能、动量网格表示动能，从而得到
+
+\[
+H_{ij}
+=
+T_{ij}
++
+V(x_i)\delta_{ij}.
+\]
+
+FGH 与 Split-Operator
+方法共享同一傅里叶离散结构：本征态计算使用矩阵对角化，时间演化使用 FFT。
+
+\hypertarget{legendre-dvr}{%
+\subsection{6.3　Legendre-DVR}\label{legendre-dvr}}
+
+分子取向问题常用 \(x=\cos\theta\) 作为坐标。Legendre 多项式满足
+
+\[
+(1-x^2)P_n''(x)-2xP_n'(x)+n(n+1)P_n(x)=0,
+\]
+
+且
+
+\[
+\int_{-1}^{1}P_n(x)P_m(x)\,dx
+=
+\frac{2}{2n+1}\delta_{nm}.
+\]
+
+Gauss-Legendre 求积为
+
+\[
+\int_{-1}^{1}f(x)\,dx
+\approx
+\sum_{i=1}^{N}w_if(x_i).
+\]
+
+在角度坐标中，
+
+\[
+\int_0^\pi f(\theta)\sin\theta\,d\theta
+=
+\int_{-1}^{1}f(\arccos x)\,dx
+\approx
+\sum_iw_if(\arccos x_i).
+\]
+
+转子动能算符为
+
+\[
+\hat J^2
+=
+-\hbar^2
+\left[
+\frac{1}{\sin\theta}
+\frac{\partial}{\partial\theta}
+\left(
+\sin\theta
+\frac{\partial}{\partial\theta}
+\right)
+\right].
+\]
+
+在球谐基 \(|lm\rangle\) 中，
+
+\[
+\hat J^2|lm\rangle
+=
+\hbar^2l(l+1)|lm\rangle.
+\]
+
+在 DVR 网格上，它变为矩阵 \(J^2_{ij}\)。
+
+\hypertarget{dvr-ux4e0dux6b62ux4e00ux79cd}{%
+\subsection{6.4　DVR 不止一种}\label{dvr-ux4e0dux6b62ux4e00ux79cd}}
+
+DVR 是一族方法，不是单一算法。常见形式包括：
+
+\begin{longtable}[]{@{}llll@{}}
+\toprule
+DVR 类型 & 坐标 & 动能矩阵 & 典型用途\tabularnewline
+\midrule
+\endhead
+Sinc-DVR & 等距 \(x\) & 解析长程衰减矩阵 & 一维局域势能面\tabularnewline
+Fourier/FGH & 周期 \(x\) & 动量空间对角 &
+周期或大范围波包\tabularnewline
+Gauss-Legendre DVR & \(x=\cos\theta\) & 角动量矩阵 &
+分子取向与转子\tabularnewline
+Gauss-Hermite DVR & 无限域谐振子权重 & 谐振子结构 &
+振动模式\tabularnewline
+Laguerre-DVR & 半无限径向域 & 径向结构 & 径向库仑或长程势\tabularnewline
+Distributed Gaussian DVR & 可调局域高斯 & 动能重叠矩阵 &
+多维非均匀势能面\tabularnewline
+\bottomrule
+\end{longtable}
+
+因此，将 DVR 等同于 Sinc-DVR 是不完整的。GeneralModule 目前提供 Sinc-DVR
+与 Gauss-Legendre DVR，并可通过同一框架扩展到其他正交多项式网格。
+
+\begin{itemize}
+\tightlist
+\item
+  DVR 源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_dvr_grid.f90}{src/mod\_dvr\_grid.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_dvr_grid.f90.png}
+
+\hypertarget{ux7b2c-7-ux7ae0-ux5f20ux91cfux79efux7f51ux683cux4e0eux6536ux655bux6027}{%
+\section{第 7
+章　张量积网格与收敛性}\label{ux7b2c-7-ux7ae0-ux5f20ux91cfux79efux7f51ux683cux4e0eux6536ux655bux6027}}
+
+\hypertarget{ux591aux7ef4ux5f20ux91cfux79ef-dvr}{%
+\subsection{7.1　多维张量积
+DVR}\label{ux591aux7ef4ux5f20ux91cfux79ef-dvr}}
+
+若体系有 \(d\) 个自由度，则张量积网格为
+
+\[
+(q_{1,i_1},q_{2,i_2},\ldots,q_{d,i_d}).
+\]
+
+总网格数为
+
+\[
+N_{\mathrm{tot}}=\prod_{\alpha=1}^{d}N_\alpha.
+\]
+
+若动能可分离，
+
+\[
+\hat H=\sum_{\alpha}\hat T_\alpha+\hat V(q_1,\ldots,q_d),
+\]
+
+则
+
+\[
+\hat T_1\rightarrow T_1\otimes I_2,
+\qquad
+\hat T_2\rightarrow I_1\otimes T_2.
+\]
+
+可分离势能项为
+
+\[
+V_1(q_1)
+\rightarrow
+\operatorname{diag}[V_1(q_{1,i})]\otimes I_2.
+\]
+
+耦合势能项在网格点集上仍是对角的，但以全维度索引展开。
+
+\hypertarget{ux590dux6742ux5ea6}{%
+\subsection{7.2　复杂度}\label{ux590dux6742ux5ea6}}
+
+若每个维度有 \(N\) 个点，\(d\) 维张量积网格大小为
+\(N^d\)。稠密对角化复杂度为
+
+\[
+O(N^{3d}),
+\]
+
+存储复杂度为
+
+\[
+O(N^{2d}).
+\]
+
+因此，直接对角化只适用于低维或截断后的小问题。高维问题需要稀疏矩阵、Krylov
+方法、Chebyshev 传播、张量分解或缩减基方法。
+
+\hypertarget{ux6536ux655bux6027}{%
+\subsection{7.3　收敛性}\label{ux6536ux655bux6027}}
+
+设精确本征值为 \(E\)，数值本征值为
+\(E_N\)。对光滑势函数，谱方法通常表现出快速收敛：
+
+\[
+E_N-E
+\sim
+C_Ne^{-\alpha N}.
+\]
+
+若势函数不可微或有奇点，则收敛可能退化为代数阶：
+
+\[
+E_N-E
+\sim
+CN^{-p}.
+\]
+
+若使用 Richardson 外推，可由三种网格估计阶数：
+
+\[
+p
+=
+\frac{
+\ln\left[
+\frac{E_{N_1}-E_{N_2}}
+{E_{N_2}-E_{N_3}}
+\right]
+}
+{\ln(N_2/N_1)}.
+\]
+
+若 \(p\)
+不稳定，则说明尚未进入渐近区，或存在边界、奇点、混叠等系统误差。
+
+\hypertarget{ux8befux5deeux6765ux6e90}{%
+\subsection{7.4　误差来源}\label{ux8befux5deeux6765ux6e90}}
+
+\begin{longtable}[]{@{}lll@{}}
+\toprule
+误差来源 & 数学表现 & 诊断方法\tabularnewline
+\midrule
+\endhead
+空间截断 & 边界反射 & 改变区间\tabularnewline
+网格欠采样 & 混叠、高频振荡 & 改变 \(\Delta x\)\tabularnewline
+势能奇点 & 局部误差放大 & 局部加密或变换坐标\tabularnewline
+非厄米离散 & 范数漂移 & 检查 \(H=H^T\)\tabularnewline
+本征求解截断 & 只得到部分谱 & 与解析极限比较\tabularnewline
+\bottomrule
+\end{longtable}
+
+\begin{itemize}
+\tightlist
+\item
+  测试源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/tests/test_dvr_grid.f90}{tests/test\_dvr\_grid.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/tests__test_dvr_grid.f90.png}
+
+\hypertarget{ux7b2cux4e09ux90e8ux5206-ux542bux65f6ux6f14ux5316ux5f00ux653eux7cfbux7edfux4e0eux91cfux5b50ux63a7ux5236}{%
+\section{第三部分　含时演化、开放系统与量子控制}\label{ux7b2cux4e09ux90e8ux5206-ux542bux65f6ux6f14ux5316ux5f00ux653eux7cfbux7edfux4e0eux91cfux5b50ux63a7ux5236}}
+
+\hypertarget{ux7b2c-8-ux7ae0-ux542bux65f6ux859bux5b9aux8c14ux65b9ux7a0b}{%
+\section{第 8
+章　含时薛定谔方程}\label{ux7b2c-8-ux7ae0-ux542bux65f6ux859bux5b9aux8c14ux65b9ux7a0b}}
+
+\hypertarget{ux6f14ux5316ux7b97ux7b26-1}{%
+\subsection{8.1　演化算符}\label{ux6f14ux5316ux7b97ux7b26-1}}
+
+含时薛定谔方程为
+
+\[
+i\hbar\frac{\partial}{\partial t}|\psi(t)\rangle
+=
+\hat H(t)|\psi(t)\rangle.
+\]
+
+若 \(\hat H\) 不含时，则
+
+\[
+|\psi(t)\rangle
+=
+\hat U(t,t_0)|\psi(t_0)\rangle,
+\]
+
+\[
+\hat U(t,t_0)
+=
+\exp\left[-\frac{i}{\hbar}\hat H(t-t_0)\right].
+\]
+
+若 \(\hat H\) 含时，则
+
+\[
+\hat U(t,t_0)
+=
+\mathcal{T}
+\exp\left[
+-\frac{i}{\hbar}
+\int_{t_0}^{t}\hat H(t')\,dt'
+\right].
+\]
+
+\hypertarget{ux53efux89c2ux6d4bux91cf}{%
+\subsection{8.2　可观测量}\label{ux53efux89c2ux6d4bux91cf}}
+
+坐标期望值为
+
+\[
+\langle x\rangle(t)
+=
+\int x|\psi(x,t)|^2\,dx.
+\]
+
+动量期望值为
+
+\[
+\langle p\rangle(t)
+=
+\int \psi^{*}(x,t)
+\left(-i\hbar\frac{\partial}{\partial x}\right)
+\psi(x,t)\,dx.
+\]
+
+在动量空间中，
+
+\[
+\langle p\rangle(t)
+=
+\int \hbar k\,|\tilde\psi(k,t)|^2\,dk.
+\]
+
+\hypertarget{ux7b2c-9-ux7ae0-split-operator-ux65b9ux6cd5}{%
+\section{第 9 章　Split-Operator
+方法}\label{ux7b2c-9-ux7ae0-split-operator-ux65b9ux6cd5}}
+
+\hypertarget{ux5206ux88c2ux516cux5f0f}{%
+\subsection{9.1　分裂公式}\label{ux5206ux88c2ux516cux5f0f}}
+
+设
+
+\[
+\hat H=\hat T+\hat V.
+\]
+
+由于 \(\hat T\) 与 \(\hat V\) 不对易，
+
+\[
+e^{-i(\hat T+\hat V)\Delta t/\hbar}
+\ne
+e^{-i\hat T\Delta t/\hbar}
+e^{-i\hat V\Delta t/\hbar}.
+\]
+
+一阶分裂为
+
+\[
+e^{-i(\hat T+\hat V)\Delta t/\hbar}
+=
+e^{-i\hat T\Delta t/\hbar}
+e^{-i\hat V\Delta t/\hbar}
++
+O(\Delta t^2).
+\]
+
+二阶对称 Strang 分裂为
+
+\[
+\hat U(\Delta t)
+=
+e^{-i\hat V\Delta t/(2\hbar)}
+e^{-i\hat T\Delta t/\hbar}
+e^{-i\hat V\Delta t/(2\hbar)}
++
+O(\Delta t^3).
+\]
+
+Feit、Fleck 和 Steiger 将该谱方法系统用于薛定谔方程求解【Feit, Fleck \&
+Steiger 1982】。Kosloff 对含时量子动力学方法作了系统综述【Kosloff
+1988】。
+
+\hypertarget{ux5750ux6807ux4e0eux52a8ux91cfux8868ux8c61}{%
+\subsection{9.2　坐标与动量表象}\label{ux5750ux6807ux4e0eux52a8ux91cfux8868ux8c61}}
+
+在坐标表象中，
+
+\[
+[\hat V\psi](x)=V(x)\psi(x).
+\]
+
+在动量表象中，
+
+\[
+[\hat T\tilde\psi](k)=\frac{\hbar^2k^2}{2m}\tilde\psi(k).
+\]
+
+因此一步传播为
+
+\[
+\psi(x,t+\Delta t)
+=
+e^{-iV(x)\Delta t/(2\hbar)}
+\mathcal{F}^{-1}
+\left[
+e^{-i\hbar k^2\Delta t/(2m)}
+\mathcal{F}
+\left[
+e^{-iV(x)\Delta t/(2\hbar)}
+\psi(x,t)
+\right]
+\right].
+\]
+
+在原子单位下，
+
+\[
+\psi(x,t+\Delta t)
+=
+e^{-iV(x)\Delta t/2}
+\mathcal{F}^{-1}
+\left[
+e^{-ik^2\Delta t/(2m)}
+\mathcal{F}
+\left[
+e^{-iV(x)\Delta t/2}
+\psi(x,t)
+\right]
+\right].
+\]
+
+\hypertarget{ux6570ux503cux6b65ux9aa4}{%
+\subsection{9.3　数值步骤}\label{ux6570ux503cux6b65ux9aa4}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  计算势能半步相位 \(e^{-iV(x_i)\Delta t/2}\)；
+\item
+  将波函数乘以该相位；
+\item
+  FFT 变换到动量空间；
+\item
+  乘以动能相位 \(e^{-ik^2\Delta t/(2m)}\)；
+\item
+  逆 FFT 回到坐标空间；
+\item
+  再次乘以势能半步相位。
+\end{enumerate}
+
+每步需要两次 FFT，复杂度为 \(O(N\log N)\)，显著优于稠密矩阵指数的
+\(O(N^3)\)。
+
+\hypertarget{ux8303ux6570ux4e0eux7a33ux5b9aux6027}{%
+\subsection{9.4　范数与稳定性}\label{ux8303ux6570ux4e0eux7a33ux5b9aux6027}}
+
+每个指数相位因子都是幺正算符。因此在无穷精度下，Split-Operator
+严格保持范数：
+
+\[
+\|\psi(t+\Delta t)\|_2=\|\psi(t)\|_2.
+\]
+
+有限精度误差来源包括：
+
+\begin{itemize}
+\tightlist
+\item
+  FFT 归一化不一致；
+\item
+  网格混叠；
+\item
+  复势导致非幺正演化；
+\item
+  吸收边界；
+\item
+  长时间舍入误差；
+\item
+  不当归一化掩盖真实误差。
+\end{itemize}
+
+因此应监测
+
+\[
+\epsilon_{\mathrm{norm}}(t)
+=
+\left|\|\psi(t)\|_2-1\right|.
+\]
+
+\begin{itemize}
+\tightlist
+\item
+  波包传播源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_wavepacket_propagator.f90}{src/mod\_wavepacket\_propagator.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_wavepacket_propagator.f90.png}
+
+\hypertarget{ux7b2c-10-ux7ae0-fftux6df7ux53e0ux4e0eux5438ux6536ux8fb9ux754c}{%
+\section{第 10
+章　FFT、混叠与吸收边界}\label{ux7b2c-10-ux7ae0-fftux6df7ux53e0ux4e0eux5438ux6536ux8fb9ux754c}}
+
+\hypertarget{ux52a8ux91cfux7f51ux683c}{%
+\subsection{10.1　动量网格}\label{ux52a8ux91cfux7f51ux683c}}
+
+均匀网格 \(x_i=x_0+i\Delta x\) 对应动量网格
+
+\[
+k_j
+=
+\frac{2\pi}{L}
+\begin{cases}
+j, & 0\le j<N/2,\\
+j-N, & N/2\le j<N.
+\end{cases}
+\]
+
+其中 \(L=N\Delta x\)。最大可表示动量为
+
+\[
+k_{\max}=\frac{\pi}{\Delta x}.
+\]
+
+若波函数在动量空间的有效宽度超过 \(|k|<\pi/\Delta x\)，则发生混叠：
+
+\[
+k_{\mathrm{alias}}=k-\frac{2m\pi}{\Delta x},
+\qquad
+m\in\mathbb{Z}.
+\]
+
+\hypertarget{ux590dux5438ux6536ux8fb9ux754c}{%
+\subsection{10.2　复吸收边界}\label{ux590dux5438ux6536ux8fb9ux754c}}
+
+当波包离开有限计算域时，硬边界会产生非物理反射。复吸收势在边界区域加入虚部势：
+
+\[
+V_{\mathrm{eff}}(x)=V(x)-iW(x),
+\qquad
+W(x)\ge0.
+\]
+
+常用 \(\sin^2\) 形式为
+
+\[
+W(x)
+=
+\eta
+\sin^2
+\left[
+\frac{\pi}{2}
+\frac{x-x_a}{L_a}
+\right],
+\qquad
+x_a\le x\le x_a+L_a.
+\]
+
+加入 CAP 后，哈密顿量变为非厄米：
+
+\[
+\hat H_{\mathrm{eff}}=\hat T+\hat V-i\hat W.
+\]
+
+内部区域波函数的模平方不再守恒，其损失应与流出概率一致：
+
+\[
+\frac{d}{dt}
+\int_{\Omega_{\mathrm{in}}}|\psi|^2\,dx
+=
+-
+\int_{\partial\Omega_{\mathrm{in}}}J_n\,dS
+-
+\int_{\Omega_{\mathrm{CAP}}}2W(x)|\psi|^2\,dx.
+\]
+
+概率流为
+
+\[
+J(x,t)
+=
+\frac{\hbar}{m}
+\operatorname{Im}
+\left[
+\psi^{*}(x,t)
+\frac{\partial\psi(x,t)}{\partial x}
+\right].
+\]
+
+\begin{itemize}
+\tightlist
+\item
+  吸收边界源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_absorbing_boundary.f90}{src/mod\_absorbing\_boundary.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_absorbing_boundary.f90.png}
+
+\hypertarget{ux7b2c-11-ux7ae0-rungekuttaux591aux6b65ux65b9ux6cd5ux4e0e-bloch-ux65b9ux7a0b}{%
+\section{第 11 章　Runge--Kutta、多步方法与 Bloch
+方程}\label{ux7b2c-11-ux7ae0-rungekuttaux591aux6b65ux65b9ux6cd5ux4e0e-bloch-ux65b9ux7a0b}}
+
+\hypertarget{rk4}{%
+\subsection{11.1　RK4}\label{rk4}}
+
+将波函数或密度矩阵写成常微分方程
+
+\[
+\frac{d\mathbf y}{dt}=f(t,\mathbf y).
+\]
+
+经典四阶 Runge--Kutta 方法为
+
+\[
+\begin{aligned}
+k_1&=f(t_n,y_n),\\
+k_2&=f\left(t_n+\frac{\Delta t}{2},y_n+\frac{\Delta t}{2}k_1\right),\\
+k_3&=f\left(t_n+\frac{\Delta t}{2},y_n+\frac{\Delta t}{2}k_2\right),\\
+k_4&=f(t_n+\Delta t,y_n+\Delta t k_3),\\
+y_{n+1}
+&=
+y_n+
+\frac{\Delta t}{6}
+(k_1+2k_2+2k_3+k_4).
+\end{aligned}
+\]
+
+其局部截断误差为 \(O(\Delta t^5)\)，全局误差为 \(O(\Delta t^4)\)。
+
+\hypertarget{abm4}{%
+\subsection{11.2　ABM4}\label{abm4}}
+
+Adams--Bashforth 四阶预估式为
+
+\[
+y_{n+1}^{(p)}
+=
+y_n
++
+\frac{\Delta t}{24}
+(55f_n-59f_{n-1}+37f_{n-2}-9f_{n-3}).
+\]
+
+在预估点计算
+
+\[
+f_{n+1}^{(p)}=f(t_{n+1},y_{n+1}^{(p)}),
+\]
+
+然后使用 Adams--Moulton 四阶校正式
+
+\[
+y_{n+1}
+=
+y_n
++
+\frac{\Delta t}{24}
+(9f_{n+1}^{(p)}+19f_n-5f_{n-1}+f_{n-2}).
+\]
+
+多步方法依赖历史点的一致性和启动策略。若历史导数来自不同时间步长或不同坐标系，阶数会退化。
+
+\hypertarget{ux5149ux5b66-bloch-ux65b9ux7a0b}{%
+\subsection{11.3　光学 Bloch
+方程}\label{ux5149ux5b66-bloch-ux65b9ux7a0b}}
+
+二能级系统可写为
+
+\[
+|\psi(t)\rangle=c_1(t)|1\rangle+c_2(t)|2\rangle.
+\]
+
+定义 Bloch 矢量
+
+\[
+\mathbf R=(u,v,w)^T.
+\]
+
+在无耗散旋转波近似下，
+
+\[
+\frac{d\mathbf R}{dt}
+=
+\boldsymbol{\Omega}\times\mathbf R,
+\qquad
+\boldsymbol{\Omega}=(\Omega_R,0,\Delta)^T.
+\]
+
+展开为
+
+\[
+\dot u=-\Delta v,
+\]
+
+\[
+\dot v=\Delta u-\Omega_R w,
+\]
+
+\[
+\dot w=\Omega_R v.
+\]
+
+脉冲面积为
+
+\[
+\Theta=\int\Omega_R(t)\,dt.
+\]
+
+当 \(\Theta=\pi\) 时发生布居反转。
+
+\begin{itemize}
+\tightlist
+\item
+  测试源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/tests/test_propagators.f90}{tests/test\_propagators.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/tests__test_propagators.f90.png}
+
+\hypertarget{ux7b2c-12-ux7ae0-chebyshev-ux4f20ux64ad}{%
+\section{第 12 章　Chebyshev
+传播}\label{ux7b2c-12-ux7ae0-chebyshev-ux4f20ux64ad}}
+
+对不含时哈密顿量，可利用 Chebyshev 多项式展开演化算符：
+
+\[
+e^{-i\hat Ht/\hbar}
+=
+\sum_{n=0}^{\infty}a_n(t)T_n(\tilde{\hat H}).
+\]
+
+若哈密顿量谱满足
+
+\[
+E_{\min}\le\hat H\le E_{\max},
+\]
+
+则令
+
+\[
+\tilde{\hat H}
+=
+\frac{2\hat H-(E_{\max}+E_{\min})I}{E_{\max}-E_{\min}}.
+\]
+
+Chebyshev 展开系数为
+
+\[
+a_n(t)
+=
+(2-\delta_{n0})(-i)^n
+J_n\left(\frac{\Delta E\,t}{2\hbar}\right),
+\]
+
+其中 \(J_n\) 是第一类 Bessel
+函数，\(\Delta E=E_{\max}-E_{\min}\)。所需项数约为
+
+\[
+N_{\mathrm{Cheb}}
+\sim
+\frac{\Delta E\,t}{2\hbar}
++
+c\ln\epsilon^{-1}.
+\]
+
+Chebyshev
+方法适合大时间步和长时传播，但要求谱界估计准确。若谱外态存在，可能出现非物理放大。
+
+\begin{itemize}
+\tightlist
+\item
+  源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_chebyshev_propagator.f90}{src/mod\_chebyshev\_propagator.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_chebyshev_propagator.f90.png}
+
+\hypertarget{ux7b2c-13-ux7ae0-lindblad-ux5f00ux653eux91cfux5b50ux7cfbux7edf}{%
+\section{第 13 章　Lindblad
+开放量子系统}\label{ux7b2c-13-ux7ae0-lindblad-ux5f00ux653eux91cfux5b50ux7cfbux7edf}}
+
+\hypertarget{ux5bc6ux5ea6ux77e9ux9635}{%
+\subsection{13.1　密度矩阵}\label{ux5bc6ux5ea6ux77e9ux9635}}
+
+封闭系统的纯态对应密度矩阵
+
+\[
+\hat\rho=|\psi\rangle\langle\psi|.
+\]
+
+一般混合态为
+
+\[
+\hat\rho
+=
+\sum_\alpha p_\alpha|\psi_\alpha\rangle\langle\psi_\alpha|,
+\qquad
+p_\alpha\ge0,
+\qquad
+\sum_\alpha p_\alpha=1.
+\]
+
+密度矩阵满足
+
+\[
+\hat\rho=\hat\rho^{\dagger},
+\qquad
+\operatorname{Tr}\hat\rho=1,
+\qquad
+\hat\rho\ge0.
+\]
+
+\hypertarget{lindblad-ux65b9ux7a0b}{%
+\subsection{13.2　Lindblad 方程}\label{lindblad-ux65b9ux7a0b}}
+
+封闭系统的刘维尔方程为
+
+\[
+\frac{d\hat\rho}{dt}
+=
+-\frac{i}{\hbar}[\hat H,\hat\rho].
+\]
+
+马尔可夫近似下的 Lindblad 主方程为
+
+\[
+\frac{d\hat\rho}{dt}
+=
+-\frac{i}{\hbar}[\hat H,\hat\rho]
++
+\sum_k\gamma_k
+\left(
+\hat L_k\hat\rho\hat L_k^{\dagger}
+-
+\frac12
+\{\hat L_k^{\dagger}\hat L_k,\hat\rho\}
+\right).
+\]
+
+该形式由 Gorini--Kossakowski--Sudarshan 和 Lindblad 给出【Gorini,
+Kossakowski \& Sudarshan 1976；Lindblad 1976】。
+
+\hypertarget{ux8017ux6563ux901aux9053}{%
+\subsection{13.3　耗散通道}\label{ux8017ux6563ux901aux9053}}
+
+自发辐射跃迁算符为
+
+\[
+\hat L_{\mathrm{rel}}=\sqrt{\gamma}|g\rangle\langle e|.
+\]
+
+纯退相位算符为
+
+\[
+\hat L_{\phi}=\sqrt{\gamma_\phi}|e\rangle\langle e|.
+\]
+
+二能级弛豫满足
+
+\[
+\frac{d\rho_{ee}}{dt}=-\gamma\rho_{ee},
+\]
+
+\[
+\frac{d\rho_{eg}}{dt}
+=
+-\left(i\omega_0+\frac{\gamma}{2}+\gamma_\phi\right)\rho_{eg}.
+\]
+
+因此布居弛豫时间为 \(1/\gamma\)，相干衰减率为
+
+\[
+T_2^{-1}=\frac{1}{2T_1}+\gamma_\phi.
+\]
+
+\hypertarget{ux7eafux5ea6ux76f8ux5e72ux5ea6ux4e0eux71b5}{%
+\subsection{13.4　纯度、相干度与熵}\label{ux7eafux5ea6ux76f8ux5e72ux5ea6ux4e0eux71b5}}
+
+纯度为
+
+\[
+P=\operatorname{Tr}(\hat\rho^2).
+\]
+
+冯·诺依曼熵为
+
+\[
+S=-\operatorname{Tr}(\hat\rho\ln\hat\rho).
+\]
+
+\(l_1\) 范数相干度为
+
+\[
+C_{l1}(\hat\rho)
+=
+\sum_{i\ne j}|\rho_{ij}|.
+\]
+
+数值实现必须检查：
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  迹守恒 \(|\operatorname{Tr}\hat\rho-1|<\epsilon\)；
+\item
+  厄米性 \(\|\hat\rho-\hat\rho^{\dagger}\|<\epsilon\)；
+\item
+  正定性；
+\item
+  物理耗散趋势。
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_open_quantum.f90}{src/mod\_open\_quantum.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_open_quantum.f90.png}
+
+\hypertarget{ux7b2c-14-ux7ae0-krotov-ux91cfux5b50ux6700ux4f18ux63a7ux5236}{%
+\section{第 14 章　Krotov
+量子最优控制}\label{ux7b2c-14-ux7ae0-krotov-ux91cfux5b50ux6700ux4f18ux63a7ux5236}}
+
+量子控制的目标是设计外场
+\(\epsilon(t)\)，使演化态在终端时刻逼近目标态。保真度为
+
+\[
+F=|\langle\phi_{\mathrm{target}}|\psi(T)\rangle|^2.
+\]
+
+最优控制泛函可写为
+
+\[
+J
+=
+F
+-
+\int_0^T\lambda(t)\epsilon^2(t)\,dt.
+\]
+
+Krotov 方法引入伴随态 \(|\chi(t)\rangle\)，满足反向方程
+
+\[
+i\hbar\frac{\partial}{\partial t}|\chi(t)\rangle
+=
+\hat H(t)|\chi(t)\rangle,
+\]
+
+终端条件为
+
+\[
+|\chi(T)\rangle=|\phi_{\mathrm{target}}\rangle.
+\]
+
+场更新可写为
+
+\[
+\epsilon^{(k+1)}(t)
+=
+\epsilon^{(k)}(t)
++
+\frac{S(t)}{\alpha}
+\operatorname{Im}
+\left[
+\langle\chi^{(k)}(t)|\hat\mu|\psi^{(k+1)}(t)\rangle
+\right],
+\]
+
+其中 \(S(t)\) 是脉冲开关函数，\(\alpha\) 是场强惩罚参数。Somlói、Kazakov
+和 Tannor 给出了分子运动的广义弛豫控制方法【Somlói, Kazakov \& Tannor
+1993】；Reich、Ndong 和 Koch 讨论了单调收敛条件【Reich, Ndong \& Koch
+2012】。
+
+\begin{itemize}
+\tightlist
+\item
+  源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_optimal_control.f90}{src/mod\_optimal\_control.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_optimal_control.f90.png}
+
+\hypertarget{ux7b2cux56dbux90e8ux5206-ux6563ux5c04ux5206ux5b50ux4e0eux975eux7eddux70edux52a8ux529bux5b66}{%
+\section{第四部分　散射、分子与非绝热动力学}\label{ux7b2cux56dbux90e8ux5206-ux6563ux5c04ux5206ux5b50ux4e0eux975eux7eddux70edux52a8ux529bux5b66}}
+
+\hypertarget{ux7b2c-15-ux7ae0-ux5b9aux6001ux6563ux5c04ux4e0e-numerov-ux65b9ux6cd5}{%
+\section{第 15 章　定态散射与 Numerov
+方法}\label{ux7b2c-15-ux7ae0-ux5b9aux6001ux6563ux5c04ux4e0e-numerov-ux65b9ux6cd5}}
+
+\hypertarget{ux5f84ux5411ux859bux5b9aux8c14ux65b9ux7a0b}{%
+\subsection{15.1　径向薛定谔方程}\label{ux5f84ux5411ux859bux5b9aux8c14ux65b9ux7a0b}}
+
+对中心势 \(V(r)\)，径向波函数 \(u_l(r)\) 满足
+
+\[
+-\frac{\hbar^2}{2\mu}
+\frac{d^2u_l}{dr^2}
++
+\left[
+V(r)
++
+\frac{\hbar^2l(l+1)}{2\mu r^2}
+\right]u_l(r)
+=
+Eu_l(r).
+\]
+
+在原子单位下，
+
+\[
+-\frac{1}{2\mu}u_l''(r)
++
+\left[
+V(r)
++
+\frac{l(l+1)}{2\mu r^2}
+\right]u_l(r)
+=
+Eu_l(r).
+\]
+
+\hypertarget{numerov-ux65b9ux6cd5}{%
+\subsection{15.2　Numerov 方法}\label{numerov-ux65b9ux6cd5}}
+
+Numerov 方法用于二阶常微分方程
+
+\[
+u''(r)=f(r)u(r).
+\]
+
+其三点递推为
+
+\[
+\left(1-\frac{\Delta r^2}{12}f_{i+1}\right)u_{i+1}
+=
+2
+\left(1+\frac{5\Delta r^2}{12}f_i\right)u_i
+-
+\left(1-\frac{\Delta r^2}{12}f_{i-1}\right)u_{i-1}.
+\]
+
+对零能散射问题，
+
+\[
+-\frac{\hbar^2}{2\mu}u''(r)+V(r)u(r)=0.
+\]
+
+若势能在远区趋于零，则渐近形式为
+
+\[
+u(r)\rightarrow C(r-a_s).
+\]
+
+因此
+
+\[
+a_s=r-\frac{u(r)}{u'(r)}.
+\]
+
+\begin{itemize}
+\tightlist
+\item
+  散射源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_ti_scattering.f90}{src/mod\_ti\_scattering.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_ti_scattering.f90.png}
+
+\hypertarget{johnson-ux5bf9ux6570ux5bfcux6570ux65b9ux6cd5}{%
+\subsection{15.3　Johnson
+对数导数方法}\label{johnson-ux5bf9ux6570ux5bfcux6570ux65b9ux6cd5}}
+
+直接传播 \(u(r)\) 在深势阱中容易指数溢出。Johnson 方法传播相邻点比值
+
+\[
+R_i=\frac{u_i}{u_{i-1}}.
+\]
+
+Numerov 递推可改写为
+
+\[
+R_{i+1}
+=
+\frac{
+2(1-5w_i)-(1+w_{i-1})/R_i
+}
+{1+w_{i+1}},
+\]
+
+其中
+
+\[
+w_i=\frac{\Delta r^2}{12}f_i.
+\]
+
+渐近截距可由
+
+\[
+a_s
+=
+\frac{R_Nr_{N-1}-r_N}{R_N-1}
+\]
+
+得到。
+
+\hypertarget{ux7b2c-16-ux7ae0-ux76f8ux79fbs-ux77e9ux9635ux4e0eux5149ux5b66ux5b9aux7406}{%
+\section{第 16 章　相移、S
+矩阵与光学定理}\label{ux7b2c-16-ux7ae0-ux76f8ux79fbs-ux77e9ux9635ux4e0eux5149ux5b66ux5b9aux7406}}
+
+\hypertarget{ux5206ux6ce2ux5c55ux5f00}{%
+\subsection{16.1　分波展开}\label{ux5206ux6ce2ux5c55ux5f00}}
+
+散射波函数可展开为
+
+\[
+\psi(\mathbf r)
+=
+\sum_{lm}
+\frac{u_l(r)}{r}
+Y_{lm}(\hat{\mathbf r}).
+\]
+
+在远区，
+
+\[
+u_l(r)
+\rightarrow
+\frac{1}{k}
+\sin\left(kr-\frac{l\pi}{2}+\delta_l\right).
+\]
+
+散射矩阵元为
+
+\[
+S_l=e^{2i\delta_l}.
+\]
+
+反应矩阵为
+
+\[
+K_l=\tan\delta_l.
+\]
+
+跃迁矩阵为
+
+\[
+T_l=S_l-I.
+\]
+
+分波弹性截面为
+
+\[
+\sigma_l
+=
+\frac{4\pi}{k^2}(2l+1)\sin^2\delta_l.
+\]
+
+总弹性截面为
+
+\[
+\sigma_{\mathrm{el}}
+=
+\sum_l\sigma_l.
+\]
+
+\hypertarget{ux5149ux5b66ux5b9aux7406}{%
+\subsection{16.2　光学定理}\label{ux5149ux5b66ux5b9aux7406}}
+
+总截面与向前散射振幅满足
+
+\[
+\sigma_{\mathrm{tot}}
+=
+\frac{4\pi}{k}
+\operatorname{Im}f(0).
+\]
+
+该关系可用于检验散射振幅、相移和截面计算的一致性。
+
+\hypertarget{ux6709ux6548ux529bux7a0bux5c55ux5f00}{%
+\subsection{16.3　有效力程展开}\label{ux6709ux6548ux529bux7a0bux5c55ux5f00}}
+
+低能散射的有效力程展开为
+
+\[
+k\cot\delta_0(k)
+=
+-\frac{1}{a_s}
++
+\frac12r_0k^2
++
+O(k^4).
+\]
+
+零能截面为
+
+\[
+\sigma(0)=4\pi a_s^2.
+\]
+
+对范德华长程势，Gribakin--Flambaum 半经典平均散射长度为
+
+\[
+\bar a
+=
+\frac{2}{\sqrt\pi}
+\frac{
+\Gamma(5/6)
+}{
+\Gamma(2/3)
+}
+\left(
+\frac{2\mu C_6}{\hbar^2}
+\right)^{1/4}.
+\]
+
+\hypertarget{ux7b2c-17-ux7ae0-ux591aux901aux9053ux6563ux5c04ux4e0e-feshbach-ux5171ux632f}{%
+\section{第 17 章　多通道散射与 Feshbach
+共振}\label{ux7b2c-17-ux7ae0-ux591aux901aux9053ux6563ux5c04ux4e0e-feshbach-ux5171ux632f}}
+
+\hypertarget{ux591aux901aux9053ux8026ux5408ux65b9ux7a0b}{%
+\subsection{17.1　多通道耦合方程}\label{ux591aux901aux9053ux8026ux5408ux65b9ux7a0b}}
+
+设通道波函数为 \(\mathbf F(r)\)，则耦合径向方程为
+
+\[
+-\frac{\hbar^2}{2\mu}
+\mathbf F''(r)
++
+\left[
+\mathbf V(r)
++
+\mathbf E_{\mathrm{th}}
++
+\frac{\hbar^2\mathbf L^2}{2\mu r^2}
+\right]
+\mathbf F(r)
+=
+E\mathbf F(r).
+\]
+
+在原子单位下，
+
+\[
+-\frac{1}{2\mu}
+\mathbf F''(r)
++
+\left[
+\mathbf V(r)
++
+\mathbf E_{\mathrm{th}}
++
+\frac{\mathbf L^2}{2\mu r^2}
+\right]
+\mathbf F(r)
+=
+E\mathbf F(r).
+\]
+
+\hypertarget{johnson-ux77e9ux9635ux5bf9ux6570ux5bfcux6570ux65b9ux6cd5}{%
+\subsection{17.2　Johnson
+矩阵对数导数方法}\label{johnson-ux77e9ux9635ux5bf9ux6570ux5bfcux6570ux65b9ux6cd5}}
+
+多通道 Log-Derivative 方法传播矩阵
+
+\[
+\mathbf Y(r)
+=
+\mathbf F'(r)\mathbf F^{-1}(r).
+\]
+
+在匹配半径处，由 \(\mathbf Y\) 构造 \(\mathbf K\) 矩阵，再由 Cayley
+变换得到幺正散射矩阵：
+
+\[
+\mathbf S
+=
+(\mathbf I+i\mathbf K)(\mathbf I-i\mathbf K)^{-1}.
+\]
+
+跃迁矩阵为
+
+\[
+\mathbf T=\mathbf S-\mathbf I.
+\]
+
+态到态跃迁概率为
+
+\[
+P_{i\rightarrow j}=|S_{ij}|^2.
+\]
+
+\hypertarget{feshbach-ux5171ux632f}{%
+\subsection{17.3　Feshbach 共振}\label{feshbach-ux5171ux632f}}
+
+闭通道束缚态与开通道连续谱耦合会产生 Feshbach
+共振。散射长度随磁场变化可写为
+
+\[
+a_s(B)
+=
+a_{\mathrm{bg}}
+\left[
+1-\frac{\Delta B}{B-B_0}
+\right].
+\]
+
+共振宽度为 \(\Delta B\)，共振位置为 \(B_0\)。对超冷原子，Feshbach
+共振是调控相互作用强度的核心手段。
+
+\begin{itemize}
+\tightlist
+\item
+  外场散射源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_field_scattering.f90}{src/mod\_field\_scattering.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_field_scattering.f90.png}
+
+\hypertarget{ux7b2c-18-ux7ae0-ux542bux65f6ux6ce2ux5305ux6563ux5c04}{%
+\section{第 18
+章　含时波包散射}\label{ux7b2c-18-ux7ae0-ux542bux65f6ux6ce2ux5305ux6563ux5c04}}
+
+\hypertarget{ux9ad8ux65afux6ce2ux5305}{%
+\subsection{18.1　高斯波包}\label{ux9ad8ux65afux6ce2ux5305}}
+
+初始高斯波包为
+
+\[
+\psi(x,0)
+=
+\left(\frac{1}{2\pi\sigma^2}\right)^{1/4}
+\exp\left[
+-\frac{(x-x_0)^2}{4\sigma^2}
++ik_0x
+\right].
+\]
+
+其动量空间振幅为
+
+\[
+\tilde\psi(k,0)
+=
+\left(\frac{2\sigma^2}{\pi}\right)^{1/4}
+\exp\left[
+-\sigma^2(k-k_0)^2
+-ikx_0
+\right].
+\]
+
+\hypertarget{ux900fux5c04ux4e0eux53cdux5c04}{%
+\subsection{18.2　透射与反射}\label{ux900fux5c04ux4e0eux53cdux5c04}}
+
+定义左、右通量积分：
+
+\[
+T(t)
+=
+\int_{x>x_m}|\psi(x,t)|^2\,dx,
+\]
+
+\[
+R(t)
+=
+\int_{x<x_l}|\psi(x,t)|^2\,dx.
+\]
+
+当 \(t\rightarrow\infty\) 时，\(T+R\) 应接近
+1，除非存在吸收或非弹性通道。
+
+\hypertarget{ux5b9aux6001ux4e0eux542bux65f6ux65b9ux6cd5ux7684ux4ea4ux53c9ux9a8cux8bc1}{%
+\subsection{18.3　定态与含时方法的交叉验证}\label{ux5b9aux6001ux4e0eux542bux65f6ux65b9ux6cd5ux7684ux4ea4ux53c9ux9a8cux8bc1}}
+
+定态散射给出能量分辨的
+\(S(E)\)；含时波包通过傅里叶变换也可得到能量分辨量。两者应满足：
+
+\begin{itemize}
+\tightlist
+\item
+  透射峰位置一致；
+\item
+  共振宽度一致；
+\item
+  相移或延迟一致；
+\item
+  总通量守恒。
+\end{itemize}
+
+GeneralModule 的 \texttt{ex07}
+示例专门用于定态和含时散射波函数交叉验证。
+
+\begin{itemize}
+\tightlist
+\item
+  含时散射源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_td_scattering.f90}{src/mod\_td\_scattering.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_td_scattering.f90.png}
+
+\hypertarget{ux7b2c-19-ux7ae0-ux5206ux5b50ux8f6cux632fux5149ux8c31ux4e0eux5149ux788eux7247}{%
+\section{第 19
+章　分子转振光谱与光碎片}\label{ux7b2c-19-ux7ae0-ux5206ux5b50ux8f6cux632fux5149ux8c31ux4e0eux5149ux788eux7247}}
+
+\hypertarget{ux8f6cux632fux54c8ux5bc6ux987fux91cf}{%
+\subsection{19.1　转振哈密顿量}\label{ux8f6cux632fux54c8ux5bc6ux987fux91cf}}
+
+双分子振转哈密顿量可近似为
+
+\[
+\hat H
+=
+-\frac{\hbar^2}{2\mu}
+\frac{d^2}{dR^2}
++
+\frac{\hat{\mathbf J}^2}{2\mu R^2}
++
+V(R).
+\]
+
+在原子单位下，
+
+\[
+\hat H
+=
+-\frac{1}{2\mu}
+\frac{d^2}{dR^2}
++
+\frac{\hat{\mathbf J}^2}{2\mu R^2}
++
+V(R).
+\]
+
+\hypertarget{morse-ux52bf}{%
+\subsection{19.2　Morse 势}\label{morse-ux52bf}}
+
+Morse 势为
+
+\[
+V(R)
+=
+D_e
+\left[
+1-e^{-\beta(R-R_e)}
+\right]^2.
+\]
+
+解析能级为
+
+\[
+E_v
+=
+\hbar\omega_e\left(v+\frac12\right)
+-
+\hbar\omega_ex_e\left(v+\frac12\right)^2,
+\]
+
+其中
+
+\[
+\omega_e=\beta\sqrt{\frac{2D_e}{\mu}},
+\]
+
+\[
+\omega_ex_e=\frac{\omega_e^2}{4D_e}.
+\]
+
+\hypertarget{ux8dc3ux8fc1ux77e9ux9635ux5143}{%
+\subsection{19.3　跃迁矩阵元}\label{ux8dc3ux8fc1ux77e9ux9635ux5143}}
+
+电偶极跃迁矩阵元为
+
+\[
+M_{v'v''J'J''}
+=
+\int
+\chi_{v'J'}^{*}(R)
+\mu(R)
+\chi_{v''J''}(R)\,dR.
+\]
+
+Franck--Condon 因子为
+
+\[
+F_{v'v''}
+=
+\left|
+\int
+\chi_{v'}^{*}(R)\chi_{v''}(R)\,dR
+\right|^2.
+\]
+
+\hypertarget{ux5149ux788eux7247ux52a8ux80fdux91caux653eux8c31}{%
+\subsection{19.4　光碎片动能释放谱}\label{ux5149ux788eux7247ux52a8ux80fdux91caux653eux8c31}}
+
+自相关函数为
+
+\[
+C(t)=\langle\psi(0)|\psi(t)\rangle.
+\]
+
+吸收谱为
+
+\[
+\sigma(\omega)
+\propto
+\omega
+\operatorname{Re}
+\int_0^\infty
+C(t)e^{i\omega t}W(t)\,dt,
+\]
+
+其中 \(W(t)\) 是时间窗函数。动能释放谱为
+
+\[
+P(E_k)
+=
+\sqrt{\frac{2E_k}{m}}
+|A(E_k)|^2.
+\]
+
+\begin{itemize}
+\tightlist
+\item
+  转振源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_rovibrational.f90}{src/mod\_rovibrational.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_rovibrational.f90.png}
+
+\begin{itemize}
+\tightlist
+\item
+  光碎片源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_photofragment_flux.f90}{src/mod\_photofragment\_flux.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_photofragment_flux.f90.png}
+
+\hypertarget{ux7b2c-20-ux7ae0-ux975eux7eddux70edux52a8ux529bux5b66ux4e0e-fssh}{%
+\section{第 20 章　非绝热动力学与
+FSSH}\label{ux7b2c-20-ux7ae0-ux975eux7eddux70edux52a8ux529bux5b66ux4e0e-fssh}}
+
+\hypertarget{ux7535ux5b50ux6838ux8026ux5408}{%
+\subsection{20.1　电子---核耦合}\label{ux7535ux5b50ux6838ux8026ux5408}}
+
+设电子态为 \(|\phi_1\rangle,|\phi_2\rangle\)，核坐标为
+\(R\)，非绝热耦合为
+
+\[
+d_{12}(R)
+=
+\langle\phi_1|\partial_R|\phi_2\rangle.
+\]
+
+核速度为 \(v\) 时，电子振幅方程为
+
+\[
+i\hbar\dot c_1
+=
+E_1c_1
+-
+i\hbar v d_{12}c_2,
+\]
+
+\[
+i\hbar\dot c_2
+=
+E_2c_2
++
+i\hbar v d_{12}c_1.
+\]
+
+\hypertarget{tully-ux6700ux5c11ux5f00ux5173ux8868ux9762ux8df3ux8dc3}{%
+\subsection{20.2　Tully
+最少开关表面跳跃}\label{tully-ux6700ux5c11ux5f00ux5173ux8868ux9762ux8df3ux8dc3}}
+
+FSSH 使用经典核轨迹和量子电子振幅。在活性态 \(j\) 上，向态 \(k\)
+的跳跃概率为
+
+\[
+g_{j\rightarrow k}
+=
+\max
+\left[
+0,
+-\frac{2\Delta t}{|c_j|^2}
+\operatorname{Re}
+\left(
+c_j^{*}c_k\,\mathbf v\cdot\mathbf d_{jk}
+\right)
+\right].
+\]
+
+若随机数小于
+\(g_{j\rightarrow k}\)，则尝试跳跃。跳跃后需要沿非绝热耦合方向重标动量以保持总能量：
+
+\[
+\mathbf p'\cdot\hat{\mathbf e}_{jk}
+=
+\operatorname{sign}
+\left(
+\mathbf p\cdot\hat{\mathbf e}_{jk}
+\right)
+\sqrt{
+(\mathbf p\cdot\hat{\mathbf e}_{jk})^2
+-
+2M\Delta E
+}.
+\]
+
+若动量不足，则为 frustrated hop。
+
+\hypertarget{ehrenfest-ux5e73ux5747ux573aux52a8ux529bux5b66}{%
+\subsection{20.3　Ehrenfest
+平均场动力学}\label{ehrenfest-ux5e73ux5747ux573aux52a8ux529bux5b66}}
+
+Ehrenfest 方法使用平均场力：
+
+\[
+\mathbf F
+=
+-\left\langle\Psi\left|\frac{\partial\hat H}{\partial\mathbf R}\right|\Psi\right\rangle.
+\]
+
+核仍沿经典轨迹运动，电子态保持相干演化。与 FSSH 相比，Ehrenfest
+不能自然描述分支化过程。
+
+\begin{itemize}
+\tightlist
+\item
+  FSSH 源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_surface_hopping_fssh.f90}{src/mod\_surface\_hopping\_fssh.f90}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/src__mod_surface_hopping_fssh.f90.png}
+
+\hypertarget{ux7b2c-21-ux7ae0-ux9ad8ux7ea7ux4e13ux9898ux5730ux56fe}{%
+\section{第 21
+章　高级专题地图}\label{ux7b2c-21-ux7ae0-ux9ad8ux7ea7ux4e13ux9898ux5730ux56fe}}
+
+GeneralModule 还包含多个研究级专题模块。它们不是孤立
+API，而是同一套数学结构的延伸。
+
+\begin{longtable}[]{@{}lll@{}}
+\toprule
+专题 & 代表模块 & 核心问题\tabularnewline
+\midrule
+\endhead
+Efimov 物理 & \texttt{mod\_three\_body\_recombination} &
+三体共振、离散标度不变性\tabularnewline
+CIR & \texttt{mod\_confined\_scattering} &
+低维受限诱导共振\tabularnewline
+Fano/CCR & \texttt{mod\_autoionization\_fano} &
+自电离线型与复标度\tabularnewline
+强场 NSDI & \texttt{mod\_strong\_field\_nsdi} &
+隧穿、重碰撞、双电离\tabularnewline
+ATAS & \texttt{mod\_attosecond\_transient\_absorption} &
+阿秒瞬态吸收\tabularnewline
+PECD & \texttt{mod\_bicircular\_pecd} &
+手性光电子圆二色性\tabularnewline
+Rydberg blockade & \texttt{mod\_rydberg\_blockade} &
+里德堡阻塞与多体\tabularnewline
+表面散射 & \texttt{mod\_surface\_scattering} &
+表面衍射与吸附\tabularnewline
+Eley--Rideal & \texttt{mod\_surface\_reaction\_er} &
+气---固反应\tabularnewline
+电子摩擦 & \texttt{mod\_surface\_electronic\_friction} &
+非绝热耗散\tabularnewline
+GIFAD & \texttt{mod\_grazing\_fast\_atom\_diffraction} &
+掠入射衍射\tabularnewline
+Dirac 原子 & \texttt{mod\_relativistic\_atomic} &
+相对论精细结构\tabularnewline
+RIXS & \texttt{mod\_resonant\_xray\_scattering} & 共振非弹性 X
+射线散射\tabularnewline
+Penning 电离 & \texttt{mod\_penning\_associative\_ionization} &
+亚稳态碰撞电离\tabularnewline
+\bottomrule
+\end{longtable}
+
+这些模块的共同验证策略是：先在解析极限或低维模型中验证，再逐步加入耦合、外场、耗散和多通道效应。
+
+\hypertarget{ux7b2cux4e94ux90e8ux5206-ux5de5ux7a0bux5b9eux73b0ux9a8cux8bc1ux4e0eux590dux73b0}{%
+\section{第五部分　工程实现、验证与复现}\label{ux7b2cux4e94ux90e8ux5206-ux5de5ux7a0bux5b9eux73b0ux9a8cux8bc1ux4e0eux590dux73b0}}
+
+\hypertarget{ux7b2c-22-ux7ae0-fortran-2008-ux5de5ux7a0bux7ed3ux6784}{%
+\section{第 22 章　Fortran 2008
+工程结构}\label{ux7b2c-22-ux7ae0-fortran-2008-ux5de5ux7a0bux7ed3ux6784}}
+
+GeneralModule 采用四层结构：
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  物理常数与单位；
+\item
+  数学基础与线性代数；
+\item
+  通用动力学与离散方法；
+\item
+  物理专题求解器。
+\end{enumerate}
+
+所有模块默认 \texttt{private}，只导出明确列出的公共实体。大多数过程使用
+\texttt{intent(in)}、\texttt{intent(out)} 和 \texttt{intent(inout)}
+说明副作用。大量纯数学过程标记为 \texttt{pure}。
+
+顶层门面模块为：
+
+\begin{itemize}
+\tightlist
+\item
+  \href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/general_module.f90}{src/general\_module.f90}
+\end{itemize}
+
+它通过 \texttt{use} 重新导出各子模块，使用户可以写
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{use}\NormalTok{ general\_}\KeywordTok{module}
+\KeywordTok{implicit} \KeywordTok{none}
+\end{Highlighting}
+\end{Shaded}
+
+但内部模块不应反向依赖聚合模块，以避免循环依赖。
+
+\hypertarget{ux7b2c-23-ux7ae0-ux6784ux5efaux6d4bux8bd5ux4e0eux6301ux7eedux96c6ux6210}{%
+\section{第 23
+章　构建、测试与持续集成}\label{ux7b2c-23-ux7ae0-ux6784ux5efaux6d4bux8bd5ux4e0eux6301ux7eedux96c6ux6210}}
+
+\hypertarget{ux4e09ux5957ux6784ux5efaux5165ux53e3}{%
+\subsection{23.1　三套构建入口}\label{ux4e09ux5957ux6784ux5efaux5165ux53e3}}
+
+GeneralModule 提供三种构建方式：
+
+\begin{longtable}[]{@{}lll@{}}
+\toprule
+入口 & 用途 & 特点\tabularnewline
+\midrule
+\endhead
+\texttt{Makefile} & 快速构建、测试、示例 & 显式拓扑顺序\tabularnewline
+\texttt{fpm.toml} & Fortran 包管理 & 显式列出测试与示例\tabularnewline
+\texttt{CMakeLists.txt} & 跨平台与 IDE &
+对象库、静态库、共享库、CTest\tabularnewline
+\bottomrule
+\end{longtable}
+
+\begin{itemize}
+\tightlist
+\item
+  构建配置：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/fpm.toml}{fpm.toml}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/fpm.toml.png}
+
+\begin{itemize}
+\tightlist
+\item
+  CMake：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/CMakeLists.txt}{CMakeLists.txt}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/CMakeLists.txt.png}
+
+\hypertarget{ux6d4bux8bd5ux4f53ux7cfb}{%
+\subsection{23.2　测试体系}\label{ux6d4bux8bd5ux4f53ux7cfb}}
+
+项目当前包含 41 个 Fortran 测试程序和 36
+个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。测试应覆盖：
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule
+层级 & 检查内容\tabularnewline
+\midrule
+\endhead
+单位与常数 & 往返转换误差\tabularnewline
+特殊函数 & 选择定则、归一化、对称性\tabularnewline
+本征问题 & 正交性、解析谱、条件数\tabularnewline
+DVR & 网格收敛、边界效应\tabularnewline
+传播 & 范数、能量、动量守恒\tabularnewline
+散射 & 光学定理、幺正性、解析极限\tabularnewline
+开放系统 & 迹、厄米性、正定性\tabularnewline
+非绝热 & 分支比、能量守恒、统计收敛\tabularnewline
+\bottomrule
+\end{longtable}
+
+\begin{itemize}
+\tightlist
+\item
+  测试脚本：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/tests/run_all_tests.sh}{tests/run\_all\_tests.sh}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/tests__run_all_tests.sh.png}
+
+\hypertarget{ux6301ux7eedux96c6ux6210}{%
+\subsection{23.3　持续集成}\label{ux6301ux7eedux96c6ux6210}}
+
+GitHub Actions 配置位于：
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/.github/workflows/ci.yml}{.github/workflows/ci.yml}
+
+其作用是自动化编译、测试和示例运行，防止平台相关错误进入主干。
+
+\hypertarget{ux7b2c-24-ux7ae0-python-ux4ea4ux53c9ux9a8cux8bc1ux4e0eux53efux89c6ux5316}{%
+\section{第 24 章　Python
+交叉验证与可视化}\label{ux7b2c-24-ux7ae0-python-ux4ea4ux53c9ux9a8cux8bc1ux4e0eux53efux89c6ux5316}}
+
+Python 包 \texttt{pygenmod} 使用 NumPy 和 Matplotlib
+对部分算法进行独立实现、交叉验证和可视化。它不是 Fortran
+库的替代品，而是验证与绘图工具。
+
+\begin{itemize}
+\tightlist
+\item
+  NumPy 源码：
+\end{itemize}
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/visualizer.py}{python/pygenmod/visualizer.py}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/python__pygenmod__visualizer.py.png}
+
+Python 测试位于：
+
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/test_pygenmod.py}{python/test\_pygenmod.py}
+
+\begin{itemize}
+\tightlist
+\item
+  二维码：
+\end{itemize}
+
+\includegraphics[width=1.8cm,height=\textheight]{qr/python__test_pygenmod.py.png}
+
+推荐流程是：
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Fortran 输出原始数据；
+\item
+  Python 独立计算参考值；
+\item
+  绘制对比图；
+\item
+  保存输入参数、随机种子、版本和命令；
+\item
+  将图和数据放入同一实验目录。
+\end{enumerate}
+
+\hypertarget{ux7b2c-25-ux7ae0-ux5f15ux7528ux5f00ux6e90ux4e0eux53efux590dux73b0ux6027}{%
+\section{第 25
+章　引用、开源与可复现性}\label{ux7b2c-25-ux7ae0-ux5f15ux7528ux5f00ux6e90ux4e0eux53efux590dux73b0ux6027}}
+
+\hypertarget{ux5f15ux7528ux539fux5219}{%
+\subsection{25.1　引用原则}\label{ux5f15ux7528ux539fux5219}}
+
+本书引用的文献用于说明理论来源和算法背景。GeneralModule
+的实现是独立编写的；引用不表示复制第三方源码。若未来引入第三方代码，必须：
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  保留其许可证；
+\item
+  在源码头注明来源；
+\item
+  在 \texttt{CHANGELOG} 中说明修改范围；
+\item
+  在文档中给出原始仓库或论文链接。
+\end{enumerate}
+
+\hypertarget{ux53efux590dux73b0ux5b9eux9a8cux8bb0ux5f55}{%
+\subsection{25.2　可复现实验记录}\label{ux53efux590dux73b0ux5b9eux9a8cux8bb0ux5f55}}
+
+数值实验应至少记录：
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule
+字段 & 内容\tabularnewline
+\midrule
+\endhead
+实验名称 & 物理问题和目标\tabularnewline
+源码版本 & commit、文件时间或 tag\tabularnewline
+环境 & 编译器、系统、CPU、Python 版本\tabularnewline
+参数 & 单位、网格、初态、时间步\tabularnewline
+随机性 & 种子或确定性声明\tabularnewline
+理论基准 & 解析解、文献值、守恒量\tabularnewline
+输出 & 能量、截面、范数、分支比\tabularnewline
+收敛判据 & 相对误差和阈值\tabularnewline
+复现命令 & 完整脚本\tabularnewline
+\bottomrule
+\end{longtable}
+
+\hypertarget{ux7b2c-26-ux7ae0-ux6e90ux7801ux7d22ux5f15ux4e0eux4e8cux7ef4ux7801}{%
+\section{第 26
+章　源码索引与二维码}\label{ux7b2c-26-ux7ae0-ux6e90ux7801ux7d22ux5f15ux4e0eux4e8cux7ef4ux7801}}
+
+下表给出关键源码、测试、示例和文档的入口。二维码图像存放在
+\texttt{docs/qr/}，命名规则是将源码路径中的 \texttt{/} 替换为
+\texttt{\_\_}。
+
+\begin{longtable}[]{@{}lll@{}}
+\toprule
+\begin{minipage}[b]{0.30\columnwidth}\raggedright
+内容\strut
+\end{minipage} & \begin{minipage}[b]{0.30\columnwidth}\raggedright
+源码路径\strut
+\end{minipage} & \begin{minipage}[b]{0.30\columnwidth}\raggedright
+二维码\strut
+\end{minipage}\tabularnewline
+\midrule
+\endhead
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+仓库主页\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/repo\_root.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+README\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/README.md}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/README.md.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+配置指南\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/CONFIG_GUIDE.md}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/CONFIG\_GUIDE.md.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+文献映射\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/LITERATURE.md}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/LITERATURE.md.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+常数与单位\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_constants.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_constants.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+特殊函数\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_special\_functions.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+线性代数\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_linear\_algebra.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+DVR\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_dvr_grid.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_dvr\_grid.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+波包传播\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_wavepacket_propagator.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_wavepacket\_propagator.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+吸收边界\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_absorbing_boundary.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_absorbing\_boundary.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+Chebyshev\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_chebyshev_propagator.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_chebyshev\_propagator.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+Lindblad\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_open_quantum.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_open\_quantum.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+Krotov\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_optimal_control.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_optimal\_control.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+定态散射\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_ti_scattering.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_ti\_scattering.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+含时散射\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_td_scattering.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_td\_scattering.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+外场散射\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_field_scattering.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_field\_scattering.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+转振光谱\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_rovibrational.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_rovibrational.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+光碎片\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_photofragment_flux.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_photofragment\_flux.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+FSSH\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_surface_hopping_fssh.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_surface\_hopping\_fssh.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+Jacobi 坐标\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_triatomic_geometry.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_triatomic\_geometry.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+超球反应\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_hyperspherical_reactive.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/src\_\_mod\_hyperspherical\_reactive.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+FGH 示例\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex01_fgh_diatomic_bound_states.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/examples\_\_ex01\_fgh\_diatomic\_bound\_states.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+Split 示例\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex03_split_operator_1d.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/examples\_\_ex03\_split\_operator\_1d.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+TI/TD 示例\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex07_scattering_wavefunctions_ti_td.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/examples\_\_ex07\_scattering\_wavefunctions\_ti\_td.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+Feshbach 示例\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex08_ultracold_feshbach_segmented.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/examples\_\_ex08\_ultracold\_feshbach\_segmented.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+FSSH 示例\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex30_tully_surface_hopping.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/examples\_\_ex30\_tully\_surface\_hopping.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+Python 可视化\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\url{https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/visualizer.py}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{docs/qr/python\_\_pygenmod\_\_visualizer.py.png}\strut
+\end{minipage}\tabularnewline
+\bottomrule
+\end{longtable}
+
+\hypertarget{ux53c2ux8003ux6587ux732e}{%
+\section{参考文献}\label{ux53c2ux8003ux6587ux732e}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  J. J. Sakurai and J. Napolitano, \emph{Modern Quantum Mechanics}, 3rd
+  ed., Cambridge University Press, Cambridge, 2020.
+\item
+  C. Cohen-Tannoudji, B. Diu, and F. Laloë, \emph{Quantum Mechanics},
+  Wiley, New York, 1977.
+\item
+  D. A. Varshalovich, A. N. Moskalev, and V. K. Khersonskii,
+  \emph{Quantum Theory of Angular Momentum}, World Scientific,
+  Singapore, 1988. DOI: 10.1142/0270.
+\item
+  E. B. Wilson, Jr., J. C. Decius, and P. C. Cross, \emph{Molecular
+  Vibrations: The Theory of Infrared and Raman Vibrational Spectra},
+  McGraw-Hill, New York, 1955.
+\item
+  P. R. Bunker and P. Jensen, \emph{Molecular Symmetry and
+  Spectroscopy}, 2nd ed., NRC Research Press, Ottawa, 1998.
+\item
+  G. H. Golub and C. F. Van Loan, \emph{Matrix Computations}, 4th ed.,
+  Johns Hopkins University Press, Baltimore, 2013.
+\item
+  J. H. Wilkinson, \emph{The Algebraic Eigenvalue Problem}, Clarendon
+  Press, Oxford, 1965.
+\item
+  D. T. Colbert and W. H. Miller, ``A novel discrete variable
+  representation for quantum mechanical reactive scattering via the
+  S-matrix Kohn method'', \emph{J. Chem. Phys.} \textbf{96}, 1982
+  (1992). DOI: 10.1063/1.462125.
+\item
+  C. C. Marston and G. G. Balint-Kurti, ``The Fourier grid Hamiltonian
+  method for bound state eigenvalues and eigenfunctions'', \emph{J.
+  Chem. Phys.} \textbf{91}, 3571 (1989). DOI: 10.1063/1.456888.
+\item
+  D. Baye and P.-H. Heenen, ``Generalised meshes for quantum mechanical
+  problems'', \emph{J. Phys. B: At. Mol. Opt. Phys.} \textbf{19}, 1991
+  (1986). DOI: 10.1088/0022-3700/19/14/006.
+\item
+  M. D. Feit, J. A. Fleck, Jr., and A. Steiger, ``Solution of the
+  Schrödinger equation by a spectral method'', \emph{J. Comput. Phys.}
+  \textbf{47}, 412 (1982). DOI: 10.1016/0021-9991(82)90091-2.
+\item
+  R. Kosloff, ``Time-dependent quantum-mechanical methods for molecular
+  dynamics'', \emph{J. Phys. Chem.} \textbf{92}, 2087 (1988). DOI:
+  10.1021/j100319a003.
+\item
+  V. Gorini, A. Kossakowski, and E. C. G. Sudarshan, ``Completely
+  positive dynamical semigroups of N-level systems'', \emph{J. Math.
+  Phys.} \textbf{17}, 821 (1976). DOI: 10.1063/1.522979.
+\item
+  G. Lindblad, ``On the generators of quantum dynamical semigroups'',
+  \emph{Commun. Math. Phys.} \textbf{48}, 119 (1976). DOI:
+  10.1007/BF01608499.
+\item
+  H.-P. Breuer and F. Petruccione, \emph{The Theory of Open Quantum
+  Systems}, Oxford University Press, Oxford, 2002.
+\item
+  R. Somlói, J. Kazakov, and D. J. Tannor, ``A generalized relaxation
+  method for optimal control of molecular motion'', \emph{Chem. Phys.}
+  \textbf{172}, 85 (1993). DOI: 10.1016/0301-0104(93)80108-L.
+\item
+  D. M. Reich, M. Ndong, and C. P. Koch, ``Monotonically convergent
+  optimal control theory of quantum systems'', \emph{J. Chem. Phys.}
+  \textbf{136}, 104103 (2012). DOI: 10.1063/1.3691827.
+\item
+  B. R. Johnson, ``The multichannel log-derivative method for treating
+  reactive collisions'', \emph{J. Comput. Phys.} \textbf{13}, 445
+  (1973). DOI: 10.1016/0021-9991(73)90049-1.
+\item
+  D. E. Manolopoulos, ``An improved log-derivative method for solving
+  the radial Schrödinger equation'', \emph{J. Chem. Phys.} \textbf{85},
+  6425 (1986). DOI: 10.1063/1.451472.
+\item
+  H. Feshbach, ``Unified theory of nuclear reactions'', \emph{Ann. Phys.
+  (N.Y.)} \textbf{5}, 357 (1958). DOI: 10.1016/0003-4916(58)90007-1.
+\item
+  C. Chin, R. Grimm, P. S. Julienne, and E. Tiesinga, ``Feshbach
+  resonances in ultracold gases'', \emph{Rev.~Mod. Phys.} \textbf{82},
+  1225 (2010). DOI: 10.1103/RevModPhys.82.1225.
+\item
+  J. C. Tully, ``Molecular dynamics with electronic transitions'',
+  \emph{J. Chem. Phys.} \textbf{93}, 1061 (1990). DOI: 10.1063/1.459170.
+\item
+  C. R. Harris et al., ``Array programming with NumPy'', \emph{Nature}
+  \textbf{585}, 357 (2020). DOI: 10.1038/s41586-020-2649-2.
+\item
+  J. D. Hunter, ``Matplotlib: A 2D graphics environment'', \emph{Comput.
+  Sci. Eng.} \textbf{9}, 90 (2007). DOI: 10.1109/MCSE.2007.55.
+\item
+  GeneralModule
+  源码与文档：\url{https://github.com/l1Ha/QuantumGeneralModule}
+\end{enumerate}
+
+\end{document}
