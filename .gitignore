@@ -62,5 +62,6 @@ docs/tex_media/
 # Keep the final textbook and its LaTeX assets
 !docs/量子动力学数值计算_GeneralModule_Fortran2008.pdf
 !docs/量子动力学数值计算_GeneralModule_Fortran2008_第三版.pdf
+!docs/量子动力学数值计算_GeneralModule_Fortran2008_第四版.pdf
 !docs/qr/*.png
 !docs/tex_media_deep/media/*.png
