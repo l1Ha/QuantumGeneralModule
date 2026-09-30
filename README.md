@@ -222,7 +222,6 @@ $$
 $$
 \langle j_1 m_1 j_2 m_2 | j_3 m_3 \rangle = (-1)^{j_1 - j_2 + m_3} \sqrt{2j_3 + 1} \begin{pmatrix} j_1 & j_2 & j_3 \\ m_1 & m_2 & -m_3 \end{pmatrix}
 $$
-
     严格服从三角定则 $|j_1 - j_2| \le j_3 \le j_1 + j_2$ 与磁量子数加和守恒 $m_1 + m_2 = m_3$。
   - 刚体转子取向矩阵元（基于 Wigner-Eckart 定理求得的精确解析闭式解）：
 
@@ -244,7 +243,6 @@ $$
 $$
 \mathbf{P}_k = \mathbf{I} - 2 \frac{\mathbf{u}_k \mathbf{u}_k^T}{\mathbf{u}_k^T \mathbf{u}_k}, \quad \mathbf{T} = \mathbf{P}_{n-2} \cdots \mathbf{P}_1 \mathbf{A} \mathbf{P}_1 \cdots \mathbf{P}_{n-2}
 $$
-
     将 $n \times n$ 实对称矩阵 $\mathbf{A}$ 严格正交相似变换为三对角矩阵 $\mathbf{T}$。
   - 隐式位移 QL 迭代算法：
 
@@ -292,7 +290,6 @@ $$
 $$
 E(t) = E_0 f(t) \cos(\omega(t)(t - t_0) + \phi_{\text{CEP}})
 $$
-
     - 高斯包络：$f(t) = \exp\left(-2\ln 2 \frac{(t - t_0)^2}{\tau^2}\right)$（$\tau$ 为半高全宽 FWHM）
     - $\sin^2$ 包络：$f(t) = \sin^2\left(\frac{\pi t}{T}\right) \Theta(t)\Theta(T - t)$
   - 线性频率啁啾：$\omega(t) = \omega_0 + \beta (t - t_0)$，矢势 $A(t) = -\int_{-\infty}^t E(t') dt'$
@@ -351,14 +348,12 @@ $$
 $$
 \hat{U}(\Delta t) = \exp\left( -\frac{i\hat{H}\Delta t}{\hbar} \right) = \exp\left( -\frac{i\hat{V}\Delta t}{2\hbar} \right) \exp\left( -\frac{i\hat{T}\Delta t}{\hbar} \right) \exp\left( -\frac{i\hat{V}\Delta t}{2\hbar} \right) + \mathcal{O}(\Delta t^3)
 $$
-
     其中动能演化在动量空间通过 FFT 对角作用：$\tilde{\psi}(p) = \mathcal{F}[\psi(x)], \quad \tilde{\psi}'(p) = \tilde{\psi}(p) e^{-i \frac{p^2}{2m}\frac{\Delta t}{\hbar}}$。
   - 光学 Bloch 矢量方程（$\mathbf{R} = [u, v, w]^T$）：
 
 $$
 \frac{du}{dt} = -\Delta v - \frac{u}{T_2}, \quad \frac{dv}{dt} = \Delta u + \Omega_R(t) w - \frac{v}{T_2}, \quad \frac{dw}{dt} = -\Omega_R(t) v - \frac{w - w_0}{T_1}
 $$
-
     其中 $u = 2\text{Re}(\rho_{12})$ 为同相色散分量，$v = 2\text{Im}(\rho_{21})$ 为正交吸收分量，$w = \rho_{22} - \rho_{11}$ 为反转粒子数差。
 - **核心 API 映射**：`propagate_split_operator_1d`, `propagate_split_operator_2d`, `rk4_step`, `solve_bloch_two_level`, `abm4_step`。
 
@@ -383,7 +378,6 @@ $$
 $$
 W_{\text{ADK}}(F) = C_{n^* l}^2 f(l, m) I_p \left( \frac{2(2I_p)^{3/2}}{F} \right)^{2n^* - |m| - 1} \exp\left( - \frac{2(2I_p)^{3/2}}{3 F} \right)
 $$
-
     其中有效主量子数 $n^* = Z_{\text{eff}} / \sqrt{2 I_p}$，系数 $C_{n^* l}^2 = \frac{2^{2n^*}}{n^* \Gamma(n^* + l^* + 1) \Gamma(n^* - l^*)}$。
 - **核心 API 映射**：`get_atom_config`, `soft_core_coulomb_potential`, `soft_core_coulomb_derivative`, `keldysh_parameter`, `ponderomotive_energy`, `hhg_cutoff_energy`, `adk_ionization_rate`。
 
@@ -401,7 +395,6 @@ $$
 $$
 d(t) = i \int_0^\infty d\tau \left( \frac{\pi}{\epsilon + i\tau/2} \right)^{3/2} d_x^*(p_{\text{st}}(t, \tau) + A(t)) e^{-i S(p_{\text{st}}, t, \tau)} E(t - \tau) d_x(p_{\text{st}}(t, \tau) + A(t - \tau)) + \text{c.c.}
 $$
-
     其中准经典准自由连续态平稳动量为 $p_{\text{st}}(t, \tau) = -\frac{1}{\tau}\int_{t-\tau}^t A(t') dt'$，准经典作用量为 $S(p_{\text{st}}, t, \tau) = \int_{t-\tau}^t \left[ \frac{(p_{\text{st}} + A(t'))^2}{2} + I_p \right] dt'$。
   - 阿秒脉冲高次谐波辐射发射功率谱：
 
@@ -431,7 +424,6 @@ $$
 $$
 e^{-i \hat{H} \Delta t / \hbar} |\psi(t)\rangle = e^{-i \bar{E} \Delta t / \hbar} \sum_{n=0}^M c_n\left(\frac{\Delta E \Delta t}{\hbar}\right) T_n(-i \hat{H}_{\text{norm}}) |\psi(t)\rangle
 $$
-
     其中递推基底为 $T_0(x) = 1, T_1(x) = x, T_{n+1}(x) = 2x T_n(x) - T_{n-1}(x)$，展开系数为第一类 Bessel 函数 $c_n(\alpha) = (2 - \delta_{n0}) (-i)^n J_n(\alpha)$。
   - Schafer-Kulander 能量窗投影算子（动能谱 PES 提取）：
 
@@ -449,7 +441,6 @@ $$
 $$
 \mathbf{H}_{\text{dia}}(R) = \begin{pmatrix} V_{11}(R) & V_{12}(R) \\ V_{12}(R) & V_{22}(R) \end{pmatrix} \xrightarrow{\mathbf{U}(R)} \mathbf{V}_{\text{adia}}(R) = \begin{pmatrix} E_-(R) & 0 \\ 0 & E_+(R) \end{pmatrix}
 $$
-
     绝热本征能级为：$E_\pm(R) = \frac{V_{11} + V_{22}}{2} \pm \sqrt{\left(\frac{V_{11} - V_{22}}{2}\right)^2 + V_{12}^2}$，最小避免交叉能隙为 $\Delta E_{\min} = 2 |V_{12}(R_c)|$。
   - 经典 Landau-Zener 非绝热跃迁概率公式：
 
@@ -491,7 +482,6 @@ $$
 $$
 |D(t)\rangle = \cos\Theta(t) |1\rangle - \sin\Theta(t) |3\rangle, \quad \tan\Theta(t) = \frac{\Omega_P(t)}{\Omega_S(t)}
 $$
-
     在逆直觉时序（Stokes 脉冲 $\Omega_S(t)$ 先于 Pump 脉冲 $\Omega_P(t)$ 入射）下，体系严格沿着暗态演化，中间损耗激发态 $|2\rangle$ 始终零布居。
 - **核心 API 映射**：`morse_potential`, `calc_franck_condon_factors`, `calc_vibrational_dipole_matrix`, `calc_rotational_constants_bv`, `build_rovibrational_hamiltonian`, `build_rovibrational_dipole_matrix`, `build_rovibrational_polarizability_matrix`, `create_stirap_pulses`, `rovibrational_state_index`。
 
@@ -510,7 +500,6 @@ $$
 $$
 S_i(x) = a_i + b_i(x - x_i) + c_i(x - x_i)^2 + d_i(x - x_i)^3
 $$
-
     满足一阶导数连续 $S_i'(x_{i+1}) = S_{i+1}'(x_{i+1})$ 与二阶曲率连续 $S_i''(x_{i+1}) = S_{i+1}''(x_{i+1})$。
   - 三对角矩阵方程（Thomas 算法 $O(N)$ 极速求解）：
 
@@ -557,7 +546,6 @@ $$
 $$
 \frac{d\hat{\rho}}{dt} = -\frac{i}{\hbar}[\hat{H}, \hat{\rho}] + \sum_k \gamma_k \left( \hat{L}_k \hat{\rho} \hat{L}_k^\dagger - \frac{1}{2} \{ \hat{L}_k^\dagger \hat{L}_k, \hat{\rho} \} \right)
 $$
-
     其中弛豫算符 $\hat{L}_{i \to j} = |j\rangle\langle i|$ 对应自发辐射跃迁，退相位算符 $\hat{L}_{\text{deph}} = |i\rangle\langle i|$ 对应纯退相干。
   - 量子信息度量函数：
     - 纯度（Purity）：$\mathcal{P} = \text{Tr}(\hat{\rho}^2) \in [1/N, 1]$
@@ -573,7 +561,6 @@ $$
 $$
 J[\psi, \epsilon] = |\langle \psi(T) | \phi_{\text{target}} \rangle|^2 - \int_0^T \frac{\alpha_0}{S(t)} [\epsilon(t) - \epsilon_{\text{ref}}(t)]^2 dt
 $$
-
     其中 $S(t) = \sin^2(\pi t / T)$ 为脉冲端点包络约束函数。
   - 伴随协态反向传播方程与终态边界条件：
 
@@ -597,7 +584,6 @@ $$
 $$
 u_l''(r) + \left[ k^2 - \frac{l(l+1)}{r^2} - \frac{2\mu}{\hbar^2} V(r) \right] u_l(r) = 0, \quad u_l(r) \xrightarrow{r \to \infty} A_l \left[ \hat{j}_l(kr) \cos\delta_l - \hat{n}_l(kr) \sin\delta_l \right]
 $$
-
     其中弹性散射反应矩阵 $K_l = \tan\delta_l$，幺正散射矩阵元 $S_l = e^{2i\delta_l}$，跃迁矩阵元 $T_l = S_l - 1$。
   - 分波弹性截面、总截面与光学定理：
 
@@ -684,7 +670,6 @@ $$
 $$
 \hat{V}_{\text{spin}}(R) = V_0(R) \hat{\mathcal{P}}_0 + V_1(R) \hat{\mathcal{P}}_1 = \bar{V}(R) + \Delta V(R) \mathbf{S}_1 \cdot \mathbf{S}_2
 $$
-
     其中 $\bar{V}(R) = \frac{V_0(R) + 3 V_1(R)}{4}, \Delta V(R) = V_1(R) - V_0(R)$。
   - 四大基组幺正变换算符 $\mathbf{U} = \langle \text{basis}_A | \text{basis}_B \rangle$（如非耦合基到总自旋耦合基）：
 
@@ -771,7 +756,6 @@ $$
 $$
 K_3(a < 0) = \frac{4590 \sinh(2\eta_-)}{\sin^2\left( s_0 \ln\frac{|a|}{a_-} \right) + \sinh^2\eta_-} \frac{\hbar |a|^4}{m}
 $$
-
     在 $a > 0$ 呈现不同通道量子干涉极小值窗口 $a_+^{(n)}$，在 $a < 0$ 侧呈现 Efimov 三聚体束缚态引起的巨大共振损耗峰 $a_-^{(n)}$。
   - 强相互作用幺正饱和极限有限温度幂律：$K_3^{\text{unitary}}(T) \approx \frac{36\sqrt{3}\pi^2 \hbar^5}{m^3 (k_B T)^2}$。
 - **核心 API 映射**：`solve_efimov_s0_identical_bosons`, `calc_three_body_recombination_a_positive`, `calc_three_body_recombination_a_negative`, `calc_unitary_three_body_loss_temperature`。
@@ -785,7 +769,6 @@ $$
 $$
 g_{\text{1D}} = \frac{2\hbar^2 a_s}{\mu a_\perp^2} \frac{1}{1 - C \frac{a_s}{a_\perp}}, \quad C = -\frac{\zeta(1/2)}{\sqrt{2}} \approx 1.0326
 $$
-
     共振极点出现在 $a_s = a_{\text{CIR}} = a_\perp / C$；1D 有效散射长度满足 $a_{\text{1D}} = -\frac{a_\perp^2}{2 a_s}\left( 1 - C\frac{a_s}{a_\perp} \right)$。
   - 受限波导分子二聚体结合能：$E_b^{\text{1D}} = \frac{\hbar^2}{2\mu (a_{\text{1D}})^2}$
   - Lieb-Liniger 强关联费米化参数（Tonks-Girardeau 极限）：$\gamma_{\text{LL}} = \frac{m g_{\text{1D}}}{\hbar^2 n_{\text{1D}}} \gg 1$。
@@ -799,14 +782,12 @@ $$
 $$
 \sigma(\epsilon) = \sigma_0 \frac{(q + \epsilon)^2}{1 + \epsilon^2}, \quad \epsilon = \frac{E - E_r}{\Gamma/2}
 $$
-
     其中不对称因子为 $q = \frac{\langle \Phi | \hat{T} | i \rangle}{\pi V_E^* \langle \psi_E | \hat{T} | i \rangle}$，自电离宽度为 $\Gamma = 2\pi |V_E|^2 = 2\pi |\langle \psi_E | \hat{H} | \Phi \rangle|^2$。
   - 复坐标旋转法 (Complex Coordinate Rotation, CCR) 非厄米谱分解：
 
 $$
 r \to r e^{i\theta}, \quad \hat{H}(\theta) = e^{-2i\theta} \hat{T} + \hat{V}(r e^{i\theta}) \implies E_{\text{res}} = E_r - i \frac{\Gamma}{2}
 $$
-
     连续谱沿负虚轴旋转 $2\theta$，共振准束缚态极点暴露于复能量下半平面，衰变寿命为 $\tau = \hbar / \Gamma$。
 - **核心 API 映射**：`calc_fano_profile`, `calc_autoionization_lifetime`, `solve_ccr_resonance_model`。
 
@@ -818,7 +799,6 @@ $$
 $$
 \hat{H} = B_e \hat{\mathbf{J}}^2 + \gamma_{\text{sr}} \hat{\mathbf{J}} \cdot \hat{\mathbf{S}} - \boldsymbol{\mu}_e \cdot \mathbf{E} - \boldsymbol{\mu}_m \cdot \mathbf{B}
 $$
-
     其中静电场取沿 $z$ 轴 $\mathbf{E} = E \hat{z}$，静磁场位于 $xz$ 平面 $\mathbf{B} = B(\sin\beta \hat{x} + \cos\beta \hat{z})$。
   - 实验室系分子空间电取向度与自旋极化分量：
 
