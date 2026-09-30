@@ -91,8 +91,10 @@ contains
         integer, intent(in) :: n_pts
         type(dvr_legendre_t), intent(out) :: dvr
 
-        integer :: i, j, m
+        integer :: i, j, m, l
         real(dp) :: z, z1, p1, p2, p3, pp
+        real(dp) :: coeff
+        real(dp), allocatable :: p_curr(:), p_prev(:), p_next(:)
 
         dvr%n_points = n_pts
         if (allocated(dvr%x)) deallocate(dvr%x)
@@ -132,17 +134,35 @@ contains
             dvr%theta(i) = acos(max(-1.0_dp, min(1.0_dp, dvr%x(i))))
         end do
 
-        ! 构造角动量动能矩阵 J^2
-        do i = 1, n_pts
-            do j = 1, n_pts
-                if (i == j) then
-                    dvr%j2_mat(i, j) = real(n_pts * (n_pts + 1), dp) / 3.0_dp - &
-                                       (1.0_dp - dvr%x(i)**2) / (1.0_dp - dvr%x(i)**2 + 1.0e-30_dp)
-                else
-                    dvr%j2_mat(i, j) = 2.0_dp / (dvr%x(i) - dvr%x(j))**2
-                end if
+        ! 构造角动量动能矩阵 J^2。
+        ! 使用 Legendre 谱求和：
+        ! J2(i,j)=sqrt(w_i w_j) sum_{l=0}^{N-1} l(l+1)(2l+1)/2 P_l(x_i)P_l(x_j)。
+        ! 该矩阵已含非均匀 Gauss 权重，可用普通对称本征求解器；本征值为 l(l+1)。
+        dvr%j2_mat = 0.0_dp
+        allocate(p_curr(n_pts), p_prev(n_pts), p_next(n_pts))
+
+        p_curr = 1.0_dp
+        do l = 0, n_pts - 1
+            coeff = real(l * (l + 1), dp) * real(2 * l + 1, dp) / 2.0_dp
+            do i = 1, n_pts
+                do j = 1, n_pts
+                    dvr%j2_mat(i, j) = dvr%j2_mat(i, j) + coeff * &
+                        sqrt(dvr%weights(i) * dvr%weights(j)) * p_curr(i) * p_curr(j)
+                end do
             end do
+
+            if (l == 0) then
+                p_prev = p_curr
+                p_curr = dvr%x
+            else if (l < n_pts - 1) then
+                p_next = (real(2 * l + 1, dp) * dvr%x * p_curr - real(l, dp) * p_prev) / real(l + 1, dp)
+                p_prev = p_curr
+                p_curr = p_next
+            end if
         end do
+
+        dvr%j2_mat = 0.5_dp * (dvr%j2_mat + transpose(dvr%j2_mat))
+        deallocate(p_curr, p_prev, p_next)
     end subroutine dvr_legendre_init
 
     !> \brief 使用 Fourier Grid Hamiltonian (FGH) 求解任意分子势能面束缚态

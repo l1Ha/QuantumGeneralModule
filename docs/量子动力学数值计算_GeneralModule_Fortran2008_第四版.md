@@ -37,7 +37,7 @@ $$
 
 每一节均按统一体例组织：**定义**、**公式与推导**、**物理含义**、**数值陷阱**、**GeneralModule 实现映射**（源码路径、函数、GitHub 直链与二维码）、**小型数值实验**与**练习**。所有数值实验结果均由本库源码直接编译运行获得（GNU Fortran 11.4，`real64` 双精度，随机数种子取默认值），可复现、可作为读者自建验收测试的基线。
 值得强调的是验收测试的分层思想：第一层是代数恒等式（正交性、对称性、选择定则），应达到机器精度；第二层是解析特例（谐振子、Morse 势、刚转子、Laplacian 精确谱），应达到截断误差与舍入误差的预期标度；第三层才是与实验数据的比对（如 $\mathrm{H}_2$ 的 $B_v$、$D_J$），其偏差属于物理模型的系统误差而非数值误差。三层界限分明，才能在结果异常时迅速定位问题属于代码、算法还是模型。行文约定：公式采用 Pandoc 兼容的 LaTeX 记号，行内公式以 $...$ 界定，独立公式以 $$...$$ 界定。
-四章之间存在紧密的逻辑依赖，建议按序阅读。第一章的谱定理为第三章一切变分计算提供合法性依据；第二章的角动量代数在第三章以 Wigner D 函数、Legendre 展开与重耦合网络的形式反复出现；第四章的谱与误差理论则是前三章全部数值实验的度量衡。反过来，第四章的验收测试方法——以已知解析谱校验数值实现——在每一章的小型数值实验中都有实例，读者可将全部实验脚本合并为一个回归测试套件纳入自身的持续集成体系，这也正是本库 340 项单元断言的构建思路。
+四章之间存在紧密的逻辑依赖，建议按序阅读。第一章的谱定理为第三章一切变分计算提供合法性依据；第二章的角动量代数在第三章以 Wigner D 函数、Legendre 展开与重耦合网络的形式反复出现；第四章的谱与误差理论则是前三章全部数值实验的度量衡。反过来，第四章的验收测试方法——以已知解析谱校验数值实现——在每一章的小型数值实验中都有实例，读者可将全部实验脚本合并为一个回归测试套件纳入自身的持续集成体系，这也正是本库 367 项单元断言的构建思路。
 
 ---
 
@@ -184,7 +184,7 @@ $$Y_{lm}(\theta,\varphi)=(-1)^{m}\sqrt{\frac{2l+1}{4\pi}\,\frac{(l-m)!}{(l+m)!}}
 
 ![特殊函数模块二维码](qr/src__mod_special_functions.f90.png)
 
-**小型数值实验。** 以 $n=40$ 的 Gauss–Legendre 节点构造 $\hat{J}^{2}$ 的谱求和表示（见 2.2 节），对角化后与本征值序列 $j(j+1)$，$j=0,\ldots,39$ 比对：最大偏差 $1.8\times10^{-12}$。该实验同时验证了 Legendre DVR 与角动量代数的相容性，是角向网格的必备验收测试。
+**小型数值实验。** 以 $n=40$ 的 Gauss–Legendre 节点构造 $\hat{J}^{2}$ 的谱求和表示（见 2.5 节），对角化后与本征值序列 $j(j+1)$，$j=0,\ldots,39$ 比对：最大偏差 $1.8\times10^{-12}$。该实验同时验证了 Legendre DVR 与角动量代数的相容性，是角向网格的必备验收测试。
 
 **练习。** (1) 完成升降算符系数的推导。(2) 证明 $Y_{ll}(\theta,\varphi)\propto\sin^{l}\theta\,e^{il\varphi}$ 并归一化。(3) 验证对易关系 $[\hat{J}_x,\hat{J}_y]=i\hbar\hat{J}_z$ 在 $j=1/2$ 的 Pauli 矩阵表示下成立。
 
@@ -327,16 +327,16 @@ $$D^{J}_{MK}(\alpha,\beta,\gamma)=e^{-iM\alpha}\,d^{J}_{MK}(\beta)\,e^{-iK\gamma
 
 $$\hat{H}_{\mathrm{rot}}=A\hat{J}_a^{2}+B\hat{J}_b^{2}+C\hat{J}_c^{2},\qquad A=\frac{\hbar^{2}}{2I_a},\ B=\frac{\hbar^{2}}{2I_b},\ C=\frac{\hbar^{2}}{2I_c}.$$
 
-在 $|JK\rangle$ 基下利用 $\hat{J}_{\pm}$ 的梯性质，$\hat{J}_a^{2},\hat{J}_c^{2}$ 产生 $\Delta K=\pm2$ 的非对角元，矩阵在固定 $J$ 的 $2J+1$ 维 $K$ 子空间内对角化即得不对称陀螺能级；对称陀螺（$B=C$）情形解析可解：
+取 $K$ 为沿 $a$ 轴的投影时，$\hat J_a^2$ 在 $|JK\rangle$ 基下是对角的；$\hat J_b^2$ 与 $\hat J_c^2$ 含 $\Delta K=0,\pm2$ 项，其差 $\hat J_b^2-\hat J_c^2$ 给出实的 $\Delta K=\pm2$ 耦合。矩阵在固定 $J$ 的 $2J+1$ 维 $K$ 子空间内对角化即得不对称陀螺能级；对称陀螺（$B=C$）情形解析可解：
 
 $$E_{JK}=B\,J(J+1)+(A-B)K^{2}.$$
 不对称陀螺在 $|JK\rangle$ 基下的非对角矩阵元为
 
-$$\langle J,K|\hat{J}_a^{2}|J,K\pm2\rangle=\frac{\hbar^{2}}{4}\sqrt{(J\mp K)(J\mp K-1)(J\pm K+1)(J\pm K+2)},$$
+$$\langle J,K|(\hat{J}_b^{2}-\hat{J}_c^{2})|J,K\pm2\rangle=\frac{\hbar^{2}}{2}\sqrt{(J\mp K)(J\mp K-1)(J\pm K+1)(J\pm K+2)}.$$
 
 于是固定 $J$ 的哈密顿量在 $K$ 空间内是带宽为二的带状矩阵，可按 $K$ 的奇偶分块，再以宇称组合 $|K\rangle\pm|-K\rangle$ 将规模减半。核自旋统计进一步把允许的转动态按置换对称性分族——例如水分子 $K_a+K_c$ 的奇偶对应 ortho 与 para 两族——各族能级的布居比由核自旋简并度冻结，这正是转振光谱拟合中统计权重因子的来源，也是同核分子（如 $\mathrm{H}_2$ 的奇偶 $J$ 族）红外谱缺失的深层原因。
 
-SF 与 BF 角动量分量之间以方向余弦（即 D 函数）相连：$\hat{J}_Z=\sum_K D^{J}_{MK}(\alpha\beta\gamma)\,\hat{J}_{z'}$ 型关系是全部体固定相互作用（势能面、偶极矩、极化率张量）与实验室可观测量之间换算的枢纽。线型分子的取向分布退化为 $K=0$ 的特殊情形，此时 $D^{J}_{M0}(\alpha\beta\gamma)\propto Y_{JM}(\beta,\alpha)$，方向余弦矩阵元 $\langle J M|\cos\theta|J' M\rangle$ 即 2.4 节的闭式。
+SF 与 BF 的矢量分量通过一秩转动矩阵（方向余弦）相连：$\hat J_Z=\sum_{\alpha}R_{Z\alpha}(\Omega)\hat J_\alpha$，或用球张量记号为 $\hat J_Z=\sum_q D^{1*}_{q0}(\Omega)\hat J_q^{(B)}$。注意这里的一秩 Wigner D 函数不同于转子态的 $D^J_{MK}$；后者用于转动波函数，前者用于矢量或张量分量的坐标变换。这一区别是全部体固定相互作用（势能面、偶极矩、极化率张量）与实验室可观测量之间换算的枢纽。线型分子的取向分布退化为 $K=0$ 的特殊情形，此时 $D^{J}_{M0}(\alpha\beta\gamma)\propto Y_{JM}(\beta,\alpha)$，方向余弦矩阵元 $\langle J M|\cos\theta|J' M\rangle$ 即 2.4 节的闭式。
 
 **物理含义。** 势能面与偶极面是分子内禀属性，天然表达在体固定系中；而光谱跃迁强度、外场对齐与散射边界条件表达在空间固定系中。两套表象的取舍是转振计算的核心策略：以 $|J M K\rangle$（对称陀螺）或宇称组合 $|J M K\rangle\pm|J M,-K\rangle$ 为基，可将哈密顿量分块至 $(J,M)$ 或 $(J,\text{宇称})$ 子空间，使矩阵维数下降一至两个量级。
 实验上可调的物理量——外场方向、偏振、波长——定义在空间固定系，而势能面与偶极面是分子内禀属性；两套语言之间转译的精度决定了模拟与实验可比对的深度。以激光对齐为例，非共振场作用 $\tfrac14\Delta\alpha E^{2}\cos^{2}\theta$ 在空间固定系中是沿实验室 $Z$ 轴固定的张量，转换到体固定系后化为对分子轴的标量作用，正是这一转译使得对齐动力学可以按 $(J,M)$ 分块求解；对齐度 $\langle\cos^{2}\theta\rangle$ 的时间演化则由少数几个分块的本征展开叠加而成。同理，Stark 移位与 Zeeman 移位的方向依赖性也全部由 D 函数承载。
@@ -345,7 +345,7 @@ SF 与 BF 角动量分量之间以方向余弦（即 D 函数）相连：$\hat{J
 
 **GeneralModule 实现映射。** 源码 `src/mod_special_functions.f90`：`assoc_legendre_poly`（$K=0$ 线型转子的 $d^{J}_{M0}\propto P^{M}_{J}$ 构件）、`rot_matrix_cos_theta` 与 `rot_matrix_cos2_theta`（方向余弦矩阵元）；`src/mod_dvr_grid.f90`：`dvr_legendre_init`（$\theta$ 方向 Gauss–Legendre DVR，可组装 $\hat{J}^{2}$ 与 $\cos\theta$ 矩阵）；`src/mod_rovibrational.f90`：`build_rovibrational_hamiltonian`（$E(v,J)=E_{\mathrm{vib}}(v)+B_vJ(J+1)$）。文献依据：Bunker 与 Jensen, *Molecular Symmetry and Spectroscopy*, 2nd ed., NRC Research Press, Ottawa (1998)；Varshalovich 等 (1988)。GitHub 直链：[src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)。二维码：`qr/src__mod_special_functions.f90.png`。
 
-**小型数值实验。** 以 2.2 节验证过的 $\hat{J}^{2}$ 谱求和矩阵表示线型刚性转子 $\hat{H}=B\hat{J}^{2}$，取 $\mathrm{H}_2$ 的振动平均转动常数 $B_0=60.18\ \mathrm{cm^{-1}}$（见 3.4 节实验）：对角化得 $E_J/B_0=j(j+1)$，$E_1=120.36\ \mathrm{cm^{-1}}$、$E_2=360.9\ \mathrm{cm^{-1}}$，与实验转动能级（$118.5$、$354.0\ \mathrm{cm^{-1}}$，计入离心畸变后下移）的偏差在一阶刚转子近似预期之内。该实验演示了"角动量代数 + DVR + 谱定理"三位一体的最小转动能级计算。
+**小型数值实验。** 以 2.5 节验证过的 $\hat{J}^{2}$ 谱求和矩阵表示线型刚性转子 $\hat{H}=B\hat{J}^{2}$，取 $\mathrm{H}_2$ 的振动平均转动常数 $B_0=60.18\ \mathrm{cm^{-1}}$（见 3.4 节实验）：对角化得 $E_J/B_0=j(j+1)$，$E_1=120.36\ \mathrm{cm^{-1}}$、$E_2=360.9\ \mathrm{cm^{-1}}$，与实验转动能级（$118.5$、$354.0\ \mathrm{cm^{-1}}$，计入离心畸变后下移）的偏差在一阶刚转子近似预期之内。该实验演示了"角动量代数 + DVR + 谱定理"三位一体的最小转动能级计算。
 
 **练习。** (1) 证明 Wigner D 函数的正交归一关系。(2) 对不对称陀螺写出 $\langle JK|\hat{J}_a^{2}|J,K\pm2\rangle$ 的显式表达式并讨论 $K$ 结构。(3) 由 $D^{J}_{MK}$ 的完备性推导立体角积分化为 D 函数耦合系数的公式。
 
@@ -451,7 +451,11 @@ $$B_v=\left\langle\chi_v\left|\frac{\hbar^{2}}{2\mu R^{2}}\right|\chi_v\right\ra
 =B_e-\alpha_e\left(v+\tfrac12\right)+\cdots$$
 
 把振动平均转动常数与振转耦合常数 $\alpha_e$ 联系起来。
-$D_v=4B_v^{3}/\omega_v^{2}$ 的推导可作微扰方法的范本：把 $\hat{H}_{\mathrm{rot}}=B(\hat{R})\hat{J}^{2}$ 写成 $B_v\hat{J}^{2}+\bigl[B(\hat{R})-B_v\bigr]\hat{J}^{2}$，后者对角部分仅重整化 $B_v$，非对角部分以振动矩阵元 $\langle v\pm1|B(\hat{R})-B_v|v\rangle\approx\mp\alpha_e\sqrt{(v+1)/2}$ 与转动能差 $\approx\pm\omega_v$ 代入二级微扰，逐项求和后恰整理为 $-4B_v^{3}\omega_v^{-2}\,J^{2}(J+1)^{2}$。同一逻辑给出多原子离心畸变常数与 Coriolis 型分裂：线性分子简并弯曲态的 $l$ 型倍频源于振动角动量项与 $K$ 结构的联合作用，量级为 $q\sim B^{2}/\omega$。Watson 展开的有效性判据是 $D_v J^{2}(J+1)^{2}\ll B_v$ 与 $|\zeta|J\ll1$；超转子与 floppy 体系必须放弃微扰、返回精确动能算符做全变分处理。
+$D_v=4B_v^{3}/\omega_v^{2}$ 的推导可作微扰方法的范本：把 $\hat{H}_{\mathrm{rot}}=B(\hat{R})\hat{J}^{2}$ 写成 $B_v\hat{J}^{2}+\Delta B(\hat{R})\hat{J}^{2}$，其中 $B_v=\langle v|B(\hat{R})|v\rangle$，$\Delta B=B(\hat{R})-B_v$。$\Delta B$ 的振动非对角元在同一 $J$ 下耦合 $v$ 与 $v'$；二级微扰为
+
+$$\Delta E_{vJ}^{(2)}=\sum_{v'\ne v}\frac{|\langle v'|\Delta B|v\rangle|^{2}}{E_v-E_{v'}}\,[J(J+1)]^{2}.$$
+
+对 Morse/谐振子极限求和后得到 $\Delta E_{vJ}^{(2)}=-\left(4B_v^{3}/\omega_v^{2}\right)[J(J+1)]^{2}$。同一逻辑给出多原子离心畸变常数与 Coriolis 型分裂：线性分子简并弯曲态的 $l$ 型倍频源于振动角动量项与 $K$ 结构的联合作用，量级为 $q\sim B^{2}/\omega$。Watson 展开的有效性判据是 $D_v J^{2}(J+1)^{2}\ll B_v$ 与 $|\zeta|J\ll1$；超转子与 floppy 体系必须放弃微扰、返回精确动能算符做全变分处理。
 
 **物理含义。** Watson 哈密顿量是高分辨转动光谱拟合的标准模型（分子常数 $A,B,C,D_J,D_{JK},\ldots,\zeta$ 的物理载体）。离心畸变度量化学键的转动软化：转得越快，键被离心力拉伸，$B$ 下降，能级相对刚转子逐级下压；Coriolis 耦合则是转动能级内振动角动量再分配的通道，是红外–微波双共振与 $l$ 型倍频光谱的核心机制。对范德华络合物与其它 floppy 体系，微扰展开失效，须回到精确动能算符做变分处理——这正是 DVR 与密耦方法的价值所在。
 
@@ -897,7 +901,24 @@ $$
 \hbar^2l(l+1)|lm\rangle.
 $$
 
-在 DVR 网格上，它变为矩阵 $J^2_{ij}$。GeneralModule 的 `dvr_legendre_init` 计算 Gauss-Legendre 零点、权重和 $J^2$ 矩阵。
+在 DVR 网格上，它变为矩阵 $J^2_{ij}$。对 Gauss-Legendre 节点 $x_i$ 和权重 $w_i$，谱求和表示为
+
+$$
+B_{ij}
+=
+\sum_{l=0}^{N-1}
+l(l+1)\frac{2l+1}{2}P_l(x_i)P_l(x_j).
+$$
+
+原始函数值基下的算符为 $K_{ij}=w_jB_{ij}$，其自伴性由加权内积体现。若要用普通实对称本征求解器，应转换到正交求积坐标：
+
+$$
+(J^2)_{ij}
+=
+\sqrt{w_iw_j}\,B_{ij}.
+$$
+
+该 $N\times N$ 矩阵的本征值精确为 $l(l+1)$，$l=0,\ldots,N-1$；本征矢量 $z$ 与物理格点波函数的关系为 $\psi(x_i)=z_i/\sqrt{w_i}$。GeneralModule 的 `dvr_legendre_init` 现在按上式构造 $J^2$ 矩阵。
 
 ### 对应源码
 
@@ -1690,7 +1711,7 @@ $$
 纯退相位算符为
 
 $$
-\hat L_{\phi}=\sqrt{\gamma_\phi}|e\rangle\langle e|.
+\hat L_{\phi}=\sqrt{2\gamma_\phi}|e\rangle\langle e|.
 $$
 
 二能级弛豫满足
@@ -2036,16 +2057,21 @@ $$
 R_{i+1}
 =
 \frac{
-2(1-5w_i)-(1+w_{i-1})/R_i
+2(1+5w_i)-(1-w_{i-1})/R_i
 }
-{1+w_{i+1}},
+{1-w_{i+1}},
 $$
 
 其中
 
 $$
-w_i=\frac{\Delta r^2}{12}f_i.
+w_i=\frac{\Delta r^2}{12}f_i,
+\qquad
+u''(r)=f(r)u(r).
 $$
+
+若在程序中改写为 $u''+q(r)u=0$（$q=-f$），则上式相应变为
+$R_{i+1}=\left[2(1-5q_i)-(1+q_{i-1})/R_i\right]/(1+q_{i+1})$。两种写法不可混用。
 
 渐近截距可由
 
@@ -2120,12 +2146,12 @@ $$
 $$
 \bar a
 =
-\frac{2}{\sqrt\pi}
-\frac{
-\Gamma(5/6)
-}{
-\Gamma(2/3)
-}
+\frac{2\pi}{\Gamma(1/4)^2}
+\left(
+\frac{2\mu C_6}{\hbar^2}
+\right)^{1/4}
+\approx
+0.4779888
 \left(
 \frac{2\mu C_6}{\hbar^2}
 \right)^{1/4}.
@@ -4627,3 +4653,52 @@ end subroutine expect_close
 2. Y. Saad, *Iterative Methods for Sparse Linear Systems*, 2nd ed., SIAM, Philadelphia, 2003.
 3. C. R. Harris et al., “Array programming with NumPy”, *Nature* **585**, 357 (2020). DOI: 10.1038/s41586-020-2649-2.
 4. GeneralModule 源码与文档：<https://github.com/l1Ha/QuantumGeneralModule>
+# 第十三部分　理论核查记录
+
+## 13.1　核查方法
+
+本版对书稿中的关键推导做了三类核查：
+
+1. **代数核查**：选择定则、幺正性、守恒量、矩阵对称性和渐近边界条件。
+2. **解析极限核查**：刚转子、Morse 振子、自由波包、二能级脉冲、零能散射和有效力程展开。
+3. **代码/数值核查**：把公式与源码和单元测试对照，重点检查度量约定、符号约定和递推公式。
+
+本版已根据核查结果修正若干公式与表述。所有修改均以可重复测试或标准文献为依据，不把约定差异误判为错误。
+
+## 13.2　已修正的错误
+
+| 位置 | 原问题 | 修正 |
+|---|---|---|
+| Legendre-DVR | 旧实现把 $J^2$ 非对角元写成 $2/(x_i-x_j)^2$，未正确处理 Gauss 权重，且谱不收敛到 $l(l+1)$ | 改为谱求和矩阵 $(J^2)_{ij}=\sqrt{w_iw_j}\sum_l l(l+1)(2l+1)P_l(x_i)P_l(x_j)/2$，并加入谱测试 |
+| Numerov/Johnson | 正文先用 $u''=fu$ 给出 Numerov 公式，随后 Johnson 比值递推却对应 $u''+fu=0$ | 统一为 $u''=fu$ 的公式；另注明若程序采用 $q=-f$ 的约定应如何改写 |
+| Gribakin–Flambaum 系数 | 一处写成 $2\Gamma(5/6)/[\sqrt\pi\Gamma(2/3)]\approx0.9406$，与源码和标准结果不符 | 改为 $2\pi/\Gamma(1/4)^2\approx0.4779888$ |
+| 不对称陀螺耦合 | 把 $K$ 取在 $a$ 轴时仍写 $\hat J_a^2$ 的 $\Delta K=\pm2$ 耦合 | 改为 $K$ 沿 $a$ 轴时 $\hat J_a^2$ 对角，$\Delta K=\pm2$ 耦合由 $\hat J_b^2-\hat J_c^2$ 给出 |
+| SF/BF 矢量分量 | 用转子态的 $D^J_{MK}$ 变换角动量矢量分量 | 改为一秩转动矩阵 / $D^1$ 球张量变换，并区分其与 $D^J_{MK}$ 的作用 |
+| 纯退相位 | $L_\phi=\sqrt{\gamma_\phi}|e\rangle\langle e|$ 会使相干衰减率为 $\gamma_\phi/2$，与后文 $T_2$ 公式不一致 | 改为 $L_\phi=\sqrt{2\gamma_\phi}|e\rangle\langle e|$，使 $\gamma_\phi$ 表示纯退相干速率 |
+| $\mathrm{H}_2$ 红外禁阻表述 | 把同核分子电偶极禁阻误解为只有奇偶 $J$ 族缺失 | 改为：同核分子无永久电偶极矩，纯转动/振转电偶极跃迁整体禁阻；核自旋统计影响正/仲态和拉曼等跃迁强度 |
+| $D_v$ 微扰推导 | 中间矩阵元写成与 $\alpha_e$ 有关的简化式，不具备普遍性 | 改为标准的 $\Delta B_{v'v}$ 二级微扰表达式，并说明 Morse/谐振子极限求和结果 |
+
+## 13.3　复核通过的核心结果
+
+以下推导经独立代数检查或数值验收后确认正确：
+
+- Sinc-DVR 动能矩阵
+  $T_{ij}=\hbar^2(-1)^{i-j}/[2m\Delta x^2(i-j)^2]$，$T_{ii}=\hbar^2\pi^2/(6m\Delta x^2)$；
+- 二阶 Strang 分裂的局域误差 $O(\Delta t^3)$ 与全局二阶精度；
+- CAP 连续性方程中 $-2W|\psi|^2/\hbar$ 的吸收项；
+- Chebyshev 传播系数 $a_n=(2-\delta_{n0})(-i)^nJ_n(t\Delta E/2\hbar)$；
+- Lindblad 主方程及其迹守恒、厄米性和完全正定性；
+- 零能散射渐近式 $u(r)\propto r-a_s$ 和 $a_s=r-u/u'$；
+- Feshbach 共振公式
+  $a_s(B)=a_{\mathrm{bg}}[1-\Delta B/(B-B_0)]$；
+- FSSH 最少开关跳跃概率和动量重标定公式；
+- Gauss–Legendre 求积代数精度与 Legendre-DVR 的 $J^2$ 谱求和矩阵。
+
+## 13.4　数值验收
+
+修正后的 `dvr_legendre_init` 已加入单元测试：
+
+- $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
+- 全库 41 个测试程序、367 项断言全部通过。
+
+该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。

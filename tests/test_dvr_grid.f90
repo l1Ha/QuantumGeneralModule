@@ -64,6 +64,20 @@ program test_dvr_grid
     end do
     call assert_close("Legendre nodes antisymmetry", 0.0_dp, max_asym, 1.0e-12_dp)
 
+    ! Legendre J^2 谱求和矩阵应精确给出 l(l+1), l=0,...,15
+    n_pts = 16
+    call dvr_legendre_init(n_pts, dvr_leg)
+    if (allocated(eig_vals)) deallocate(eig_vals)
+    if (allocated(eig_vecs)) deallocate(eig_vecs)
+    allocate(eig_vals(n_pts), eig_vecs(n_pts, n_pts))
+    call diag_symmetric_matrix(n_pts, dvr_leg%j2_mat, eig_vals, eig_vecs, stat)
+    call assert_close("Legendre J2 status", 0.0_dp, real(stat, dp), 1.0e-12_dp)
+    max_asym = 0.0_dp
+    do i = 1, n_pts
+        max_asym = max(max_asym, abs(eig_vals(i) - real((i - 1) * i, dp)))
+    end do
+    call assert_close("Legendre J2 spectrum max error", 0.0_dp, max_asym, 1.0e-10_dp)
+
     print '(A)', "--------------------------------------------------"
     print '(A, I2, A, I2, A)', "DVR Grid Tests: ", n_passed, " / ", n_tests, " PASSED."
     if (n_passed /= n_tests) then

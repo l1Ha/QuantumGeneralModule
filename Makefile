@@ -87,11 +87,11 @@ $(STATIC_LIB): $(MODULE_SRCS)
 	@echo "==> Library built: $(STATIC_LIB)"
 
 test: lib
-	@echo "==> Running full unit test suite (40 test suites)..."
+	@echo "==> Running full unit test suite (41 test suites)..."
 	@bash $(TEST_DIR)/run_all_tests.sh
 
 examples: lib
-	@echo "==> Building and running physical examples (35 examples)..."
+	@echo "==> Building and running physical examples (36 examples)..."
 	@bash $(EX_DIR)/build_examples.sh
 
 check: test
@@ -110,7 +110,7 @@ clean:
 help:
 	@echo "Available targets in GeneralModule Makefile:"
 	@echo "  make all      - Build the core static library (libgeneral_module.a)"
-	@echo "  make test     - Run all 40 unit test suites (335 assertions)"
+	@echo "  make test     - Run all 41 unit test suites (367 assertions)"
 	@echo "  make examples - Build and execute all 35 physics examples"
 	@echo "  make check    - Run Fortran tests and Python pygenmod test suite"
 	@echo "  make clean    - Remove all compiled objects, modules, and data outputs"
