@@ -211,51 +211,98 @@ GeneralModule/
 - **理论基础与物理机制**：量子体系的空间旋转对称性、球对称中心力场展开以及多角动量耦合严格遵循 $SO(3)$ 与 $SU(2)$ 李代数。
 - **详细数学表达式**：
   - 勒让德多项式与缔合勒让德函数（含 Condon-Shortley 相位 $(-1)^m$）：
-    $$P_l(x) = \frac{1}{2^l l!} \frac{d^l}{dx^l}(x^2 - 1)^l, \quad P_l^m(x) = (-1)^m (1 - x^2)^{m/2} \frac{d^m}{dx^m} P_l(x)$$
+
+$$
+P_l(x) = \frac{1}{2^l l!} \frac{d^l}{dx^l}(x^2 - 1)^l, \quad P_l^m(x) = (-1)^m (1 - x^2)^{m/2} \frac{d^m}{dx^m} P_l(x)
+$$
+
   - 正则球面调和函数：$Y_{lm}(\theta, \phi) = \sqrt{\frac{2l+1}{4\pi}\frac{(l-m)!}{(l+m)!}} P_l^m(\cos\theta) e^{i m \phi}$
   - Wigner 3j 符号与 Clebsch-Gordan 耦合系数恒等式：
-    $$\langle j_1 m_1 j_2 m_2 | j_3 m_3 \rangle = (-1)^{j_1 - j_2 + m_3} \sqrt{2j_3 + 1} \begin{pmatrix} j_1 & j_2 & j_3 \\ m_1 & m_2 & -m_3 \end{pmatrix}$$
+
+$$
+\langle j_1 m_1 j_2 m_2 | j_3 m_3 \rangle = (-1)^{j_1 - j_2 + m_3} \sqrt{2j_3 + 1} \begin{pmatrix} j_1 & j_2 & j_3 \\ m_1 & m_2 & -m_3 \end{pmatrix}
+$$
+
     严格服从三角定则 $|j_1 - j_2| \le j_3 \le j_1 + j_2$ 与磁量子数加和守恒 $m_1 + m_2 = m_3$。
   - 刚体转子取向矩阵元（基于 Wigner-Eckart 定理求得的精确解析闭式解）：
-    $$\langle j, m | \cos\theta | j', m \rangle = \sqrt{\frac{2j'+1}{2j+1}} \langle j' m 1 0 | j m \rangle \langle j' 0 1 0 | j 0 \rangle = \begin{cases} \sqrt{\frac{j^2 - m^2}{(2j-1)(2j+1)}}, & j' = j - 1 \\ \sqrt{\frac{(j+1)^2 - m^2}{(2j+1)(2j+3)}}, & j' = j + 1 \\ 0, & \text{otherwise} \end{cases}$$
-    $$\langle j, m | \cos^2\theta | j', m \rangle = \frac{1}{3}\delta_{j j'} + \frac{2}{3}\sqrt{\frac{2j'+1}{2j+1}} \langle j' m 2 0 | j m \rangle \langle j' 0 2 0 | j 0 \rangle$$
+
+$$
+\langle j, m | \cos\theta | j', m \rangle = \sqrt{\frac{2j'+1}{2j+1}} \langle j' m 1 0 | j m \rangle \langle j' 0 1 0 | j 0 \rangle = \begin{cases} \sqrt{\frac{j^2 - m^2}{(2j-1)(2j+1)}}, & j' = j - 1 \\ \sqrt{\frac{(j+1)^2 - m^2}{(2j+1)(2j+3)}}, & j' = j + 1 \\ 0, & \text{otherwise} \end{cases}
+$$
+
+$$
+\langle j, m | \cos^2\theta | j', m \rangle = \frac{1}{3}\delta_{j j'} + \frac{2}{3}\sqrt{\frac{2j'+1}{2j+1}} \langle j' m 2 0 | j m \rangle \langle j' 0 2 0 | j 0 \rangle
+$$
+
 - **核心 API 映射**：`legendre_poly`, `assoc_legendre_poly`, `spherical_harmonic`, `wigner_3j`, `clebsch_gordan`, `wigner_6j`, `wigner_9j`, `rot_matrix_cos_theta`, `rot_matrix_cos2_theta`。
 
 ### 3. 线性代数与快速傅里叶变换 (`mod_linear_algebra`)
 - **理论基础与物理机制**：量子离散哈密顿算符的本征能级求解对应实对称稠密矩阵谱分解，采用 Householder 正交相似变换降低带宽，结合隐式位移 QL 迭代收敛；动量与坐标空间表象转换基于分治 Cooley-Tukey 快速傅里叶变换。
 - **详细数学表达式**：
   - Householder 镜像反射正交矩阵：
-    $$\mathbf{P}_k = \mathbf{I} - 2 \frac{\mathbf{u}_k \mathbf{u}_k^T}{\mathbf{u}_k^T \mathbf{u}_k}, \quad \mathbf{T} = \mathbf{P}_{n-2} \cdots \mathbf{P}_1 \mathbf{A} \mathbf{P}_1 \cdots \mathbf{P}_{n-2}$$
+
+$$
+\mathbf{P}_k = \mathbf{I} - 2 \frac{\mathbf{u}_k \mathbf{u}_k^T}{\mathbf{u}_k^T \mathbf{u}_k}, \quad \mathbf{T} = \mathbf{P}_{n-2} \cdots \mathbf{P}_1 \mathbf{A} \mathbf{P}_1 \cdots \mathbf{P}_{n-2}
+$$
+
     将 $n \times n$ 实对称矩阵 $\mathbf{A}$ 严格正交相似变换为三对角矩阵 $\mathbf{T}$。
   - 隐式位移 QL 迭代算法：
-    $$\mathbf{T}_k - s_k \mathbf{I} = \mathbf{Q}_k \mathbf{L}_k \implies \mathbf{T}_{k+1} = \mathbf{L}_k \mathbf{Q}_k + s_k \mathbf{I} \xrightarrow{k \to \infty} \mathbf{\Lambda} = \text{diag}(\lambda_1, \lambda_2, \dots, \lambda_n)$$
+
+$$
+\mathbf{T}_k - s_k \mathbf{I} = \mathbf{Q}_k \mathbf{L}_k \implies \mathbf{T}_{k+1} = \mathbf{L}_k \mathbf{Q}_k + s_k \mathbf{I} \xrightarrow{k \to \infty} \mathbf{\Lambda} = \text{diag}(\lambda_1, \lambda_2, \dots, \lambda_n)
+$$
+
   - Cooley-Tukey 1D 离散傅里叶变换（蝶形运算）：
-    $$X_k = \sum_{n=0}^{N-1} x_n \exp\left( -i \frac{2\pi k n}{N} \right) = E_k + e^{-i \frac{2\pi k}{N}} O_k, \quad k = 0, \dots, N/2 - 1$$
+
+$$
+X_k = \sum_{n=0}^{N-1} x_n \exp\left( -i \frac{2\pi k n}{N} \right) = E_k + e^{-i \frac{2\pi k}{N}} O_k, \quad k = 0, \dots, N/2 - 1
+$$
+
 - **核心 API 映射**：`diag_symmetric_matrix`（升序输出全部本征值与本征向量）, `inv_real_matrix`, `inv_complex_matrix`, `fft_1d`, `fft_2d`。
 
 ### 4. 离散变量表象与谱方法网格 (`mod_dvr_grid`)
 - **理论基础与物理机制**：离散变量表象 (Discrete Variable Representation, DVR) 将无限维量子算符在局域正交格点空间投影，使得任意局域势能算符严格对角化 $V_{ij} = V(x_i)\delta_{ij}$，而动能算符具有全局解析形式。
 - **详细数学表达式**：
   - Colbert-Miller Sinc-DVR 基函数定义：
-    $$\theta_i(x) = \frac{1}{\sqrt{\Delta x}} \text{sinc}\left(\frac{\pi(x - x_i)}{\Delta x}\right) = \frac{\sin[\pi(x - x_i)/\Delta x]}{\pi (x - x_i)/\sqrt{\Delta x}}$$
+
+$$
+\theta_i(x) = \frac{1}{\sqrt{\Delta x}} \text{sinc}\left(\frac{\pi(x - x_i)}{\Delta x}\right) = \frac{\sin[\pi(x - x_i)/\Delta x]}{\pi (x - x_i)/\sqrt{\Delta x}}
+$$
+
   - 动能算符解析矩阵元（二阶微分算子）：
-    $$T_{ij} = -\frac{\hbar^2}{2m} \int_{-\infty}^\infty \theta_i(x) \frac{d^2}{dx^2} \theta_j(x) dx = \frac{\hbar^2}{2m \Delta x^2} \begin{cases} \frac{\pi^2}{3}, & i = j \\ \frac{2(-1)^{i-j}}{(i - j)^2}, & i \ne j \end{cases}$$
+
+$$
+T_{ij} = -\frac{\hbar^2}{2m} \int_{-\infty}^\infty \theta_i(x) \frac{d^2}{dx^2} \theta_j(x) dx = \frac{\hbar^2}{2m \Delta x^2} \begin{cases} \frac{\pi^2}{3}, & i = j \\ \frac{2(-1)^{i-j}}{(i - j)^2}, & i \ne j \end{cases}
+$$
+
   - Gauss-Legendre DVR 节点 $x_i$ 与积分权重：$P_N(x_i) = 0, \quad w_i = \frac{2}{(1 - x_i^2)[P_N'(x_i)]^2}$
   - Fourier Grid Hamiltonian (FGH) 束缚态本征方程：
-    $$\sum_{j=1}^N \left( T_{ij} + V(x_i)\delta_{ij} \right) \psi_j^{(n)} = E_n \psi_i^{(n)}$$
+
+$$
+\sum_{j=1}^N \left( T_{ij} + V(x_i)\delta_{ij} \right) \psi_j^{(n)} = E_n \psi_i^{(n)}
+$$
+
 - **核心 API 映射**：`dvr_sinc_init`, `dvr_legendre_init`, `fgh_solve_bound_states`。
 
 ### 5. 激光脉冲合成与动力学 Stark 效应 (`mod_laser_pulse`)
 - **理论基础与物理机制**：超短强激光脉冲与物质相互作用，包含时变包络、载波包络相位（CEP）、线性啁啾、双色反向旋转场以及非共振 AC Stark 诱导能级移动。
 - **详细数学表达式**：
   - 瞬时电场与包络函数：
-    $$E(t) = E_0 f(t) \cos(\omega(t)(t - t_0) + \phi_{\text{CEP}})$$
+
+$$
+E(t) = E_0 f(t) \cos(\omega(t)(t - t_0) + \phi_{\text{CEP}})
+$$
+
     - 高斯包络：$f(t) = \exp\left(-2\ln 2 \frac{(t - t_0)^2}{\tau^2}\right)$（$\tau$ 为半高全宽 FWHM）
     - $\sin^2$ 包络：$f(t) = \sin^2\left(\frac{\pi t}{T}\right) \Theta(t)\Theta(T - t)$
   - 线性频率啁啾：$\omega(t) = \omega_0 + \beta (t - t_0)$，矢势 $A(t) = -\int_{-\infty}^t E(t') dt'$
   - 双色合成相干光场：$E(t) = E_1 f_1(t) \cos(\omega t) + E_2 f_2(t) \cos(2\omega t + \phi_{12})$
   - 动力学极化张量 AC Stark 位移：
-    $$\Delta E_{\text{Stark}}(t, \theta) = -\frac{1}{2} E(t)^2 \left[ \Delta\alpha \cos^2\theta + \alpha_\perp \right], \quad \Delta\alpha = \alpha_\parallel - \alpha_\perp$$
+
+$$
+\Delta E_{\text{Stark}}(t, \theta) = -\frac{1}{2} E(t)^2 \left[ \Delta\alpha \cos^2\theta + \alpha_\perp \right], \quad \Delta\alpha = \alpha_\parallel - \alpha_\perp
+$$
+
 - **核心 API 映射**：`pulse_envelope`, `pulse_electric_field`, `pulse_vector_potential`, `pulse_stark_shift`, `pulse_generate_timeseries`。
 
 ### 6. 复吸收势边界与量子概率流密度 (`mod_absorbing_boundary`)
@@ -263,20 +310,36 @@ GeneralModule/
 - **详细数学表达式**：
   - 有效非厄米哈密顿量：$\hat{H}_{\text{eff}} = \hat{H}_0 - i W(r)$
   - 多项式型与 $\sin^2$ 型 CAP：
-    $$W_{\text{poly}}(r) = \eta \left(\frac{r - r_{\text{start}}}{r_{\text{end}} - r_{\text{start}}}\right)^n \Theta(r - r_{\text{start}}), \quad W_{\sin^2}(r) = \eta \sin^2\left(\frac{\pi(r - r_{\text{start}})}{2(r_{\text{end}} - r_{\text{start}})}\right)$$
+
+$$
+W_{\text{poly}}(r) = \eta \left(\frac{r - r_{\text{start}}}{r_{\text{end}} - r_{\text{start}}}\right)^n \Theta(r - r_{\text{start}}), \quad W_{\sin^2}(r) = \eta \sin^2\left(\frac{\pi(r - r_{\text{start}})}{2(r_{\text{end}} - r_{\text{start}})}\right)
+$$
+
   - 平滑吸收掩膜作用算符：$\psi(r, t + \Delta t) \leftarrow \psi(r, t) \cdot \exp\left( - \frac{W(r)\Delta t}{\hbar} \right)$
   - 量子概率流密度与连续性方程衰减律：
-    $$\mathbf{j}(r, t) = \frac{\hbar}{\mu} \text{Im}\left[ \psi^*(r, t) \nabla \psi(r, t) \right], \quad \frac{\partial |\psi|^2}{\partial t} + \nabla \cdot \mathbf{j} = -\frac{2}{\hbar} W(r) |\psi|^2$$
+
+$$
+\mathbf{j}(r, t) = \frac{\hbar}{\mu} \text{Im}\left[ \psi^*(r, t) \nabla \psi(r, t) \right], \quad \frac{\partial |\psi|^2}{\partial t} + \nabla \cdot \mathbf{j} = -\frac{2}{\hbar} W(r) |\psi|^2
+$$
+
 - **核心 API 映射**：`cap_init`, `cap_evaluate`, `cap_apply_mask`, `calculate_probability_flux`, `calculate_norm_inside`。
 
 ### 7. 热统计力学与系综平均 (`mod_thermal_ensemble`)
 - **理论基础与物理机制**：处于热平衡温度 $T$ 下的气相分子或粒子处于正则统计系综，各量子态按玻尔兹曼因子分配权重，宏观可观测量由量子力学期待值的系综统计加权给出。
 - **详细数学表达式**：
   - 刚体转动配分函数与初态权重（考虑 $(2J+1)$ 空间简并度）：
-    $$Z_{\text{rot}}(T) = \sum_{J=0}^{J_{\max}} (2J+1) \exp\left( - \frac{B J(J+1)}{k_B T} \right), \quad w_J(T) = \frac{(2J+1)}{Z_{\text{rot}}(T)} \exp\left( - \frac{B J(J+1)}{k_B T} \right)$$
+
+$$
+Z_{\text{rot}}(T) = \sum_{J=0}^{J_{\max}} (2J+1) \exp\left( - \frac{B J(J+1)}{k_B T} \right), \quad w_J(T) = \frac{(2J+1)}{Z_{\text{rot}}(T)} \exp\left( - \frac{B J(J+1)}{k_B T} \right)
+$$
+
   - 简谐振动配分函数：$Z_{\text{vib}}(T) = \sum_{v=0}^{v_{\max}} \exp\left( - \frac{\hbar\omega_e (v + 1/2)}{k_B T} \right) = \frac{e^{-\hbar\omega_e/(2k_B T)}}{1 - e^{-\hbar\omega_e/(k_B T)}}$
   - 热系综物理可观测量加权平均：
-    $$\langle \hat{O} \rangle(T, t) = \sum_{J=0}^{J_{\max}} w_J(T) \langle \psi_J(t) | \hat{O} | \psi_J(t) \rangle$$
+
+$$
+\langle \hat{O} \rangle(T, t) = \sum_{J=0}^{J_{\max}} w_J(T) \langle \psi_J(t) | \hat{O} | \psi_J(t) \rangle
+$$
+
   - Bose-Einstein 玻色子环境统计因子：$n_{\text{BE}}(\omega, T) = \left[ \exp\left(\frac{\hbar\omega}{k_B T}\right) - 1 \right]^{-1}$
 - **核心 API 映射**：`boltzmann_rotational_weights`, `boltzmann_vibrational_weights`, `thermal_average_1d`, `thermal_average_2d`, `bose_einstein_factor`。
 
@@ -284,10 +347,18 @@ GeneralModule/
 - **理论基础与物理机制**：含时薛定谔方程严格酉算符推进采用二阶辛对称 Strang 分裂算符算法；二能级系统相干驱动与耗散采用保模长光学 Bloch 矢量推进。
 - **详细数学表达式**：
   - 2 阶辛对称 Strang 分裂算符（Trotter 分解）：
-    $$\hat{U}(\Delta t) = \exp\left( -\frac{i\hat{H}\Delta t}{\hbar} \right) = \exp\left( -\frac{i\hat{V}\Delta t}{2\hbar} \right) \exp\left( -\frac{i\hat{T}\Delta t}{\hbar} \right) \exp\left( -\frac{i\hat{V}\Delta t}{2\hbar} \right) + \mathcal{O}(\Delta t^3)$$
+
+$$
+\hat{U}(\Delta t) = \exp\left( -\frac{i\hat{H}\Delta t}{\hbar} \right) = \exp\left( -\frac{i\hat{V}\Delta t}{2\hbar} \right) \exp\left( -\frac{i\hat{T}\Delta t}{\hbar} \right) \exp\left( -\frac{i\hat{V}\Delta t}{2\hbar} \right) + \mathcal{O}(\Delta t^3)
+$$
+
     其中动能演化在动量空间通过 FFT 对角作用：$\tilde{\psi}(p) = \mathcal{F}[\psi(x)], \quad \tilde{\psi}'(p) = \tilde{\psi}(p) e^{-i \frac{p^2}{2m}\frac{\Delta t}{\hbar}}$。
   - 光学 Bloch 矢量方程（$\mathbf{R} = [u, v, w]^T$）：
-    $$\frac{du}{dt} = -\Delta v - \frac{u}{T_2}, \quad \frac{dv}{dt} = \Delta u + \Omega_R(t) w - \frac{v}{T_2}, \quad \frac{dw}{dt} = -\Omega_R(t) v - \frac{w - w_0}{T_1}$$
+
+$$
+\frac{du}{dt} = -\Delta v - \frac{u}{T_2}, \quad \frac{dv}{dt} = \Delta u + \Omega_R(t) w - \frac{v}{T_2}, \quad \frac{dw}{dt} = -\Omega_R(t) v - \frac{w - w_0}{T_1}
+$$
+
     其中 $u = 2\text{Re}(\rho_{12})$ 为同相色散分量，$v = 2\text{Im}(\rho_{21})$ 为正交吸收分量，$w = \rho_{22} - \rho_{11}$ 为反转粒子数差。
 - **核心 API 映射**：`propagate_split_operator_1d`, `propagate_split_operator_2d`, `rk4_step`, `solve_bloch_two_level`, `abm4_step`。
 
@@ -295,12 +366,24 @@ GeneralModule/
 - **理论基础与物理机制**：在超快强激光场（$I \ge 10^{14}\text{ W/cm}^2$）下，外电场强度可与原子核库仑场比拟，束缚电子发生非微扰隧穿电离；采用单活性电子（SAE）模型势与经典三步模型标度。
 - **详细数学表达式**：
   - 一维软核库仑模型势与受力：
-    $$V_{\text{soft}}(x) = -\frac{Z_{\text{eff}}}{\sqrt{x^2 + a^2}}, \quad F_{\text{soft}}(x) = -\frac{dV_{\text{soft}}}{dx} = -\frac{Z_{\text{eff}} x}{(x^2 + a^2)^{3/2}}$$
+
+$$
+V_{\text{soft}}(x) = -\frac{Z_{\text{eff}}}{\sqrt{x^2 + a^2}}, \quad F_{\text{soft}}(x) = -\frac{dV_{\text{soft}}}{dx} = -\frac{Z_{\text{eff}} x}{(x^2 + a^2)^{3/2}}
+$$
+
   - Keldysh 绝热参数（划分多光子电离 $\gamma \gg 1$ 与准静态隧穿电离 $\gamma \ll 1$）：
-    $$\gamma = \frac{\omega \sqrt{2 I_p}}{F_0} = \sqrt{\frac{I_p}{2 U_p}}, \quad U_p = \frac{F_0^2}{4\omega^2} = \frac{e^2 \mathcal{E}_0^2}{4 m_e \omega^2}$$
+
+$$
+\gamma = \frac{\omega \sqrt{2 I_p}}{F_0} = \sqrt{\frac{I_p}{2 U_p}}, \quad U_p = \frac{F_0^2}{4\omega^2} = \frac{e^2 \mathcal{E}_0^2}{4 m_e \omega^2}
+$$
+
   - 高次谐波与高能重碰撞电子截止能量定律：$E_{\text{cutoff}} = I_p + 3.17 U_p$
   - 准静态 ADK (Ammosov-Delone-Krainov) 隧穿电离率公式：
-    $$W_{\text{ADK}}(F) = C_{n^* l}^2 f(l, m) I_p \left( \frac{2(2I_p)^{3/2}}{F} \right)^{2n^* - |m| - 1} \exp\left( - \frac{2(2I_p)^{3/2}}{3 F} \right)$$
+
+$$
+W_{\text{ADK}}(F) = C_{n^* l}^2 f(l, m) I_p \left( \frac{2(2I_p)^{3/2}}{F} \right)^{2n^* - |m| - 1} \exp\left( - \frac{2(2I_p)^{3/2}}{3 F} \right)
+$$
+
     其中有效主量子数 $n^* = Z_{\text{eff}} / \sqrt{2 I_p}$，系数 $C_{n^* l}^2 = \frac{2^{2n^*}}{n^* \Gamma(n^* + l^* + 1) \Gamma(n^* - l^*)}$。
 - **核心 API 映射**：`get_atom_config`, `soft_core_coulomb_potential`, `soft_core_coulomb_derivative`, `keldysh_parameter`, `ponderomotive_energy`, `hhg_cutoff_energy`, `adk_ionization_rate`。
 
@@ -308,51 +391,107 @@ GeneralModule/
 - **理论基础与物理机制**：强场高次谐波发射（HHG）来源于电离电子在激光场中的三步物理过程：隧穿电离、激光加速与回碰复合；瞬时偶极辐射通过 Ehrenfest 定理或 Lewenstein 强场近似（SFA）求解。
 - **详细数学表达式**：
   - 长度表象与加速度表象瞬时偶极响应（Ehrenfest 定理）：
-    $$d(t) = \langle \psi(t) | \hat{x} | \psi(t) \rangle, \quad a(t) = \frac{d^2 d}{dt^2} = -\langle \psi(t) | \left( \frac{\partial V}{\partial x} + E(t) \right) | \psi(t) \rangle$$
+
+$$
+d(t) = \langle \psi(t) | \hat{x} | \psi(t) \rangle, \quad a(t) = \frac{d^2 d}{dt^2} = -\langle \psi(t) | \left( \frac{\partial V}{\partial x} + E(t) \right) | \psi(t) \rangle
+$$
+
   - Lewenstein SFA 强场近似鞍点重碰撞偶极矩闭合公式：
-    $$d(t) = i \int_0^\infty d\tau \left( \frac{\pi}{\epsilon + i\tau/2} \right)^{3/2} d_x^*(p_{\text{st}}(t, \tau) + A(t)) e^{-i S(p_{\text{st}}, t, \tau)} E(t - \tau) d_x(p_{\text{st}}(t, \tau) + A(t - \tau)) + \text{c.c.}$$
+
+$$
+d(t) = i \int_0^\infty d\tau \left( \frac{\pi}{\epsilon + i\tau/2} \right)^{3/2} d_x^*(p_{\text{st}}(t, \tau) + A(t)) e^{-i S(p_{\text{st}}, t, \tau)} E(t - \tau) d_x(p_{\text{st}}(t, \tau) + A(t - \tau)) + \text{c.c.}
+$$
+
     其中准经典准自由连续态平稳动量为 $p_{\text{st}}(t, \tau) = -\frac{1}{\tau}\int_{t-\tau}^t A(t') dt'$，准经典作用量为 $S(p_{\text{st}}, t, \tau) = \int_{t-\tau}^t \left[ \frac{(p_{\text{st}} + A(t'))^2}{2} + I_p \right] dt'$。
   - 阿秒脉冲高次谐波辐射发射功率谱：
-    $$S(\omega) = \left| \frac{1}{\sqrt{2\pi}} \int_0^T a(t) W_{\text{Hann}}(t) e^{-i \omega t} dt \right|^2$$
+
+$$
+S(\omega) = \left| \frac{1}{\sqrt{2\pi}} \int_0^T a(t) W_{\text{Hann}}(t) e^{-i \omega t} dt \right|^2
+$$
+
   - Gabor 小波时频变换（解析阿秒量子轨道与正反向啁啾路径）：
-    $$G(t_0, \omega) = \int a(t) \exp\left( - \frac{(t - t_0)^2}{2\sigma^2} \right) e^{-i \omega t} dt$$
+
+$$
+G(t_0, \omega) = \int a(t) \exp\left( - \frac{(t - t_0)^2}{2\sigma^2} \right) e^{-i \omega t} dt
+$$
+
 - **核心 API 映射**：`calculate_dipole_length`, `calculate_dipole_acceleration`, `hhg_power_spectrum`, `gabor_transform_point`, `lewenstein_sfa_dipole`。
 
 ### 11. 切比雪夫推进器与能谱滤波 (`mod_chebyshev_propagator`)
 - **理论基础与物理机制**：切比雪夫多项式展开是全域全局近似演化算符 $\hat{U}(\Delta t) = e^{-i\hat{H}\Delta t/\hbar}$ 的最高精度方案，时间步长可跨越数百飞秒而保持机器精度的酉性与范数守恒；结合 Schafer-Kulander 能量窗算子可从单次含时波包演化中高精度滤波提取定态连续光电子动能谱 (PES)。
 - **详细数学表达式**：
   - 谱重标度哈密顿量（将谱域映射至 $[-1, 1]$）：
-    $$\hat{H}_{\text{norm}} = \frac{\hat{H} - \bar{E}}{\Delta E}, \quad \bar{E} = \frac{E_{\max} + E_{\min}}{2}, \quad \Delta E = \frac{E_{\max} - E_{\min}}{2}$$
+
+$$
+\hat{H}_{\text{norm}} = \frac{\hat{H} - \bar{E}}{\Delta E}, \quad \bar{E} = \frac{E_{\max} + E_{\min}}{2}, \quad \Delta E = \frac{E_{\max} - E_{\min}}{2}
+$$
+
   - 第一类切比雪夫多项式递推展开含时演化算符：
-    $$e^{-i \hat{H} \Delta t / \hbar} |\psi(t)\rangle = e^{-i \bar{E} \Delta t / \hbar} \sum_{n=0}^M c_n\left(\frac{\Delta E \Delta t}{\hbar}\right) T_n(-i \hat{H}_{\text{norm}}) |\psi(t)\rangle$$
+
+$$
+e^{-i \hat{H} \Delta t / \hbar} |\psi(t)\rangle = e^{-i \bar{E} \Delta t / \hbar} \sum_{n=0}^M c_n\left(\frac{\Delta E \Delta t}{\hbar}\right) T_n(-i \hat{H}_{\text{norm}}) |\psi(t)\rangle
+$$
+
     其中递推基底为 $T_0(x) = 1, T_1(x) = x, T_{n+1}(x) = 2x T_n(x) - T_{n-1}(x)$，展开系数为第一类 Bessel 函数 $c_n(\alpha) = (2 - \delta_{n0}) (-i)^n J_n(\alpha)$。
   - Schafer-Kulander 能量窗投影算子（动能谱 PES 提取）：
-    $$\hat{\mathcal{P}}(E_k, \gamma) = \frac{\gamma^{2^m}}{(\hat{H} - E_k)^{2^m} + \gamma^{2^m}} \implies P(E_k) = \langle \psi | \hat{\mathcal{P}}(E_k, \gamma) | \psi \rangle$$
+
+$$
+\hat{\mathcal{P}}(E_k, \gamma) = \frac{\gamma^{2^m}}{(\hat{H} - E_k)^{2^m} + \gamma^{2^m}} \implies P(E_k) = \langle \psi | \hat{\mathcal{P}}(E_k, \gamma) | \psi \rangle
+$$
+
 - **核心 API 映射**：`chebyshev_propagate_step`, `window_operator_pes`。
 
 ### 12. 多势能面非绝热动力学 (`mod_multistate_coupling`)
 - **理论基础与物理机制**：多电子态分子体系在避免交叉（Avoided Crossing）或锥形交叉区域，核运动与电子运动的 Born-Oppenheimer 绝热近似失效；核波包在多势能面间发生相干分束与无辐射非绝热跃迁。
 - **详细数学表达式**：
   - 透热哈密顿量与绝热势能面变换：
-    $$\mathbf{H}_{\text{dia}}(R) = \begin{pmatrix} V_{11}(R) & V_{12}(R) \\ V_{12}(R) & V_{22}(R) \end{pmatrix} \xrightarrow{\mathbf{U}(R)} \mathbf{V}_{\text{adia}}(R) = \begin{pmatrix} E_-(R) & 0 \\ 0 & E_+(R) \end{pmatrix}$$
+
+$$
+\mathbf{H}_{\text{dia}}(R) = \begin{pmatrix} V_{11}(R) & V_{12}(R) \\ V_{12}(R) & V_{22}(R) \end{pmatrix} \xrightarrow{\mathbf{U}(R)} \mathbf{V}_{\text{adia}}(R) = \begin{pmatrix} E_-(R) & 0 \\ 0 & E_+(R) \end{pmatrix}
+$$
+
     绝热本征能级为：$E_\pm(R) = \frac{V_{11} + V_{22}}{2} \pm \sqrt{\left(\frac{V_{11} - V_{22}}{2}\right)^2 + V_{12}^2}$，最小避免交叉能隙为 $\Delta E_{\min} = 2 |V_{12}(R_c)|$。
   - 经典 Landau-Zener 非绝热跃迁概率公式：
-    $$P_{\text{LZ}} = \exp\left( - \frac{2\pi |V_{12}(R_c)|^2}{\hbar v |\Delta F|} \right), \quad \Delta F = \left.\left| \frac{dV_{11}}{dR} - \frac{dV_{22}}{dR} \right|\right|_{R = R_c}$$
+
+$$
+P_{\text{LZ}} = \exp\left( - \frac{2\pi |V_{12}(R_c)|^2}{\hbar v |\Delta F|} \right), \quad \Delta F = \left.\left| \frac{dV_{11}}{dR} - \frac{dV_{22}}{dR} \right|\right|_{R = R_c}
+$$
+
   - 双通道非绝热核波包推进格式（利用解析矩阵指数）：
-    $$\begin{pmatrix} \psi_1(t+\Delta t) \\ \psi_2(t+\Delta t) \end{pmatrix} = \exp\left( -\frac{i \mathbf{V}(R)\Delta t}{2\hbar} \right) \exp\left( -\frac{i \hat{T}\Delta t}{\hbar} \right) \exp\left( -\frac{i \mathbf{V}(R)\Delta t}{2\hbar} \right) \begin{pmatrix} \psi_1(t) \\ \psi_2(t) \end{pmatrix}$$
+
+$$
+\begin{pmatrix} \psi_1(t+\Delta t) \\ \psi_2(t+\Delta t) \end{pmatrix} = \exp\left( -\frac{i \mathbf{V}(R)\Delta t}{2\hbar} \right) \exp\left( -\frac{i \hat{T}\Delta t}{\hbar} \right) \exp\left( -\frac{i \mathbf{V}(R)\Delta t}{2\hbar} \right) \begin{pmatrix} \psi_1(t) \\ \psi_2(t) \end{pmatrix}
+$$
+
 - **核心 API 映射**：`propagate_split_operator_2channel`, `landau_zener_probability`, `calculate_channel_populations`。
 
 ### 13. 分子转振耦合、STIRAP 与 Franck-Condon 谱学 (`mod_rovibrational`)
 - **理论基础与物理机制**：双原子分子转动与振动自由度耦合，激光场诱导电偶极跃迁遵循角动量选择定则 $\Delta J = \pm 1$；利用受激拉曼绝热通道（STIRAP）通过相干暗态实现高保真度无激发态损耗的基态制备。
 - **详细数学表达式**：
   - 双原子分子 Morse 势能与离心势能：
-    $$V(R) = D_e \left[ 1 - e^{-a(R - R_e)} \right]^2, \quad V_{\text{eff}}(R) = V(R) + \frac{\hbar^2 J(J+1)}{2\mu R^2}$$
+
+$$
+V(R) = D_e \left[ 1 - e^{-a(R - R_e)} \right]^2, \quad V_{\text{eff}}(R) = V(R) + \frac{\hbar^2 J(J+1)}{2\mu R^2}
+$$
+
   - 转振态对角能级与态依有效转动常数：
-    $$E(v, J) = E_v + B_v J(J+1), \quad B_v = \langle \chi_v | \frac{\hbar^2}{2\mu R^2} | \chi_v \rangle$$
+
+$$
+E(v, J) = E_v + B_v J(J+1), \quad B_v = \langle \chi_v | \frac{\hbar^2}{2\mu R^2} | \chi_v \rangle
+$$
+
   - Franck-Condon 因子与振动跃迁偶极矩：
-    $$FC(v, v') = |\langle \chi_v | \chi_{v'} \rangle|^2, \quad M(v, v') = \langle \chi_v | \mu(R) | \chi_{v'} \rangle$$
+
+$$
+FC(v, v') = |\langle \chi_v | \chi_{v'} \rangle|^2, \quad M(v, v') = \langle \chi_v | \mu(R) | \chi_{v'} \rangle
+$$
+
   - STIRAP 三能级相干暗态（Dark State）无辐射传输：
-    $$|D(t)\rangle = \cos\Theta(t) |1\rangle - \sin\Theta(t) |3\rangle, \quad \tan\Theta(t) = \frac{\Omega_P(t)}{\Omega_S(t)}$$
+
+$$
+|D(t)\rangle = \cos\Theta(t) |1\rangle - \sin\Theta(t) |3\rangle, \quad \tan\Theta(t) = \frac{\Omega_P(t)}{\Omega_S(t)}
+$$
+
     在逆直觉时序（Stokes 脉冲 $\Omega_S(t)$ 先于 Pump 脉冲 $\Omega_P(t)$ 入射）下，体系严格沿着暗态演化，中间损耗激发态 $|2\rangle$ 始终零布居。
 - **核心 API 映射**：`morse_potential`, `calc_franck_condon_factors`, `calc_vibrational_dipole_matrix`, `calc_rotational_constants_bv`, `build_rovibrational_hamiltonian`, `build_rovibrational_dipole_matrix`, `build_rovibrational_polarizability_matrix`, `create_stirap_pulses`, `rovibrational_state_index`。
 
@@ -367,30 +506,58 @@ GeneralModule/
 - **理论基础与物理机制**：从离散从头算量子化学电子结构点重构光滑连续的势能面与力场，采用自然边界或导数钳位三次样条，并在物理极限区平滑连接短程斥力核与长程多极色散。
 - **详细数学表达式**：
   - 三次样条段式插值多项式（$x \in [x_i, x_{i+1}]$）：
-    $$S_i(x) = a_i + b_i(x - x_i) + c_i(x - x_i)^2 + d_i(x - x_i)^3$$
+
+$$
+S_i(x) = a_i + b_i(x - x_i) + c_i(x - x_i)^2 + d_i(x - x_i)^3
+$$
+
     满足一阶导数连续 $S_i'(x_{i+1}) = S_{i+1}'(x_{i+1})$ 与二阶曲率连续 $S_i''(x_{i+1}) = S_{i+1}''(x_{i+1})$。
   - 三对角矩阵方程（Thomas 算法 $O(N)$ 极速求解）：
-    $$h_{i-1} c_{i-1} + 2(h_{i-1} + h_i) c_i + h_i c_{i+1} = 3\left( \frac{y_{i+1} - y_i}{h_i} - \frac{y_i - y_{i-1}}{h_{i-1}} \right)$$
+
+$$
+h_{i-1} c_{i-1} + 2(h_{i-1} + h_i) c_i + h_i c_{i+1} = 3\left( \frac{y_{i+1} - y_i}{h_i} - \frac{y_i - y_{i-1}}{h_{i-1}} \right)
+$$
+
   - 渐近平滑接合势外推函数：
-    $$V_{\text{extrap}}(R) = \begin{cases} A_{\text{rep}} e^{-B_{\text{rep}} R}, & R < R_{\min} \\ S(R), & R_{\min} \le R \le R_{\max} \\ V_\infty - \frac{C_6}{R^6} - \frac{C_8}{R^8}, & R > R_{\max} \end{cases}$$
+
+$$
+V_{\text{extrap}}(R) = \begin{cases} A_{\text{rep}} e^{-B_{\text{rep}} R}, & R < R_{\min} \\ S(R), & R_{\min} \le R \le R_{\max} \\ V_\infty - \frac{C_6}{R^6} - \frac{C_8}{R^8}, & R > R_{\max} \end{cases}
+$$
+
 - **核心 API 映射**：`spline_1d_init`, `spline_1d_eval`, `spline_1d_deriv`, `spline_1d_deriv2`, `potential_extrapolate_1d`。
 
 ### 16. 分子光解离动力学与碎片动能释放谱 (`mod_photofragment_flux`)
 - **理论基础与物理机制**：光子激发中性分子至排斥态后发生单分子碎裂；根据波包自相关函数傅里叶变换解析光吸收谱，并在渐近反应通道监测量子概率流提取碎片动能释放谱 (Kinetic Energy Release, KER)。
 - **详细数学表达式**：
   - 波包自相关函数与 Heller 连续吸收截面（光跃迁振子强度）：
-    $$C(t) = \langle \psi(0) | \psi(t) \rangle, \quad \sigma_{\text{abs}}(\omega) \propto \omega \int_{-\infty}^\infty C(t) e^{i(E_0 + \hbar\omega)t/\hbar} e^{-\gamma |t|} dt$$
+
+$$
+C(t) = \langle \psi(0) | \psi(t) \rangle, \quad \sigma_{\text{abs}}(\omega) \propto \omega \int_{-\infty}^\infty C(t) e^{i(E_0 + \hbar\omega)t/\hbar} e^{-\gamma |t|} dt
+$$
+
   - 碎片动能释放（KER）能量守恒律：
-    $$E_{\text{KER}} = \hbar\omega - D_0 - E_{\text{int}}(A) - E_{\text{int}}(B)$$
+
+$$
+E_{\text{KER}} = \hbar\omega - D_0 - E_{\text{int}}(A) - E_{\text{int}}(B)
+$$
+
   - 渐近边界监测面 $R_{\text{det}}$ 处时间-能量傅里叶散射振幅：
-    $$A(E) = \frac{1}{\sqrt{2\pi\hbar}} \int_0^\infty \psi(R_{\text{det}}, t) e^{i E t/\hbar} dt, \quad \frac{dP}{dE_{\text{KER}}} \propto \frac{\hbar k_E}{\mu} |A(E_{\text{KER}})|^2$$
+
+$$
+A(E) = \frac{1}{\sqrt{2\pi\hbar}} \int_0^\infty \psi(R_{\text{det}}, t) e^{i E t/\hbar} dt, \quad \frac{dP}{dE_{\text{KER}}} \propto \frac{\hbar k_E}{\mu} |A(E_{\text{KER}})|^2
+$$
+
 - **核心 API 映射**：`calc_autocorrelation`, `heller_absorption_spectrum`, `photofragment_energy_amplitude`, `fragment_kinetic_energy_release`, `photofragment_branching_ratio`。
 
 ### 17. 开放量子系统与 Lindblad 耗散主方程 (`mod_open_quantum`)
 - **理论基础与物理机制**：真实量子系统不可避免地受到环境库（真空电磁场、热声子浴）的耗散与退相干影响；密度矩阵在弱耦合与玻恩-马尔可夫近似下遵循完全正定保迹 (CPTP) Lindblad 主方程。
 - **详细数学表达式**：
   - Lindblad 超算符主方程：
-    $$\frac{d\hat{\rho}}{dt} = -\frac{i}{\hbar}[\hat{H}, \hat{\rho}] + \sum_k \gamma_k \left( \hat{L}_k \hat{\rho} \hat{L}_k^\dagger - \frac{1}{2} \{ \hat{L}_k^\dagger \hat{L}_k, \hat{\rho} \} \right)$$
+
+$$
+\frac{d\hat{\rho}}{dt} = -\frac{i}{\hbar}[\hat{H}, \hat{\rho}] + \sum_k \gamma_k \left( \hat{L}_k \hat{\rho} \hat{L}_k^\dagger - \frac{1}{2} \{ \hat{L}_k^\dagger \hat{L}_k, \hat{\rho} \} \right)
+$$
+
     其中弛豫算符 $\hat{L}_{i \to j} = |j\rangle\langle i|$ 对应自发辐射跃迁，退相位算符 $\hat{L}_{\text{deph}} = |i\rangle\langle i|$ 对应纯退相干。
   - 量子信息度量函数：
     - 纯度（Purity）：$\mathcal{P} = \text{Tr}(\hat{\rho}^2) \in [1/N, 1]$
@@ -402,84 +569,187 @@ GeneralModule/
 - **理论基础与物理机制**：量子态工程要求设计形状受限的超快激光脉冲，使得量子体系从初态以最高保真度转移至预定目标态；Krotov 算法通过引入伴随协态保证每步迭代代价泛函严格单调无振荡提升。
 - **详细数学表达式**：
   - 目标代价泛函（终态投影保真度与场强能耗惩罚）：
-    $$J[\psi, \epsilon] = |\langle \psi(T) | \phi_{\text{target}} \rangle|^2 - \int_0^T \frac{\alpha_0}{S(t)} [\epsilon(t) - \epsilon_{\text{ref}}(t)]^2 dt$$
+
+$$
+J[\psi, \epsilon] = |\langle \psi(T) | \phi_{\text{target}} \rangle|^2 - \int_0^T \frac{\alpha_0}{S(t)} [\epsilon(t) - \epsilon_{\text{ref}}(t)]^2 dt
+$$
+
     其中 $S(t) = \sin^2(\pi t / T)$ 为脉冲端点包络约束函数。
   - 伴随协态反向传播方程与终态边界条件：
-    $$i\hbar \frac{\partial |\chi(t)\rangle}{\partial t} = \hat{H}^\dagger |\chi(t)\rangle, \quad |\chi(T)\rangle = \langle \phi_{\text{target}} | \psi(T) \rangle |\phi_{\text{target}}\rangle$$
+
+$$
+i\hbar \frac{\partial |\chi(t)\rangle}{\partial t} = \hat{H}^\dagger |\chi(t)\rangle, \quad |\chi(T)\rangle = \langle \phi_{\text{target}} | \psi(T) \rangle |\phi_{\text{target}}\rangle
+$$
+
   - Krotov 激光电场原位更新公式（严格单调收敛 $\Delta J \ge 0$）：
-    $$\epsilon^{(k+1)}(t) = \epsilon^{(k)}(t) + \frac{S(t)}{\alpha_0} \text{Im}\left[ \langle \chi^{(k)}(t) | \hat{\mu} | \psi^{(k+1)}(t) \rangle \right]$$
+
+$$
+\epsilon^{(k+1)}(t) = \epsilon^{(k)}(t) + \frac{S(t)}{\alpha_0} \text{Im}\left[ \langle \chi^{(k)}(t) | \hat{\mu} | \psi^{(k+1)}(t) \rangle \right]
+$$
+
 - **核心 API 映射**：`oct_config_init`, `state_transfer_fidelity`, `oct_shape_function`, `oct_krotov_step`, `oct_optimize_pulse`。
 
 ### 19. 非含时散射理论与超冷碰撞 (`mod_ti_scattering`)
 - **理论基础与物理机制**：两体量子碰撞在渐近区遵从分波展开与光学定理；深阱区波函数通过 Johnson 矩阵对数导数法和 Manolopoulos 变步长分段扇区传播递推，彻底免疫经典禁区闭通道指数发散；在极低能区通过有效力程展开（ERE）与长程范德华解析色散提取散射长度。
 - **详细数学表达式**：
   - 径向定态薛定谔方程与 Riccati 渐近边界条件：
-    $$u_l''(r) + \left[ k^2 - \frac{l(l+1)}{r^2} - \frac{2\mu}{\hbar^2} V(r) \right] u_l(r) = 0, \quad u_l(r) \xrightarrow{r \to \infty} A_l \left[ \hat{j}_l(kr) \cos\delta_l - \hat{n}_l(kr) \sin\delta_l \right]$$
+
+$$
+u_l''(r) + \left[ k^2 - \frac{l(l+1)}{r^2} - \frac{2\mu}{\hbar^2} V(r) \right] u_l(r) = 0, \quad u_l(r) \xrightarrow{r \to \infty} A_l \left[ \hat{j}_l(kr) \cos\delta_l - \hat{n}_l(kr) \sin\delta_l \right]
+$$
+
     其中弹性散射反应矩阵 $K_l = \tan\delta_l$，幺正散射矩阵元 $S_l = e^{2i\delta_l}$，跃迁矩阵元 $T_l = S_l - 1$。
   - 分波弹性截面、总截面与光学定理：
-    $$\sigma_l = \frac{4\pi}{k^2}(2l+1)\sin^2\delta_l, \quad \sigma_{\text{tot}} = \sum_{l=0}^\infty \sigma_l = \frac{4\pi}{k} \text{Im}[f(0)]$$
+
+$$
+\sigma_l = \frac{4\pi}{k^2}(2l+1)\sin^2\delta_l, \quad \sigma_{\text{tot}} = \sum_{l=0}^\infty \sigma_l = \frac{4\pi}{k} \text{Im}[f(0)]
+$$
+
   - 超低动能区 $s$-波有效力程展开 (ERE)：
-    $$k \cot\delta_0(k) = -\frac{1}{a_s} + \frac{1}{2} r_0 k^2 - P_r r_0^3 k^4 + \mathcal{O}(k^6)$$
+
+$$
+k \cot\delta_0(k) = -\frac{1}{a_s} + \frac{1}{2} r_0 k^2 - P_r r_0^3 k^4 + \mathcal{O}(k^6)
+$$
+
   - Gribakin-Flambaum 范德华平均散射长度与半经典散射长度：
-    $$\bar{a} = \frac{2\pi}{\Gamma(1/4)^2}\left( \frac{2\mu C_6}{\hbar^2} \right)^{1/4} \approx 0.4779888 \cdot \left( \frac{2\mu C_6}{\hbar^2} \right)^{1/4}, \quad a_s = \bar{a}\left[ 1 - \tan\left( \Phi - \frac{\pi}{8} \right) \right]$$
+
+$$
+\bar{a} = \frac{2\pi}{\Gamma(1/4)^2}\left( \frac{2\mu C_6}{\hbar^2} \right)^{1/4} \approx 0.4779888 \cdot \left( \frac{2\mu C_6}{\hbar^2} \right)^{1/4}, \quad a_s = \bar{a}\left[ 1 - \tan\left( \Phi - \frac{\pi}{8} \right) \right]
+$$
+
   - Johnson 矩阵比值对数导数递推格式：
-    $$\mathbf{R}_{i+1} = \mathbf{M}_i - \mathbf{R}_i^{-1}, \quad \mathbf{M}_i = 12 \mathbf{Q}_i^{-1} - 10 \mathbf{I}, \quad \mathbf{Q}_i = \mathbf{I} - \frac{h^2}{12}\mathbf{W}(r_i)$$
+
+$$
+\mathbf{R}_{i+1} = \mathbf{M}_i - \mathbf{R}_i^{-1}, \quad \mathbf{M}_i = 12 \mathbf{Q}_i^{-1} - 10 \mathbf{I}, \quad \mathbf{Q}_i = \mathbf{I} - \frac{h^2}{12}\mathbf{W}(r_i)
+$$
+
   - Wigner-Smith 碰撞时延与 Breit-Wigner 形状共振线型：
-    $$\tau(E) = 2\hbar \frac{d\delta_l(E)}{dE} = -i\hbar S_l^\dagger(E) \frac{dS_l(E)}{dE} \approx \frac{2\hbar \Gamma}{(E - E_R)^2 + (\Gamma/2)^2}$$
+
+$$
+\tau(E) = 2\hbar \frac{d\delta_l(E)}{dE} = -i\hbar S_l^\dagger(E) \frac{dS_l(E)}{dE} \approx \frac{2\hbar \Gamma}{(E - E_R)^2 + (\Gamma/2)^2}
+$$
+
 - **核心 API 映射**：`riccati_bessel_neumann`, `calc_scattering_length_numerov`, `calc_scattering_length_logder`, `calc_phase_shift_single_l`, `calc_scattering_wavefunction_ti`, `calc_partial_wave_cross_sections`, `optical_theorem_cross_section`, `calc_differential_cross_section`, `fit_effective_range_expansion`, `van_der_waals_mean_length`, `gribakin_flambaum_length`, `analyze_shape_resonance`, `calc_coupled_channel_smatrix_2x2`, `calc_feshbach_resonance_scan`, `create_segmented_grid`, `calc_multichannel_close_coupling_segmented_logder`。
 
 ### 20. 含时波包散射理论与 S-矩阵 (`mod_td_scattering`)
 - **理论基础与物理机制**：含时波包动力学通过单次推进高斯波包直接求解全连续能域散射信息；利用时间-能量傅里叶半变换在渐近区精确提取透射几率谱 $T(E)$，并利用 Möller 动量投影算符提取非弹性 $S$ 矩阵元与非绝热通道分支比。
 - **详细数学表达式**：
   - 入射最小不确定度高斯散射波包与动量谱分布：
-    $$\psi(x, 0) = (2\pi\sigma_x^2)^{-1/4} \exp\left( -\frac{(x - x_0)^2}{4\sigma_x^2} + i k_0 x \right), \quad g(k) = (2\sigma_x^2/\pi)^{1/4} \exp\left( -\sigma_x^2 (k - k_0)^2 - i k x_0 \right)$$
+
+$$
+\psi(x, 0) = (2\pi\sigma_x^2)^{-1/4} \exp\left( -\frac{(x - x_0)^2}{4\sigma_x^2} + i k_0 x \right), \quad g(k) = (2\sigma_x^2/\pi)^{1/4} \exp\left( -\sigma_x^2 (k - k_0)^2 - i k x_0 \right)
+$$
+
   - 渐近边界通量监测面 $x_{\text{det}}$ 处时间-能量傅里叶散射振幅：
-    $$A(E) = \frac{1}{\sqrt{2\pi\hbar}} \int_0^\infty \psi(x_{\text{det}}, t) e^{i E t/\hbar} dt$$
+
+$$
+A(E) = \frac{1}{\sqrt{2\pi\hbar}} \int_0^\infty \psi(x_{\text{det}}, t) e^{i E t/\hbar} dt
+$$
+
   - 能量分辨连续谱透射几率与反射几率：
-    $$T(E) = \frac{\hbar k_E}{\mu |g(k_E)|^2} |A_{\text{trans}}(E)|^2, \quad R(E) = \frac{\hbar k_E}{\mu |g(k_E)|^2} |A_{\text{refl}}(E)|^2, \quad T(E) + R(E) = 1.0$$
+
+$$
+T(E) = \frac{\hbar k_E}{\mu |g(k_E)|^2} |A_{\text{trans}}(E)|^2, \quad R(E) = \frac{\hbar k_E}{\mu |g(k_E)|^2} |A_{\text{refl}}(E)|^2, \quad T(E) + R(E) = 1.0
+$$
+
   - 动力学散射矩阵元与含时 Wigner 散射时延：
-    $$S(E) = \frac{A_{\text{scatter}}(E)}{A_{\text{free}}(E)} = e^{2i\delta(E)}, \quad \tau_W(E) = 2\hbar \frac{d\delta(E)}{dE}$$
+
+$$
+S(E) = \frac{A_{\text{scatter}}(E)}{A_{\text{free}}(E)} = e^{2i\delta(E)}, \quad \tau_W(E) = 2\hbar \frac{d\delta(E)}{dE}
+$$
+
   - 全空间连续能量本征函数原位半傅里叶谱投影提取：
-    $$\psi_E(x) = \frac{\hbar k_E}{\mu \sqrt{2\pi} g(k_E)} \int_0^\infty \Psi(x, t) e^{i E t/\hbar} dt \implies \hat{H}\psi_E(x) = E \psi_E(x)$$
+
+$$
+\psi_E(x) = \frac{\hbar k_E}{\mu \sqrt{2\pi} g(k_E)} \int_0^\infty \Psi(x, t) e^{i E t/\hbar} dt \implies \hat{H}\psi_E(x) = E \psi_E(x)
+$$
+
 - **核心 API 映射**：`gaussian_wavepacket_1d`, `gaussian_momentum_amplitude`, `accumulate_flux_amplitude`, `calculate_td_transmission`, `calculate_td_smatrix_element`, `project_wavepacket_to_smatrix`, `multichannel_td_smatrix_elements`, `wavepacket_centroid_position`, `extract_td_scattering_wavefunction`。
 
 ### 21. 外场电磁场超冷散射与四大基组变换 (`mod_field_scattering`)
 - **理论基础与物理机制**：超冷碱金属碰撞中，外加磁场打破单原子超精细简并，驱动单重态 $V_0(R)$（自旋 $S=0$）与三重态 $V_1(R)$（自旋 $S=1$）势能面间的塞曼自旋交换；四大经典物理基组（非耦合基、单体自旋基、总自旋基与场缀饰基）之间的严格酉变换是多通道磁 Feshbach 共振计算的基石。
 - **详细数学表达式**：
   - 单原子 Zeeman-超精细 Breit-Rabi 解析哈密顿量：
-    $$\hat{H}_{\text{atom}} = A_{\text{hfs}} \mathbf{I} \cdot \mathbf{S} + (g_J \mu_B S_z - g_I \mu_N I_z) B$$
-    $$E(F = I \pm 1/2, M) = -\frac{\Delta E_{\text{hfs}}}{2(2I+1)} - g_I \mu_N B M \pm \frac{\Delta E_{\text{hfs}}}{2} \sqrt{1 + \frac{4M x}{2I+1} + x^2}, \quad x = \frac{(g_J \mu_B + g_I \mu_N) B}{\Delta E_{\text{hfs}}}$$
+
+$$
+\hat{H}_{\text{atom}} = A_{\text{hfs}} \mathbf{I} \cdot \mathbf{S} + (g_J \mu_B S_z - g_I \mu_N I_z) B
+$$
+
+$$
+E(F = I \pm 1/2, M) = -\frac{\Delta E_{\text{hfs}}}{2(2I+1)} - g_I \mu_N B M \pm \frac{\Delta E_{\text{hfs}}}{2} \sqrt{1 + \frac{4M x}{2I+1} + x^2}, \quad x = \frac{(g_J \mu_B + g_I \mu_N) B}{\Delta E_{\text{hfs}}}
+$$
+
   - 两体自旋交换势算符分解（投影单重态与三重态）：
-    $$\hat{V}_{\text{spin}}(R) = V_0(R) \hat{\mathcal{P}}_0 + V_1(R) \hat{\mathcal{P}}_1 = \bar{V}(R) + \Delta V(R) \mathbf{S}_1 \cdot \mathbf{S}_2$$
+
+$$
+\hat{V}_{\text{spin}}(R) = V_0(R) \hat{\mathcal{P}}_0 + V_1(R) \hat{\mathcal{P}}_1 = \bar{V}(R) + \Delta V(R) \mathbf{S}_1 \cdot \mathbf{S}_2
+$$
+
     其中 $\bar{V}(R) = \frac{V_0(R) + 3 V_1(R)}{4}, \Delta V(R) = V_1(R) - V_0(R)$。
   - 四大基组幺正变换算符 $\mathbf{U} = \langle \text{basis}_A | \text{basis}_B \rangle$（如非耦合基到总自旋耦合基）：
-    $$\langle s_1 m_{s1} i_1 m_{i1} s_2 m_{s2} i_2 m_{i2} | (s_1 s_2)S M_S (i_1 i_2)I M_I \rangle = \langle s_1 m_{s1} s_2 m_{s2} | S M_S \rangle \langle i_1 m_{i1} i_2 m_{i2} | I M_I \rangle$$
+
+$$
+\langle s_1 m_{s1} i_1 m_{i1} s_2 m_{s2} i_2 m_{i2} | (s_1 s_2)S M_S (i_1 i_2)I M_I \rangle = \langle s_1 m_{s1} s_2 m_{s2} | S M_S \rangle \langle i_1 m_{i1} i_2 m_{i2} | I M_I \rangle
+$$
+
   - 磁 Feshbach 共振色散拟合公式：
-    $$a_s(B) = a_{\text{bg}} \left( 1 - \frac{\Delta B}{B - B_0} \right)$$
+
+$$
+a_s(B) = a_{\text{bg}} \left( 1 - \frac{\Delta B}{B - B_0} \right)
+$$
+
 - **核心 API 映射**：`get_cold_atom_preset`, `calc_breit_rabi_energies`, `build_field_collision_channels`, `calc_basis_transform_matrix`, `calc_zeeman_hyperfine_hamiltonian`, `calc_magnetic_feshbach_resonance_scan`。
 
 ### 22. 各向异性偶极超冷散射与自旋弛豫 (`mod_dipolar_scattering`)
 - **理论基础与物理机制**：磁性原子（如 Cr, Dy, Er）或极性分子（如 KRb, NaK）具有强各向异性偶极-偶极相互作用，破坏单轨道角动量守恒，驱动 $s$ 分波与 $d$ 分波间的强偶极混合，并在磁阱中产生非弹性两体自旋弛豫加热损耗。
 - **详细数学表达式**：
   - 电子磁偶极-偶极相互作用 (MDDI) 秩-2 球谐张量展开：
-    $$\hat{V}_{\text{dd}}(\mathbf{r}) = \frac{\mu_0 g^2 \mu_B^2}{4\pi r^3} \left[ \mathbf{S}_1 \cdot \mathbf{S}_2 - 3(\mathbf{S}_1 \cdot \hat{r})(\mathbf{S}_2 \cdot \hat{r}) \right] = -\frac{\mu_0 g^2 \mu_B^2}{4\pi r^3} \sqrt{\frac{24\pi}{5}} \sum_{q=-2}^2 (-1)^q Y_{2,-q}(\hat{r}) [\mathbf{S}_1 \otimes \mathbf{S}_2]^{(2)}_q$$
+
+$$
+\hat{V}_{\text{dd}}(\mathbf{r}) = \frac{\mu_0 g^2 \mu_B^2}{4\pi r^3} \left[ \mathbf{S}_1 \cdot \mathbf{S}_2 - 3(\mathbf{S}_1 \cdot \hat{r})(\mathbf{S}_2 \cdot \hat{r}) \right] = -\frac{\mu_0 g^2 \mu_B^2}{4\pi r^3} \sqrt{\frac{24\pi}{5}} \sum_{q=-2}^2 (-1)^q Y_{2,-q}(\hat{r}) [\mathbf{S}_1 \otimes \mathbf{S}_2]^{(2)}_q
+$$
+
   - 轨道球谐角动量多极矩阵元：
-    $$\langle l m_l | C_{2, q} | l' m_l' \rangle = (-1)^{m_l} \sqrt{(2l+1)(2l'+1)} \begin{pmatrix} l & 2 & l' \\ 0 & 0 & 0 \end{pmatrix} \begin{pmatrix} l & 2 & l' \\ -m_l & q & m_l' \end{pmatrix}$$
+
+$$
+\langle l m_l | C_{2, q} | l' m_l' \rangle = (-1)^{m_l} \sqrt{(2l+1)(2l'+1)} \begin{pmatrix} l & 2 & l' \\ 0 & 0 & 0 \end{pmatrix} \begin{pmatrix} l & 2 & l' \\ -m_l & q & m_l' \end{pmatrix}
+$$
+
   - 极性分子外加直流电场 Stark 诱导偶极矩与特征电偶极长度：
-    $$d_{\text{ind}}(\mathcal{E}) = d_0 \langle \cos\theta \rangle_{\mathcal{E}}, \quad a_d = \frac{m d_{\text{ind}}^2}{2 \hbar^2}$$
+
+$$
+d_{\text{ind}}(\mathcal{E}) = d_0 \langle \cos\theta \rangle_{\mathcal{E}}, \quad a_d = \frac{m d_{\text{ind}}^2}{2 \hbar^2}
+$$
+
   - 超冷磁阱中两体偶极自旋弛豫截面与玻尔兹曼热平均速率系数：
-    $$\sigma_{\text{rel}}(E) = \frac{8\pi}{15 k^2} \left( \frac{\mu C_{\text{dd}}}{\hbar^2} \right)^2 \frac{k_f}{k_i}, \quad K_{\text{rel}}(T) = \sqrt{\frac{8 k_B T}{\pi \mu}} \int_0^\infty \left( \frac{E}{k_B T} \right) \sigma_{\text{rel}}(E) e^{-E/(k_B T)} \frac{dE}{k_B T}$$
+
+$$
+\sigma_{\text{rel}}(E) = \frac{8\pi}{15 k^2} \left( \frac{\mu C_{\text{dd}}}{\hbar^2} \right)^2 \frac{k_f}{k_i}, \quad K_{\text{rel}}(T) = \sqrt{\frac{8 k_B T}{\pi \mu}} \int_0^\infty \left( \frac{E}{k_B T} \right) \sigma_{\text{rel}}(E) e^{-E/(k_B T)} \frac{dE}{k_B T}
+$$
+
 - **核心 API 映射**：`c2q_spherical_harmonic_tensor`, `c2q_orbital_matrix_element`, `spin_tensor_coupled_matrix_element`, `calc_mddi_coupling_strength`, `calc_dipolar_relaxation_cross_section`, `calc_dipolar_relaxation_thermal_rate`, `calc_stark_induced_dipole`, `calc_electric_dipolar_length`, `calc_dipolar_potential_matrix`。
 
 ### 23. 超冷光缔合谱学与分子生成 (`mod_photoassociation`)
 - **理论基础与物理机制**：超冷原子碰撞过程中吸收红失谐激光光子，跃迁至激发态二聚体分子的长程弱束缚振动态；利用双光子 STIRAP 或反转拉曼跃迁可高效率合成绝对振转基态极性分子。
 - **详细数学表达式**：
   - 能量归一化自由态 $\psi_E(R)$ 与束缚分子态 $\psi_v(R)$ 空间 Franck-Condon 重叠积分：
-    $$I_{\text{FB}}(E) = \int_0^\infty \psi_{\text{free}}(E, R) \mu(R) \psi_{\text{bound}}(R) dR, \quad f_{\text{FB}}(E) = |I_{\text{FB}}(E)|^2$$
+
+$$
+I_{\text{FB}}(E) = \int_0^\infty \psi_{\text{free}}(E, R) \mu(R) \psi_{\text{bound}}(R) dR, \quad f_{\text{FB}}(E) = |I_{\text{FB}}(E)|^2
+$$
+
   - 激光强度驱动受激展宽线宽与单能量光缔合截面：
-    $$\hbar \Gamma_{\text{stim}}(E) = 2\pi \left( \frac{I}{2\varepsilon_0 c} \right) |d_{\text{el}} I_{\text{FB}}(E)|^2, \quad \sigma_{\text{PA}}(E, \Delta) = \frac{\pi}{k^2} \frac{\hbar \Gamma_{\text{stim}}(E) \gamma_{\text{sp}}}{(E - \hbar\Delta)^2 + [(\gamma_{\text{sp}} + \hbar\Gamma_{\text{stim}}(E))/2]^2}$$
+
+$$
+\hbar \Gamma_{\text{stim}}(E) = 2\pi \left( \frac{I}{2\varepsilon_0 c} \right) |d_{\text{el}} I_{\text{FB}}(E)|^2, \quad \sigma_{\text{PA}}(E, \Delta) = \frac{\pi}{k^2} \frac{\hbar \Gamma_{\text{stim}}(E) \gamma_{\text{sp}}}{(E - \hbar\Delta)^2 + [(\gamma_{\text{sp}} + \hbar\Gamma_{\text{stim}}(E))/2]^2}
+$$
+
   - Bohn-Julienne 麦克斯韦-玻尔兹曼热平衡光缔合速率常数：
-    $$K_{\text{PA}}(T, \Delta) = \left( \frac{2\pi\hbar^2}{\mu k_B T} \right)^{3/2} \frac{1}{h} \int_0^\infty e^{-E/(k_B T)} \sigma_{\text{PA}}(E, \Delta) \frac{2E}{\hbar} dE$$
+
+$$
+K_{\text{PA}}(T, \Delta) = \left( \frac{2\pi\hbar^2}{\mu k_B T} \right)^{3/2} \frac{1}{h} \int_0^\infty e^{-E/(k_B T)} \sigma_{\text{PA}}(E, \Delta) \frac{2E}{\hbar} dE
+$$
+
   - 双光子 STIRAP 绝热受激跃迁有效拉比耦合频率：$\Omega_{\text{eff}} = \frac{\Omega_1 \Omega_2}{2\Delta_1}$。
 - **核心 API 映射**：`calc_free_bound_fc_overlap`, `calc_free_bound_fc_density`, `calc_pa_stimulated_linewidth`, `calc_pa_cross_section`, `calc_pa_thermal_rate_coefficient`, `calc_pa_detuning_scan`, `calc_twophoton_raman_coupling`。
 
@@ -487,10 +757,21 @@ GeneralModule/
 - **理论基础与物理机制**：在大散射长度 $|a| \gg r_{\text{vdW}}$ 强相互作用极限下，三体系统在超径向展现离散标度不变性（Efimov 物理效应）；三体碰撞形成深束缚分子并释放动能，造成超冷原子捕获阱的特征三体复合原子损耗。
 - **详细数学表达式**：
   - Efimov 超径向薛定谔超越代数方程（全同玻色子）：
-    $$\frac{8}{\sqrt{3}} \frac{\sin(s_0 \pi / 6)}{s_0 \cos(s_0 \pi / 2)} = 1 \implies s_0 \approx 1.00624, \quad \lambda = e^{\pi / s_0} \approx 22.694$$
+
+$$
+\frac{8}{\sqrt{3}} \frac{\sin(s_0 \pi / 6)}{s_0 \cos(s_0 \pi / 2)} = 1 \implies s_0 \approx 1.00624, \quad \lambda = e^{\pi / s_0} \approx 22.694
+$$
+
   - Braaten-Hammer 普适三体复合损失速率公式：
-    $$K_3(a > 0) = \frac{128\pi^2 (4\pi - 3\sqrt{3})\hbar}{m} a^4 \left[ \sin^2\left( s_0 \ln\frac{a}{a_+} \right) + \sinh^2\eta_+ \right]$$
-    $$K_3(a < 0) = \frac{4590 \sinh(2\eta_-)}{\sin^2\left( s_0 \ln\frac{|a|}{a_-} \right) + \sinh^2\eta_-} \frac{\hbar |a|^4}{m}$$
+
+$$
+K_3(a > 0) = \frac{128\pi^2 (4\pi - 3\sqrt{3})\hbar}{m} a^4 \left[ \sin^2\left( s_0 \ln\frac{a}{a_+} \right) + \sinh^2\eta_+ \right]
+$$
+
+$$
+K_3(a < 0) = \frac{4590 \sinh(2\eta_-)}{\sin^2\left( s_0 \ln\frac{|a|}{a_-} \right) + \sinh^2\eta_-} \frac{\hbar |a|^4}{m}
+$$
+
     在 $a > 0$ 呈现不同通道量子干涉极小值窗口 $a_+^{(n)}$，在 $a < 0$ 侧呈现 Efimov 三聚体束缚态引起的巨大共振损耗峰 $a_-^{(n)}$。
   - 强相互作用幺正饱和极限有限温度幂律：$K_3^{\text{unitary}}(T) \approx \frac{36\sqrt{3}\pi^2 \hbar^5}{m^3 (k_B T)^2}$。
 - **核心 API 映射**：`solve_efimov_s0_identical_bosons`, `calc_three_body_recombination_a_positive`, `calc_three_body_recombination_a_negative`, `calc_unitary_three_body_loss_temperature`。
@@ -500,7 +781,11 @@ GeneralModule/
 - **详细数学表达式**：
   - 横向简谐束缚势与零点振荡尺度：$V_\perp(\rho) = \frac{1}{2}\mu \omega_\perp^2 \rho^2, \quad a_\perp = \sqrt{\frac{\hbar}{\mu\omega_\perp}}$
   - Olshanii 约束诱导共振 (CIR) 临界发散关系式：
-    $$g_{\text{1D}} = \frac{2\hbar^2 a_s}{\mu a_\perp^2} \frac{1}{1 - C \frac{a_s}{a_\perp}}, \quad C = -\frac{\zeta(1/2)}{\sqrt{2}} \approx 1.0326$$
+
+$$
+g_{\text{1D}} = \frac{2\hbar^2 a_s}{\mu a_\perp^2} \frac{1}{1 - C \frac{a_s}{a_\perp}}, \quad C = -\frac{\zeta(1/2)}{\sqrt{2}} \approx 1.0326
+$$
+
     共振极点出现在 $a_s = a_{\text{CIR}} = a_\perp / C$；1D 有效散射长度满足 $a_{\text{1D}} = -\frac{a_\perp^2}{2 a_s}\left( 1 - C\frac{a_s}{a_\perp} \right)$。
   - 受限波导分子二聚体结合能：$E_b^{\text{1D}} = \frac{\hbar^2}{2\mu (a_{\text{1D}})^2}$
   - Lieb-Liniger 强关联费米化参数（Tonks-Girardeau 极限）：$\gamma_{\text{LL}} = \frac{m g_{\text{1D}}}{\hbar^2 n_{\text{1D}}} \gg 1$。
@@ -510,10 +795,18 @@ GeneralModule/
 - **理论基础与物理机制**：当离散准束缚态（如原子的双激发态）的能量落在连续电离谱之内时，电子组态相互作用引起两条干涉跃迁路径：离散跃迁路径与连续跃迁路径相干叠加，产生特征性非对称 Fano 吸收轮廓与抗共振零点。
 - **详细数学表达式**：
   - 组态相互作用 Fano 线型公式与反共振极小：
-    $$\sigma(\epsilon) = \sigma_0 \frac{(q + \epsilon)^2}{1 + \epsilon^2}, \quad \epsilon = \frac{E - E_r}{\Gamma/2}$$
+
+$$
+\sigma(\epsilon) = \sigma_0 \frac{(q + \epsilon)^2}{1 + \epsilon^2}, \quad \epsilon = \frac{E - E_r}{\Gamma/2}
+$$
+
     其中不对称因子为 $q = \frac{\langle \Phi | \hat{T} | i \rangle}{\pi V_E^* \langle \psi_E | \hat{T} | i \rangle}$，自电离宽度为 $\Gamma = 2\pi |V_E|^2 = 2\pi |\langle \psi_E | \hat{H} | \Phi \rangle|^2$。
   - 复坐标旋转法 (Complex Coordinate Rotation, CCR) 非厄米谱分解：
-    $$r \to r e^{i\theta}, \quad \hat{H}(\theta) = e^{-2i\theta} \hat{T} + \hat{V}(r e^{i\theta}) \implies E_{\text{res}} = E_r - i \frac{\Gamma}{2}$$
+
+$$
+r \to r e^{i\theta}, \quad \hat{H}(\theta) = e^{-2i\theta} \hat{T} + \hat{V}(r e^{i\theta}) \implies E_{\text{res}} = E_r - i \frac{\Gamma}{2}
+$$
+
     连续谱沿负虚轴旋转 $2\theta$，共振准束缚态极点暴露于复能量下半平面，衰变寿命为 $\tau = \hbar / \Gamma$。
 - **核心 API 映射**：`calc_fano_profile`, `calc_autoionization_lifetime`, `solve_ccr_resonance_model`。
 
@@ -521,279 +814,624 @@ GeneralModule/
 - **理论基础与物理机制**：同时处在外加静电场 $\mathbf{E}$ 与外加静磁场 $\mathbf{B}$ 中的极性开壳层分子，外场相互作用与内部转动-超精细耦合相互竞争；任意非共线倾角 $\beta$ 彻底破坏分子空间宇称与投影对称性，产生复杂避免交叉能谱与空间三维定向取向。
 - **详细数学表达式**：
   - 交叉电磁场分子有效哈密顿量：
-    $$\hat{H} = B_e \hat{\mathbf{J}}^2 + \gamma_{\text{sr}} \hat{\mathbf{J}} \cdot \hat{\mathbf{S}} - \boldsymbol{\mu}_e \cdot \mathbf{E} - \boldsymbol{\mu}_m \cdot \mathbf{B}$$
+
+$$
+\hat{H} = B_e \hat{\mathbf{J}}^2 + \gamma_{\text{sr}} \hat{\mathbf{J}} \cdot \hat{\mathbf{S}} - \boldsymbol{\mu}_e \cdot \mathbf{E} - \boldsymbol{\mu}_m \cdot \mathbf{B}
+$$
+
     其中静电场取沿 $z$ 轴 $\mathbf{E} = E \hat{z}$，静磁场位于 $xz$ 平面 $\mathbf{B} = B(\sin\beta \hat{x} + \cos\beta \hat{z})$。
   - 实验室系分子空间电取向度与自旋极化分量：
-    $$\langle \cos\theta \rangle_n = \langle \psi_n | \cos\theta | \psi_n \rangle, \quad \langle S_z \rangle_n = \langle \psi_n | \hat{S}_z | \psi_n \rangle, \quad \langle S_x \rangle_n = \langle \psi_n | \hat{S}_x | \psi_n \rangle$$
+
+$$
+\langle \cos\theta \rangle_n = \langle \psi_n | \cos\theta | \psi_n \rangle, \quad \langle S_z \rangle_n = \langle \psi_n | \hat{S}_z | \psi_n \rangle, \quad \langle S_x \rangle_n = \langle \psi_n | \hat{S}_x | \psi_n \rangle
+$$
+
 - **核心 API 映射**：`init_crossed_field_config`, `solve_crossed_field_eigenstates`, `calc_crossed_field_observables`, `scan_tilt_angle_spectrum`。
 
 ### 28. 三原子反应散射、Jacobi 坐标与几何相位 (`mod_triatomic_geometry`)
 - **理论基础与物理机制**：气相三原子反应碰撞 $A + BC \to AB + C$ 基于质心分离质心 Jacobi 反应坐标体系展开；势能面（PES）采用经典 LEPS 形式构建过渡态活化势垒；沿势能面避差交叉闭合回路环绕将诱导非平凡的 Longuet-Higgins / Berry 几何相位。
 - **详细数学表达式**：
   - 质心 Jacobi 反应坐标向三原子核间距的可逆保模变换：
-    $$\mathbf{r} = \mathbf{r}_B - \mathbf{r}_A, \quad \mathbf{R} = \mathbf{r}_C - \frac{m_A \mathbf{r}_A + m_B \mathbf{r}_B}{m_A + m_B}$$
-    $$R_{AB} = |\mathbf{r}|, \quad R_{BC} = \left| \mathbf{R} - \frac{m_A}{m_A + m_B}\mathbf{r} \right|, \quad R_{AC} = \left| \mathbf{R} + \frac{m_B}{m_A + m_B}\mathbf{r} \right|$$
+
+$$
+\mathbf{r} = \mathbf{r}_B - \mathbf{r}_A, \quad \mathbf{R} = \mathbf{r}_C - \frac{m_A \mathbf{r}_A + m_B \mathbf{r}_B}{m_A + m_B}
+$$
+
+$$
+R_{AB} = |\mathbf{r}|, \quad R_{BC} = \left| \mathbf{R} - \frac{m_A}{m_A + m_B}\mathbf{r} \right|, \quad R_{AC} = \left| \mathbf{R} + \frac{m_B}{m_A + m_B}\mathbf{r} \right|
+$$
+
   - Sato 修正 London-Eyring-Polanyi-Sato (LEPS) 势能面解析表达：
-    $$V(r_1, r_2, r_3) = \sum_{i=1}^3 \frac{Q_i}{1 + S_i} - \sqrt{\frac{1}{2} \left[ \left(\frac{J_1}{1+S_1} - \frac{J_2}{1+S_2}\right)^2 + \left(\frac{J_2}{1+S_2} - \frac{J_3}{1+S_3}\right)^2 + \left(\frac{J_3}{1+S_3} - \frac{J_1}{1+S_1}\right)^2 \right]}$$
+
+$$
+V(r_1, r_2, r_3) = \sum_{i=1}^3 \frac{Q_i}{1 + S_i} - \sqrt{\frac{1}{2} \left[ \left(\frac{J_1}{1+S_1} - \frac{J_2}{1+S_2}\right)^2 + \left(\frac{J_2}{1+S_2} - \frac{J_3}{1+S_3}\right)^2 + \left(\frac{J_3}{1+S_3} - \frac{J_1}{1+S_1}\right)^2 \right]}
+$$
+
   - 锥形交叉 (Conical Intersection, CI) 与拓扑 Berry 几何相位闭路积分：
-    $$\Phi_B = \oint_C \mathbf{A}(\mathbf{R}) \cdot d\mathbf{R} = \oint_C \langle \psi_{\text{adia}}(\mathbf{R}) | \nabla_{\mathbf{R}} | \psi_{\text{adia}}(\mathbf{R}) \rangle \cdot d\mathbf{R} = \pi$$
+
+$$
+\Phi_B = \oint_C \mathbf{A}(\mathbf{R}) \cdot d\mathbf{R} = \oint_C \langle \psi_{\text{adia}}(\mathbf{R}) | \nabla_{\mathbf{R}} | \psi_{\text{adia}}(\mathbf{R}) \rangle \cdot d\mathbf{R} = \pi
+$$
+
 - **核心 API 映射**：`jacobi_to_internuclear`, `internuclear_to_jacobi`, `calc_leps_potential`, `calc_conical_intersection_adiabats`, `calc_berry_phase_around_ci`。
 
 ### 29. 旋量玻色爱因斯坦凝聚自旋动力学 (`mod_spinor_bec`)
 - **理论基础与物理机制**：$F=1$ 旋量玻色-爱因斯坦凝聚体（Spinor BEC）由三组分超冷原子波函数构型；具有接触自旋无关常数 $c_0$ 与自旋交换常数 $c_2$；在单模近似（SMA）下凝聚体空间波函数锁定，自旋动力学展现为保全几率与保纵向磁化强度的非线性约瑟夫森相干自旋振荡。
 - **详细数学表达式**：
   - 多组分含时 Gross-Pitaevskii 方程组：
-    $$i\hbar \frac{\partial \psi_m}{\partial t} = \left(-\frac{\hbar^2\nabla^2}{2M} + V_{\text{trap}}(\mathbf{r}) + q m^2 - p m\right)\psi_m + c_0 n(\mathbf{r}) \psi_m + c_2 n(\mathbf{r}) \sum_{\alpha=x,y,z} (\mathbf{F}_\alpha)_{mm'} \psi_{m'} \cdot \mathbf{F}(\mathbf{r})$$
+
+$$
+i\hbar \frac{\partial \psi_m}{\partial t} = \left(-\frac{\hbar^2\nabla^2}{2M} + V_{\text{trap}}(\mathbf{r}) + q m^2 - p m\right)\psi_m + c_0 n(\mathbf{r}) \psi_m + c_2 n(\mathbf{r}) \sum_{\alpha=x,y,z} (\mathbf{F}_\alpha)_{mm'} \psi_{m'} \cdot \mathbf{F}(\mathbf{r})
+$$
+
   - 相互作用参数与低能 s 波散射长度关系：
-    $$c_0 = \frac{4\pi\hbar^2}{M}\frac{a_0 + 2a_2}{3}, \quad c_2 = \frac{4\pi\hbar^2}{M}\frac{a_2 - a_0}{3}$$
+
+$$
+c_0 = \frac{4\pi\hbar^2}{M}\frac{a_0 + 2a_2}{3}, \quad c_2 = \frac{4\pi\hbar^2}{M}\frac{a_2 - a_0}{3}
+$$
+
   - 单模近似 (Single-Mode Approximation, SMA) 下自旋振荡方程组：
-    $$i\hbar \frac{d\psi_{\pm 1}}{dt} = \left[ c_0 n + c_2 n (|\psi_{\pm 1}|^2 + |\psi_0|^2 - |\psi_{\mp 1}|^2) \pm p + q \right] \psi_{\pm 1} + c_2 n \psi_0^2 \psi_{\mp 1}^*$$
-    $$i\hbar \frac{d\psi_0}{dt} = \left[ c_0 n + c_2 n (|\psi_1|^2 + |\psi_{-1}|^2) \right] \psi_0 + 2 c_2 n \psi_1 \psi_{-1} \psi_0^*$$
+
+$$
+i\hbar \frac{d\psi_{\pm 1}}{dt} = \left[ c_0 n + c_2 n (|\psi_{\pm 1}|^2 + |\psi_0|^2 - |\psi_{\mp 1}|^2) \pm p + q \right] \psi_{\pm 1} + c_2 n \psi_0^2 \psi_{\mp 1}^*
+$$
+
+$$
+i\hbar \frac{d\psi_0}{dt} = \left[ c_0 n + c_2 n (|\psi_1|^2 + |\psi_{-1}|^2) \right] \psi_0 + 2 c_2 n \psi_1 \psi_{-1} \psi_0^*
+$$
+
   - Breit-Rabi 二阶塞曼位移：
-    $$q(B) = \frac{(g_I - g_J)^2 \mu_B^2 B^2}{16 \Delta E_{\text{hfs}}}$$
+
+$$
+q(B) = \frac{(g_I - g_J)^2 \mu_B^2 B^2}{16 \Delta E_{\text{hfs}}}
+$$
+
 - **核心 API 映射**：`init_spinor_preset`, `calc_quadratic_zeeman_shift`, `propagate_spinor_sma_rk4`。
 
 ### 30. 三原子超球面反应动力学与热速率常数 (`mod_hyperspherical_reactive`)
 - **理论基础与物理机制**：气相三体反应体系在 Delves 质量标度超球面坐标下将三体散射解耦为超半径演化与角向超角运动；基于过渡态鞍点解析 Eckart 势垒精确刻画量子隧穿与反射效应；通过累积反应几率 (CRP) 玻尔兹曼热积分输出微观可逆热反应速率常数。
 - **详细数学表达式**：
   - Delves 质量标度因子与超角偏转角：
-    $$d = \left( \frac{m_A m_C}{m_{AB} m_{ABC}} \right)^{1/4}, \quad \beta_{\text{skew}} = \arctan\left( \sqrt{\frac{m_B(m_A+m_B+m_C)}{m_A m_C}} \right)$$
+
+$$
+d = \left( \frac{m_A m_C}{m_{AB} m_{ABC}} \right)^{1/4}, \quad \beta_{\text{skew}} = \arctan\left( \sqrt{\frac{m_B(m_A+m_B+m_C)}{m_A m_C}} \right)
+$$
+
   - 不对称 Eckart 势垒透射几率严格解析解：
-    $$V_{\text{Eckart}}(x) = \frac{A y}{1-y} + \frac{B y}{(1-y)^2}, \quad y = -e^{\alpha x}$$
-    $$P(E) = \frac{\cosh[2\pi(k_1 + k_2)] - \cosh[2\pi(k_1 - k_2)]}{\cosh[2\pi(k_1 + k_2)] + \cosh[2\pi d]}$$
-    $$k_1 = \frac{\sqrt{2\mu E}}{\hbar}, \quad k_2 = \frac{\sqrt{2\mu(E - V_0 + V_1)}}{\hbar}, \quad d = \frac{1}{2}\sqrt{\frac{8\mu V_0}{\alpha^2\hbar^2} - 1}$$
+
+$$
+V_{\text{Eckart}}(x) = \frac{A y}{1-y} + \frac{B y}{(1-y)^2}, \quad y = -e^{\alpha x}
+$$
+
+$$
+P(E) = \frac{\cosh[2\pi(k_1 + k_2)] - \cosh[2\pi(k_1 - k_2)]}{\cosh[2\pi(k_1 + k_2)] + \cosh[2\pi d]}
+$$
+
+$$
+k_1 = \frac{\sqrt{2\mu E}}{\hbar}, \quad k_2 = \frac{\sqrt{2\mu(E - V_0 + V_1)}}{\hbar}, \quad d = \frac{1}{2}\sqrt{\frac{8\mu V_0}{\alpha^2\hbar^2} - 1}
+$$
+
   - 全量子累积反应几率 (CRP) 与正则热速率常数玻尔兹曼积分：
-    $$N(E) = \sum_{v, J} P_{v, J}(E), \quad k(T) = \frac{1}{2\pi\hbar Q_R(T)} \int_0^\infty N(E) e^{-E / (k_B T)} dE$$
+
+$$
+N(E) = \sum_{v, J} P_{v, J}(E), \quad k(T) = \frac{1}{2\pi\hbar Q_R(T)} \int_0^\infty N(E) e^{-E / (k_B T)} dE
+$$
+
   - Wigner 势垒量子穿透修正：
-    $$\kappa_{\text{Wigner}}(T) = 1 + \frac{1}{24}\left( \frac{\hbar \omega^{\ddagger}}{k_B T} \right)^2$$
+
+$$
+\kappa_{\text{Wigner}}(T) = 1 + \frac{1}{24}\left( \frac{\hbar \omega^{\ddagger}}{k_B T} \right)^2
+$$
+
 - **核心 API 映射**：`init_reaction_mass`, `calc_eckart_transmission`, `calc_cumulative_reaction_probability`, `calc_canonical_rate_constant`, `calc_tst_wigner_rate`。
 
 ### 31. 超冷偶极量子液滴与李-黄-杨量子涨落 (`mod_dipolar_droplets_lhy`)
 - **理论基础与物理机制**：各向异性长程偶极-偶极相互作用导致玻色凝聚体在平均场平均引力下坍塌；通过引入 Lee-Huang-Yang (LHY) 零点量子涨落超越平均场排斥项，在自由空间形成零压平衡、内部密度平顶的自束缚超冷量子液滴。
 - **详细数学表达式**：
   - 扩展 Gross-Pitaevskii 方程 (eGPE)：
-    $$i\hbar \frac{\partial \psi}{\partial t} = \left[ -\frac{\hbar^2\nabla^2}{2M} + V_{\text{ext}}(\mathbf{r}) + g |\psi|^2 + \Phi_{\text{dd}}(\mathbf{r}) + \gamma_{\text{LHY}} |\psi|^3 \right] \psi$$
+
+$$
+i\hbar \frac{\partial \psi}{\partial t} = \left[ -\frac{\hbar^2\nabla^2}{2M} + V_{\text{ext}}(\mathbf{r}) + g |\psi|^2 + \Phi_{\text{dd}}(\mathbf{r}) + \gamma_{\text{LHY}} |\psi|^3 \right] \psi
+$$
+
   - 磁偶极特征长度、相对偶极强度与 Pelster-Lima $Q_5$ 涨落积分：
-    $$a_{\text{dd}} = \frac{\mu_0 \mu_{\text{mag}}^2 M}{12\pi\hbar^2}, \quad \epsilon_{\text{dd}} = \frac{a_{\text{dd}}}{a_s}, \quad \gamma_{\text{LHY}} = \frac{128\sqrt{\pi}\hbar^2 a_s^{5/2}}{3M} Q_5(\epsilon_{\text{dd}})$$
-    $$Q_5(\epsilon) = \frac{1}{2}\int_0^1 dx \, (1 - \epsilon + 3\epsilon x^2)^{5/2}$$
+
+$$
+a_{\text{dd}} = \frac{\mu_0 \mu_{\text{mag}}^2 M}{12\pi\hbar^2}, \quad \epsilon_{\text{dd}} = \frac{a_{\text{dd}}}{a_s}, \quad \gamma_{\text{LHY}} = \frac{128\sqrt{\pi}\hbar^2 a_s^{5/2}}{3M} Q_5(\epsilon_{\text{dd}})
+$$
+
+$$
+Q_5(\epsilon) = \frac{1}{2}\int_0^1 dx \, (1 - \epsilon + 3\epsilon x^2)^{5/2}
+$$
+
   - 自由空间零压平顶平衡核心密度与自束缚负化学势判据：
-    $$n_0 = \frac{25\pi}{16384} \frac{(1 - \epsilon_{\text{dd}})^2}{a_s^5 Q_5(\epsilon_{\text{dd}})^2}, \quad \mu(n_0) = g n_0 \left(1 - \frac{4}{3}\epsilon_{\text{dd}}\right) + \frac{5}{2}\gamma_{\text{LHY}} n_0^{3/2} < 0$$
+
+$$
+n_0 = \frac{25\pi}{16384} \frac{(1 - \epsilon_{\text{dd}})^2}{a_s^5 Q_5(\epsilon_{\text{dd}})^2}, \quad \mu(n_0) = g n_0 \left(1 - \frac{4}{3}\epsilon_{\text{dd}}\right) + \frac{5}{2}\gamma_{\text{LHY}} n_0^{3/2} < 0
+$$
+
 - **核心 API 映射**：`init_dipolar_droplet_param`, `calc_pelster_lima_q5`, `calc_equilibrium_droplet_density`, `calc_droplet_chemical_potential`, `calc_critical_atom_number`。
 
 ### 32. 强场非顺序双电离与电子重碰撞动量谱 (`mod_strong_field_nsdi`)
 - **理论基础与物理机制**：强激光场原子电离电子在时变交变场中发生反向加速运动并回碰母离子，通过经典重碰撞散射激发或碰撞电离第二电子；再电离电子动量在 COLTRIMS 符合测量谱上展现出特征性的同向平行关联分布与非顺序电离产率“膝盖平台结构”。
 - **详细数学表达式**：
   - 经典电子动力学轨道与二次回碰相位根：
-    $$v(t) = \frac{e F_0}{m \omega}(\sin\omega t - \sin\phi_0), \quad x(t) = \frac{e F_0}{m \omega^2}[\cos\phi_0 - \cos\omega t - (\omega t - \phi_0)\sin\phi_0]$$
-    $$x(\phi_r) = 0 \implies E_{\text{rec}}(\phi_r) = \frac{1}{2} m v^2(\phi_r) \le 3.173 U_p, \quad U_p = \frac{e^2 F_0^2}{4 m \omega^2}$$
+
+$$
+v(t) = \frac{e F_0}{m \omega}(\sin\omega t - \sin\phi_0), \quad x(t) = \frac{e F_0}{m \omega^2}[\cos\phi_0 - \cos\omega t - (\omega t - \phi_0)\sin\phi_0]
+$$
+
+$$
+x(\phi_r) = 0 \implies E_{\text{rec}}(\phi_r) = \frac{1}{2} m v^2(\phi_r) \le 3.173 U_p, \quad U_p = \frac{e^2 F_0^2}{4 m \omega^2}
+$$
+
   - 二次激发/电离 Lotz 碰撞截面：
-    $$\sigma_{\text{Lotz}}(E) = \sum_i a_i q_i \frac{\ln(E/I_i)}{E \cdot I_i} \left[ 1 - b_i \exp\left( -c_i \left(\frac{E}{I_i} - 1\right) \right) \right]$$
+
+$$
+\sigma_{\text{Lotz}}(E) = \sum_i a_i q_i \frac{\ln(E/I_i)}{E \cdot I_i} \left[ 1 - b_i \exp\left( -c_i \left(\frac{E}{I_i} - 1\right) \right) \right]
+$$
+
   - 双电子纵向动量关联函数与皮尔逊关联系数：
-    $$P(p_{z1}, p_{z2}) = \iint W_{\text{ADK}}(\phi_0) \sigma_{\text{rec}}(E_{\text{rec}}) \delta(p_{z1} + p_{z2} - P_z) d\phi_0, \quad C_{\text{corr}} = \frac{\langle p_{z1} p_{z2} \rangle}{\sqrt{\langle p_{z1}^2 \rangle \langle p_{z2}^2 \rangle}} > 0$$
+
+$$
+P(p_{z1}, p_{z2}) = \iint W_{\text{ADK}}(\phi_0) \sigma_{\text{rec}}(E_{\text{rec}}) \delta(p_{z1} + p_{z2} - P_z) d\phi_0, \quad C_{\text{corr}} = \frac{\langle p_{z1} p_{z2} \rangle}{\sqrt{\langle p_{z1}^2 \rangle \langle p_{z2}^2 \rangle}} > 0
+$$
+
 - **核心 API 映射**：`init_nsdi_laser`, `calc_recollision_trajectory`, `calc_lotz_cross_section`, `calc_nsdi_2d_momentum_dist`, `calc_double_ion_yield_curve`。
 
 ### 33. 磁与光 Feshbach 共振与分子弱束缚态 (`mod_feshbach_bound_states`)
 - **理论基础与物理机制**：超冷两体碰撞散射中，外磁场或外光场驱动闭通道束缚分子能级扫描至与开通道散射渐近能量简并；开-闭通道多重耦合实现微观散射长度 $a$ 从 $-\infty$ 到 $+\infty$ 的任意调谐，并在共振点近旁生成弱束缚 Feshbach 缔合二聚体分子。
 - **详细数学表达式**：
   - 磁 Feshbach 共振有效散射长度色散公式：
-    $$a(B) = a_{\text{bg}} \left( 1 - \frac{\Delta B}{B - B_0} \right)$$
+
+$$
+a(B) = a_{\text{bg}} \left( 1 - \frac{\Delta B}{B - B_0} \right)
+$$
+
   - 包含有限相互作用程 $R^*$ 的双通道弱束缚态结合能与闭通道成分比率：
-    $$\sqrt{\frac{2\mu |E_b|}{\hbar^2}} = \frac{-1 + \sqrt{1 + 4 R^* / a(B)}}{2 R^*}, \quad R^* = \frac{\hbar^2}{2\mu a_{\text{bg}} \delta\mu \Delta B}$$
-    $$Z(B) = 1 - \frac{1}{\sqrt{1 + 2 R^* / a(B)}} = \frac{1}{\delta\mu} \frac{\partial E_b}{\partial B}$$
+
+$$
+\sqrt{\frac{2\mu |E_b|}{\hbar^2}} = \frac{-1 + \sqrt{1 + 4 R^* / a(B)}}{2 R^*}, \quad R^* = \frac{\hbar^2}{2\mu a_{\text{bg}} \delta\mu \Delta B}
+$$
+
+$$
+Z(B) = 1 - \frac{1}{\sqrt{1 + 2 R^* / a(B)}} = \frac{1}{\delta\mu} \frac{\partial E_b}{\partial B}
+$$
+
   - 光 Feshbach 共振 (OFR) 复散射长度与光致非弹性两体损失速率：
-    $$\tilde{a}(\Delta_L) = a_{\text{bg}} + \frac{l_{\text{opt}} \Gamma_{\text{mol}} / 2}{\Delta_L + i \Gamma_{\text{mol}} / 2}, \quad K_2(\Delta_L) = \frac{4\pi\hbar}{\mu} \text{Im}[\tilde{a}(\Delta_L)] = \frac{2\pi\hbar}{\mu} \frac{l_{\text{opt}} \Gamma_{\text{mol}}^2}{\Delta_L^2 + (\Gamma_{\text{mol}}/2)^2}$$
+
+$$
+\tilde{a}(\Delta_L) = a_{\text{bg}} + \frac{l_{\text{opt}} \Gamma_{\text{mol}} / 2}{\Delta_L + i \Gamma_{\text{mol}} / 2}, \quad K_2(\Delta_L) = \frac{4\pi\hbar}{\mu} \text{Im}[\tilde{a}(\Delta_L)] = \frac{2\pi\hbar}{\mu} \frac{l_{\text{opt}} \Gamma_{\text{mol}}^2}{\Delta_L^2 + (\Gamma_{\text{mol}}/2)^2}
+$$
+
 - **核心 API 映射**：`init_mfr_preset`, `calc_mfr_scattering_length`, `calc_mfr_bound_energy_coupled`, `calc_mfr_closed_channel_fraction`, `calc_ofr_complex_scattering_length`, `calc_ofr_inelastic_loss_rate`。
 
 ### 34. 阿秒瞬态吸收光谱与光诱导态自电离干涉 (`mod_attosecond_transient_absorption`)
 - **理论基础与物理机制**：超快孤立极紫外 (XUV) 阿秒脉冲激发原子内壳层双激发自电离态，强红外 (NIR) 激光控制场施加动态 AC Stark 调制与光诱导态 (LIS) 耦合；在时间-能量二维瞬态吸收谱上展现出动态 Fano 线型演化与超快量子拍频现象。
 - **详细数学表达式**：
   - 相位微扰模型 (PPM) 下含时偶极相位调制与动态 Fano 不对称参数：
-    $$d(t) \propto e^{-i E_0 t/\hbar - \Gamma t / (2\hbar)} e^{i \Delta\phi(t, \tau)}, \quad \Delta\phi(t, \tau) = -\frac{1}{\hbar} \int_\tau^t \Delta E_{\text{AC}}(t') dt'$$
-    $$q(\tau) = \frac{q_0 + \tan[\Delta\phi(\tau)]}{1 - q_0 \tan[\Delta\phi(\tau)]}$$
+
+$$
+d(t) \propto e^{-i E_0 t/\hbar - \Gamma t / (2\hbar)} e^{i \Delta\phi(t, \tau)}, \quad \Delta\phi(t, \tau) = -\frac{1}{\hbar} \int_\tau^t \Delta E_{\text{AC}}(t') dt'
+$$
+
+$$
+q(\tau) = \frac{q_0 + \tan[\Delta\phi(\tau)]}{1 - q_0 \tan[\Delta\phi(\tau)]}
+$$
+
   - 光诱导态 (LIS) 能量准能级与明暗态量子拍频周期：
-    $$E_{\text{LIS}} = E_{\text{dark}} \pm \hbar\omega_{\text{NIR}} + \alpha_{\text{Stark}} I_{\text{NIR}}, \quad T_{\text{beat}} = \frac{h}{|E_{\text{bright}} - E_{\text{LIS}}|}$$
+
+$$
+E_{\text{LIS}} = E_{\text{dark}} \pm \hbar\omega_{\text{NIR}} + \alpha_{\text{Stark}} I_{\text{NIR}}, \quad T_{\text{beat}} = \frac{h}{|E_{\text{bright}} - E_{\text{LIS}}|}
+$$
+
   - 阿秒瞬态吸收差分光密度二维矩阵：
-    $$\Delta\text{OD}(\omega, \tau) = -\log_{10}\left( \frac{I_{\text{trans}}(\omega, \tau)}{I_0(\omega)} \right) \propto -\text{Im}\left[ \frac{\tilde{d}(\omega, \tau)}{\tilde{E}_{\text{XUV}}(\omega)} \right]$$
+
+$$
+\Delta\text{OD}(\omega, \tau) = -\log_{10}\left( \frac{I_{\text{trans}}(\omega, \tau)}{I_0(\omega)} \right) \propto -\text{Im}\left[ \frac{\tilde{d}(\omega, \tau)}{\tilde{E}_{\text{XUV}}(\omega)} \right]
+$$
+
 - **核心 API 映射**：`init_atas_helium_benchmark`, `calc_laser_dressed_fano_q`, `calc_light_induced_state_energy`, `calc_quantum_beat_period_fs`, `calc_atas_spectrum`。
 
 ### 35. 双色反向旋转圆偏振场与分子光电子圆二色性 (`mod_bicircular_pecd`)
 - **理论基础与物理机制**：由频率成有理比的反向旋转圆偏振光场复合而成的双色场具有精确的离散空间-时间对称性；当手性四面体分子在手性光场或圆偏振光下电离时，电离光电子角分布 (PAD) 展现出特征的激光传播方向前后不对称性 (PECD)。
 - **详细数学表达式**：
   - 双色椭圆/圆偏振场电场矢量合成：
-    $$\mathbf{E}(t) = \frac{F_1}{\sqrt{2}} \left[ \cos(\omega_1 t) \hat{\mathbf{x}} + \sigma_1 \sin(\omega_1 t) \hat{\mathbf{y}} \right] + \frac{F_2}{\sqrt{2}} \left[ \cos(\omega_2 t + \phi) \hat{\mathbf{x}} + \sigma_2 \sin(\omega_2 t + \phi) \hat{\mathbf{y}} \right]$$
+
+$$
+\mathbf{E}(t) = \frac{F_1}{\sqrt{2}} \left[ \cos(\omega_1 t) \hat{\mathbf{x}} + \sigma_1 \sin(\omega_1 t) \hat{\mathbf{y}} \right] + \frac{F_2}{\sqrt{2}} \left[ \cos(\omega_2 t + \phi) \hat{\mathbf{x}} + \sigma_2 \sin(\omega_2 t + \phi) \hat{\mathbf{y}} \right]
+$$
+
   - 动力学旋转对称度折叠数（如反向旋转 $\omega+2\omega$ 呈 $C_3$ 对称）：
-    $$C_N: \quad N = p + q \quad (\text{当 } \omega_1 : \omega_2 = p : q, \; \sigma_1 \sigma_2 = -1)$$
+
+$$
+C_N: \quad N = p + q \quad (\text{当 } \omega_1 : \omega_2 = p : q, \; \sigma_1 \sigma_2 = -1)
+$$
+
   - 四面体几何手性不变量与 Ritchie 光电子前后不对称参数：
-    $$\chi_{\text{mol}} = (\mathbf{r}_1 - \mathbf{r}_4) \cdot [(\mathbf{r}_2 - \mathbf{r}_4) \times (\mathbf{r}_3 - \mathbf{r}_4)] \prod_{i < j} (Z_i - Z_j)$$
-    $$I(\theta, \phi) = \frac{\sigma_{\text{tot}}}{4\pi} \left[ 1 + \beta_1 P_1(\cos\theta) + \beta_2 P_2(\cos\theta) + \cdots \right], \quad G_{\text{PECD}} = \frac{\beta_1}{2}$$
+
+$$
+\chi_{\text{mol}} = (\mathbf{r}_1 - \mathbf{r}_4) \cdot [(\mathbf{r}_2 - \mathbf{r}_4) \times (\mathbf{r}_3 - \mathbf{r}_4)] \prod_{i < j} (Z_i - Z_j)
+$$
+
+$$
+I(\theta, \phi) = \frac{\sigma_{\text{tot}}}{4\pi} \left[ 1 + \beta_1 P_1(\cos\theta) + \beta_2 P_2(\cos\theta) + \cdots \right], \quad G_{\text{PECD}} = \frac{\beta_1}{2}
+$$
+
 - **核心 API 映射**：`init_bicircular_field`, `calc_dynamical_symmetry_fold`, `init_chiral_tetrahedral_molecule`, `calc_chirality_measure`, `calc_chiral_beta1_model`, `calc_forward_backward_asymmetry`, `calc_pecd_pad_spectrum`。
 
 ### 36. 超冷极性分子反应动力学与微波/静电偶极遮蔽 (`mod_ultracold_reaction_shielding`)
 - **理论基础与物理机制**：超冷双原子极性分子由于长程各向异性电偶极吸引易发生非弹性碰撞猝灭与化学反应损失；通过施加微波蓝失谐缀饰场诱导分子间长程免交叉有效排斥势垒，将碰撞分子有效屏蔽在短程反应区外以保护蒸发冷却。
 - **详细数学表达式**：
   - 微波蓝失谐缀饰态有效排斥屏蔽势：
-    $$V_{\text{eff}}(R) = \frac{\hbar\Delta}{2} + \sqrt{\left(\frac{\hbar\Delta}{2}\right)^2 + \left(\frac{d_{\text{mol}}^2}{4\pi\epsilon_0 R^3}\right)^2} - \frac{C_6}{R^6}$$
+
+$$
+V_{\text{eff}}(R) = \frac{\hbar\Delta}{2} + \sqrt{\left(\frac{\hbar\Delta}{2}\right)^2 + \left(\frac{d_{\text{mol}}^2}{4\pi\epsilon_0 R^3}\right)^2} - \frac{C_6}{R^6}
+$$
+
   - 短程反应区 WKB 半经典量子隧穿几率：
-    $$P_{\text{WKB}}(E) = \exp\left( -2 \int_{R_{\text{in}}}^{R_{\text{out}}} \sqrt{\frac{2\mu}{\hbar^2}\max(0, V_{\text{eff}}(R) - E)} \, dR \right)$$
+
+$$
+P_{\text{WKB}}(E) = \exp\left( -2 \int_{R_{\text{in}}}^{R_{\text{out}}} \sqrt{\frac{2\mu}{\hbar^2}\max(0, V_{\text{eff}}(R) - E)} \, dR \right)
+$$
+
   - 超冷两体弹性与非弹性损失速率比判据：
-    $$\sigma_{\text{el}}(E) = \frac{4\pi}{k^2} \sin^2 \delta_0(E), \quad K_2^{(\text{inel})} = \frac{2h}{\mu} \langle P_{\text{WKB}}(E) \rangle_T, \quad \gamma = \frac{K_2^{(\text{el})}}{K_2^{(\text{inel})}} > 100$$
+
+$$
+\sigma_{\text{el}}(E) = \frac{4\pi}{k^2} \sin^2 \delta_0(E), \quad K_2^{(\text{inel})} = \frac{2h}{\mu} \langle P_{\text{WKB}}(E) \rangle_T, \quad \gamma = \frac{K_2^{(\text{el})}}{K_2^{(\text{inel})}} > 100
+$$
+
 - **核心 API 映射**：`init_ultracold_molecule_preset`, `calc_effective_shielding_potential`, `calc_shielding_barrier_height`, `calc_wkb_tunneling_probability`, `calc_shielded_scattering_rates`。
 
 ### 37. 里德堡原子阻塞、PXP 约束模型与量子多体疤痕 (`mod_rydberg_blockade`)
 - **理论基础与物理机制**：高度激发的里德堡原子拥有巨大的长程范德华相互作用，使得阻塞半径内的双激发被强能级失谐阻断；该物理机制将希尔伯特空间投影到无临近激发的 PXP 约束子空间中，初态 Néel 态展现出长寿命相干复苏的量子多体疤痕现象。
 - **详细数学表达式**：
   - 范德华相互作用与里德堡阻塞半径：
-    $$V_{\text{vdW}}(R) = \frac{C_6}{R^6}, \quad C_6 \propto n^{11}, \quad R_b = \left( \frac{|C_6|}{\hbar \Omega_{\text{Rabi}}} \right)^{1/6}$$
+
+$$
+V_{\text{vdW}}(R) = \frac{C_6}{R^6}, \quad C_6 \propto n^{11}, \quad R_b = \left( \frac{|C_6|}{\hbar \Omega_{\text{Rabi}}} \right)^{1/6}
+$$
+
   - 拓扑约束 PXP 哈密顿量：
-    $$\hat{H}_{\text{PXP}} = \frac{\hbar\Omega}{2} \sum_{i=1}^L \hat{P}_{i-1} \hat{\sigma}_x^{(i)} \hat{P}_{i+1} - \hbar\Delta \sum_{i=1}^L \hat{n}_i, \quad \hat{P}_i = |g_i\rangle\langle g_i| = 1 - \hat{n}_i$$
+
+$$
+\hat{H}_{\text{PXP}} = \frac{\hbar\Omega}{2} \sum_{i=1}^L \hat{P}_{i-1} \hat{\sigma}_x^{(i)} \hat{P}_{i+1} - \hbar\Delta \sum_{i=1}^L \hat{n}_i, \quad \hat{P}_i = |g_i\rangle\langle g_i| = 1 - \hat{n}_i
+$$
+
   - 反铁磁 Néel 序参量与集体相干拉比振荡态演化：
-    $$\mathcal{O}_{\mathbb{Z}_2}(t) = \frac{2}{L}\sum_{i=1}^L (-1)^i \langle \psi(t) | \hat{n}_i | \psi(t) \rangle, \quad |\psi_{2\text{-atom}}(t)\rangle = \cos\left(\frac{\sqrt{2}\Omega t}{2}\right)|gg\rangle - i \sin\left(\frac{\sqrt{2}\Omega t}{2}\right)\frac{|gr\rangle+|rg\rangle}{\sqrt{2}}$$
+
+$$
+\mathcal{O}_{\mathbb{Z}_2}(t) = \frac{2}{L}\sum_{i=1}^L (-1)^i \langle \psi(t) | \hat{n}_i | \psi(t) \rangle, \quad |\psi_{2\text{-atom}}(t)\rangle = \cos\left(\frac{\sqrt{2}\Omega t}{2}\right)|gg\rangle - i \sin\left(\frac{\sqrt{2}\Omega t}{2}\right)\frac{|gr\rangle+|rg\rangle}{\sqrt{2}}
+$$
+
 - **核心 API 映射**：`init_rydberg_atom`, `calc_rydberg_blockade_radius`, `calc_two_atom_dynamics`, `calc_z2_order_parameter`, `calc_rydberg_scar_dynamics`。
 
 ### 38. 表面量子散射与选择性吸附共振 (`mod_surface_scattering`)
 - **理论基础与物理机制**：热能原子/分子束在晶体表面散射时受周期性点阵势作用发生量子布拉格衍射；在硬波纹表面 (HCS) 模型下衍射强度由第一类贝塞尔函数支配；当入射粒子动能与表面 Morse 束缚态能级发生微观共振耦合时诱发选择性吸附共振 (SAR) 并产生特征 Fano 线型调制。
 - **详细数学表达式**：
   - 二维硬波纹表面几何与 Bragg 动量守恒：
-    $$\zeta(\mathbf{R}) = \zeta_x \cos\left( \frac{2\pi x}{a_x} \right) + \zeta_y \cos\left( \frac{2\pi y}{a_y} \right), \quad \mathbf{k}_{\parallel, \mathbf{G}} = \mathbf{k}_{\parallel} + \mathbf{G} = \mathbf{k}_{\parallel} + m\mathbf{b}_x + n\mathbf{b}_y$$
+
+$$
+\zeta(\mathbf{R}) = \zeta_x \cos\left( \frac{2\pi x}{a_x} \right) + \zeta_y \cos\left( \frac{2\pi y}{a_y} \right), \quad \mathbf{k}_{\parallel, \mathbf{G}} = \mathbf{k}_{\parallel} + \mathbf{G} = \mathbf{k}_{\parallel} + m\mathbf{b}_x + n\mathbf{b}_y
+$$
+
   - 程函近似衍射散射 $S$ 矩阵元：
-    $$S_{mn} = \frac{1}{a_x a_y} \int_0^{a_x} dx \int_0^{a_y} dy \, \exp\left[ -i \mathbf{G}\cdot\mathbf{R} - i (k_{z, \mathbf{G}} + k_{iz})\zeta(\mathbf{R}) \right] = (-i)^{|m|+|n|} J_m(c_x) J_n(c_y)$$
+
+$$
+S_{mn} = \frac{1}{a_x a_y} \int_0^{a_x} dx \int_0^{a_y} dy \, \exp\left[ -i \mathbf{G}\cdot\mathbf{R} - i (k_{z, \mathbf{G}} + k_{iz})\zeta(\mathbf{R}) \right] = (-i)^{|m|+|n|} J_m(c_x) J_n(c_y)
+$$
+
   - 选择性吸附共振 (SAR) 束缚能量匹配条件与声子热衰减 Debye-Waller 因子：
-    $$k_{z, \mathbf{G}}^2 = \frac{2M}{\hbar^2} (E_{\text{inc}} - V_0) - |\mathbf{k}_{\parallel} + \mathbf{G}|^2 = \frac{2M}{\hbar^2} E_v^{\text{Morse}} < 0$$
-    $$I_{\mathbf{G}}(T) = I_{\mathbf{G}}(0) \exp\left[ -2 W_{\mathbf{G}}(T) \right] = I_{\mathbf{G}}(0) \exp\left[ -\frac{3\hbar^2 (k_{iz} + k_{z, \mathbf{G}})^2 T}{M k_B \Theta_D^2} \right]$$
+
+$$
+k_{z, \mathbf{G}}^2 = \frac{2M}{\hbar^2} (E_{\text{inc}} - V_0) - |\mathbf{k}_{\parallel} + \mathbf{G}|^2 = \frac{2M}{\hbar^2} E_v^{\text{Morse}} < 0
+$$
+
+$$
+I_{\mathbf{G}}(T) = I_{\mathbf{G}}(0) \exp\left[ -2 W_{\mathbf{G}}(T) \right] = I_{\mathbf{G}}(0) \exp\left[ -\frac{3\hbar^2 (k_{iz} + k_{z, \mathbf{G}})^2 T}{M k_B \Theta_D^2} \right]
+$$
+
 - **核心 API 映射**：`init_surface_lattice`, `init_surface_potential_morse`, `calc_surface_diffraction_channels`, `calc_hcs_diffraction_probabilities`, `calc_selective_adsorption_resonance`, `calc_surface_debye_waller`。
 
 ### 39. 气-固表面催化与 Eley-Rideal 反应动力学 (`mod_surface_reaction_er`)
 - **理论基础与物理机制**：气相入射原子直接与吸附在固体表面上的化学吸附原子发生瞬态单次碰撞并结合脱附生成气相分子（直接 Eley-Rideal 反应通道）；巨大放热量 $\Delta E_{\text{exo}}$ 在飞秒至皮秒尺度内非统计分配到产物各自由度，驱动新生分子展现出极端的振动态布居反转与超热平动动能分布。
 - **详细数学表达式**：
   - 二维反应势能面与总可用能量守恒：
-    $$V(r, Z_{\text{cm}}) = V_{\text{gas}}(r) + V_{\text{chem}}(Z_{\text{ads}}) + V_{\text{int}}(r, Z_{\text{cm}})$$
-    $$E_{\text{avail}} = E_{\text{inc}} + E_{\text{bind}} + \Delta E_{\text{exo}} = \langle E_{\text{vib}} \rangle + \langle E_{\text{rot}} \rangle + \langle E_{\text{trans}} \rangle + \Delta E_{\text{bath}}$$
+
+$$
+V(r, Z_{\text{cm}}) = V_{\text{gas}}(r) + V_{\text{chem}}(Z_{\text{ads}}) + V_{\text{int}}(r, Z_{\text{cm}})
+$$
+
+$$
+E_{\text{avail}} = E_{\text{inc}} + E_{\text{bind}} + \Delta E_{\text{exo}} = \langle E_{\text{vib}} \rangle + \langle E_{\text{rot}} \rangle + \langle E_{\text{trans}} \rangle + \Delta E_{\text{bath}}
+$$
+
   - 产物分态振动布居反转高斯分布模型：
-    $$P(v) = \frac{1}{\sqrt{2\pi \sigma_v^2}} \exp\left[ -\frac{(v - v_{\text{peak}})^2}{2\sigma_v^2} \right], \quad v_{\text{peak}} \approx \frac{\alpha_{\text{vib}} E_{\text{avail}}}{\hbar \omega_e}$$
+
+$$
+P(v) = \frac{1}{\sqrt{2\pi \sigma_v^2}} \exp\left[ -\frac{(v - v_{\text{peak}})^2}{2\sigma_v^2} \right], \quad v_{\text{peak}} \approx \frac{\alpha_{\text{vib}} E_{\text{avail}}}{\hbar \omega_e}
+$$
+
   - 入射动能依赖反应截面与微观热速率常数：
-    $$\sigma_{\text{ER}}(E_i) = \sigma_0 \left(1 - \frac{V_{\text{act}}}{E_i}\right) \Theta(E_i - V_{\text{act}}), \quad k_{\text{ER}}(T) = \sqrt{\frac{8 k_B T}{\pi \mu}} \int_{V_{\text{act}}}^\infty \sigma_{\text{ER}}(E) \frac{E}{(k_B T)^2} e^{-E / (k_B T)} dE$$
+
+$$
+\sigma_{\text{ER}}(E_i) = \sigma_0 \left(1 - \frac{V_{\text{act}}}{E_i}\right) \Theta(E_i - V_{\text{act}}), \quad k_{\text{ER}}(T) = \sqrt{\frac{8 k_B T}{\pi \mu}} \int_{V_{\text{act}}}^\infty \sigma_{\text{ER}}(E) \frac{E}{(k_B T)^2} e^{-E / (k_B T)} dE
+$$
+
 - **核心 API 映射**：`init_er_reaction_system`, `calc_er_potential_2d`, `calc_er_energy_partitioning`, `calc_er_vibrational_populations`, `calc_er_reaction_cross_section`, `calc_er_thermal_rate_constant`。
 
 ### 40. 金属表面非绝热动力学与电子摩擦耗散 (`mod_surface_electronic_friction`)
 - **理论基础与物理机制**：分子在金属表面散射或化学吸附过程中，核运动诱发费米能级附近的低能电子-空穴对激发（e-h pairs），破坏 Born-Oppenheimer 绝热假定；在局域密度摩擦近似（LDFA）与广义朗之万方程（GLE）下，体系展现为黏滞电子摩擦阻尼力与高斯白噪声热涨落，驱动核动能耗散与吸附键特征振动寿命衰减。
 - **详细数学表达式**：
   - 广义朗之万动力学方程 (Generalized Langevin Equation, GLE)：
-    $$M \ddot{z}(t) = -\frac{\partial V(z)}{\partial z} - M \int_0^t \gamma(t - t') \dot{z}(t') dt' + \xi(t), \quad \langle \xi(t) \xi(t') \rangle = 2 M \eta(z) k_B T \delta(t - t')$$
+
+$$
+M \ddot{z}(t) = -\frac{\partial V(z)}{\partial z} - M \int_0^t \gamma(t - t') \dot{z}(t') dt' + \xi(t), \quad \langle \xi(t) \xi(t') \rangle = 2 M \eta(z) k_B T \delta(t - t')
+$$
+
   - 局域密度摩擦近似 (LDFA) 空间依赖摩擦系数：
-    $$\eta(z) = \eta_0 \exp\left[ -\beta (z - z_{\text{surf}}) \right] = \frac{4\pi}{3} k_F n_0 \sum_l (2l + 1) \sin^2(\delta_l - \delta_{l+1})$$
+
+$$
+\eta(z) = \eta_0 \exp\left[ -\beta (z - z_{\text{surf}}) \right] = \frac{4\pi}{3} k_F n_0 \sum_l (2l + 1) \sin^2(\delta_l - \delta_{l+1})
+$$
+
   - 非绝热散射电子-空穴对累积能量损失与高频振动弛豫寿命：
-    $$\Delta E_{\text{loss}} = \int_0^{t_{\text{final}}} M \eta(z(t)) \dot{z}^2(t) dt, \quad \tau_{\text{vib}} = \frac{1}{\eta(z_{\text{eq}})}$$
+
+$$
+\Delta E_{\text{loss}} = \int_0^{t_{\text{final}}} M \eta(z(t)) \dot{z}^2(t) dt, \quad \tau_{\text{vib}} = \frac{1}{\eta(z_{\text{eq}})}
+$$
+
 - **核心 API 映射**：`init_metal_surface`, `calc_electronic_friction_coeff`, `calc_surface_morse_force`, `integrate_gle_scattering_trajectory`, `calc_vibrational_relaxation_rate`。
 
 ### 41. 掠入射快原子表面量子衍射与彩虹散射 (`mod_grazing_fast_atom_diffraction`)
 - **理论基础与物理机制**：能量达数 keV 的快轻原子（He, Ne, H）以极小掠角 $\theta \ll 1^\circ$ 入射至平整单晶表面；沿晶轴方向的快运动与表面沟道势相互作用解耦为经典运动，而垂直晶轴的横向慢运动（$E_\perp \sim \text{meV}\sim\text{eV}$）发生高相干量子 Bragg 衍射，并在边缘展现出经典彩虹折射极大，可实现亚皮米级表面波纹幅度的高精度反演。
 - **详细数学表达式**：
   - 快慢运动自由度解耦与有效垂直德布罗意波长：
-    $$E_\perp = E_{\text{beam}} \sin^2\theta, \quad \lambda_\perp = \frac{h}{\sqrt{2 M E_\perp}} = \frac{h}{\sqrt{2 M E_{\text{beam}}} \sin\theta}$$
+
+$$
+E_\perp = E_{\text{beam}} \sin^2\theta, \quad \lambda_\perp = \frac{h}{\sqrt{2 M E_\perp}} = \frac{h}{\sqrt{2 M E_{\text{beam}}} \sin\theta}
+$$
+
   - 表面经典彩虹散射角与表面几何极值斜率对应：
-    $$\theta_R = 2 \arctan\left( \max_{x} \left| \frac{\partial \zeta(x)}{\partial x} \right| \right) \approx \frac{4\pi \zeta}{a_x}$$
+
+$$
+\theta_R = 2 \arctan\left( \max_{x} \left| \frac{\partial \zeta(x)}{\partial x} \right| \right) \approx \frac{4\pi \zeta}{a_x}
+$$
+
   - 一维横向 Bragg 衍射峰位与亚皮米波纹幅度逆向反演：
-    $$\sin\theta_m - \sin\theta_{\text{in}} = m \frac{\lambda_\perp}{a_x}, \quad \zeta = \frac{a_x \theta_R}{4\pi}$$
+
+$$
+\sin\theta_m - \sin\theta_{\text{in}} = m \frac{\lambda_\perp}{a_x}, \quad \zeta = \frac{a_x \theta_R}{4\pi}
+$$
+
 - **核心 API 映射**：`init_gifad_experiment`, `calc_gifad_transverse_kinematics`, `calc_gifad_rainbow_angle`, `calc_gifad_diffraction_spectrum`, `calc_surface_corrugation_from_rainbow`。
 
 ### 42. 冷离子-中性原子杂化散射与极化阱动力学 (`mod_ion_atom_scattering`)
 - **理论基础与物理机制**：单离子与超冷中性原子在杂化阱碰撞中由长程诱导偶极极化势 $V(r) = -C_4 / (2r^4)$ 决定相互作用；高能区呈现经典无势垒螺旋俘获的 Langevin 动力学，超冷能区呈现修正有效力程展开（MERE）的量子多波散射；射频 Paul 阱微运动碰撞引发非平衡致热效应。
 - **详细数学表达式**：
   - 极化相互作用长程特征尺度与特征能量：
-    $$V(r) = -\frac{C_4}{2 r^4} = -\frac{q^2 \alpha_{\text{pol}}}{8\pi\epsilon_0 r^4}, \quad R^* = \sqrt{\frac{2\mu C_4}{\hbar^2}}, \quad E^* = \frac{\hbar^2}{2\mu (R^*)^2}$$
+
+$$
+V(r) = -\frac{C_4}{2 r^4} = -\frac{q^2 \alpha_{\text{pol}}}{8\pi\epsilon_0 r^4}, \quad R^* = \sqrt{\frac{2\mu C_4}{\hbar^2}}, \quad E^* = \frac{\hbar^2}{2\mu (R^*)^2}
+$$
+
   - 经典 Langevin 螺旋俘获临界碰撞参数与速率系数：
-    $$b_c(E) = \left( \frac{2 C_4}{E} \right)^{1/4}, \quad \sigma_L(E) = \pi b_c^2 = \pi \sqrt{\frac{2 C_4}{E}}, \quad K_L = v \sigma_L(E) = 2\pi \sqrt{\frac{C_4}{\mu}}$$
+
+$$
+b_c(E) = \left( \frac{2 C_4}{E} \right)^{1/4}, \quad \sigma_L(E) = \pi b_c^2 = \pi \sqrt{\frac{2 C_4}{E}}, \quad K_L = v \sigma_L(E) = 2\pi \sqrt{\frac{C_4}{\mu}}
+$$
+
   - 极化势修正有效力程展开 (Modified Effective Range Expansion, MERE)：
-    $$k \cot \delta_0 = -\frac{1}{a_s} + \frac{\pi}{3 R^*} k + \frac{4}{3} \frac{k^2}{R^*} \ln\left( \frac{k R^*}{4} \right) + \frac{1}{2} r_{\text{eff}} k^2 + \mathcal{O}(k^3)$$
+
+$$
+k \cot \delta_0 = -\frac{1}{a_s} + \frac{\pi}{3 R^*} k + \frac{4}{3} \frac{k^2}{R^*} \ln\left( \frac{k R^*}{4} \right) + \frac{1}{2} r_{\text{eff}} k^2 + \mathcal{O}(k^3)
+$$
+
   - 射频微运动诱导碰撞致热率与平衡极限温度：
-    $$\frac{d\langle E_{\text{ion}} \rangle}{dt} = \kappa_{\text{rf}} \cdot q_{\text{Mathieu}}^2 \cdot K_L n_{\text{atom}} (E_{\text{ion}} - E_{\text{atom}}), \quad T_{\text{limit}} \propto T_{\text{atom}} \left(\frac{m_{\text{ion}}}{m_{\text{atom}}}\right)^\nu$$
+
+$$
+\frac{d\langle E_{\text{ion}} \rangle}{dt} = \kappa_{\text{rf}} \cdot q_{\text{Mathieu}}^2 \cdot K_L n_{\text{atom}} (E_{\text{ion}} - E_{\text{atom}}), \quad T_{\text{limit}} \propto T_{\text{atom}} \left(\frac{m_{\text{ion}}}{m_{\text{atom}}}\right)^\nu
+$$
+
 - **核心 API 映射**：`init_ion_atom_system`, `calc_langevin_cross_section`, `calc_langevin_rate_coefficient`, `calc_ion_atom_phase_shift`, `calc_mere_phase_shift_s_wave`, `calc_rf_micromotion_heating`。
 
 ### 43. 最少开关表面跳跃与非绝热混合量子-经典动力学 (`mod_surface_hopping_fssh`)
 - **理论基础与物理机制**：Tully 最少开关表面跳跃（FSSH）是描述非绝热多势能面分子动力学的经典-量子混合框架；原子核自由度沿单一绝热势能面作牛顿力学运动，电子态相干波函数沿含时薛定谔方程推进；在非绝热导数耦合矢量 (NACV) 显著区域，核轨迹以概率瞬时发生随机跳跃，并通过沿耦合矢量重标度核动量以保证总能量守恒。
 - **详细数学表达式**：
   - 电子含时密度矩阵运动方程与非绝热导数耦合矢量 (NACV)：
-    $$i\hbar \dot{\rho}_{jk} = (V_j - V_k)\rho_{jk} - i\hbar \sum_l \left( \dot{\mathbf{R}} \cdot \mathbf{d}_{jl} \rho_{lk} - \rho_{jl} \dot{\mathbf{R}} \cdot \mathbf{d}_{lk} \right)$$
-    $$\mathbf{d}_{jk}(\mathbf{R}) = \frac{\langle \psi_j | \nabla_{\mathbf{R}} \hat{H}_{\text{el}} | \psi_k \rangle}{V_k(\mathbf{R}) - V_j(\mathbf{R})}$$
+
+$$
+i\hbar \dot{\rho}_{jk} = (V_j - V_k)\rho_{jk} - i\hbar \sum_l \left( \dot{\mathbf{R}} \cdot \mathbf{d}_{jl} \rho_{lk} - \rho_{jl} \dot{\mathbf{R}} \cdot \mathbf{d}_{lk} \right)
+$$
+
+$$
+\mathbf{d}_{jk}(\mathbf{R}) = \frac{\langle \psi_j | \nabla_{\mathbf{R}} \hat{H}_{\text{el}} | \psi_k \rangle}{V_k(\mathbf{R}) - V_j(\mathbf{R})}
+$$
+
   - Tully 最少开关跳跃转移几率 (Fewest Switches Probability)：
-    $$g_{k \to j} = \max\left( 0, \; \frac{2 \Delta t \, \text{Re}\left( \rho_{jk}^* \dot{\mathbf{R}} \cdot \mathbf{d}_{jk} \right)}{\rho_{kk}} \right)$$
+
+$$
+g_{k \to j} = \max\left( 0, \; \frac{2 \Delta t \, \text{Re}\left( \rho_{jk}^* \dot{\mathbf{R}} \cdot \mathbf{d}_{jk} \right)}{\rho_{kk}} \right)
+$$
+
   - 沿 NACV 矢量瞬时动量重标度与禁阻跳跃能量守恒修正：
-    $$\mathbf{P}_{\text{new}} = \mathbf{P}_{\text{old}} - \gamma \mathbf{d}_{jk}, \quad \frac{(\mathbf{P}_{\text{new}})^2}{2M} + V_j = \frac{(\mathbf{P}_{\text{old}})^2}{2M} + V_k$$
-    $$\gamma = \frac{\mathbf{P} \cdot \mathbf{d}_{jk}}{M} - \text{sgn}(\mathbf{P} \cdot \mathbf{d}_{jk}) \sqrt{\left(\frac{\mathbf{P} \cdot \mathbf{d}_{jk}}{M}\right)^2 - \frac{2 (V_j - V_k)}{M |\mathbf{d}_{jk}|^2}}$$
+
+$$
+\mathbf{P}_{\text{new}} = \mathbf{P}_{\text{old}} - \gamma \mathbf{d}_{jk}, \quad \frac{(\mathbf{P}_{\text{new}})^2}{2M} + V_j = \frac{(\mathbf{P}_{\text{old}})^2}{2M} + V_k
+$$
+
+$$
+\gamma = \frac{\mathbf{P} \cdot \mathbf{d}_{jk}}{M} - \text{sgn}(\mathbf{P} \cdot \mathbf{d}_{jk}) \sqrt{\left(\frac{\mathbf{P} \cdot \mathbf{d}_{jk}}{M}\right)^2 - \frac{2 (V_j - V_k)}{M |\mathbf{d}_{jk}|^2}}
+$$
+
 - **核心 API 映射**：`init_tully_model`, `calc_adiabatic_surface_and_nacv`, `init_fssh_trajectory`, `propagate_fssh_step`, `run_fssh_ensemble`, `propagate_ehrenfest_step`。
 
 ### 44. 强场分子定向、取向与超转子动力学 (`mod_molecular_alignment`)
 - **理论基础与物理机制**：非共振强飞秒激光脉冲通过诱导极化率各向异性施加角向拉曼受激扭矩，激发宽带转动波包，在激光脉冲熄灭后在真空演化中展现出周期性无场宏观空间定向与取向复苏；利用光学离心机恒定角加速度光场可将分子连续加速至极端高角动量量子数超转子态（$J \gg 1$），最终诱发离心解离破键。
 - **详细数学表达式**：
   - 极化各向异性激光相互作用势与定向序参量：
-    $$V_{\text{laser}}(\theta, t) = -\frac{1}{4} \mathcal{E}^2(t) \left[ (\alpha_\parallel - \alpha_\perp) \cos^2\theta + \alpha_\perp \right] - \mu_0 \mathcal{E}(t) \cos\theta$$
-    $$\langle \cos^2\theta \rangle(t) = \sum_{J, M} \rho_J \left| \sum_{J'} c_{J'}^{(J)}(t) \langle Y_{J' M} | \cos^2\theta | Y_{J M} \rangle \right|^2$$
+
+$$
+V_{\text{laser}}(\theta, t) = -\frac{1}{4} \mathcal{E}^2(t) \left[ (\alpha_\parallel - \alpha_\perp) \cos^2\theta + \alpha_\perp \right] - \mu_0 \mathcal{E}(t) \cos\theta
+$$
+
+$$
+\langle \cos^2\theta \rangle(t) = \sum_{J, M} \rho_J \left| \sum_{J'} c_{J'}^{(J)}(t) \langle Y_{J' M} | \cos^2\theta | Y_{J M} \rangle \right|^2
+$$
+
   - 刚体分子无场相干复苏周期：
-    $$T_{\text{rev}} = \frac{1}{2 B_{\text{rot}} c} = \frac{\pi \hbar}{B_{\text{rot}}}$$
+
+$$
+T_{\text{rev}} = \frac{1}{2 B_{\text{rot}} c} = \frac{\pi \hbar}{B_{\text{rot}}}
+$$
+
   - 光学离心机恒定角加速度强迫激发与超转子离心有效势：
-    $$\omega_{\text{rot}}(t) = 2 \beta t, \quad J_{\text{super}} \approx \frac{\beta \tau_{\text{pulse}}}{B_{\text{rot}}}, \quad V_{\text{eff}}(R, J) = V_{\text{Morse}}(R) + \frac{\hbar^2 J(J+1)}{2 \mu R^2}$$
+
+$$
+\omega_{\text{rot}}(t) = 2 \beta t, \quad J_{\text{super}} \approx \frac{\beta \tau_{\text{pulse}}}{B_{\text{rot}}}, \quad V_{\text{eff}}(R, J) = V_{\text{Morse}}(R) + \frac{\hbar^2 J(J+1)}{2 \mu R^2}
+$$
+
 - **核心 API 映射**：`init_rotor_molecule`, `calc_cos2_matrix_elements`, `calc_cos_matrix_elements`, `simulate_laser_induced_alignment`, `calc_optical_centrifuge_kick`, `calc_superrotor_dissociation`。
 
 ### 45. 超冷光晶格与玻色-哈伯德微观映射 (`mod_optical_lattice_hubbard`)
 - **理论基础与物理机制**：反向对射相干激光形成周期性光学点阵驻波场；超冷原子在周期势中形成能带结构，在深阱紧束缚极限下投影至正交 Wannier 轨道，微观映射为玻色-哈伯德（Bose-Hubbard）模型；在外加恒定力作用下展示动量空间的布洛赫振荡，并在高能带边界发生 Landau-Zener 带间跃迁。
 - **详细数学表达式**：
   - 光晶格驻波势与单粒子能带 Mathieu 方程：
-    $$V(x) = V_0 \sin^2(k_L x), \quad \left[ -\frac{\hbar^2}{2m}\frac{d^2}{dx^2} + V_0 \sin^2(k_L x) \right] \phi_{n, q}(x) = E_n(q) \phi_{n, q}(x)$$
+
+$$
+V(x) = V_0 \sin^2(k_L x), \quad \left[ -\frac{\hbar^2}{2m}\frac{d^2}{dx^2} + V_0 \sin^2(k_L x) \right] \phi_{n, q}(x) = E_n(q) \phi_{n, q}(x)
+$$
+
   - 玻色-哈伯德紧束缚跃迁常数 $J$ 与在位排斥能 $U$：
-    $$J = -\int dx \, w^*(x - x_i) \left[ -\frac{\hbar^2}{2m}\frac{d^2}{dx^2} + V(x) \right] w(x - x_{i+1}) \approx \frac{4}{\sqrt{\pi}} E_R \left(\frac{V_0}{E_R}\right)^{3/4} \exp\left( -2\sqrt{\frac{V_0}{E_R}} \right)$$
-    $$U = \frac{4\pi\hbar^2 a_s}{m} \int dx \, |w(x)|^4 \approx \sqrt{\frac{8}{\pi}} k_L a_s E_R \left(\frac{V_0}{E_R}\right)^{3/4}$$
+
+$$
+J = -\int dx \, w^*(x - x_i) \left[ -\frac{\hbar^2}{2m}\frac{d^2}{dx^2} + V(x) \right] w(x - x_{i+1}) \approx \frac{4}{\sqrt{\pi}} E_R \left(\frac{V_0}{E_R}\right)^{3/4} \exp\left( -2\sqrt{\frac{V_0}{E_R}} \right)
+$$
+
+$$
+U = \frac{4\pi\hbar^2 a_s}{m} \int dx \, |w(x)|^4 \approx \sqrt{\frac{8}{\pi}} k_L a_s E_R \left(\frac{V_0}{E_R}\right)^{3/4}
+$$
+
   - 布洛赫振荡周期与第一激发带 Landau-Zener 隧穿几率：
-    $$T_B = \frac{2\hbar k_L}{F_{\text{ext}}}, \quad P_{\text{LZ}} = \exp\left( -\frac{\pi \Delta_{\text{gap}}^2}{4 \hbar v_F F_{\text{ext}}} \right)$$
+
+$$
+T_B = \frac{2\hbar k_L}{F_{\text{ext}}}, \quad P_{\text{LZ}} = \exp\left( -\frac{\pi \Delta_{\text{gap}}^2}{4 \hbar v_F F_{\text{ext}}} \right)
+$$
+
 - **核心 API 映射**：`init_optical_lattice`, `calc_bloch_band_energies`, `calc_bose_hubbard_parameters`, `calc_bloch_oscillation_dynamics`。
 
 ### 46. 多原子反应路径哈密顿量与变分过渡态理论 (`mod_reaction_path_hamiltonian`)
 - **理论基础与物理机制**：沿质量加权 Fukui 内禀反应坐标 (IRC) 将多自由度反应体系严格投影为一维大振幅最小能量路径 (MEP) 与 $3N-7$ 个正交振动简正模；正则变分过渡态理论 (CVT) 通过极小化沿路径各分界面的广义吉布斯自由能瓶颈，并耦合解析不对称 Eckart 势垒穿透因子，实现反应速率的高精度第一性原理预测。
 - **详细数学表达式**：
   - Miller-Handy-Adams 反应路径哈密顿量 (RPH)：
-    $$H_{\text{RPH}}(s, p_s, \{\mathbf{Q}, \mathbf{P}\}) = \frac{\left( p_s - \sum_{k, l} Q_k P_l B_{k, l}(s) \right)^2}{2 \left[ 1 + \sum_k Q_k B_{k, s}(s) \right]^2} + V_0(s) + \sum_{k=1}^{3N-7} \left( \frac{1}{2} P_k^2 + \frac{1}{2} \omega_k^2(s) Q_k^2 \right)$$
+
+$$
+H_{\text{RPH}}(s, p_s, \{\mathbf{Q}, \mathbf{P}\}) = \frac{\left( p_s - \sum_{k, l} Q_k P_l B_{k, l}(s) \right)^2}{2 \left[ 1 + \sum_k Q_k B_{k, s}(s) \right]^2} + V_0(s) + \sum_{k=1}^{3N-7} \left( \frac{1}{2} P_k^2 + \frac{1}{2} \omega_k^2(s) Q_k^2 \right)
+$$
+
   - 路径曲率耦合张量与切线导数：
-    $$B_{k, s}(s) = -\mathbf{L}_k^T(s) \frac{d\mathbf{t}(s)}{ds}$$
+
+$$
+B_{k, s}(s) = -\mathbf{L}_k^T(s) \frac{d\mathbf{t}(s)}{ds}
+$$
+
   - 正则变分过渡态 (CVT) 自由能瓶颈优化与 Eckart 隧穿校正速率：
-    $$k^{\text{CVT}}(T) = \min_{s} k^{\text{GTST}}(T, s) = \min_s \left\{ \frac{k_B T}{h} \frac{Q^{\ddagger}(T, s)}{Q^R(T)} \exp\left[ -\frac{V_0(s)}{k_B T} \right] \right\}$$
-    $$k^{\text{CVT/Eckart}}(T) = \kappa(T) \cdot k^{\text{CVT}}(T), \quad \kappa(T) = \frac{1}{k_B T} \int_0^\infty P_{\text{Eckart}}(E) e^{-E / (k_B T)} dE$$
+
+$$
+k^{\text{CVT}}(T) = \min_{s} k^{\text{GTST}}(T, s) = \min_s \left\{ \frac{k_B T}{h} \frac{Q^{\ddagger}(T, s)}{Q^R(T)} \exp\left[ -\frac{V_0(s)}{k_B T} \right] \right\}
+$$
+
+$$
+k^{\text{CVT/Eckart}}(T) = \kappa(T) \cdot k^{\text{CVT}}(T), \quad \kappa(T) = \frac{1}{k_B T} \int_0^\infty P_{\text{Eckart}}(E) e^{-E / (k_B T)} dE
+$$
+
 - **核心 API 映射**：`init_rph_benchmark_reaction`, `calc_generalized_tst_rate`, `calc_cvt_rate_constant`, `calc_eckart_tunneling_factor`。
 
 ### 47. 相对论原子结构与径向狄拉克方程 (`mod_relativistic_atomic`)
 - **理论基础与物理机制**：重元素体系中相对论效应（质量-速度修正、Darwin 项、自旋-轨道耦合）不可忽视；采用双分量径向狄拉克方程与 Norcross-Klapisch 极化模型势，求解 Sommerfeld 相对论单电子本征能级、微观精细结构劈裂常数以及相对论电偶极 (E1) 振子强度。
 - **详细数学表达式**：
   - 径向狄拉克大小分量一阶耦合常微分方程组：
-    $$\frac{d}{dr} \begin{pmatrix} P(r) \\ Q(r) \end{pmatrix} = \begin{pmatrix} -\frac{\kappa}{r} & \frac{1}{c} \left( 2 c^2 + E - V(r) \right) \\ -\frac{1}{c} \left( E - V(r) \right) & \frac{\kappa}{r} \end{pmatrix} \begin{pmatrix} P(r) \\ Q(r) \end{pmatrix}$$
-    $$\kappa = -(j + 1/2) \cdot \text{sgn}(j - l)$$
+
+$$
+\frac{d}{dr} \begin{pmatrix} P(r) \\ Q(r) \end{pmatrix} = \begin{pmatrix} -\frac{\kappa}{r} & \frac{1}{c} \left( 2 c^2 + E - V(r) \right) \\ -\frac{1}{c} \left( E - V(r) \right) & \frac{\kappa}{r} \end{pmatrix} \begin{pmatrix} P(r) \\ Q(r) \end{pmatrix}
+$$
+
+$$
+\kappa = -(j + 1/2) \cdot \text{sgn}(j - l)
+$$
+
   - Sommerfeld 精细结构相对论能量本征值：
-    $$E_{n j} = m_e c^2 \left[ \left( 1 + \left( \frac{Z \alpha}{n - (j + 1/2) + \sqrt{(j + 1/2)^2 - (Z\alpha)^2}} \right)^2 \right)^{-1/2} - 1 \right]$$
+
+$$
+E_{n j} = m_e c^2 \left[ \left( 1 + \left( \frac{Z \alpha}{n - (j + 1/2) + \sqrt{(j + 1/2)^2 - (Z\alpha)^2}} \right)^2 \right)^{-1/2} - 1 \right]
+$$
+
   - 相对论电偶极 (E1) 径向矩阵元与吸收振子强度：
-    $$R_{i \to f} = \int_0^\infty \left[ P_i(r) P_f(r) + Q_i(r) Q_f(r) \right] r \, dr, \quad f_{if} = \frac{2 m_e}{3 \hbar^2} (E_f - E_i) \frac{\max(j_i, j_f)}{2 j_i + 1} |R_{i \to f}|^2$$
+
+$$
+R_{i \to f} = \int_0^\infty \left[ P_i(r) P_f(r) + Q_i(r) Q_f(r) \right] r \, dr, \quad f_{if} = \frac{2 m_e}{3 \hbar^2} (E_f - E_i) \frac{\max(j_i, j_f)}{2 j_i + 1} |R_{i \to f}|^2
+$$
+
 - **核心 API 映射**：`calc_dirac_model_potential`, `solve_radial_dirac_eigenvalue`, `calc_dirac_fine_structure_splitting`, `calc_dirac_e1_matrix_element`。
 
 ### 48. 共振非弹性 X 射线散射与内壳层光谱 (`mod_resonant_xray_scattering`)
 - **理论基础与物理机制**：共振非弹性 X 射线散射 (RIXS) 为光子入-光子出的二阶共振光谱过程；初态芯电子被 X 射线光子跃迁激发至中间导带或自电离态，随后高能价电子退激跃迁填补芯孔并辐射发射出次级光子；借助 Kramers-Heisenberg 二阶极化微扰公式求解电子-声子耦合 Huang-Rhys 振动伴线展开与低能电子元激发。
 - **详细数学表达式**：
   - Kramers-Heisenberg 二阶极化散射微扰截面：
-    $$\frac{d^2 \sigma}{d\Omega d\omega_2} = \frac{\omega_2}{\omega_1} \sum_f \left| \sum_m \frac{\langle f | \hat{\mathbf{e}}_2^* \cdot \hat{\mathbf{D}} | m \rangle \langle m | \hat{\mathbf{e}}_1 \cdot \hat{\mathbf{D}} | i \rangle}{E_i - E_m + \hbar\omega_1 + i \Gamma_m / 2} \right|^2 \delta(E_i - E_f + \hbar\omega_1 - \hbar\omega_2)$$
+
+$$
+\frac{d^2 \sigma}{d\Omega d\omega_2} = \frac{\omega_2}{\omega_1} \sum_f \left| \sum_m \frac{\langle f | \hat{\mathbf{e}}_2^* \cdot \hat{\mathbf{D}} | m \rangle \langle m | \hat{\mathbf{e}}_1 \cdot \hat{\mathbf{D}} | i \rangle}{E_i - E_m + \hbar\omega_1 + i \Gamma_m / 2} \right|^2 \delta(E_i - E_f + \hbar\omega_1 - \hbar\omega_2)
+$$
+
   - 光学定理共振 X 射线吸收截面 (XAS)：
-    $$\sigma_{\text{XAS}}(\omega_1) = 4\pi^2 \alpha \hbar\omega_1 \sum_m |\langle m | \hat{\mathbf{e}}_1 \cdot \hat{\mathbf{D}} | i \rangle|^2 \frac{\Gamma_m / (2\pi)}{(E_m - E_i - \hbar\omega_1)^2 + (\Gamma_m / 2)^2}$$
+
+$$
+\sigma_{\text{XAS}}(\omega_1) = 4\pi^2 \alpha \hbar\omega_1 \sum_m |\langle m | \hat{\mathbf{e}}_1 \cdot \hat{\mathbf{D}} | i \rangle|^2 \frac{\Gamma_m / (2\pi)}{(E_m - E_i - \hbar\omega_1)^2 + (\Gamma_m / 2)^2}
+$$
+
   - 电-声耦合相联拉盖尔多项式 Franck-Condon 伴线强度展开：
-    $$I(n, \omega_{\text{loss}}) \propto \exp(-S) \frac{S^n}{n!} \left| \sum_{m=0}^\infty \frac{e^{-S} (-1)^m \sqrt{m! n!} \sum_{l=0}^{\min(m, n)} \frac{S^{l} (-1)^l}{l! (m-l)! (n-l)!}}{\Delta_m + i \Gamma_m / 2} \right|^2$$
+
+$$
+I(n, \omega_{\text{loss}}) \propto \exp(-S) \frac{S^n}{n!} \left| \sum_{m=0}^\infty \frac{e^{-S} (-1)^m \sqrt{m! n!} \sum_{l=0}^{\min(m, n)} \frac{S^{l} (-1)^l}{l! (m-l)! (n-l)!}}{\Delta_m + i \Gamma_m / 2} \right|^2
+$$
+
 - **核心 API 映射**：`init_rixs_system`, `calc_xas_cross_section`, `calc_kramers_heisenberg_cross_section`, `calc_rixs_2d_map`, `calc_huang_rhys_vibrational_rixs`。
 
 ### 49. 亚稳态原子碰撞潘宁电离与缔合电离 (`mod_penning_associative_ionization`)
 - **理论基础与物理机制**：亚稳态原子 $A^*$（如 $\text{He}^*(2^3S, 2^1S)$）的巨大电子激发能超过靶原子/分子 $B$ 的电离能 $I_p$，在微观碰撞过程中发生自发无辐射自电离；反应通道解离分支为潘宁电离（PI：$A^* + B \to A + B^+ + e^-$）与缔合电离（AI：$A^* + B \to AB^+ + e^-$）；利用复光学势 $V_{\text{opt}}(R) = V_*(R) - \frac{i}{2}\Gamma(R)$ 求解半经典存活几率与电离电子能谱 (PIES)；超冷能区中，自旋极化可使非弹性化学电离损失速率被压制数个数量级。
 - **详细数学表达式**：
   - 复光学势与半经典初态碰撞存活几率：
-    $$V_{\text{opt}}(R) = V_*(R) - \frac{i}{2}\Gamma(R), \quad P_{\text{surv}}(b, E) = \exp\left( -2 \int_{R_{\text{turn}}}^\infty \frac{\Gamma(R)}{\hbar v_r(R)} dR \right)$$
-    $$v_r(R) = \sqrt{\frac{2}{\mu} \left( E - V_*(R) - \frac{E b^2}{R^2} \right)}$$
+
+$$
+V_{\text{opt}}(R) = V_*(R) - \frac{i}{2}\Gamma(R), \quad P_{\text{surv}}(b, E) = \exp\left( -2 \int_{R_{\text{turn}}}^\infty \frac{\Gamma(R)}{\hbar v_r(R)} dR \right)
+$$
+
+$$
+v_r(R) = \sqrt{\frac{2}{\mu} \left( E - V_*(R) - \frac{E b^2}{R^2} \right)}
+$$
+
   - 潘宁电离 (PI)、缔合电离 (AI) 与总化学电离截面：
-    $$\sigma_{\text{tot}}(E) = 2\pi \int_0^\infty b [1 - P_{\text{surv}}(b, E)] db = \sigma_{\text{PI}}(E) + \sigma_{\text{AI}}(E)$$
-    $$\sigma_{\text{AI}}(E) = 2\pi \int_0^\infty b \, db \int_{R_{\text{turn}}}^{R_c(b)} \frac{\Gamma(R)}{\hbar v_r(R)} \exp\left( -2 \int_{R_{\text{turn}}}^R \frac{\Gamma(R')}{\hbar v_r(R')} dR' \right) dR, \quad \left(V_+(R_c) + \frac{E b^2}{R_c^2} = E\right)$$
+
+$$
+\sigma_{\text{tot}}(E) = 2\pi \int_0^\infty b [1 - P_{\text{surv}}(b, E)] db = \sigma_{\text{PI}}(E) + \sigma_{\text{AI}}(E)
+$$
+
+$$
+\sigma_{\text{AI}}(E) = 2\pi \int_0^\infty b \, db \int_{R_{\text{turn}}}^{R_c(b)} \frac{\Gamma(R)}{\hbar v_r(R)} \exp\left( -2 \int_{R_{\text{turn}}}^R \frac{\Gamma(R')}{\hbar v_r(R')} dR' \right) dR, \quad \left(V_+(R_c) + \frac{E b^2}{R_c^2} = E\right)
+$$
+
   - 潘宁电离电子能谱 (PIES) 局域静止相条件：
-    $$E_{\text{elec}}(R) = V_*(R) - V_+(R), \quad \frac{d\sigma}{dE_e} \propto \sum_{R_*} \frac{R_*^2 \Gamma(R_*)}{|\frac{d}{dR}[V_*(R) - V_+(R)]|_{R_*}} \sqrt{1 - \frac{V_*(R_*)}{E}}$$
+
+$$
+E_{\text{elec}}(R) = V_*(R) - V_+(R), \quad \frac{d\sigma}{dE_e} \propto \sum_{R_*} \frac{R_*^2 \Gamma(R_*)}{|\frac{d}{dR}[V_*(R) - V_+(R)]|_{R_*}} \sqrt{1 - \frac{V_*(R_*)}{E}}
+$$
+
   - 超冷复散射长度与自旋极化自电离抑制比：
-    $$a = \alpha - i\beta, \quad K_{\text{loss}} = \frac{4\pi \hbar}{\mu} \beta, \quad \rho_{\text{suppress}} = \frac{K_{\text{loss}}(\text{unpolarized})}{K_{\text{loss}}(\text{spin-polarized})} \sim 10^3 \sim 10^5$$
+
+$$
+a = \alpha - i\beta, \quad K_{\text{loss}} = \frac{4\pi \hbar}{\mu} \beta, \quad \rho_{\text{suppress}} = \frac{K_{\text{loss}}(\text{unpolarized})}{K_{\text{loss}}(\text{spin-polarized})} \sim 10^3 \sim 10^5
+$$
+
 - **核心 API 映射**：`init_penning_system`, `calc_penning_classical_turning_point`, `calc_penning_cross_sections`, `calc_pies_spectrum`, `calc_penning_thermal_rate`, `calc_ultracold_penning_rates`。
 
 ---
