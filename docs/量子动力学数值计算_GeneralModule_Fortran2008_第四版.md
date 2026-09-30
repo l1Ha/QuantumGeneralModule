@@ -35,7 +35,9 @@ $$
 
 本章为 GeneralModule 第四版新增的理论扩展章节，面向计算量子动力学、分子光谱学与超冷碰撞领域的研究生读者及算法开发者。全章沿四条主线递进展开：第一章论述希尔伯特空间与算符谱理论，这是有限基组与离散变量表象方法的数学根基；第二章系统建立角动量代数、Clebsch–Gordan 系数与 Wigner 3j/6j/9j 符号的重耦合理论；第三章讨论空间固定坐标系与体固定坐标系、Euler 角、Jacobi 坐标、超球坐标，以及 Watson 转振哈密顿量、Coriolis 耦合、离心畸变与振动角动量；第四章阐述单位制、实对称本征问题的 Householder–QL 算法、条件数、误差传播与收敛阶。
 
-每一节均按统一体例组织：**定义**、**公式与推导**、**物理含义**、**数值陷阱**、**GeneralModule 实现映射**（源码路径、函数、GitHub 直链与二维码）、**小型数值实验**与**练习**。所有数值实验结果均由本库源码直接编译运行获得（GNU Fortran 11.4，`real64` 双精度，随机数种子取默认值），可复现、可作为读者自建验收测试的基线。行文约定：公式采用 Pandoc 兼容的 LaTeX 记号，行内公式以 $...$ 界定，独立公式以 $$...$$ 界定。
+每一节均按统一体例组织：**定义**、**公式与推导**、**物理含义**、**数值陷阱**、**GeneralModule 实现映射**（源码路径、函数、GitHub 直链与二维码）、**小型数值实验**与**练习**。所有数值实验结果均由本库源码直接编译运行获得（GNU Fortran 11.4，`real64` 双精度，随机数种子取默认值），可复现、可作为读者自建验收测试的基线。
+值得强调的是验收测试的分层思想：第一层是代数恒等式（正交性、对称性、选择定则），应达到机器精度；第二层是解析特例（谐振子、Morse 势、刚转子、Laplacian 精确谱），应达到截断误差与舍入误差的预期标度；第三层才是与实验数据的比对（如 $\mathrm{H}_2$ 的 $B_v$、$D_J$），其偏差属于物理模型的系统误差而非数值误差。三层界限分明，才能在结果异常时迅速定位问题属于代码、算法还是模型。行文约定：公式采用 Pandoc 兼容的 LaTeX 记号，行内公式以 $...$ 界定，独立公式以 $$...$$ 界定。
+四章之间存在紧密的逻辑依赖，建议按序阅读。第一章的谱定理为第三章一切变分计算提供合法性依据；第二章的角动量代数在第三章以 Wigner D 函数、Legendre 展开与重耦合网络的形式反复出现；第四章的谱与误差理论则是前三章全部数值实验的度量衡。反过来，第四章的验收测试方法——以已知解析谱校验数值实现——在每一章的小型数值实验中都有实例，读者可将全部实验脚本合并为一个回归测试套件纳入自身的持续集成体系，这也正是本库 340 项单元断言的构建思路。
 
 ---
 
@@ -48,6 +50,7 @@ $$
 **定义。** 设 $\mathcal{H}$ 为复数域 $\mathbb{C}$ 上的线性空间。若映射 $\langle\,\cdot\,|\,\cdot\,\rangle:\mathcal{H}\times\mathcal{H}\to\mathbb{C}$ 满足对第一变元共轭线性、对第二变元线性、共轭对称 $\langle\psi|\phi\rangle=\langle\phi|\psi\rangle^{*}$ 以及正定性 $\langle\psi|\psi\rangle\ge 0$（等号当且仅当 $\psi=0$），则称其为 $\mathcal{H}$ 上的内积。由内积诱导范数 $\|\psi\|=\sqrt{\langle\psi|\psi\rangle}$，并满足 Cauchy–Schwarz 不等式 $|\langle\psi|\phi\rangle|\le\|\psi\|\,\|\phi\|$ 与三角不等式。若 $\mathcal{H}$ 在该范数下完备，即任意 Cauchy 序列 $\{\psi_n\}$（满足 $\|\psi_n-\psi_m\|\to 0$）都收敛于 $\mathcal{H}$ 中元素，则称 $\mathcal{H}$ 为希尔伯特空间。量子力学标准模型进一步要求 $\mathcal{H}$ 可分，即存在可数的稠密子集。
 
 **公式与推导。** 微观体系中最常见的两类实现为：有限维空间 $\mathbb{C}^{n}$，内积 $\langle u|v\rangle=\sum_i u_i^{*}v_i$；平方可积函数空间 $L^{2}(\mathbb{R}^{3})$，内积 $\langle\psi|\phi\rangle=\int_{\mathbb{R}^{3}}\psi^{*}(\mathbf{r})\phi(\mathbf{r})\,d^{3}\mathbf{r}$，其元素满足 $\int|\psi|^{2}\,d^{3}\mathbf{r}<\infty$。Cauchy–Schwarz 不等式的证明取 $\lambda\in\mathbb{C}$ 并利用 $0\le\|\psi+\lambda\phi\|^{2}=\|\psi\|^{2}+\lambda\langle\psi|\phi\rangle+\lambda^{*}\langle\phi|\psi\rangle+|\lambda|^{2}\|\phi\|^{2}$：当 $\phi\neq 0$ 时取 $\lambda=-\langle\phi|\psi\rangle/\|\phi\|^{2}$，判别式条件立即给出 $|\langle\psi|\phi\rangle|^{2}\le\|\psi\|^{2}\|\phi\|^{2}$。对散射问题，严格而言连续谱态（平面波、散射波）不属于 $L^{2}$，须借助装备希尔伯特空间 $\Phi\subset\mathcal{H}\subset\Phi^{\times}$（rigged Hilbert space）处理；数值计算中则以大盒子边界条件将连续谱离散化，使其纳入可分希尔伯特空间框架。
+希尔伯特空间的抽象框架还包括两条对计算至关重要的结构性事实。其一，任何可分无穷维希尔伯特空间在选定正交归一基后与平方可和序列空间 $\ell^{2}$ 等距同构：$L^{2}(\mathbb{R})$ 中的函数问题与 $\ell^{2}$ 中的序列问题可以互相翻译，数值离散化正是这一同构的有限截断。其二，多自由度体系的态空间按张量积组织：$\mathcal{H}=\mathcal{H}_{\mathrm{vib}}\otimes\mathcal{H}_{\mathrm{rot}}\otimes\mathcal{H}_{\mathrm{spin}}$，基组按乘积构造，算符按 $\hat{A}\otimes\hat{B}$ 组合。转振哈密顿量在该乘积基上的矩阵呈现特征性的分块结构——振动指标内近对角、转动指标内带状（$\Delta J=0,\pm1,\pm2$ 型耦合）——这正是第三章各模块矩阵组装代码的骨架，也是稀疏存储与分块对角化得以实施的根源。
 
 **物理含义。** 量子态是 $\mathcal{H}$ 中的矢量，测量概率由 Born 规则 $p(a)=\langle\psi|P_{a}|\psi\rangle$ 给出；两态之间的交叠 $\langle\psi|\phi\rangle$ 度量其相干叠加的强度，其模方在光谱学中对应跃迁线强度中的重叠因子。范数平方 $\|\psi\|^{2}=1$ 表述总概率守恒，是任何数值传播格式必须保持的第一守恒量。
 
@@ -78,6 +81,7 @@ $$T_{ij}=\frac{\hbar^{2}}{2\mu\,\Delta x^{2}}
 \end{cases}$$
 
 这正是本库 `dvr_sinc_init` 所实现的公式（Colbert–Miller, 1992）。
+变分上界性质值得完整推导：由谱定理 $\hat{H}=\sum_k E_k|k\rangle\langle k|$，任意归一化 $\psi=\sum_k c_k|k\rangle$ 满足 $\langle\psi|\hat{H}|\psi\rangle=\sum_k|c_k|^{2}E_k\ge E_0\sum_k|c_k|^{2}=E_0$，等号当且仅当 $\psi$ 为基态。截断子空间内的对角化等价于在该子空间内取 Rayleigh 商极小，故 $E_0^{(N)}\ge E_0$ 且随 $N$ 增大单调不增；Hylleraas–Undheim–MacDonald 交错定理进一步保证 $(N+1)$ 维子空间的第 $k$ 条本征值夹于 $N$ 维结果与精确值之间。收敛速率方面，由于能量是波函数误差的二次泛函，谱方法的能级误差以基组误差的平方量级下降，这解释了 DVR/FGH 计算中能级总是先于波函数收敛的普遍经验，也提示验收时应以波函数形状（节点数、渐近行为）而非仅以能级为收敛判据。Gauss 型求积的另一要点是其代数精度：$n$ 点 Gauss–Legendre 求积对次数不超过 $2n-1$ 的多项式严格成立，由此保证 Legendre DVR 中求积权重与正交归一的严格相容，2.1 节的 $\hat{J}^{2}$ 谱检验正建立在这一性质之上。
 
 **物理含义。** 选取表象对应实验上的测量基选择：坐标表象波函数描述空间概率幅，能量表象展开系数描述定态布居，角动量表象描述取向分布。Fourier 网格哈密顿量（FGH）与 DVR 方法的物理内涵是：在正交格点上以"离散坐标本征态"近似连续坐标本征态，势能算符严格对角，动能算符解析非对角，二者相加后对角化即得束缚能级。
 
@@ -98,6 +102,7 @@ $$A=\int_{\sigma(A)}\lambda\,dE_{\lambda},\qquad \mathbb{1}=\int_{\sigma(A)}dE_{
 其中 $\{E_{\lambda}\}$ 为投影值测度；对纯离散谱退化为 $A=\sum_k\lambda_k|k\rangle\langle k|$。
 
 **公式与推导。** 有限维谱定理可用 Rayleigh 商的极值刻画（Courant–Fischer 极小极大原理）：$E_0=\min_{\psi\neq0}\langle\psi|A|\psi\rangle/\langle\psi|\psi\rangle$，取极小的 $\psi$ 满足变分方程 $\delta\{\langle\psi|A|\psi\rangle-\lambda\langle\psi|\psi\rangle\}=0$，即 $A\psi=\lambda\psi$；对子空间逐级重复即得全部本征对。自伴性给出三条直接推论：本征值全为实数（$\lambda\langle\psi|\psi\rangle=\langle\psi|A|\psi\rangle\in\mathbb{R}$）；属于不同本征值的本征矢正交；任意对称实矩阵可由正交矩阵对角化 $A=Z\Lambda Z^{T}$。反例说明定义域的重要性：半直线 $[0,\infty)$ 上的动量算符 $-i\hbar\,d/dx$ 在满足边界条件的定义域上对称但不自伴，其本征值可任意复化，不存在物理可观测对应的谱分解。
+谱定理的价值在泛函演算中完整体现：对任意合理定义的函数 $f$，$f(\hat{A})=\sum_k f(\lambda_k)|k\rangle\langle k|$，于是传播子 $\exp(-i\hat{H}t/\hbar)$、虚时间算符 $\exp(-\beta\hat{H})$ 与能量投影算符全部化为逐本征值的标量运算——1.4 节的切比雪夫传播器正是该演算的多项式逼近。谱隙 $\mathrm{gap}=|\lambda_{k+1}-\lambda_k|$ 同样具有双重身份：它既控制本征矢的扰动敏感度（4.4 节的 Davis–Kahan 界），又控制含时动力学的绝热性——能隙越大，避免非绝热跃迁所需的脉冲缓变条件越宽松。这把线性代数中的条件数概念与强场物理中的 Landau–Zener 行为直接联系起来。
 
 **物理含义。** 可观测量与自伴算符一一对应：能量、角动量分量、偶极矩均为自伴算符，故其测量值实、本征态可构成正交完备基、含时演化保概率。数值上，DVR 或基组方法组装的哈密顿矩阵正是自伴算符在有限维子空间的投影，其对角化结果（能级与波函数）构成一切后续光谱与动力学分析的原材料。复吸收势（CAP）则刻意将哈密顿变为非厄米以吸收出射流，此时谱不再全实，须以非厄米谱理论解释（参见本库 `mod_absorbing_boundary.f90`）。
 
@@ -126,8 +131,14 @@ $$e^{-i(\hat{T}+\hat{V})\Delta t/\hbar}
 +\mathcal{O}(\Delta t^{3}),$$
 
 误差首项为 $-\frac{i\Delta t^{3}}{24\hbar^{3}}[\hat{V},[\hat{V},\hat{T}]]+\frac{i\Delta t^{3}}{24\hbar^{3}}[\hat{T},[\hat{T},\hat{V}]]$ 型双对易子。由于三个因子均为幺正，对称分裂格式对任意步长都严格幺正——这不是近似而是精确性质，因此范数在机器精度内守恒；其三阶局部误差对束缚体系表现为相位误差而非振幅误差，长时间不产生久期增长。在坐标网格上，$\hat{V}$ 对角、$\hat{T}$ 在动量表象对角，故每次推进只需两次快速傅里叶变换；对大步长与长时间演化，Chebyshev 多项式展开 $e^{-i\hat{H}t/\hbar}\approx\sum_{n}a_n T_n(\hat{H}_{\mathrm{norm}})$ 提供谱收敛的替代方案（Kosloff, 1988）。
+切比雪夫方案的关键构造如下：将哈密顿量按谱半径归一 $\hat{H}_{\mathrm{norm}}=(\hat{H}-\bar{E}\,\mathbb{1})/\Delta E\in[-1,1]$（$\bar{E}$ 与 $\Delta E$ 分别为谱中心与半宽度，可由数次 Lanczos 迭代估计），则传播子的切比雪夫展开系数由第一类 Bessel 函数解析给出：
+
+$$\psi(t)=e^{-i\bar{E}\tau/\hbar}\sum_{n=0}^{N}\left(2-\delta_{n0}\right)(-i)^{n}J_{n}(\tau)\,T_{n}(\hat{H}_{\mathrm{norm}})\,\psi(0),\qquad \tau=\frac{\Delta E\,t}{\hbar}.$$
+
+截断误差由 Bessel 函数尾部 $J_{N+1}(\tau)$ 控制，所需阶数约为 $\tau$ 本身的量级，单步即可覆盖任意长度的演化时间，这是分裂算符格式（每步误差 $\mathcal{O}(\Delta t^{2})$）无法比拟的。其代价有二：每阶需要一次哈密顿–矢量乘法；截断使格式不严格幺正，范数偏差为 $\mathcal{O}(\tau^{N+1}/(N+1)!)$，须以阶数控制。对显式含时哈密顿 $\hat{H}(t)$，上述两类格式均需配合中间点采样，其系统误差由 Magnus 展开的首个对易子 $[\hat{H}(t_1),\hat{H}(t_2)]$ 决定；强场问题中该对易子来自不相互对易的 Stark 项与动能项，是步长收敛检验的必查项。
 
 **物理含义。** 波包传播直接给出光解通量、散射矩阵、含时对齐度等可观测量；幺正性对应封闭体系的概率守恒，任何非幺正格式（如未加修正的显式欧拉法）都会在数千步内累积出物理上无意义的增益或衰减。分裂算符格式的辛对称性还保证了相空间体积守恒的量子对应——能级布居在长时间平均下不漂移。
+从可观测量的角度，波包传播的输出直接对应实验时间序列：自相关函数的 Fourier 变换给出吸收谱（本库 `mod_photofragment_flux.f90` 的光解谱模块即按此构建），瞬态布居对应泵浦–探测信号，渐近通量对应散射矩阵元。因此传播格式的每一项保真指标——范数守恒、能量漂移、边界吸收强度——都会以确定的方式映射到光谱线形上：范数泄漏表现为基线漂移，相位误差表现为频移，吸收不完全表现为共振展宽。把数值参数与谱学不确定度定量联系起来，是从"算得出"走向"算得可信"的关键一步。
 
 **数值陷阱。** 其一，FFT 隐含周期边界：波包到达网格边缘后从另一侧回卷（wrap-around），须以足够大的盒子或复吸收势（本库 `mod_absorbing_boundary.f90`）消除。其二，时间步长须同时满足分裂误差与Nyquist 条件：$\Delta t$ 过大时高动量分量的相位 $e^{-iT(p)\Delta t/\hbar}$ 采样不足，产生高频混叠。其三，尽管格式严格幺正，浮点舍入仍以每步 $\mathcal{O}(\varepsilon)$ 引入微小的范数漂移，万步量级后可观测；宜在传播中周期性检查 $\langle\psi|\psi\rangle$ 并记录。
 
@@ -138,6 +149,468 @@ $$e^{-i(\hat{T}+\hat{V})\Delta t/\hbar}
 **小型数值实验。** 一维谐振子（$m=1$，$\omega=0.02\ E_h/\hbar$），网格 $n=1024$、$\Delta x=0.05\ a_0$、$\Delta t=0.5\ a.u.$，以高斯波包为初态连续推进 $20000$ 步（相当于 $10000\ a.u.\approx242\ \mathrm{fs}$）。实测终态范数偏差 $|\ \|\psi\|^{2}-1\ |=8.8\times10^{-12}$，确认了格式的严格幺正性与舍入漂移的 $\mathcal{O}(N_{\mathrm{step}}\varepsilon)$ 标度。
 
 **练习。** (1) 用 BCH 展开推导对称分裂的 $\mathcal{O}(\Delta t^{3})$ 误差项并证明其为厄米算符的虚倍数。(2) 证明 $e^{-i\hat{V}\Delta t/2\hbar}e^{-i\hat{T}\Delta t/\hbar}e^{-i\hat{V}\Delta t/2\hbar}$ 对任意 $\Delta t$ 幺正。(3) 对谐振子精确解比较分裂格式的相位误差随 $\Delta t$ 的标度，并估计达到 $10^{-6}$ 相位精度所需步长。
+
+---
+
+## 第二章 角动量代数与重耦合理论
+
+角动量是量子力学中唯一具有普适代数结构的守恒量族：无论体系是原子、分子还是超冷碰撞通道，其耦合与变换均由同一套 Racah 代数支配。本章从转动群与角动量本征基出发，依次建立 Clebsch–Gordan 系数与 Wigner 3j 符号、重耦合理论的 6j/9j 符号，最后以 Wigner–Eckart 定理统一处理张量算符矩阵元与光谱选择定则。GeneralModule 在 `mod_special_functions.f90` 中实现了完整的半整数推广符号计算器，是全库外场散射、超精细耦合与转振跃迁模块的代数引擎。
+学习本章的推荐路径是：先掌握 2.1 节的代数推导——它只用到线性代数；再以 2.2 节的 CG 系数为基本计算单元，理解 3j 符号作为其对称化包装在求和与对称性质上的优势；随后进入 2.3 节的重耦合结构，体会 6j/9j 符号如何把多体角动量的表象变换压缩为单个标量函数；最后在 2.4 节看到全部抽象如何凝结为光谱学的选择定则。贯穿全章的方法论提示是：角动量代数的每一个公式都具有双重身份——代数身份（对易关系与幺正性）与几何身份（旋转下的变换性质），二者互相校验，任何一方的偏离都应视为实现错误的信号。
+
+### 2.1 转动群与角动量本征基
+
+**定义。** 角动量算符 $\hat{\mathbf{J}}=(\hat{J}_x,\hat{J}_y,\hat{J}_z)$ 由对易关系
+
+$$[\hat{J}_i,\hat{J}_j]=i\hbar\,\varepsilon_{ijk}\hat{J}_k$$
+
+代数地定义，与具体表示（轨道、自旋、分子转动）无关。$\hat{J}^{2}$ 与 $\hat{J}_z$ 对易，故可取共同本征基 $|jm\rangle$：$\hat{J}^{2}|jm\rangle=\hbar^{2}j(j+1)|jm\rangle$，$\hat{J}_z|jm\rangle=\hbar m|jm\rangle$。升降算符 $\hat{J}_{\pm}=\hat{J}_x\pm i\hat{J}_y$ 满足 $[\hat{J}_z,\hat{J}_{\pm}]=\pm\hbar\hat{J}_{\pm}$。
+
+**公式与推导。** 由 $\hat{J}^{2}-\hat{J}_z^{2}=\hat{J}_x^{2}+\hat{J}_y^{2}\ge0$ 得 $m^{2}\le j(j+1)$，故 $m$ 有界；升降算符改变 $m$ 而不改变 $j$，故 $m$ 的取值范围为 $-j,\ldots,j$ 的等差序列，从而 $2j\in\{0,1,2,\ldots\}$，$j$ 可取整数或半奇数。升降系数由模方恒等式 $\hat{J}_{\pm}\hat{J}_{\mp}=\hat{J}^{2}-\hat{J}_z^{2}\pm\hbar\hat{J}_z$ 给出：
+
+$$\hat{J}_{\pm}|jm\rangle=\hbar\sqrt{j(j+1)-m(m\pm1)}\;|j,m\pm1\rangle.$$
+
+轨道角动量的坐标表示为 $\hat{J}^{2}Y_{lm}=\hbar^{2}l(l+1)Y_{lm}$，球谐函数
+
+$$Y_{lm}(\theta,\varphi)=(-1)^{m}\sqrt{\frac{2l+1}{4\pi}\,\frac{(l-m)!}{(l+m)!}}\;P_{l}^{m}(\cos\theta)\,e^{im\varphi}$$
+
+采用 Condon–Shortley 相位约定，其中缔合勒让德函数 $P_l^m$ 由三项递推自 $P_m^m$ 逐级生成。$SO(3)$ 仅容许整数表示，而 $SU(2)$ 双覆盖容许半奇数表示，此即自旋的数学来源。
+从群论视角看，$\hat{J}^{2}$ 的不变性源于转动群 Casimir 算符的地位：不可约表示由单一标记 $j$ 刻画，$2j+1$ 维表示空间内的任何矢量在整体转动下仅在该子空间内旋转，这解释了 $m$ 简并为何不受球对称势影响。半奇数表示与整数表示的区别还体现在转动 $2\pi$ 的效应上：整数表示严格复原，半奇数表示获得 $(-1)^{2j}$ 的变号，自旋统计与同核双分子的核自旋统计权重（ortho/para 结构）均由此而来。此外，Wigner D 函数是 $SU(2)$ 表示矩阵在 Euler 角参数化下的显式形式，$d^{J}_{MK}(\beta)$ 可表达为缔合勒让德型函数的组合，因此本节的 $P_l^m$ 递推同时是 3.1 节转动矩阵的数值构件，两节共享同一套稳定递推代码。
+
+**物理含义。** 转动不变性保证 $\hat{J}^{2}$ 与 $\hat{J}_z$ 是好量子数，能级具有 $2j+1$ 重 $m$ 简并；外场沿 $z$ 轴时简并被部分解除（Zeeman 效应）， $m$ 成为光谱标识。分子转动能级 $E_J=B\,J(J+1)$ 正是 $\hat{J}^{2}$ 本征值的直接后果。
+
+**数值陷阱。** 其一，半奇数量子数若以浮点数存储，会因 $0.5$ 的二进制精确表示而侥幸可用，但 $j\pm1/2$ 的链式运算在多模块间传递时仍应以两倍整数（$2j$）贯穿全库——本库 `wigner_3j_half` 系列正是强制采用两倍整数接口以杜绝截断错误。其二，缔合勒让德函数的向上递推对 $|m|\le l$ 稳定，但当 $m$ 接近 $l$ 且 $l$ 很大时 $P_m^m\propto(1-x^{2})^{m/2}$ 急剧减小，与归一化因子的大阶乘相乘后易发生下溢，应在对数域完成阶乘组合（本库 `log_factorial`）。其三，相位约定必须全库统一：Condon–Shortley 相位若在球谐函数与 Wigner 符号两处不一致，交叉矩阵元会出现 $(-1)$ 级别的符号错误，且该错误在强度谱中不可见，仅在对称性校验中暴露。
+
+**GeneralModule 实现映射。** 源码 `src/mod_special_functions.f90`：`legendre_poly`（三项递推计算 $P_l(x)$）、`assoc_legendre_poly`（含 Condon–Shortley 相位的 $P_l^m(x)$）；`src/mod_dvr_grid.f90`：`dvr_legendre_init` 以 Newton 迭代求 Gauss–Legendre 节点并构造 $\hat{J}^{2}$ 角向矩阵。GitHub 直链：[src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)。二维码：`qr/src__mod_special_functions.f90.png`。
+
+![特殊函数模块二维码](qr/src__mod_special_functions.f90.png)
+
+**小型数值实验。** 以 $n=40$ 的 Gauss–Legendre 节点构造 $\hat{J}^{2}$ 的谱求和表示（见 2.2 节），对角化后与本征值序列 $j(j+1)$，$j=0,\ldots,39$ 比对：最大偏差 $1.8\times10^{-12}$。该实验同时验证了 Legendre DVR 与角动量代数的相容性，是角向网格的必备验收测试。
+
+**练习。** (1) 完成升降算符系数的推导。(2) 证明 $Y_{ll}(\theta,\varphi)\propto\sin^{l}\theta\,e^{il\varphi}$ 并归一化。(3) 验证对易关系 $[\hat{J}_x,\hat{J}_y]=i\hbar\hat{J}_z$ 在 $j=1/2$ 的 Pauli 矩阵表示下成立。
+
+### 2.2 Clebsch–Gordan 系数与 Wigner 3j 符号
+
+**定义。** 两个角动量 $\hat{\mathbf{J}}_1,\hat{\mathbf{J}}_2$ 耦合为总角动量 $\hat{\mathbf{J}}=\hat{\mathbf{J}}_1+\hat{\mathbf{J}}_2$ 时，非耦合基 $|j_1m_1\rangle|j_2m_2\rangle$ 与耦合基 $|(j_1j_2)jm\rangle$ 之间的幺正变换系数即 Clebsch–Gordan（CG）系数 $\langle j_1m_1,j_2m_2|jm\rangle$。Wigner 3j 符号是其对称化写法：
+
+$$\langle j_1m_1,j_2m_2|j_3m_3\rangle
+=(-1)^{j_1-j_2+m_3}\sqrt{2j_3+1}
+\begin{pmatrix} j_1 & j_2 & j_3 \\ m_1 & m_2 & -m_3 \end{pmatrix}.$$
+
+**公式与推导。** 非零条件（选择定则）有三：磁量子数守恒 $m_1+m_2=m_3$；三角条件 $|j_1-j_2|\le j_3\le j_1+j_2$；以及 $j_i\ge|m_i|$。Racah 闭式给出
+
+$$\begin{pmatrix} j_1 & j_2 & j_3 \\ m_1 & m_2 & m_3 \end{pmatrix}
+=(-1)^{j_1-j_2-m_3}\,\Delta(j_1j_2j_3)
+\sqrt{\mathcal{N}}\sum_{t}(-1)^{t}\,\mathcal{D}_t^{-1},$$
+
+其中三角系数 $\Delta(j_1j_2j_3)=\sqrt{\dfrac{(j_1+j_2-j_3)!\,(j_1-j_2+j_3)!\,(-j_1+j_2+j_3)!}{(j_1+j_2+j_3+1)!}}$，归一化因子 $\mathcal{N}=\prod_{i=1}^{3}(j_i+m_i)!\,(j_i-m_i)!$，求和项分母为六个阶乘之积
+
+$$\mathcal{D}_t=t!\,(j_1+j_2-j_3-t)!\,(j_1-m_1-t)!\,(j_2+m_2-t)!\,(j_3-j_2+m_1+t)!\,(j_3-j_1-m_2+t)!,$$
+
+$t$ 取使所有阶乘自变量非负的整数区间 $[t_{\min},t_{\max}]$。对称性质：交换两列偶次不变、奇次乘以 $(-1)^{j_1+j_2+j_3}$；全体 $m\to-m$ 反射不变。正交归一关系
+
+$$\sum_{m_1m_2}\begin{pmatrix} j_1 & j_2 & j_3 \\ m_1 & m_2 & m_3\end{pmatrix}
+\begin{pmatrix} j_1 & j_2 & j_3' \\ m_1 & m_2 & m_3'\end{pmatrix}
+=\frac{\delta_{j_3j_3'}\,\delta_{m_3m_3'}}{2j_3+1}$$
+
+与完备性关系 $\sum_{j_3m_3}(2j_3+1)(\cdots)(\cdots)=\delta_{m_1m_1'}\delta_{m_2m_2'}$ 直接源于耦合变换的幺正性，是任何 3j 实现的首选验收测试。
+CG 系数可通过最高权态构造法从升降算符完整导出：耦合空间的最高权态 $|j_3,j_3\rangle$ 由要求 $\hat{J}_{+}$ 作用为零唯一确定（允许相差一个整体相位），随后反复施加 $\hat{J}_{-}$ 即生成整个多重态的展开系数；Condon–Shortley 相位约定正是通过规定最高权系数为正实数而锁定。这一构造解释了 Racah 公式中交错求和的来源，也说明 3j 符号的对称性质（列置换、$m$ 反射、Regge 对称）并非独立公理，而是幺正性与相位约定的推论。实用中还应熟记两个特例族：$j_3=0$ 时 3j 符号退化为 $(-1)^{j_1-m_1}\delta_{j_1j_2}\delta_{m_1,-m_2}/\sqrt{2j_1+1}$，常用于标量积矩阵元与约化矩阵元的化简；三个磁量子数全为零时 3j 符号仅在 $j_1+j_2+j_3$ 为偶数时非零，此性质广泛用于宇称选择定则。
+
+**物理含义。** CG 系数支配一切两体角动量耦合：自旋–轨道耦合、原子超精细结构 $(\mathbf{s}\,\mathbf{i})\mathbf{f}$、双原子碰撞通道耦合 $(s_1i_1)f_1,(s_2i_2)f_2$，以及转振跃迁的方向余弦矩阵元。单重态与三重态 $(\tfrac12\,\tfrac12)S=0,1$ 的展开系数 $1/\sqrt2$ 即最简单的 CG 系数，是磁 Feshbach 共振多通道计算的入口（本库 LITERATURE 全典第 5.2 节的四大基组变换即建立在 CG 与 9j 符号之上）。
+分子光谱中最直观的例子是碱金属二聚体的单重–三重结构：电子自旋交换作用 $\hat{\mathbf{s}}_1\cdot\hat{\mathbf{s}}_2$ 在总自旋基下对角，本征值由 $\tfrac12[S(S+1)-s_1(s_1+1)-s_2(s_2+1)]$ 给出，单重态与三重态的势能曲线劈裂由此完全确定；而从实验可测的塞曼子能级出发重构耦合方案时，CG 系数正是连接两套表象的词典。另一个例子是转振跃迁的 Hönl–London 因子：线强度中转动部分的全部信息包含于 $\langle J'|\cos\theta|J\rangle$ 型矩阵元的模方，其 $J$ 依赖完全由 3j 符号的几何因子决定，与振动态无关。
+
+**数值陷阱。** 其一，阶乘溢出：$j\gtrsim 20$ 时 $(2j)!$ 超出双精度范围，必须以对数阶乘 $\ln n!$ 累加后再指数化——本库以 `log_factorial` 贯穿全部符号计算。其二，Racah 求和为交错级数，$j$ 较大时出现严重相消，相对误差可达 $10^{-8}$ 以上；高 $j$ 场合应改用递推关系或扩充足位精度。其三，相位约定：CG 与 3j 之间的相位因子 $(-1)^{j_1-j_2+m_3}$ 若与库内其他模块不一致，将使干涉项符号翻转。
+
+**GeneralModule 实现映射。** 源码 `src/mod_special_functions.f90`：`wigner_3j` 与 `clebsch_gordan`（整数角动量）、`wigner_3j_half` 与 `clebsch_gordan_half`（两倍整数接口，覆盖半奇数自旋）、`log_factorial`（对数阶乘辅助）。文献依据：D. A. Varshalovich, A. N. Moskalev 与 V. K. Khersonskii, *Quantum Theory of Angular Momentum*, World Scientific, Singapore (1988), DOI: 10.1142/0270。GitHub 直链：[src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)。二维码：`qr/src__mod_special_functions.f90.png`。
+
+**小型数值实验。** 四项独立校验：(a) 值检验：$\begin{pmatrix}1&1&2\\0&0&0\end{pmatrix}=0.3651483717$，与精确值 $\sqrt{2/15}=0.3651483717$ 一致；(b) 对称性检验：$\begin{pmatrix}3&2&4\\1&1&-2\end{pmatrix}=+0.06299408$ 而 $\begin{pmatrix}2&3&4\\1&1&-2\end{pmatrix}=-0.06299408$，比值恰为 $(-1)^{j_1+j_2+j_3}=(-1)^{9}=-1$；(c) 正交性检验：$\sum_{m_1}\bigl[\begin{pmatrix}3&2&4\\m_1&-m_1&0\end{pmatrix}\bigr]^{2}=0.1111111$，与 $1/(2\cdot4+1)=1/9$ 一致；(d) CG 检验：$\langle 1\,1,1\,0|2\,1\rangle=0.70710678=1/\sqrt2$。全部达到机器精度。
+
+**练习。** (1) 由 Racah 公式计算 $\begin{pmatrix}1&1&0\\m&-m&0\end{pmatrix}$ 并验证其值为 $(-1)^{1-m}/\sqrt3$。(2) 从耦合变换的幺正性出发推导正交关系。(3) 编写程序验证 $j_1=3,j_2=2$ 时对全部 $(j_3,m_3)$ 的完备性关系，统计求和项数以估计工作量。
+
+### 2.3 Wigner 6j 与 9j 符号：重耦合理论
+
+**定义。** 三个角动量 $j_1,j_2,j_3$ 耦合到总角动量 $J$ 存在多条路径：先耦合 $(j_1j_2)\to j_{12}$ 再与 $j_3$ 耦合，或先耦合 $(j_2j_3)\to j_{23}$ 再与 $j_1$ 耦合。两套耦合基之间的幺正变换系数由 Wigner 6j 符号（Racah W 系数）给出：
+
+$$\bigl\langle (j_1j_2)j_{12},j_3;JM \big| j_1,(j_2j_3)j_{23};JM \bigr\rangle
+=(-1)^{j_1+j_2+j_3+J}\sqrt{(2j_{12}+1)(2j_{23}+1)}
+\begin{Bmatrix} j_1 & j_2 & j_{12} \\ j_3 & J & j_{23} \end{Bmatrix}.$$
+
+四个角动量的重耦合（如原子结构中的 $LS$ 与 $jj$ 耦合方案互换）则由 Wigner 9j 符号承担：
+
+$$\bigl\langle (j_{11}j_{12})j_{13},(j_{21}j_{22})j_{23};J \big| (j_{11}j_{21})j_{31},(j_{12}j_{22})j_{32};J \bigr\rangle
+=\sqrt{(2j_{13}+1)(2j_{23}+1)(2j_{31}+1)(2j_{32}+1)}
+\begin{Bmatrix} j_{11} & j_{12} & j_{13} \\ j_{21} & j_{22} & j_{23} \\ j_{31} & j_{32} & J \end{Bmatrix}.$$
+
+**公式与推导。** 6j 符号满足四重三角条件（四面体四面的三角关系）与正交关系
+
+$$\sum_{x}(2x+1)\begin{Bmatrix} a & b & x \\ c & d & p \end{Bmatrix}\begin{Bmatrix} a & b & x \\ c & d & q \end{Bmatrix}
+=\frac{\delta_{pq}}{2p+1},$$
+
+该关系直接源于重耦合变换的幺正性。9j 符号可展开为 6j 符号的三重求和（Varshalovich, 第 10 章）：
+
+$$\begin{Bmatrix} j_{11} & j_{12} & j_{13} \\ j_{21} & j_{22} & j_{23} \\ j_{31} & j_{32} & j_{33} \end{Bmatrix}
+=\sum_{x}(-1)^{2x}(2x+1)
+\begin{Bmatrix} j_{11} & j_{21} & j_{31} \\ j_{32} & j_{33} & x \end{Bmatrix}
+\begin{Bmatrix} j_{12} & j_{22} & j_{32} \\ j_{21} & x & j_{23} \end{Bmatrix}
+\begin{Bmatrix} j_{13} & j_{23} & j_{33} \\ x & j_{11} & j_{12} \end{Bmatrix},$$
+
+求和变量 $x$ 取遍同时满足三个三角条件的（整数或半奇数）值。本库实现严格遵循该式，其中相位因子在两倍整数接口下表现为 $(2x)$ 奇偶性的判别。
+重耦合理论还有两条常用的进阶关系。其一，Biedenharn–Elliott 求和恒等式约束四个 6j 符号乘积的求和，是推导高阶递推关系与渐近分析的工具。其二，Ponzano–Regge 半经典渐近式把 6j 符号与欧氏四面体的几何联系起来：当六个角动量远大于 1 时，6j 符号由四面体体积决定的振荡相位乘以 $V^{-1/2}$ 型振幅给出；这为密耦计算中的通道截断提供了物理直觉——大角动量通道的重耦合系数快速振荡，对总截面的贡献相消。9j 符号另具 72 个元素的对称群（行列置换与转置），高效实现可利用该对称群将重复求值减少约一个量级。
+
+**物理含义。** 重耦合理论是现代少体与碰撞物理的枢纽。在超冷原子碰撞中，双原子通道基 $|(s_1i_1)f_1,(s_2i_2)f_2\rangle$ 与总自旋基 $|(s_1s_2)S,(i_1i_2)I\rangle$ 之间的幺正变换由 9j 符号给出：
+
+$$\langle (f_1f_2)F | (SI)F \rangle
+=\sqrt{(2f_1+1)(2f_2+1)(2S+1)(2I+1)}
+\begin{Bmatrix} s_1 & i_1 & f_1 \\ s_2 & i_2 & f_2 \\ S & I & F \end{Bmatrix},$$
+
+本库 `mod_field_scattering.f90` 的 `calc_basis_transform_matrix` 以机器精度实现该变换。在超球坐标反应散射中，广义角动量本征函数（超球谐函数）的耦合与排列对称化同样由 3j/6j 网络承担； Efimov 三体物理中的超径向方程分离变量亦依赖 6j 重耦合。
+
+**数值陷阱。** 其一，三角条件判断必须与求和上下界严格一致：本库 `triangle_half` 在三角条件不满足时返回零，`wigner_6j_half` 依此决定 $t$ 求和区间；若调用者以浮点传入量子数，区间端点的整数运算会静默丢失半奇数信息。其二，6j 求和同样为交错级数，$j\gtrsim 30$ 时相消显著。其三，9j 的计算量为 $\mathcal{O}(j)$ 个 6j、每个 6j 为 $\mathcal{O}(j)$ 项求和，总计 $\mathcal{O}(j^{2})$；在大通道数密耦计算中应缓存重复调用的符号值。
+
+**GeneralModule 实现映射。** 源码 `src/mod_special_functions.f90`：`triangle_half`（辅助三角系数）、`wigner_6j_half`（Racah 单求和公式）、`wigner_9j_half`（三重 6j 展开）；配套 `src/mod_field_scattering.f90` 的 `calc_basis_transform_matrix` 与 `build_field_collision_channels`。GitHub 直链：[src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)。二维码：`qr/src__mod_special_functions.f90.png`。
+
+**小型数值实验。** 三项校验：(a) 正交性：$\sum_x(2x+1)\begin{Bmatrix}1&1&x\\2&2&2\end{Bmatrix}\begin{Bmatrix}1&1&x\\2&2&4\end{Bmatrix}$ 实测为 $0$（$<10^{-30}$），符合 $\delta_{24}/5=0$；(b) 值检验：$\begin{Bmatrix}\tfrac12&\tfrac12&1\\ \tfrac12&\tfrac12&1\end{Bmatrix}=0.1666666667=1/6$；(c) 独立重构检验：9j 符号 $\begin{Bmatrix}\tfrac12&\tfrac12&1\\ \tfrac12&\tfrac12&0\\ 1&0&1\end{Bmatrix}$ 实测 $0.1666666667$；与此同时，不经 6j 而以 CG 系数四级联直接在非耦合基（四个 $1/2$ 自旋的 16 维空间）中重构重耦合系数 $\langle(f_1f_2)F|(SI)F\rangle$，得 $0.5000000000$；按定义式 $\sqrt{(2f_1+1)(2f_2+1)(2S+1)(2I+1)}\times\text{9j}=3\times(1/6)=0.5$，两条完全独立的计算路径在机器精度内吻合。
+
+**练习。** (1) 证明 6j 正交关系由重耦合幺正性直接导出。(2) 用 CG 级联数值重构 $\langle(f_1f_2)F|(SI)F\rangle$ 在 $f_1=1,f_2=2,S=1,I=2,F=3$ 的值，并与 9j 公式比对。(3) 证明 9j 符号任一行或列满足三角条件。
+
+### 2.4 不可约张量算符、Wigner–Eckart 定理与选择定则
+
+**定义。** 相对于角动量 $\hat{\mathbf{J}}$ 的 $k$ 阶不可约张量算符是一组 $2k+1$ 个分量 $\{T^{(k)}_q\}$，$q=-k,\ldots,k$，满足
+
+$$[\hat{J}_z,T^{(k)}_q]=\hbar q\,T^{(k)}_q,\qquad
+[\hat{J}_{\pm},T^{(k)}_q]=\hbar\sqrt{k(k+1)-q(q\pm1)}\,T^{(k)}_{q\pm1}.$$
+
+Wigner–Eckart 定理断言其矩阵元分解为几何因子与约化矩阵元之积：
+
+$$\langle j'm'|T^{(k)}_q|jm\rangle
+=(-1)^{j'-m'}\begin{pmatrix} j' & k & j \\ -m' & q & m \end{pmatrix}\langle j'\|T^{(k)}\|j\rangle.$$
+
+**公式与推导。** 该定理的证明思路是：算符 $T^{(k)}_q|jm\rangle$ 按 $\hat{\mathbf{J}}$ 的表示变换的方式与 $|kq\rangle|jm\rangle$ 的耦合乘积相同，故其在磁量子数子空间内的系数必为 CG 系数；与 $m$ 无关的约化矩阵元吸收全部动力学信息。
+高阶张量可由低阶张量经耦合乘积递归构造：
+
+$$\bigl[\mathbf{A}^{(k_1)}\otimes\mathbf{B}^{(k_2)}\bigr]^{(k)}_{q}
+=\sum_{q_1q_2}\langle k_1q_1,k_2q_2|kq\rangle\,A^{(k_1)}_{q_1}B^{(k_2)}_{q_2},$$
+
+其约化矩阵元由 6j 符号给出（张量解耦公式）。该构造在多体问题中递归进行：三体相互作用的矩阵元最终化为 6j/9j 符号网络，与 2.3 节的重耦合理论合流。这体现了角动量代数的结构性优势：以少数几个基本符号及其代数关系，覆盖任意多体体系的全部角动量矩阵元，且每一步都可机器验证。直接推论为选择定则：$|j-k|\le j'\le j+k$ 且 $m'=m+q$。线性分子沿场轴的偶极作用 $\hat{H}_{d}=-dE\cos\theta$ 中，$\cos\theta=C^{(1)}_0(\theta,\varphi)$ 是秩 1 张量的 $q=0$ 分量，故平行跃迁满足 $\Delta J=\pm1$、$\Delta m=0$；非共振激光极化作用 $\frac14\Delta\alpha E^{2}\cos^{2}\theta$ 分解为零秩与二秩两部分，$\cos^{2}\theta$ 的矩阵元仅在 $\Delta J=0,\pm2$ 时非零（拉曼与分子对齐选择定则）。闭式矩阵元为
+
+$$\langle J m|\cos\theta|J\pm1,m\rangle
+=\sqrt{\frac{(J\pm1)^{2}-m^{2}}{(2J\pm1)(2J\pm3)}},\qquad
+\langle J m|\cos^{2}\theta|J m\rangle
+=\frac{(J+1)^{2}-m^{2}}{(2J+1)(2J+3)}+\frac{J^{2}-m^{2}}{(2J-1)(2J+1)}.$$
+
+**物理含义。** 选择定则是光谱学的语言：红外平行带 $\Delta J=\pm1$、拉曼散射 $\Delta J=0,\pm2$、多极相互作用对分波的约束（如磁偶极–偶极作用按二秩张量展开驱动 $L\leftrightarrow L\pm2$ 耦合但严格守恒总 $M$），全部由 Wigner–Eckart 定理统一给出。约化矩阵元与几何因子的分离还意味着：一旦计算了与取向无关的动力学量，任意取向依赖的矩阵元都是零成本的代数运算。
+给出一个完整的计算链条示例：双原子长程磁偶极–偶极作用的二秩张量展开 $\hat{V}_{dd}\propto-\frac{\sqrt{6}}{r^{3}}\sum_{q}(-1)^{q}C_{2,-q}(\hat{\mathbf{r}})\,[\mathbf{s}_1\otimes\mathbf{s}_2]^{(2)}_{q}$ 中，空间因子 $\langle L'M_L'|C_{2q}|L M_L\rangle$ 化为 3j 符号组合 $\sqrt{(2L+1)(2L'+1)}\begin{pmatrix} L' & 2 & L \\ 0 & 0 & 0\end{pmatrix}\begin{pmatrix} L' & 2 & L \\ -M_L' & q & M_L\end{pmatrix}$，其中 $(L'\,2\,L;0\,0\,0)$ 因子强制 $L+L'+2$ 为偶数，故 $s$ 波（$L=0$）仅与 $d$ 波（$L'=2$）耦合；自旋张量因子的矩阵元则由 6j 与 CG 网络给出。全部矩阵元在机器精度内解析可得，这正是各向异性偶极自旋弛豫截面计算得以高度自动化的原因，也说明 Wigner–Eckart 定理不仅给出选择定则，还直接给出矩阵元的完整算法。
+
+**数值陷阱。** 其一，约化矩阵元约定不一：文献中存在相差 $\sqrt{2j+1}$ 因子或相位的多种定义，跨文献移植公式时必须逐条核对；本库以显式矩阵元函数规避隐式约定。其二，$\cos^{2}\theta$ 矩阵元的两条闭式在 $J=0$ 边界涉及 $(-1)!$ 型奇点，实现中须以分支判断屏蔽（本库 `rot_matrix_cos2_theta` 对 $J=0$ 的对角项单独处理）。其三，$m$ 截断条件 $|m|\le\min(j,j')$ 忘记判断时会产生虚假的非零矩阵元，破坏 $m$ 分块对角结构。
+
+**GeneralModule 实现映射。** 源码 `src/mod_special_functions.f90`：`rot_matrix_cos_theta`（$\langle j m|\cos\theta|j' m\rangle$，强制 $\Delta j=\pm1$）、`rot_matrix_cos2_theta`（$\Delta j=0,\pm2$）；`src/mod_rovibrational.f90`：`build_rovibrational_dipole_matrix`（按 $\Delta J=\pm1$ 组装全转振偶极矩阵）、`build_rovibrational_polarizability_matrix`（按 $\Delta J=0,\pm2$ 组装极化率矩阵）。GitHub 直链：[src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)。二维码：`qr/src__mod_special_functions.f90.png`。
+
+**小型数值实验。** 调用 `rot_matrix_cos_theta(1,2,0)` 得 $0.51639778$，与精确值 $2/\sqrt{15}=0.5163977795$ 吻合；调用 `rot_matrix_cos_theta(1,1,0)` 得 $0$，确认 $\Delta J=0$ 偶极禁阻；调用 `rot_matrix_cos2_theta(2,2,0)` 得 $0.52380952$，与解析式 $9/35+4/15=0.5238095238$ 一致。三例共同验证了张量矩阵元实现的选择定则与归一化。
+
+**练习。** (1) 由 Wigner–Eckart 定理导出 $\langle J m|\cos\theta|J+1,m\rangle$ 的闭式。(2) 证明 $\cos^{2}\theta$ 的矩阵元仅在 $\Delta J=0,\pm2$ 时非零，并给出 $\Delta J=\pm2$ 项的显式表达式。(3) 对电四极跃迁（秩 2 张量）写出选择定则并讨论与拉曼跃迁的异同。
+
+---
+
+## 第三章 分子坐标体系与转振哈密顿量
+
+分子的转振动力学在数学上等价于在合适的广义坐标下分离并处理动能算符。坐标选择的优劣直接决定哈密顿量矩阵的稀疏性、耦合的强弱与基组收敛速度。本章由浅入深地讨论四套坐标体系：以 Euler 角连接的空间固定系与体固定系（3.1 节）、描述反应碰撞的 Jacobi 坐标（3.2 节）、以质量标度实现通道对称的超球坐标（3.3 节），以及统一转振自由度的 Watson 哈密顿量及其微扰展开——Coriolis 耦合、离心畸变与振动角动量（3.4 节）。
+坐标选择的原则可以概括为两条：其一，动能算符的结构应尽可能简单，即对角主导、耦合项低阶；其二，哈密顿量的分块应与守恒量或近守恒量对齐，以实现最大程度的解耦。SF/BF 分解牺牲前者换取后者——动能中出现 Coriolis 交叉项，但势能面获得体固定系下的不变表达；Jacobi 坐标与超球坐标则针对反应散射的通道结构优化分块，使三套排列通道在同一组变量下对称出现。理解每种坐标体系以何种代价换取何种可解释性，是构造高效转振与反应散射算法的先决条件。
+
+### 3.1 空间固定系、体固定系、Euler 角与 Wigner D 函数
+
+**定义。** 空间固定系（SF，space-fixed frame）$\{X,Y,Z\}$ 以实验室为参照，外场方向通常取 $Z$ 轴；体固定系（BF，body-fixed frame）$\{x,y,z\}$ 固连于分子，通常取惯性主轴。两系之间的转动以三个 Euler 角 $(\alpha,\beta,\gamma)$（$z$-$y$-$z$ 约定）参数化，对应的完备正交函数族是 Wigner D 函数
+
+$$D^{J}_{MK}(\alpha,\beta,\gamma)=e^{-iM\alpha}\,d^{J}_{MK}(\beta)\,e^{-iK\gamma},$$
+
+满足正交归一 $\frac{2J+1}{8\pi^{2}}\int D^{J'*}_{M'K'}D^{J}_{MK}\,d\Omega=\delta_{JJ'}\delta_{MM'}\delta_{KK'}$，其中 $d\Omega=d\alpha\,\sin\beta\,d\beta\,d\gamma$。$M$ 与 $K$ 分别为总角动量在 SF 轴与 BF 轴上的投影量子数。
+
+**公式与推导。** 刚性转子的经典动能为 $T=\frac12\sum_{\alpha}I_{\alpha}\omega_{\alpha}^{2}$（$\alpha=a,b,c$ 为主轴），量子化后得不对称陀螺哈密顿量
+
+$$\hat{H}_{\mathrm{rot}}=A\hat{J}_a^{2}+B\hat{J}_b^{2}+C\hat{J}_c^{2},\qquad A=\frac{\hbar^{2}}{2I_a},\ B=\frac{\hbar^{2}}{2I_b},\ C=\frac{\hbar^{2}}{2I_c}.$$
+
+在 $|JK\rangle$ 基下利用 $\hat{J}_{\pm}$ 的梯性质，$\hat{J}_a^{2},\hat{J}_c^{2}$ 产生 $\Delta K=\pm2$ 的非对角元，矩阵在固定 $J$ 的 $2J+1$ 维 $K$ 子空间内对角化即得不对称陀螺能级；对称陀螺（$B=C$）情形解析可解：
+
+$$E_{JK}=B\,J(J+1)+(A-B)K^{2}.$$
+不对称陀螺在 $|JK\rangle$ 基下的非对角矩阵元为
+
+$$\langle J,K|\hat{J}_a^{2}|J,K\pm2\rangle=\frac{\hbar^{2}}{4}\sqrt{(J\mp K)(J\mp K-1)(J\pm K+1)(J\pm K+2)},$$
+
+于是固定 $J$ 的哈密顿量在 $K$ 空间内是带宽为二的带状矩阵，可按 $K$ 的奇偶分块，再以宇称组合 $|K\rangle\pm|-K\rangle$ 将规模减半。核自旋统计进一步把允许的转动态按置换对称性分族——例如水分子 $K_a+K_c$ 的奇偶对应 ortho 与 para 两族——各族能级的布居比由核自旋简并度冻结，这正是转振光谱拟合中统计权重因子的来源，也是同核分子（如 $\mathrm{H}_2$ 的奇偶 $J$ 族）红外谱缺失的深层原因。
+
+SF 与 BF 角动量分量之间以方向余弦（即 D 函数）相连：$\hat{J}_Z=\sum_K D^{J}_{MK}(\alpha\beta\gamma)\,\hat{J}_{z'}$ 型关系是全部体固定相互作用（势能面、偶极矩、极化率张量）与实验室可观测量之间换算的枢纽。线型分子的取向分布退化为 $K=0$ 的特殊情形，此时 $D^{J}_{M0}(\alpha\beta\gamma)\propto Y_{JM}(\beta,\alpha)$，方向余弦矩阵元 $\langle J M|\cos\theta|J' M\rangle$ 即 2.4 节的闭式。
+
+**物理含义。** 势能面与偶极面是分子内禀属性，天然表达在体固定系中；而光谱跃迁强度、外场对齐与散射边界条件表达在空间固定系中。两套表象的取舍是转振计算的核心策略：以 $|J M K\rangle$（对称陀螺）或宇称组合 $|J M K\rangle\pm|J M,-K\rangle$ 为基，可将哈密顿量分块至 $(J,M)$ 或 $(J,\text{宇称})$ 子空间，使矩阵维数下降一至两个量级。
+实验上可调的物理量——外场方向、偏振、波长——定义在空间固定系，而势能面与偶极面是分子内禀属性；两套语言之间转译的精度决定了模拟与实验可比对的深度。以激光对齐为例，非共振场作用 $\tfrac14\Delta\alpha E^{2}\cos^{2}\theta$ 在空间固定系中是沿实验室 $Z$ 轴固定的张量，转换到体固定系后化为对分子轴的标量作用，正是这一转译使得对齐动力学可以按 $(J,M)$ 分块求解；对齐度 $\langle\cos^{2}\theta\rangle$ 的时间演化则由少数几个分块的本征展开叠加而成。同理，Stark 移位与 Zeeman 移位的方向依赖性也全部由 D 函数承载。
+
+**数值陷阱。** 其一，Euler 角在 $\beta=0,\pi$ 存在坐标奇异性，经典轨迹法在极区必须切换参数化，而基函数法则（D 函数展开）自动规避；两套方法衔接时须显式检验。其二，转动约定（主动/被动、$z$-$y$-$z$ 与 $x$-$y$-$z$ 约定、D 函数与旋转矩阵的复共轭关系）在不同教材之间不一致，跨文献移植公式时极易引入 $\beta\to\pi-\beta$ 或复共轭级别的错误；验收手段是对已知解析矩阵元（如 $\langle 10|\cos\theta|20\rangle$）逐一比对。其三，$K$ 截断须与势能面的各向异性匹配：$K_{\max}$ 过小会系统性高估转动激发能，且收敛不一定从下方单调。
+
+**GeneralModule 实现映射。** 源码 `src/mod_special_functions.f90`：`assoc_legendre_poly`（$K=0$ 线型转子的 $d^{J}_{M0}\propto P^{M}_{J}$ 构件）、`rot_matrix_cos_theta` 与 `rot_matrix_cos2_theta`（方向余弦矩阵元）；`src/mod_dvr_grid.f90`：`dvr_legendre_init`（$\theta$ 方向 Gauss–Legendre DVR，可组装 $\hat{J}^{2}$ 与 $\cos\theta$ 矩阵）；`src/mod_rovibrational.f90`：`build_rovibrational_hamiltonian`（$E(v,J)=E_{\mathrm{vib}}(v)+B_vJ(J+1)$）。文献依据：Bunker 与 Jensen, *Molecular Symmetry and Spectroscopy*, 2nd ed., NRC Research Press, Ottawa (1998)；Varshalovich 等 (1988)。GitHub 直链：[src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)。二维码：`qr/src__mod_special_functions.f90.png`。
+
+**小型数值实验。** 以 2.2 节验证过的 $\hat{J}^{2}$ 谱求和矩阵表示线型刚性转子 $\hat{H}=B\hat{J}^{2}$，取 $\mathrm{H}_2$ 的振动平均转动常数 $B_0=60.18\ \mathrm{cm^{-1}}$（见 3.4 节实验）：对角化得 $E_J/B_0=j(j+1)$，$E_1=120.36\ \mathrm{cm^{-1}}$、$E_2=360.9\ \mathrm{cm^{-1}}$，与实验转动能级（$118.5$、$354.0\ \mathrm{cm^{-1}}$，计入离心畸变后下移）的偏差在一阶刚转子近似预期之内。该实验演示了"角动量代数 + DVR + 谱定理"三位一体的最小转动能级计算。
+
+**练习。** (1) 证明 Wigner D 函数的正交归一关系。(2) 对不对称陀螺写出 $\langle JK|\hat{J}_a^{2}|J,K\pm2\rangle$ 的显式表达式并讨论 $K$ 结构。(3) 由 $D^{J}_{MK}$ 的完备性推导立体角积分化为 D 函数耦合系数的公式。
+
+### 3.2 Jacobi 坐标与三原子反应几何
+
+**定义。** 对 $A+BC$ 型三原子体系，质心分离后取原子–双原子 Jacobi 坐标 $(r,R,\gamma)$：$r$ 为双原子核间距，$R$ 为原子 $A$ 至双原子质心的距离，$\gamma$ 为 $\mathbf{r}$ 与 $\mathbf{R}$ 的夹角。另一组内禀坐标是三条核间距 $(r_{12},r_{23},r_{31})$，势能面天然对称地表达于此。二者存在封闭的解析双向变换。
+
+**公式与推导。** 记双原子质心到 $B$、$C$ 的距离为 $d_b=\dfrac{m_c}{m_b+m_c}r$ 与 $d_c=\dfrac{m_b}{m_b+m_c}r$，由余弦定理
+
+$$r_{AB}^{2}=R^{2}+d_b^{2}-2Rd_b\cos\gamma,\qquad
+r_{AC}^{2}=R^{2}+d_c^{2}+2Rd_c\cos\gamma.$$
+
+逆变换中 $R^{2}$ 由 Stewart 定理给出。推导如下：将 $m_b d_b=m_c d_c$ 代入加权平均
+
+$$\frac{m_b r_{AB}^{2}+m_c r_{AC}^{2}}{m_b+m_c}
+=R^{2}+\frac{m_b d_b^{2}+m_c d_c^{2}}{m_b+m_c}
++2R\cos\gamma\,\frac{-m_b d_b+m_c d_c}{m_b+m_c},$$
+
+交叉项因 $m_b d_b=m_c d_c$ 而严格消失，且 $m_b d_b^{2}+m_c d_c^{2}=d_bd_c(m_b+m_c)$，故
+
+$$R^{2}=\frac{m_b r_{AB}^{2}+m_c r_{AC}^{2}}{m_b+m_c}-d_b d_c,$$
+
+$\gamma$ 则由 $\cos\gamma=(R^{2}+d_b^{2}-r_{AB}^{2})/(2Rd_b)$ 恢复。转振动能算符在 Jacobi 坐标下为
+
+$$\hat{T}=-\frac{\hbar^{2}}{2\mu_r}\frac{1}{r}\frac{\partial^{2}}{\partial r^{2}}r
+-\frac{\hbar^{2}}{2\mu_R}\frac{1}{R}\frac{\partial^{2}}{\partial R^{2}}R
++\frac{(\hat{\mathbf{J}}-\hat{\mathbf{j}})^{2}}{2\mu_R R^{2}}
++\frac{\hat{\mathbf{j}}^{2}}{2\mu_r r^{2}},$$
+
+其中 $\hat{\mathbf{j}}$ 为双原子转动角动量，$\hat{\mathbf{J}}$ 为总角动量，耦合项 $(\hat{\mathbf{J}}-\hat{\mathbf{j}})^{2}$ 展开后产生轨道–转动耦合，是反应散射密耦方程的中心结构。
+该耦合的显式结构值得展开：$(\hat{\mathbf{J}}-\hat{\mathbf{j}})^{2}=\hat{J}^{2}+\hat{j}^{2}-2\,\hat{\mathbf{J}}\cdot\hat{\mathbf{j}}$，标量积以 $\hat{J}_z\hat{j}_z+\tfrac12(\hat{J}_{+}\hat{j}_{-}+\hat{J}_{-}\hat{j}_{+})$ 作用于体固定基，产生 $\Delta\Omega=0,\pm1$ 的螺旋性阶梯耦合，其矩阵元为 $\sqrt{J(J+1)-\Omega(\Omega\pm1)}$ 型的纯代数因子。势能面亦按 Legendre 级数 $V(r,R,\gamma)=\sum_{\lambda}V_{\lambda}(r,R)P_{\lambda}(\cos\gamma)$ 展开，展开系数由 Gauss–Legendre 求积获得，与 1.2 节的 DVR 求积完全同构；耦合矩阵元 $\langle j\Omega|P_{\lambda}|j'\Omega'\rangle$ 再次化为 3j 符号网络。于是整条反应散射计算链——坐标变换、势能展开、角动量耦合、通道推进——的每一个环节都落在前两章建立的工具之上。
+
+**物理含义。** 每个反应通道（$A+BC$、$AB+C$、$AC+B$）有各自的 Jacobi 坐标集；反应路径本质上是三套坐标之间经由内禀核间距 $(r_{12},r_{23},r_{31})$ 的连续变形。London–Eyring–Polanyi–Sato（LEPS）解析势能面以 Morse 单重态与反 Morse 三重态曲线构造库仑积分 $Q_i$ 与交换积分 $J_i$：
+
+$$V=Q_1+Q_2+Q_3-\sqrt{\tfrac12\bigl[(J_1-J_2)^{2}+(J_2-J_3)^{2}+(J_3-J_1)^{2}\bigr]},$$
+
+在 $\mathrm{H}+\mathrm{H}_2$ 基准体系上复现解离渐近与共线鞍点。此外，环绕锥形交叉的核置换回路的 Berry 几何相位（$\Phi_B=\pi$）亦表达在 $(r_{12},r_{23},r_{31})$ 空间的拓扑结构中（本库 `calc_berry_phase_around_ci`）。
+
+**数值陷阱。** 其一，反三角函数定义域：数值误差可使 $\cos\gamma$ 越出 $[-1,1]$，本库以截断处理，但该截断会掩盖上游误差的累积，规范做法是同时监测截断频率。其二，共线构型 $\gamma=0,\pi$ 处 $\mathbf{r}\times\mathbf{R}=0$，角动量耦合的体固定展开出现奇异性，弯曲基组须以 Legendre 或超球谐函数表达。其三，核置换对称性：同核体系（如 $\mathrm{H}_3$）要求势能面与波函数对置换群不变，坐标变换若未与置换算符一致排序，对称化误差会以 $10^{-3}$ 量级污染能级。
+
+**GeneralModule 实现映射。** 源码 `src/mod_triatomic_geometry.f90`：`jacobi_to_internuclear` 与 `internuclear_to_jacobi`（双向解析变换，含 $\cos\gamma$ 域截断）、`calc_leps_potential` 与 `init_default_h3_leps`（标准 $\mathrm{H}_3$ LEPS 面参数：$D_e=0.1744\ E_h$，$r_e=1.401\ a_0$，$\beta=1.044\ a_0^{-1}$，Sato 参数 $\Delta=0.10$）、`calc_conical_intersection_adiabats` 与 `calc_berry_phase_around_ci`。文献依据：Truhlar 与 Horowitz（J. Chem. Phys. 68, 2466 (1978), DOI: 10.1063/1.436019）、Sato（J. Chem. Phys. 23, 592 (1955), DOI: 10.1063/1.1742050）、Berry（Proc. R. Soc. Lond. A 392, 45 (1984), DOI: 10.1098/rspa.1984.0023）。GitHub 直链：[src/mod_triatomic_geometry.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_triatomic_geometry.f90)。二维码：`qr/src__mod_triatomic_geometry.f90.png`。
+
+![三原子几何模块二维码](qr/src__mod_triatomic_geometry.f90.png)
+
+**小型数值实验。** 三项校验：(a) 往返一致性：随机取 $(r,R,\gamma)=(1.4,3.2,1.1)\ (a_0,\ a_0,\ \mathrm{rad})$，经 `jacobi_to_internuclear` 再经 `internuclear_to_jacobi` 返回，三个坐标的恢复误差分别为 $0$、$4.4\times10^{-16}$、$0$，达到机器精度；(b) LEPS 双原子渐近：沿 $r_{23}=r_{31}=8\ a_0$ 扫描 $r_{12}$，极小值位于 $r_{12}=1.4011\ a_0$，深度 $V_{\min}=-0.174359\ E_h$，与输入 Morse 参数 $D_e,r_e$ 精确一致；(c) 共线鞍点：在共线平面 $r_{31}=r_{12}+r_{23}$ 上以二维 Newton 法求解 $\nabla V=0$，得鞍点 $r_{12}=r_{23}=1.775\ a_0$（$r_{31}=3.55\ a_0$），$V^{\ddagger}=-0.15371\ E_h$，相对 $\mathrm{H}_2$ 极小的势垒高度为 $12.96\ \mathrm{kcal/mol}$；文献中 London 面（未加 Sato 修正）的参考值约为 $9.8\ \mathrm{kcal/mol}$，差异来自 Sato 参数 $\Delta$ 的选择，属模型系统的固有性质而非数值误差。
+
+**练习。** (1) 完成 Stewart 定理中交叉项消失与 $m_b d_b^{2}+m_c d_c^{2}=d_bd_c(m_b+m_c)$ 的详细代数。(2) 推导 Jacobi 坐标下动能算符的显式形式并指出 $\gamma$ 依赖项。(3) 以本库 LEPS 面扫描 Sato 参数 $\Delta\in[0.05,0.20]$，讨论势垒高度对 $\Delta$ 的单调性。
+
+### 3.3 Delves 质量标度超球坐标
+
+**定义。** 将 Jacobi 坐标作质量标度变换
+
+$$S=d\,R,\qquad s=\frac{r}{d},\qquad d=\left(\frac{\mu_{A,BC}}{\mu_{BC}}\right)^{1/4},$$
+
+定义超半径 $\rho=\sqrt{S^{2}+s^{2}}$ 与超角 $\alpha=\arctan(s/S)$。三维体系共六个内部加转动自由度，完整超球坐标为 $(\rho,\alpha,\theta,\phi)$ 加整体转动，其中广义角动量算符 $\hat{\Lambda}^{2}$（grand angular momentum）生成五维超球面上的 Laplace–Beltrami 算符。
+$\hat{\Lambda}^{2}$ 的本征函数是超球谐函数，按超角动量量子数 $K$ 组织，简并度随 $K$ 以四次多项式增长，故基组截断必须与物理通道数匹配以避免维度爆炸。该基组的物理优越性在于：势能各向异性随 $\rho$ 演化——渐近区退化为二体分波结构，强相互作用区各通道自然混合——而超球基组恰好按这一物理演化组织耦合矩阵，使非对角耦合集中于物理上真正相关的通道之间。动能取各向同性的紧凑形式
+
+$$\hat{T}=-\frac{\hbar^{2}}{2\mu}\left(\frac{\partial^{2}}{\partial\rho^{2}}+\frac{5}{\rho}\frac{\partial}{\partial\rho}-\frac{\hat{\Lambda}^{2}}{\rho^{2}}\right),
+\qquad \mu=\sqrt{\mu_R\mu_r}=\sqrt{\frac{m_A m_B m_C}{M}}.$$
+
+**公式与推导。** 标度因子 $d$ 的选取条件是动能的各向同性：以 $S=dR$、$s=r/d$ 变换动量 $P_S=P_R/d$、$P_s=P_r\,d$，动能化为 $T=P_S^{2}d^{2}/(2\mu_R)+P_s^{2}/(2\mu_r d^{2})$；令 $d^{4}=\mu_R/\mu_r$ 则两项系数相等并等于 $1/(2\mu)$，其中 $\mu=\mu_R/d^{2}=\sqrt{\mu_R\mu_r}$。恒等式 $\mu_R\mu_r=\dfrac{m_A(m_B+m_C)}{M}\cdot\dfrac{m_Bm_C}{m_B+m_C}=\dfrac{m_A m_B m_C}{M}$ 给出三体约化质量的紧凑表达，与库内 `init_reaction_mass` 的实现一致。不同排列通道（$A+BC$、$AB+C$）的 Jacobi 坐标系在 $(S,s)$ 平面内相差一个由质量决定的刚性旋转，通道轴之间的夹角即反应偏角（reaction skew angle）：
+
+$$\tan\beta_{\mathrm{skew}}=\sqrt{\frac{m_B M}{m_A m_C}},\qquad
+\sin\beta_{\mathrm{skew}}=\sqrt{\frac{m_B M}{(m_A+m_B)(m_B+m_C)}},\qquad
+\cos\beta_{\mathrm{skew}}=\sqrt{\frac{m_A m_C}{(m_A+m_B)(m_B+m_C)}}.$$
+
+三个表达式自洽：$\sin^{2}\beta+\cos^{2}\beta=\dfrac{m_B(m_A+m_B+m_C)+m_A m_C}{(m_A+m_B)(m_B+m_C)}=\dfrac{(m_A+m_B)(m_B+m_C)}{(m_A+m_B)(m_B+m_C)}=1$，代数上严格成立。
+
+**物理含义。** 超球坐标把三原子体系的全部构型纳入一个统一的 $(\rho,\alpha)$ 平面：$\rho$ 度量整体尺寸，$\alpha$ 在三个通道扇区之间连续插值，反应即沿 $\rho$ 的推进与 $\alpha$ 的偏转。同核反应 $\mathrm{H}+\mathrm{H}_2\to\mathrm{H}_2+\mathrm{H}$ 的偏角恰为 $60^{\circ}$，三通道在超球面上完全对称，这是超球方法处理反应散射与 Efimov 物理的根本优势；本库 `mod_three_body_recombination.f90` 的 Efimov 模块与 `mod_hyperspherical_reactive.f90` 的过渡态速率模块共享同一套质量标度几何。
+超球方法的核心数值对象是固定 $\rho$ 处的表面绝热通道：将 $\hat{\Lambda}^{2}/(2\mu\rho^{2})+V(\rho,\Omega)$ 在超角基上对角化，得到绝热势曲线 $U_{\nu}(\rho)$ 与绝热通道函数 $\Phi_{\nu}(\rho;\Omega)$；沿 $\rho$ 推进时通道间由非对角导数耦合 $\langle\Phi_{\nu'}|\partial_\rho\Phi_{\nu}\rangle$ 连接，Johnson 的对角化修正可将其中的纯几何项解析扣除，使剩余耦合反映真实的非绝热物理。广义角动量基的截断 $K_{\max}$ 与通道数 $N_{\mathrm{ch}}$ 的收敛检验同样遵循 1.2 节的变分逻辑：通道数增加时累积反应几率 $N(E)$ 单调收敛，为速率常数的误差棒提供了方向性依据。
+
+**数值陷阱。** 其一，$\rho=0$（三体聚心）是动能的真正奇点，边界条件须按超球谐展开的正则性处理；普通网格方法应使网格内边界远离该点并检验能量对内边界位置的不敏感性。其二，质量极不对称体系（如 $\mathrm{Mu}+\mathrm{H}_2$）的偏角趋近极端值，通道扇区高度压缩，$K$（超角动量）基组收敛显著变慢，宜采用可变超角基或绝热通道对角化。其三，标度因子 $d$ 与通道约化质量在不同文献中存在倒数约定之别，调用跨库代码时第一项校验应是往返变换与偏角数值。
+
+**GeneralModule 实现映射。** 源码 `src/mod_hyperspherical_reactive.f90`：`init_reaction_mass`（$d$、$\mu$、$\beta_{\mathrm{skew}}$ 的自动生成）、`jacobi_to_hyperspherical` 与 `hyperspherical_to_jacobi`（双向变换）、`calc_eckart_transmission`、`calc_cumulative_reaction_probability`、`calc_canonical_rate_constant`、`calc_tst_wigner_rate`。文献依据：B. R. Johnson（J. Chem. Phys. 73, 5051 (1980), DOI: 10.1063/1.440058）、R. T. Pack 与 G. A. Parker（J. Chem. Phys. 87, 3888 (1987), DOI: 10.1063/1.452944）。GitHub 直链：[src/mod_hyperspherical_reactive.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_hyperspherical_reactive.f90)。二维码：`qr/src__mod_hyperspherical_reactive.f90.png`。
+
+![超球反应模块二维码](qr/src__mod_hyperspherical_reactive.f90.png)
+
+**小型数值实验。** (a) 对 $\mathrm{H}+\mathrm{H}_2$（三质量均为 $1.0078\ \mathrm{amu}$）调用 `init_reaction_mass`，得偏角 $60.000000^{\circ}$，与解析值一致；(b) 对 $\mathrm{D}+\mathrm{H}_2$（$m_A=2.0141$，$m_B=m_C=1.0078\ \mathrm{amu}$）得 $54.740638^{\circ}$；若以理想整数质量 $2:1:1$ 计算，则解析极限为 $\arccos(1/\sqrt3)=54.735610^{\circ}$，微差来自同位素质量的非严格整数比，说明偏角对质量比连续敏感；(c) 以返回的 $d$ 作超球往返变换 $(r,R)=(1.4,3.2)\ a_0$，恢复误差 $0$ 与 $4.4\times10^{-16}$。
+
+**练习。** (1) 完成动能各向同性条件 $d^{4}=\mu_R/\mu_r$ 的推导。(2) 证明偏角表达式满足 $\sin^{2}\beta+\cos^{2}\beta=1$。(3) 对 $\mathrm{H}_3$ 计算等边三角形构型的超半径与超角，并验证三个通道扇区的等价性。
+
+### 3.4 Watson 转振哈密顿量、Coriolis 耦合、离心畸变与振动角动量
+
+**定义。** 在满足 Eckart 条件的体固定系中，精确的振转哈密顿量由 Watson 给出：
+
+$$\hat{H}_{\mathrm{vr}}=\frac{1}{2}\sum_{\alpha\beta}\mu_{\alpha\beta}\bigl(\hat{J}_{\alpha}-\hat{\pi}_{\alpha}\bigr)\bigl(\hat{J}_{\beta}-\hat{\pi}_{\beta}\bigr)
++\frac{1}{2}\sum_{k}\hat{p}_{k}^{2}+V(\mathbf{Q})
+-\frac{\hbar^{2}}{8}\sum_{\alpha}\mu_{\alpha\alpha},$$
+
+其中 $\mu_{\alpha\beta}$ 为有效惯量逆张量（简正坐标的函数），$\hat{J}_{\alpha}$ 为体固定角动量分量，$\hat{\pi}_{\alpha}=\sum_{kl}\zeta^{\alpha}_{kl}Q_k\hat{p}_l$ 为振动角动量，$\zeta^{\alpha}_{kl}$ 为 Coriolis ζ 常数（对 $k,l$ 反对称），末项为 Watson 伪势。Eckart 条件
+
+$$\sum_i m_i\mathbf{a}_i=\mathbf{0},\qquad \sum_i m_i\,\mathbf{r}_{i,e}\times\mathbf{a}_i=\mathbf{0}$$
+
+（$\mathbf{a}_i$ 为位移，$\mathbf{r}_{i,e}$ 为平衡位形）保证振动与转动的动量耦合在平衡位形处线性消失。
+
+**公式与推导。** 经典动能 $T=\frac12\sum_{\alpha\beta}\mu_{\alpha\beta}(J_{\alpha}-\pi_{\alpha})(J_{\beta}-\pi_{\beta})+\frac12\sum_k p_k^{2}$ 的展开给出三类耦合：其一，$\mu_{\alpha\beta}$ 对 $Q$ 的线性展开产生离心畸变项，对不对称陀螺按约化处理（A 或 S reduction）写入四次幂算符
+
+$$\hat{H}_{\mathrm{cd}}=-D_J\hat{J}^{4}-D_{JK}\hat{J}^{2}\hat{J}_z^{2}-D_K\hat{J}_z^{4}+d_1\hat{J}^{2}(\hat{J}_{+}^{2}+\hat{J}_{-}^{2})+d_2(\hat{J}_{+}^{4}+\hat{J}_{-}^{4});$$
+
+对双原子分子，$D_v=4B_v^{3}/\omega_v^{2}$ 可由转动–振动二级微扰严格导出：$\hat{H}_{\mathrm{rot}}=B(\hat{R})\hat{J}^{2}$ 中 $B(\hat{R})$ 的非对角部分通过 $\omega_v$ 量级的振动能隙与转动能级虚耦合，二级位移整理为 $-D_vJ^{2}(J+1)^{2}$。其二，$-\hat{J}_{\alpha}\hat{\pi}_{\beta}$ 型交叉项即 Coriolis 耦合，使振动角动量 $l$ 与整体转动发生相干混合，在简并弯曲振动中产生 $l$ 型倍频分裂。其三，$\hat{\pi}_{\alpha}\hat{\pi}_{\beta}$ 项给出振动的非谐与角动量耦合修正。零级近似下能级即 $E(v,J)=E_{\mathrm{vib}}(v)+B_vJ(J+1)$，而
+
+$$B_v=\left\langle\chi_v\left|\frac{\hbar^{2}}{2\mu R^{2}}\right|\chi_v\right\rangle
+=B_e-\alpha_e\left(v+\tfrac12\right)+\cdots$$
+
+把振动平均转动常数与振转耦合常数 $\alpha_e$ 联系起来。
+$D_v=4B_v^{3}/\omega_v^{2}$ 的推导可作微扰方法的范本：把 $\hat{H}_{\mathrm{rot}}=B(\hat{R})\hat{J}^{2}$ 写成 $B_v\hat{J}^{2}+\bigl[B(\hat{R})-B_v\bigr]\hat{J}^{2}$，后者对角部分仅重整化 $B_v$，非对角部分以振动矩阵元 $\langle v\pm1|B(\hat{R})-B_v|v\rangle\approx\mp\alpha_e\sqrt{(v+1)/2}$ 与转动能差 $\approx\pm\omega_v$ 代入二级微扰，逐项求和后恰整理为 $-4B_v^{3}\omega_v^{-2}\,J^{2}(J+1)^{2}$。同一逻辑给出多原子离心畸变常数与 Coriolis 型分裂：线性分子简并弯曲态的 $l$ 型倍频源于振动角动量项与 $K$ 结构的联合作用，量级为 $q\sim B^{2}/\omega$。Watson 展开的有效性判据是 $D_v J^{2}(J+1)^{2}\ll B_v$ 与 $|\zeta|J\ll1$；超转子与 floppy 体系必须放弃微扰、返回精确动能算符做全变分处理。
+
+**物理含义。** Watson 哈密顿量是高分辨转动光谱拟合的标准模型（分子常数 $A,B,C,D_J,D_{JK},\ldots,\zeta$ 的物理载体）。离心畸变度量化学键的转动软化：转得越快，键被离心力拉伸，$B$ 下降，能级相对刚转子逐级下压；Coriolis 耦合则是转动能级内振动角动量再分配的通道，是红外–微波双共振与 $l$ 型倍频光谱的核心机制。对范德华络合物与其它 floppy 体系，微扰展开失效，须回到精确动能算符做变分处理——这正是 DVR 与密耦方法的价值所在。
+
+**数值陷阱。** 其一，度量约定：FGH/DVR 求解器返回的本征矢系数在格点 Kronecker 度量下归一化，而 quadrature 型积分函数（如 `calc_rotational_constants_bv`）期望物理波函数 $\psi=z/\sqrt{\Delta x}$；直接以原始系数调用会得到缩小 $\Delta x$ 倍的 $B_v$（下述实验实测 $0.6726$ 对 $60.18\ \mathrm{cm^{-1}}$）。其二，Watson 伪势 $-\hbar^{2}\sum_\alpha\mu_{\alpha\alpha}/8$ 虽小，对轻氢化物可达 $0.1\ \mathrm{cm^{-1}}$ 量级，高分辨拟合中不可忽略。其三，A reduction 在近球形陀螺极限退化，应改用 S reduction；ζ 常数的符号约定在 Wilson–Decius–Cross 与 Watson 两套文献中相反。其四，微扰离心畸变常数在低频模体系（范德华模、弯曲模）失效，误差可达一个量级。
+
+**GeneralModule 实现映射。** 源码 `src/mod_rovibrational.f90`：`build_rovibrational_hamiltonian`（零级转振能级组装）、`calc_rotational_constants_bv`（振动平均转动常数 $\langle\chi_v|\hbar^{2}/(2\mu R^{2})|\chi_v\rangle$）、`calc_vibrational_dipole_matrix` 与 `calc_franck_condon_factors`；`src/mod_dvr_grid.f90`：`dvr_sinc_init` 与 `fgh_solve_bound_states`（提供 $\chi_v$）。文献依据：E. B. Wilson, Jr., J. C. Decius 与 P. C. Cross, *Molecular Vibrations*, McGraw-Hill, New York (1955)；J. K. G. Watson, Mol. Phys. 15, 479 (1968)；Bunker 与 Jensen (1998)。GitHub 直链：[src/mod_rovibrational.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_rovibrational.f90)。二维码：`qr/src__mod_rovibrational.f90.png`。
+
+![转振模块二维码](qr/src__mod_rovibrational.f90.png)
+
+**小型数值实验。** 对 Morse 型 $\mathrm{H}_2$（$D_e=0.1744\ E_h$，$r_e=1.401\ a_0$，$\beta=1.044\ a_0^{-1}$，$\mu=0.5\ \mathrm{amu}$），在 $[0.4,6.0]\ a_0$ 网格（$n=500$）上以 Sinc-DVR FGH 求得振动本征态：基本带间隔 $E_1-E_0=4219.92\ \mathrm{cm^{-1}}$；盒内束缚能级 15 条（半经典估计 17 条，最高两条的外转折点越出盒界，演示盒子误差）。以 $\psi=z/\sqrt{\Delta x}$ 正确归一化后调用 `calc_rotational_constants_bv` 得 $B_0=60.18$、$B_1=57.71$、$B_2=55.12$、$B_3=52.39$、$B_4=49.52\ \mathrm{cm^{-1}}$，呈单调下降，拟合得 $\alpha_e=B_0-B_1=2.46\ \mathrm{cm^{-1}}$（实验 $\mathrm{H}_2$ 为 $3.06\ \mathrm{cm^{-1}}$，差异源于 Morse 参数与真实势能面的偏离）；离心畸变估计 $D_J\approx4B_0^{3}/(E_1-E_0)^{2}=0.04895\ \mathrm{cm^{-1}}$，与实验值 $0.047\ \mathrm{cm^{-1}}$ 偏差约 $4\%$，验证了 Wilson–Decius–Cross 微扰公式的定量可靠性。若跳过 $\sqrt{\Delta x}$ 归一化直接调用，$B_0$ 输出为 $0.6726\ \mathrm{cm^{-1}}$，恰为正确值乘以 $\Delta x=0.011196$，即 1.1 节所述度量陷阱的实例。
+
+**练习。** (1) 对 Morse 振子推导 $D_v=4B_v^{3}/\omega_v^{2}$ 并指出二级微扰的适用条件。(2) 证明 Eckart 条件使动能中 $\omega\cdot\sum_i m_i\mathbf{r}_{i,e}\times\mathbf{a}_i$ 型线性 Coriolis 项消失。(3) 以本库 $B_v$ 序列拟合 $B_v=B_e-\alpha_e(v+\frac12)+\gamma_e(v+\frac12)^{2}$，报告 $B_e,\alpha_e,\gamma_e$ 并讨论三参数拟合的残差结构。
+
+---
+
+## 第四章 单位制与本征求解的数值分析
+
+理论正确而数值失真，是计算物理中最隐蔽的一类失败。本章讨论三层数值基础：单位制与量纲一致性（4.1 节）、实对称本征问题的 Householder 三对角化与 QL 隐式位移迭代（4.2、4.3 节）、以及贯穿一切算法的条件数、误差传播与收敛阶理论（4.4 节）。GeneralModule 的设计原则——零外部库依赖、统一 `real(dp)` 强类型、纯函数契约——正是在这三层基础上确立的。
+与前三章不同，本章的主题不依赖具体物理体系，而是普适的数值工程准则；但其全部结论仍以物理算例呈现：单位制的自洽以组合常数交叉验证，本征求解器以解析谱验收，误差理论以随机矩阵与差分实验定标。这种以已知答案校验未知计算的方法论，与 1.3 节的谱定理验收、2.2 节的正交性校验一脉相承，构成本库持续集成测试体系的理论基础。
+
+### 4.1 单位制、原子单位与量纲一致性
+
+**定义。** 计算量子力学并行使用国际单位制（SI）与原子单位制（a.u.）。原子单位定义为 $\hbar=e=m_e=4\pi\varepsilon_0=1$，由此导出能量单位 Hartree
+
+$$E_h=\frac{m_e e^{4}}{(4\pi\varepsilon_0)^{2}\hbar^{2}}=4.3597447\times10^{-18}\ \mathrm{J}
+=27.211386\ \mathrm{eV}=219474.63\ \mathrm{cm^{-1}},$$
+
+长度单位 Bohr 半径 $a_0=0.529177\ \text{\AA}$，时间单位 $\hbar/E_h=2.418884\times10^{-17}\ \mathrm{s}$。质量以电子质量计，$1\ \mathrm{amu}=1822.888486\ m_e$（库内 `AMU2AU`）。
+
+**公式与推导。** 原子单位下电子的薛定谔方程化为无量纲形式 $[-\frac12\nabla^{2}-\frac{Z}{r}]\psi=E\psi$，数值量级集中于 $\mathcal{O}(1)$，是浮点运算最友好的区间。单位换算的内部自洽性可由组合常数交叉验证：以库内常数 $A_{\mathrm{eV}}=$ `AU2EV` 与 $A_{\mathrm{cm}}=$ `AU2CM` 相除，得
+
+$$\frac{A_{\mathrm{eV}}}{A_{\mathrm{cm}}}=1.239842\times10^{-4}\ \mathrm{eV\cdot cm},$$
+
+这正是组合 $hc=1.239841984\times10^{-4}\ \mathrm{eV\cdot cm}$（CODATA）的数值，两个独立存储的换算因子在八位有效数字内自洽。同理，光强换算因子 `AU2W_CM2`= $3.5094452\times10^{16}\ \mathrm{W/cm^{2}}$ 由 $I=\frac12\varepsilon_0 c E_0^{2}$ 以 $E_0=$ `AU2VM` $=5.14221\times10^{11}\ \mathrm{V/m}$ 代入即得，磁场换算 `AU2TESLA`= $2.3505176\times10^{5}\ \mathrm{T}$ 由玻尔磁子对应关系导出。温度以能量计的约定：库内 `K2AU` 把以开尔文计的温度值转换为 $k_B T$ 的 Hartree 数（$1\ \mathrm{K}\leftrightarrow3.1578\times10^{-5}\ k_B\cdot\mathrm{K}/E_h$ 量级），故 Boltzmann 因子直接写为 $\exp(-E/(T\cdot\mathrm{K2AU}))$。
+量纲分析还能给出超越直接计算的解析标度。以超冷散射为例，范德华势 $-C_6/r^{6}$ 下唯一可构造的长度量纲组合是 $(2\mu C_6/\hbar^{2})^{1/4}$，Gribakin–Flambaum 的半经典分析进一步给出平均散射长度
+
+$$\bar{a}=\frac{2\pi}{\Gamma(1/4)^{2}}\left(\frac{2\mu C_6}{\hbar^{2}}\right)^{1/4}\approx0.4779888\left(\frac{2\mu C_6}{\hbar^{2}}\right)^{1/4},$$
+
+其中数值常数仅由无量纲的 WKB 作用量相位决定。这类结果的启示是：凡在单位换算后出现反常的大数或小数，首先应怀疑某个隐藏的特征尺度未被约化。本库各模块以 a.u. 为统一内部单位，正是为了让此类标度检验可以直接进行。
+
+**物理含义。** 单位制选择即物理问题的尺度选择：原子与分子过程以 Hartree、Bohr、飞秒为自然尺度；光谱学惯用波数 $\mathrm{cm^{-1}}$；动力学速率用 $\mathrm{cm^{3}\,mol^{-1}\,s^{-1}}$ 或 $\mathrm{cm^{3}\,s^{-1}}$。本库统一以 a.u. 为内部计算单位，以字符串参数 `to_au`/`from_au` 在边界处换算，使核心算法与单位策略解耦。
+单位一致性的工程价值在于其可检验性：任何以不同推导路径得到的同一物理量必须在机器精度内重合，例如由能级差换算的波数与直接以波数输入的跃迁频率、由速率常数积分还原的截面与直接计算的截面。本库的若干模块内置了此类双向校验（如 Breit–Rabi 解析式与数值对角化的自动比对），把单位问题从程序员纪律提升为可自动执行的断言。建议读者在自建计算流程中遵循同一原则：每个涉及换算的接口都应配一条往返恒等式测试。
+
+**数值陷阱。** 其一，单位混用是静默错误的头号来源：eV 与 Hartree 相差 27.2 倍、$\mathrm{cm^{-1}}$ 与 Hartree 相差 $2.2\times10^{5}$ 倍，程序照常运行但物理结论全非；对策是在每个模块入口强制换算并保留单位注释。其二，字符串换算函数的默认分支：`to_au` 对未识别的单位串不报错而原值返回，若拼写笔误（如 `cm-1` 写成 `cm^-1` 以外的变体）将被静默吞掉；调用后宜以量级断言抽查。其三，温度换算的双重含义：$T\cdot$`K2AU` 是 $k_BT$ 而非温度本身的能量数值，混用于 Maxwell–Boltzmann 权重时差一个 $k_B$。其四，约化质量须用核质量而非原子量整数，$\mu_{\mathrm{H_2}}=0.5\times1.0078=0.5039\ \mathrm{amu}$ 与 $0.5\ \mathrm{amu}$ 在高分辨比较时差 $0.8\%$。
+
+**GeneralModule 实现映射。** 源码 `src/mod_constants.f90`：CODATA 基础常数（`C_LIGHT`、`HBAR`、`M_E`、`CHARGE_E`、`EPS0`、`KB`、`AMU2AU`）、数学常数（`PI`、`SQRTPI`、`EYE`）、约二十组双向换算因子（`AU2EV`/`EV2AU`、`AU2CM`/`CM2AU`、`AU2FS`/`FS2AU`、`AU2DEBYE`、`AU2VM`、`AU2W_CM2`、`AU2TESLA` 等）与纯函数 `to_au`、`from_au`。GitHub 直链：[src/mod_constants.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_constants.f90)。二维码：`qr/src__mod_constants.f90.png`。
+
+![常数模块二维码](qr/src__mod_constants.f90.png)
+
+**小型数值实验。** 两项自洽性检验：(a) 计算 `AU2EV/AU2CM`，得 $1.239842\times10^{-4}\ \mathrm{eV\cdot cm}$，与 CODATA 的 $hc$ 在第八位有效数字一致；(b) 以 `from_au` 将 $4351.6\ \mathrm{cm^{-1}}$ 换算为 a.u. 再以 `to_au` 换回，得 $4351.6000000000004$，往返误差 $4\times10^{-13}\ \mathrm{cm^{-1}}$，纯属双精度舍入。此类零成本检验建议纳入持续集成。
+
+**练习。** (1) 由 $\hbar,e,m_e,\varepsilon_0$ 的量纲推导 $E_h$、$a_0$ 与 a.u. 磁场单位 $2.35\times10^{5}\ \mathrm{T}$ 的表达式。(2) 证明 `AU2W_CM2` 可由 `AU2VM`、`EPS0`、`C_LIGHT` 完整重构。(3) 以本库常数计算 $1\ \mathrm{K}$ 对应的波数 $\mathrm{(k_B/hc)}=0.695\ \mathrm{cm^{-1}}$ 并与 CODATA 比对。
+
+### 4.2 实对称本征问题与 Householder 三对角化
+
+**定义。** 实对称本征问题 $A z=\lambda z$（$A=A^{T}$）的现代标准解法是两阶段方法：第一阶段以正交相似变换把 $A$ 化为三对角形式 $T=Q^{T}AQ$；第二阶段以带隐式位移的 QL（或 QR）迭代求 $T$ 的谱。Householder 反射定义为
+
+$$P=I-\frac{2\,vv^{T}}{v^{T}v},\qquad P=P^{T}=P^{-1},$$
+
+即对称、正交、对合的变换矩阵。
+
+**公式与推导。** 正交性可直接验证：$P^{T}P=\left(I-\frac{2vv^{T}}{v^{T}v}\right)^{2}=I-\frac{4vv^{T}}{v^{T}v}+\frac{4v(v^{T}v)v^{T}}{(v^{T}v)^{2}}=I$。给定列向量 $u$（欲消元的目标），取 $v=u+\mathrm{sign}(u_1)\|u\|\,\mathbf{e}_1$，则
+
+$$Pu=-\mathrm{sign}(u_1)\|u\|\,\mathbf{e}_1+0\cdot\mathbf{e}_2+\cdots+0\cdot\mathbf{e}_n,$$
+
+即一次反射即可把一列的 $n-1$ 个非零元素清零。对 $A$ 逐列（本库 `tred2` 自第 $n$ 列向第 2 列推进）施加嵌入式的反射 $P_i=\mathrm{diag}(I_{n-i},\,P')$（子块反射不动已完成的部分），$n-2$ 步后得三对角矩阵 $T$；反射的符号选择 $g=-\mathrm{sign}(f)\sqrt{h}$（$f$ 为对角元、$h$ 为模方）避免了 $v$ 构造中的相消。累积全部反射得正交变换矩阵 $Q=P_1P_2\cdots P_{n-2}$，使 $Z=QZ_T$ 直接作用于三对角阶段的特征矢量。运算量：三对角化 $\frac{4}{3}n^{3}$ flops（含矢量累积 $\mathcal{O}(n^{3})$ 附加），数值稳定性由每一步的正交性保证，无增长因子问题。
+与备选方案的比较有助于理解该选择的必然性。经典 Gram–Schmidt 正交化在近线性相关情形迅速丧失正交性，改进格式仅部分缓解；Jacobi 旋转法直接对全矩阵对角化，误差性质优美（渐近二次收敛、正交性接近机器精度），但运算量常数约十倍于两阶段方法，仅在结构特殊情形有竞争力。Householder 路线的另一工程优势是内存访问模式规整：三对角化阶段以列为主的对称秩二更新具有良好的缓存局部性，与本库 Fortran 列主序的数组布局天然匹配。对只需能级不需波函数的场景（如大规模扫描中的中间步骤），跳过反射累积可再节省约一半运算量。
+
+**物理含义。** DVR、有限基组、密耦通道等一切厄米哈密顿量离散化后的束缚态问题都归结于此：本征值即能级，本征矢即波函数系数。两阶段结构还允许按需取舍——只要能级时只做三对角化加无矢量 QL（$\mathcal{O}(n^{2})$ 加速一个量级），需要波函数时再回补累积变换。
+
+**数值陷阱。** 其一，输入必须严格对称：组装循环应显式镜像，或在调用前以 $\max_{ij}|A_{ij}-A_{ji}|$ 断言。其二，本库 `tred2` 以绝对阈值 $10^{-35}$ 判断列向量是否为零向量（scale 判据），对元素量级悬殊（例如混合 a.u. 与 $\mathrm{cm^{-1}}$ 单位后）的矩阵，阈值语义随范数缩放失效——换算单位必须在组装之前完成。其三，正交性随 $n$ 缓慢退化：$Z^{T}Z$ 对角偏差约 $n\varepsilon$ 量级，$n=10^{4}$ 时达 $10^{-12}$，对超高维问题应改用分块、随机化或迭代精化方案。
+
+**GeneralModule 实现映射。** 源码 `src/mod_linear_algebra.f90`：`tred2`（EISPACK TRED2 的现代化移植，含反射累积）、`pythag`（防溢出的 $\sqrt{a^{2}+b^{2}}$ 安全计算）、`diag_symmetric_matrix`（统一入口）。算法源流：B. T. Smith 等, *Matrix Eigensystem Routines — EISPACK Guide*, 2nd ed., Springer, Berlin (1976)；G. H. Golub 与 C. F. Van Loan, *Matrix Computations*, 4th ed., Johns Hopkins University Press, Baltimore (2013)。GitHub 直链：[src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90)。二维码：`qr/src__mod_linear_algebra.f90.png`。
+
+**小型数值实验。** 见 1.3 节实验：$n=300$ 随机实对称矩阵，最大特征残余 $4.4\times10^{-14}$、正交性偏差 $2.2\times10^{-14}$，均符合 $n\varepsilon\|A\|$ 的舍入标度，证实 `tred2` 累积变换的正交性达到后向稳定标准。
+
+**练习。** (1) 对 $3\times3$ 实对称矩阵手工执行一次 Householder 反射并验证三对角化第一步。(2) 证明嵌入式反射 $P_i$ 保持已完成列的零结构。(3) 统计 `tred2` 的乘加次数，验证 $\frac{4}{3}n^{3}$ 的量级。
+
+### 4.3 QL 隐式位移迭代、Wilkinson 位移与收敛理论
+
+**定义。** 对三对角矩阵 $T$，QL 迭代取正交阵 $Q_k$ 使 $T_{k+1}=Q_k^{T}T_kQ_k$ 且 $Q_k^{T}$ 的首列为 $e_1$ 方向的平面旋转乘积（QL 与 QR 分别自矩阵的下端与上端消元，二者等价地收敛于同一谱）。隐式位移技巧把位移 $\mu$ 融入旋转序列而不显式形成 $T-\mu I$；Wilkinson 位移取尾端 $2\times2$ 子矩阵靠近 $d_n$ 的那个本征值：
+
+$$\mu=\mathrm{eig}\begin{pmatrix} d_{n-1} & e_{n-1} \\ e_{n-1} & d_n \end{pmatrix}_{\text{closer to } d_n}.$$
+
+**公式与推导。** 对称三对角矩阵的 QR/QL 迭代保持对称性与三对角性，且次对角元以 Wilkkinson 位移达到三阶收敛：每次迭代后 $|e_{n-1}|=\mathcal{O}(|e_{n-1}|^{3}/\mathrm{gap})$。当 $|e_m|\le\varepsilon\cdot\mathrm{tst1}$（$\mathrm{tst1}$ 为全局范数标尺）时该次对角元置零，矩阵分裂为两个独立三对角块（deflation），各块独立迭代。全过程仅含平面旋转，数值上正交性精确保持，本征值误差不超过 $\mathcal{O}(\varepsilon\|A\|)$ 的后向稳定界。
+Wilkinson 位移的选择有其确定论依据：位移取尾端 $2\times2$ 子阵靠近 $d_n$ 的本征值时，可证明对称情形下 $|e_{n-1}|$ 一次迭代后收缩至其三次幂量级，且位移序列单调锁定于某条本征值附近，不存在停滞。与之并行的另一条路线是 Sturm 序列二分法：利用三对角矩阵顺序主子式的符号变化计数区间内本征值个数，能以 $\mathcal{O}(n)$ 代价二分定位任意目标谱段，特别适合只需要部分能级的大规模问题；求出能级后再以逆迭代补充本征矢。本库选择 QL 全谱方案，取其实现紧凑、谱与波函数一体输出，且对分子哈密顿的典型规模（$n\le10^{4}$）性能完全足够。总代价：仅本征值 $\mathcal{O}(n^{2})$，含本征矢 $\mathcal{O}(n^{3})$。本库 `tql2` 按 EISPACK TQL2 实现，逐条本征值最多迭代 60 次后置非零错误码 `ierr`，最终以插入排序输出升序谱。
+
+**物理含义。** 能级按升序输出直接对应光谱学的基态到激发态排列；简并能级由迭代自动给出正交本征矢；谱的排序稳定性使相邻能级间隔（转动常数、非谐常数）的差分运算可靠。三阶收敛意味着每条能级一般仅需二至三次迭代，$n=10^{4}$ 的全谱对角化在现代单机上为分钟量级。
+
+**数值陷阱。** 其一，错误码检查：`stat`/`ierr` 非零表示某条本征值 60 次迭代未收敛，静默忽略将把未收敛值当作能级使用；本库统一在返回参数中传出，调用方必须显式判别。其二，位移计算中的除法 $p=(d_{l+1}-d_l)/(2e_l)$ 在 $e_l\to0$ 时上溢，须配合 `pythag` 的防溢出缩放。其三，deflation 判据 $\varepsilon\cdot\mathrm{tst1}$ 以全局范数为标尺，对谱跨度悬殊（如同时含深束缚与高激发能级）的哈密顿量，小幅本征值的相对精度可能受限，必要时应分块处理。其四，末端插入排序为 $\mathcal{O}(n^{2})$，超大规模下可替换为归并排序，但须保持本征矢与本征值的同步交换。
+
+**GeneralModule 实现映射。** 源码 `src/mod_linear_algebra.f90`：`tql2`（QL 隐式位移、Wilkinson 位移、deflation、升序排序），供 `diag_symmetric_matrix` 调用；测试基线见 `tests/test_dvr_grid.f90` 与 `tests/test_propagators.f90`。算法源流：J. H. Wilkinson, *The Algebraic Eigenvalue Problem*, Clarendon Press, Oxford (1965)；Golub 与 Van Loan (2013)。GitHub 直链：[src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90)。二维码：`qr/src__mod_linear_algebra.f90.png`。
+
+**小型数值实验。** 一维 Laplacian 验收：取 $h=0.01$、$n=200$ 的三对角矩阵 $A=\mathrm{tridiag}(-1,2,-1)/h^{2}$，其精确谱为 $\lambda_k=2\bigl(1-\cos(k\pi/201)\bigr)/h^{2}$。调用 `diag_symmetric_matrix` 得 `stat=0`，全谱最大偏差 $2.5\times10^{-11}$，即 $6\times10^{-16}\|A\|$（$\|A\|=4/h^{2}=4\times10^{4}$），一次到位地演示了后向稳定界 $\mathcal{O}(\varepsilon\|A\|)$ 的实际含义：绝对误差随矩阵范数放大，相对精度始终为机器水平。
+
+**练习。** (1) 证明一次显式 QL 步保持三对角性与对称性（描画 bulge 追赶过程）。(2) 按 Wilkinson 的分析说明为何对称三对角 QL 迭代在 Wilkinson 位移下三阶收敛。(3) 修改实验为 $n=1000$，验证最大偏差仍满足 $c\,\varepsilon\|A\|$ 并估计常数 $c$。
+
+### 4.4 条件数、误差传播与收敛阶
+
+**定义。** 函数求值的（相对）条件数定义为 $\kappa(x)=\left|\dfrac{x f'(x)}{f(x)}\right|$，度量输入扰动到输出的放大倍数。矩阵问题的条件数 $\kappa(A)=\|A\|\,\|A^{-1}\|$；对称本征值问题的绝对条件数则由 Weyl 定理给出最优上界：对扰动 $A\to A+\delta A$，
+
+$$\max_i|\delta\lambda_i|\le\|\delta A\|_{2},$$
+
+即对称谱的绝对条件数为 1，这是谱方法稳定性的理论根基。本征矢的条件数依赖能隙（Davis–Kahan $\sin\theta$ 定理）：$\sin\theta\le\|\delta A\|_{2}/\mathrm{gap}$。算法的收敛阶 $p$ 由 $\lim\|e_{k+1}\|/\|e_k\|^{p}=C>0$ 定义：Newton 法 $p=2$，Wilkinson 位移的三对角 QL 迭代 $p=3$，$m$ 阶数值求积与差分格式的截断误差 $\mathcal{O}(h^{m})$。
+
+**公式与推导。** 误差传播的一阶展开：$\delta f=\sum_i\frac{\partial f}{\partial x_i}\delta x_i$，相对形式为 $\frac{\delta f}{f}=\sum_i\kappa_i\frac{\delta x_i}{x_i}$，多个 $\kappa_i\gg1$ 的环节串联时误差指数式放大。数值微分的经典分析给出截断与舍入的权衡：中心差分
+
+$$f'(x)=\frac{f(x+h)-f(x-h)}{2h}-\frac{f'''(x)}{6}h^{2}+\mathcal{O}(h^{4})$$
+
+的总误差约为 $\frac{|f'''|}{6}h^{2}+\frac{\varepsilon|f|}{h}$，极小化得最优步长
+
+$$h^{*}=\left(\frac{3\varepsilon|f|}{|f'''|}\right)^{1/3},\qquad
+\delta f_{\min}\sim\varepsilon^{2/3},$$
+
+对双精度 $\varepsilon=2.2\times10^{-16}$ 有 $\varepsilon^{2/3}\approx3.7\times10^{-11}$。Richardson 外推可把相邻两个步长的结果按误差主项系数组合，将收敛阶提高一倍（$2\to4$）。
+
+**物理含义。** 条件数告诉研究者哪些物理量本质上可精确预测：对称哈密顿的非简并能级（绝对条件数 1，稳健）；而近简并子空间的混合角、共振宽度、谱的高阶导数（条件数大，脆弱）则须以简并微扰论或联合拟合处理。收敛阶则是网格与步长选择的定量依据：从两次计算的误差比可实测收敛阶 $p=\ln(e(h)/e(h/10))/\ln 10$，据此外推至 $h\to0$ 的极限值。
+补充两个定量参照。其一，病态问题的典型标本是 Hilbert 矩阵 $H_{ij}=(i+j-1)^{-1}$：其条件数随维数指数增长，$n=12$ 时已达 $10^{16}$ 量级，双精度求逆完全失真。凡涉及病态最小二乘的计算（如由谱线位置拟合分子常数），应改用奇异值分解或正则化方案，并以残差 $\|A\,x-b\|$ 监控。其二，后向稳定与向前精度是两个概念：`tql2` 保证计算谱是某个邻近矩阵 $A+\delta A$ 的精确谱（后向稳定），但单条能级的向前误差仍受条件数控制；对称问题因绝对条件数为 1 而两者相当，非对称广义问题（复标度哈密顿、含重叠矩阵的广义本征问题）则可能出现后向稳定而向前失真的局面，判别手段是 4.3 节的残差复核。
+
+**数值陷阱。** 其一，病态矩阵求逆：Gauss–Jordan 全主元（本库 `inv_real_matrix`）只在 $\kappa(A)\ll1/\varepsilon$ 时可靠，$\kappa$ 接近 $10^{16}$ 时返回的逆完全失真，且 `stat` 未必报警；对策是以 $\|A A^{-1}-I\|$ 残差复核。其二，差分步长不能想当然取小：$h=10^{-8}$ 处中心差分误差已开始反转上升，最优点在 $10^{-5}\sim10^{-6}$ 量级（见实验）。其三，测得的收敛阶若持续低于设计阶（如二阶格式测得 $p\approx1.6$），优先怀疑边界处理或奇点污染，而非盲目加密网格。其四，简并或近简并谱的本征矢比较须用子空间投影（1.3 节），任何以单本征矢为对象的判据在能隙趋于零时失效。
+
+**GeneralModule 实现映射。** 源码 `src/mod_linear_algebra.f90`：`inv_real_matrix`、`inv_complex_matrix`（全主元 Gauss–Jordan，奇异检测 `stat=-1`）、`pythag`（溢出安全）；`src/mod_interpolation.f90` 提供解析一阶/二阶导数以替代数值差分。理论依据：Golub 与 Van Loan (2013)，第 7 章；Wilkinson (1965)。GitHub 直链：[src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90)。二维码：`qr/src__mod_linear_algebra.f90.png`。
+
+**小型数值实验。** 两项定标实验。(a) Weyl 界实测：$n=200$ 随机对称矩阵 $A$ 加扰动 $E$（元素均匀随机、幅度 $0.05$），$\|E\|_{F}=5.79$，对角化 $A$ 与 $A+E$ 比对谱得 $\max_i|\delta\lambda_i|=0.122$，比值 $0.021\le1$，与 Weyl 界 $\max_i|\delta\lambda_i|\le\|E\|_2\le\|E\|_F$ 相容（实际远小于 Frobenius 界，因 $\|E\|_2\approx0.12$ 体现随机矩阵的谱集中）。(b) 收敛阶与最优步长：对 $f(x)=\cos x$ 在 $x=1$ 处的中心差分，在截断区实测收敛阶 $p=2.0000$，误差在 $h^{*}=1.0\times10^{-5}$ 处取得极小 $1.1\times10^{-11}$，与理论 $h^{*}=(3\varepsilon|f|/|f'''|)^{1/3}\approx9\times10^{-6}$ 及 $\varepsilon^{2/3}\approx3.7\times10^{-11}$ 两者吻合；继续缩小 $h$ 至 $10^{-8}$ 以下误差反转上升，演示了舍入主导区。
+
+**练习。** (1) 证明 Weyl 定理在 $2\times2$ 情形，并用 Rayleigh 商极小极大原理推广。(2) 推导中心差分的总误差函数并求最优步长。(3) 以 Richardson 外推由 $h$ 与 $h/2$ 两点外推 $f'(1)$，与精确值 $-\sin1$ 比较并实测四阶收敛。
+
+---
+
+## 参考文献
+
+1. D. A. Varshalovich, A. N. Moskalev, and V. K. Khersonskii, *Quantum Theory of Angular Momentum*, World Scientific, Singapore (1988). DOI: 10.1142/0270.
+2. J. J. Sakurai and J. Napolitano, *Modern Quantum Mechanics*, 3rd ed., Cambridge University Press, Cambridge (2020).
+3. C. Cohen-Tannoudji, B. Diu, and F. Laloë, *Quantum Mechanics*, Vols. I–II, Wiley, New York (1977).
+4. M. Reed and B. Simon, *Methods of Modern Mathematical Physics I: Functional Analysis*, Academic Press, New York (1972).
+5. P. R. Bunker and P. Jensen, *Molecular Symmetry and Spectroscopy*, 2nd ed., NRC Research Press, Ottawa (1998).
+6. E. B. Wilson, Jr., J. C. Decius, and P. C. Cross, *Molecular Vibrations: The Theory of Infrared and Raman Vibrational Spectra*, McGraw-Hill, New York (1955).
+7. J. K. G. Watson, "The vibration–rotation Hamiltonian of polyatomic molecules", Mol. Phys. 15, 479 (1968).
+8. C. Eckart, "Some studies concerning rotating axes and polyatomic molecules", Phys. Rev. 47, 552 (1935). DOI: 10.1103/PhysRev.47.552.
+9. G. Herzberg, *Molecular Spectra and Molecular Structure I: Spectra of Diatomic Molecules*, 2nd ed., Van Nostrand, New York (1950).
+10. D. T. Colbert and W. H. Miller, J. Chem. Phys. 96, 1982 (1992). DOI: 10.1063/1.462125.
+11. C. C. Marston and G. G. Balint-Kurti, J. Chem. Phys. 91, 3571 (1989). DOI: 10.1063/1.456888.
+12. M. D. Feit, J. A. Fleck, Jr., and A. Steiger, J. Comput. Phys. 47, 412 (1982). DOI: 10.1016/0021-9991(82)90091-2.
+13. R. Kosloff, J. Phys. Chem. 92, 2087 (1988). DOI: 10.1021/j100319a003.
+14. J. C. Light and T. Carrington, "Discrete-variable representations and their utilization", Adv. Chem. Phys. 114, 263 (2000).
+15. B. R. Johnson, J. Chem. Phys. 73, 5051 (1980). DOI: 10.1063/1.440058.
+16. R. T. Pack and G. A. Parker, J. Chem. Phys. 87, 3888 (1987). DOI: 10.1063/1.452944.
+17. D. G. Truhlar and C. J. Horowitz, J. Chem. Phys. 68, 2466 (1978). DOI: 10.1063/1.436019.
+18. S. Sato, J. Chem. Phys. 23, 592 (1955). DOI: 10.1063/1.1742050.
+19. M. V. Berry, Proc. R. Soc. Lond. A 392, 45 (1984). DOI: 10.1098/rspa.1984.0023.
+20. G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th ed., Johns Hopkins University Press, Baltimore (2013).
+21. J. H. Wilkinson, *The Algebraic Eigenvalue Problem*, Clarendon Press, Oxford (1965).
+22. B. T. Smith, J. M. Boyle, J. J. Dongarra, B. S. Garbow, Y. Ikebe, V. C. Klema, and C. B. Moler, *Matrix Eigensystem Routines — EISPACK Guide*, 2nd ed., Lecture Notes in Computer Science 6, Springer, Berlin (1976).
+
+---
+
+*本章节所有源码引用基于仓库 main 分支当前版本；数值实验环境为 GNU Fortran 11.4（`-O2 -std=f2008`），双精度 `real64`。项目文件在本章节撰写过程中未作任何修改。*
+
+
 # 第二部分　谱方法、离散表示与收敛理论
 
 ## 2.1　从基组展开到矩阵问题
@@ -3291,50 +3764,50 @@ GitHub Actions 配置位于：
 
 # 第十部分　源码索引与二维码
 
-以下二维码均指向 GeneralModule 仓库中的对应文件。二维码图像保存在 `docs/qr/`，文件名规则是把源码路径中的 `/` 替换为 `__`。
+以下二维码均指向 GeneralModule 仓库中的对应文件。二维码图像保存在 `qr/`，文件名规则是把源码路径中的 `/` 替换为 `__`。
 
 | 内容 | 路径 | 二维码 |
 |---|---|---|
-| 仓库主页 | <https://github.com/l1Ha/QuantumGeneralModule> | `docs/qr/repo_root.png` |
-| README | [README.md](https://github.com/l1Ha/QuantumGeneralModule/blob/main/README.md) | `docs/qr/README.md.png` |
-| 配置指南 | [CONFIG_GUIDE.md](https://github.com/l1Ha/QuantumGeneralModule/blob/main/CONFIG_GUIDE.md) | `docs/qr/CONFIG_GUIDE.md.png` |
-| 文献映射 | [LITERATURE.md](https://github.com/l1Ha/QuantumGeneralModule/blob/main/LITERATURE.md) | `docs/qr/LITERATURE.md.png` |
-| 常数与单位 | [src/mod_constants.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_constants.f90) | `docs/qr/src__mod_constants.f90.png` |
-| 特殊函数 | [src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90) | `docs/qr/src__mod_special_functions.f90.png` |
-| 线性代数 | [src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90) | `docs/qr/src__mod_linear_algebra.f90.png` |
-| DVR | [src/mod_dvr_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_dvr_grid.f90) | `docs/qr/src__mod_dvr_grid.f90.png` |
-| 波包传播 | [src/mod_wavepacket_propagator.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_wavepacket_propagator.f90) | `docs/qr/src__mod_wavepacket_propagator.f90.png` |
-| 吸收边界 | [src/mod_absorbing_boundary.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_absorbing_boundary.f90) | `docs/qr/src__mod_absorbing_boundary.f90.png` |
-| Chebyshev | [src/mod_chebyshev_propagator.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_chebyshev_propagator.f90) | `docs/qr/src__mod_chebyshev_propagator.f90.png` |
-| Lindblad | [src/mod_open_quantum.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_open_quantum.f90) | `docs/qr/src__mod_open_quantum.f90.png` |
-| Krotov | [src/mod_optimal_control.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_optimal_control.f90) | `docs/qr/src__mod_optimal_control.f90.png` |
-| 定态散射 | [src/mod_ti_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_ti_scattering.f90) | `docs/qr/src__mod_ti_scattering.f90.png` |
-| 含时散射 | [src/mod_td_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_td_scattering.f90) | `docs/qr/src__mod_td_scattering.f90.png` |
-| 外场散射 | [src/mod_field_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_field_scattering.f90) | `docs/qr/src__mod_field_scattering.f90.png` |
-| 转振光谱 | [src/mod_rovibrational.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_rovibrational.f90) | `docs/qr/src__mod_rovibrational.f90.png` |
-| 光碎片 | [src/mod_photofragment_flux.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_photofragment_flux.f90) | `docs/qr/src__mod_photofragment_flux.f90.png` |
-| FSSH | [src/mod_surface_hopping_fssh.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_surface_hopping_fssh.f90) | `docs/qr/src__mod_surface_hopping_fssh.f90.png` |
-| Jacobi 坐标 | [src/mod_triatomic_geometry.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_triatomic_geometry.f90) | `docs/qr/src__mod_triatomic_geometry.f90.png` |
-| 超球反应 | [src/mod_hyperspherical_reactive.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_hyperspherical_reactive.f90) | `docs/qr/src__mod_hyperspherical_reactive.f90.png` |
-| 三体复合 | [src/mod_three_body_recombination.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_three_body_recombination.f90) | `docs/qr/src__mod_three_body_recombination.f90.png` |
-| CIR | [src/mod_confined_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_confined_scattering.f90) | `docs/qr/src__mod_confined_scattering.f90.png` |
-| Fano/CCR | [src/mod_autoionization_fano.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_autoionization_fano.f90) | `docs/qr/src__mod_autoionization_fano.f90.png` |
-| 交叉场 | [src/mod_crossed_field_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_crossed_field_scattering.f90) | `docs/qr/src__mod_crossed_field_scattering.f90.png` |
-| 旋量 BEC | [src/mod_spinor_bec.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_spinor_bec.f90) | `docs/qr/src__mod_spinor_bec.f90.png` |
-| 表面散射 | [src/mod_surface_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_surface_scattering.f90) | `docs/qr/src__mod_surface_scattering.f90.png` |
-| Eley–Rideal | [src/mod_surface_reaction_er.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_surface_reaction_er.f90) | `docs/qr/src__mod_surface_reaction_er.f90.png` |
-| 电子摩擦 | [src/mod_surface_electronic_friction.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_surface_electronic_friction.f90) | `docs/qr/src__mod_surface_electronic_friction.f90.png` |
-| 相对论原子 | [src/mod_relativistic_atomic.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_relativistic_atomic.f90) | `docs/qr/src__mod_relativistic_atomic.f90.png` |
-| RIXS | [src/mod_resonant_xray_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_resonant_xray_scattering.f90) | `docs/qr/src__mod_resonant_xray_scattering.f90.png` |
-| Penning | [src/mod_penning_associative_ionization.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_penning_associative_ionization.f90) | `docs/qr/src__mod_penning_associative_ionization.f90.png` |
-| 强场 NSDI | [src/mod_strong_field_nsdi.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_strong_field_nsdi.f90) | `docs/qr/src__mod_strong_field_nsdi.f90.png` |
-| 里德堡阻塞 | [src/mod_rydberg_blockade.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_rydberg_blockade.f90) | `docs/qr/src__mod_rydberg_blockade.f90.png` |
-| FGH 示例 | [examples/ex01_fgh_diatomic_bound_states.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex01_fgh_diatomic_bound_states.f90) | `docs/qr/examples__ex01_fgh_diatomic_bound_states.f90.png` |
-| Split 示例 | [examples/ex03_split_operator_1d.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex03_split_operator_1d.f90) | `docs/qr/examples__ex03_split_operator_1d.f90.png` |
-| TI/TD 示例 | [examples/ex07_scattering_wavefunctions_ti_td.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex07_scattering_wavefunctions_ti_td.f90) | `docs/qr/examples__ex07_scattering_wavefunctions_ti_td.f90.png` |
-| Feshbach 示例 | [examples/ex08_ultracold_feshbach_segmented.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex08_ultracold_feshbach_segmented.f90) | `docs/qr/examples__ex08_ultracold_feshbach_segmented.f90.png` |
-| FSSH 示例 | [examples/ex30_tully_surface_hopping.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex30_tully_surface_hopping.f90) | `docs/qr/examples__ex30_tully_surface_hopping.f90.png` |
-| Python 可视化 | [python/pygenmod/visualizer.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/visualizer.py) | `docs/qr/python__pygenmod__visualizer.py.png` |
+| 仓库主页 | <https://github.com/l1Ha/QuantumGeneralModule> | `qr/repo_root.png` |
+| README | [README.md](https://github.com/l1Ha/QuantumGeneralModule/blob/main/README.md) | `qr/README.md.png` |
+| 配置指南 | [CONFIG_GUIDE.md](https://github.com/l1Ha/QuantumGeneralModule/blob/main/CONFIG_GUIDE.md) | `qr/CONFIG_GUIDE.md.png` |
+| 文献映射 | [LITERATURE.md](https://github.com/l1Ha/QuantumGeneralModule/blob/main/LITERATURE.md) | `qr/LITERATURE.md.png` |
+| 常数与单位 | [src/mod_constants.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_constants.f90) | `qr/src__mod_constants.f90.png` |
+| 特殊函数 | [src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90) | `qr/src__mod_special_functions.f90.png` |
+| 线性代数 | [src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90) | `qr/src__mod_linear_algebra.f90.png` |
+| DVR | [src/mod_dvr_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_dvr_grid.f90) | `qr/src__mod_dvr_grid.f90.png` |
+| 波包传播 | [src/mod_wavepacket_propagator.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_wavepacket_propagator.f90) | `qr/src__mod_wavepacket_propagator.f90.png` |
+| 吸收边界 | [src/mod_absorbing_boundary.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_absorbing_boundary.f90) | `qr/src__mod_absorbing_boundary.f90.png` |
+| Chebyshev | [src/mod_chebyshev_propagator.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_chebyshev_propagator.f90) | `qr/src__mod_chebyshev_propagator.f90.png` |
+| Lindblad | [src/mod_open_quantum.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_open_quantum.f90) | `qr/src__mod_open_quantum.f90.png` |
+| Krotov | [src/mod_optimal_control.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_optimal_control.f90) | `qr/src__mod_optimal_control.f90.png` |
+| 定态散射 | [src/mod_ti_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_ti_scattering.f90) | `qr/src__mod_ti_scattering.f90.png` |
+| 含时散射 | [src/mod_td_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_td_scattering.f90) | `qr/src__mod_td_scattering.f90.png` |
+| 外场散射 | [src/mod_field_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_field_scattering.f90) | `qr/src__mod_field_scattering.f90.png` |
+| 转振光谱 | [src/mod_rovibrational.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_rovibrational.f90) | `qr/src__mod_rovibrational.f90.png` |
+| 光碎片 | [src/mod_photofragment_flux.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_photofragment_flux.f90) | `qr/src__mod_photofragment_flux.f90.png` |
+| FSSH | [src/mod_surface_hopping_fssh.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_surface_hopping_fssh.f90) | `qr/src__mod_surface_hopping_fssh.f90.png` |
+| Jacobi 坐标 | [src/mod_triatomic_geometry.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_triatomic_geometry.f90) | `qr/src__mod_triatomic_geometry.f90.png` |
+| 超球反应 | [src/mod_hyperspherical_reactive.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_hyperspherical_reactive.f90) | `qr/src__mod_hyperspherical_reactive.f90.png` |
+| 三体复合 | [src/mod_three_body_recombination.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_three_body_recombination.f90) | `qr/src__mod_three_body_recombination.f90.png` |
+| CIR | [src/mod_confined_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_confined_scattering.f90) | `qr/src__mod_confined_scattering.f90.png` |
+| Fano/CCR | [src/mod_autoionization_fano.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_autoionization_fano.f90) | `qr/src__mod_autoionization_fano.f90.png` |
+| 交叉场 | [src/mod_crossed_field_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_crossed_field_scattering.f90) | `qr/src__mod_crossed_field_scattering.f90.png` |
+| 旋量 BEC | [src/mod_spinor_bec.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_spinor_bec.f90) | `qr/src__mod_spinor_bec.f90.png` |
+| 表面散射 | [src/mod_surface_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_surface_scattering.f90) | `qr/src__mod_surface_scattering.f90.png` |
+| Eley–Rideal | [src/mod_surface_reaction_er.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_surface_reaction_er.f90) | `qr/src__mod_surface_reaction_er.f90.png` |
+| 电子摩擦 | [src/mod_surface_electronic_friction.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_surface_electronic_friction.f90) | `qr/src__mod_surface_electronic_friction.f90.png` |
+| 相对论原子 | [src/mod_relativistic_atomic.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_relativistic_atomic.f90) | `qr/src__mod_relativistic_atomic.f90.png` |
+| RIXS | [src/mod_resonant_xray_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_resonant_xray_scattering.f90) | `qr/src__mod_resonant_xray_scattering.f90.png` |
+| Penning | [src/mod_penning_associative_ionization.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_penning_associative_ionization.f90) | `qr/src__mod_penning_associative_ionization.f90.png` |
+| 强场 NSDI | [src/mod_strong_field_nsdi.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_strong_field_nsdi.f90) | `qr/src__mod_strong_field_nsdi.f90.png` |
+| 里德堡阻塞 | [src/mod_rydberg_blockade.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_rydberg_blockade.f90) | `qr/src__mod_rydberg_blockade.f90.png` |
+| FGH 示例 | [examples/ex01_fgh_diatomic_bound_states.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex01_fgh_diatomic_bound_states.f90) | `qr/examples__ex01_fgh_diatomic_bound_states.f90.png` |
+| Split 示例 | [examples/ex03_split_operator_1d.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex03_split_operator_1d.f90) | `qr/examples__ex03_split_operator_1d.f90.png` |
+| TI/TD 示例 | [examples/ex07_scattering_wavefunctions_ti_td.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex07_scattering_wavefunctions_ti_td.f90) | `qr/examples__ex07_scattering_wavefunctions_ti_td.f90.png` |
+| Feshbach 示例 | [examples/ex08_ultracold_feshbach_segmented.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex08_ultracold_feshbach_segmented.f90) | `qr/examples__ex08_ultracold_feshbach_segmented.f90.png` |
+| FSSH 示例 | [examples/ex30_tully_surface_hopping.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex30_tully_surface_hopping.f90) | `qr/examples__ex30_tully_surface_hopping.f90.png` |
+| Python 可视化 | [python/pygenmod/visualizer.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/visualizer.py) | `qr/python__pygenmod__visualizer.py.png` |
 
 # 结语
 
@@ -3690,3 +4163,467 @@ $$
 3. M. H. Kalos and P. A. Whitlock, *Monte Carlo Methods*, 2nd ed., Wiley-VCH, Weinheim, 2008.
 4. D. J. Tannor, *Introduction to Quantum Mechanics: A Time-Dependent Perspective*, University Science Books, Sausalito, 2007.
 5. GeneralModule 源码与文档：<https://github.com/l1Ha/QuantumGeneralModule>
+# 第十二部分　基础代码能力与缺口
+
+## 12.1　能力分层
+
+GeneralModule 的基础代码能力可以分成四层：
+
+| 层级 | 内容 | 当前状态 |
+|---|---|---|
+| L0 | 类型、常数、单位转换、基础 I/O | 已具备 |
+| L1 | 特殊函数、稠密本征、FFT、插值 | 已具备 |
+| L2 | DVR、波包传播、散射、开放系统 | 已具备 |
+| L3 | 稀疏方法、并行化、高维张量、自动微分 | 部分或未具备 |
+| L4 | 通用测试框架、基准套件、持续性能监控 | 部分具备 |
+
+这一章只讨论 L0/L1 和少量 L2 的基础能力。目的不是罗列 API，而是说明哪些能力已经稳定、哪些还不完整、在科研工作流中应该怎样使用。
+
+## 12.2　数值类型与常数模块
+
+`mod_constants` 提供统一的双精度类型别名和物理常数：
+
+```fortran
+use, intrinsic :: iso_fortran_env, only: dp => real64, int32, int64
+use mod_constants, only: PI, EYE, HBAR, AU2EV, EV2AU
+```
+
+核心约定是：
+
+- 所有实数使用 `real(dp)`；
+- 所有复数使用 `complex(dp)`；
+- 避免混用 `real(8)`、`double precision` 和编译器私有种类；
+- 单位转换集中在 `to_au` 和 `from_au`。
+
+### 已有能力
+
+- 物理常数：$\hbar$、$c$、$m_e$、$e$、$\varepsilon_0$、$k_B$；
+- 能量单位：Hartree、eV、$\mathrm{cm^{-1}}$、K、J；
+- 长度单位：Bohr、Å、nm、m；
+- 时间单位：原子单位、fs、ps、s；
+- 电场与磁场：V/m、MV/cm、Tesla、Gauss。
+
+### 已知限制
+
+- 单位接口使用字符串分派，未知单位会静默返回原值；
+- 没有编译期单位类型；
+- 没有向量/张量级别的单位检查；
+- 没有自动收集当前使用单位的元数据。
+
+### 建议的改进
+
+引入一个显式状态码版本：
+
+```fortran
+pure subroutine to_au_checked(value, unit_name, value_au, stat)
+    real(dp), intent(in) :: value
+    character(len=*), intent(in) :: unit_name
+    real(dp), intent(out) :: value_au
+    integer, intent(out) :: stat
+end subroutine to_au_checked
+```
+
+并增加单元测试：
+
+$$
+\left|
+\operatorname{from\_au}(\operatorname{to\_au}(x,u),u)-x
+\right|
+\le
+\epsilon |x|.
+$$
+
+### 对应源码
+
+- [src/mod_constants.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_constants.f90)
+- 二维码：
+
+![](qr/src__mod_constants.f90.png){width=2.0cm}
+
+## 12.3　特殊函数与角动量代数
+
+`mod_special_functions` 提供 Legendre 多项式、缔合 Legendre 函数、Wigner $3j$、Clebsch–Gordan、$6j$、$9j$ 和转动偶极矩阵元。
+
+### 已有能力
+
+- Legendre 递推；
+- Wigner $3j$ 和 Clebsch–Gordan 系数；
+- 半整数角动量；
+- $6j$ 和 $9j$ 符号；
+- 基本选择定则。
+
+### 已知限制
+
+- 没有统一的缓存表；
+- 没有批量接口一次性返回整张耦合系数矩阵；
+- 没有显式的对称性检验模块；
+- 大角动量时的递推稳定性需要更多参数化测试。
+
+### 建议的改进
+
+增加批量接口：
+
+```fortran
+pure subroutine cg_table(j1, j2, jmin, jmax, coeffs, stat)
+    integer, intent(in) :: j1, j2, jmin, jmax
+    real(dp), intent(out) :: coeffs(:, :, :)
+    integer, intent(out) :: stat
+end subroutine cg_table
+```
+
+并增加对称性测试：
+
+$$
+C^{JM}_{j_1m_1j_2m_2}
+=
+(-1)^{j_1-j_2+M}
+C^{J,-M}_{j_1,-m_1j_2,-m_2}.
+$$
+
+### 对应源码
+
+- [src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)
+- 二维码：
+
+![](qr/src__mod_special_functions.f90.png){width=2.0cm}
+
+## 12.4　稠密线性代数
+
+`mod_linear_algebra` 提供四类基础能力：
+
+| 能力 | 接口 | 说明 |
+|---|---|---|
+| 实对称本征求解 | `diag_symmetric_matrix` | Householder 三对角化 + QL 迭代 |
+| 实矩阵求逆 | `inv_real_matrix` | Gauss–Jordan 求逆 |
+| 复矩阵求逆 | `inv_complex_matrix` | Gauss–Jordan 求逆 |
+| FFT | `fft_1d`, `fft_2d` | Cooley–Tukey + 慢 DFT 回退 |
+
+### 已有能力
+
+- 实对称矩阵本征值和本征向量；
+- 实矩阵和复矩阵求逆；
+- 一维和二维 FFT；
+- 非 2 的幂长度的慢 DFT 回退。
+
+### 已知限制
+
+- 没有稀疏本征求解器；
+- 没有复 Hermitian 本征求解器；
+- 没有 QR、SVD、Cholesky、最小二乘；
+- 没有块算法和多线程；
+- FFT 只支持特定长度，缺少通用混合基数优化；
+- 没有统一的矩阵条件数估计接口。
+
+### 建议的改进
+
+优先级最高的三个扩展是：
+
+1. `diag_hermitian_matrix`；
+2. `eig_sparse_symmetric` 或 Lanczos 接口；
+3. `svd_real_matrix` 和 `svd_complex_matrix`。
+
+例如复 Hermitian 本征求解可以先转成实对称块矩阵：
+
+$$
+H=A+iB,\qquad H=H^{\dagger},
+$$
+
+则
+
+$$
+A=A^T,\qquad B=-B^T.
+$$
+
+可构造
+
+$$
+\mathcal H
+=
+\begin{pmatrix}
+A & -B\\
+B & A
+\end{pmatrix},
+$$
+
+其本征值与 $H$ 的本征值一一对应。这样可以在不引入 LAPACK 的情况下复用现有实对称本征求解器。
+
+### 对应源码
+
+- [src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90)
+- 二维码：
+
+![](qr/src__mod_linear_algebra.f90.png){width=2.0cm}
+
+## 12.5　FFT 与谱计算
+
+FFT 是 Split-Operator 和 FGH 的基础。当前 `fft_1d` 已支持常见 2 的幂长度，并对非 2 的幂使用慢 DFT。
+
+### 已有能力
+
+- 一维 FFT；
+- 二维 FFT；
+- 逆变换；
+- 非 2 的幂回退。
+
+### 已知限制
+
+- 没有原地/非原地统一接口；
+- 没有实数专用 FFT；
+- 没有批处理接口；
+- 没有多线程；
+- 没有显式的归一化约定说明；
+- 缺少与 NumPy FFT 的大规模对比测试。
+
+### 建议的测试
+
+对随机复数场验证 Parseval 定理：
+
+$$
+\sum_n |f_n|^2
+=
+\frac1N
+\sum_k |\tilde f_k|^2.
+$$
+
+并验证循环卷积：
+
+$$
+(f*g)_n
+=
+\sum_m f_m g_{n-m}
+=
+\mathcal F^{-1}
+\left[
+\tilde f_k\tilde g_k
+\right]_n.
+$$
+
+## 12.6　DVR 与网格能力
+
+`mod_dvr_grid` 提供一维 Sinc-DVR、Legendre-DVR 和 FGH。
+
+### 已有能力
+
+- `dvr_sinc_init`；
+- `dvr_legendre_init`；
+- `fgh_solve_bound_states`；
+- `dvr_expectation_value`；
+- `dvr_matrix_element`。
+
+### 已知限制
+
+- 只有一维 Sinc-DVR 和 Legendre-DVR；
+- 没有通用正交多项式工厂；
+- 没有多维张量积网格容器；
+- 没有非均匀网格；
+- 没有自适应网格；
+- 没有 DVR 基组与有限基组之间的显式变换接口。
+
+### 建议的改进
+
+引入统一网格接口：
+
+```fortran
+type, abstract :: grid_t
+    integer :: n_points
+contains
+    procedure(grid_weights_if), deferred :: weights
+    procedure(grid_kinetic_if), deferred :: kinetic
+end type grid_t
+```
+
+然后派生：
+
+- `sinc_grid_t`
+- `legendre_grid_t`
+- `hermite_grid_t`
+- `laguerre_grid_t`
+- `fourier_grid_t`
+
+这样可以在不重写物理模块的情况下扩展更多 DVR。
+
+### 对应源码
+
+- [src/mod_dvr_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_dvr_grid.f90)
+- 二维码：
+
+![](qr/src__mod_dvr_grid.f90.png){width=2.0cm}
+
+## 12.7　插值与势能面预处理
+
+`mod_interpolation` 提供三次样条、导数计算和势能面插值。
+
+### 已有能力
+
+- 自然边界三次样条；
+- 固定一阶导数边界；
+- 一阶导数和二阶导数；
+- 势能面插值到网格；
+- 长程 $C_6/r^6$ 外推。
+
+### 已知限制
+
+- 只支持一维；
+- 没有二维或三维张量样条；
+- 没有单调性约束；
+- 没有自动外推不确定性估计；
+- 没有对剧烈势能变化的局部加密。
+
+### 建议的改进
+
+增加二维双三次样条接口：
+
+```fortran
+type :: spline_2d_t
+    integer :: nx, ny
+    real(dp), allocatable :: x(:), y(:)
+    real(dp), allocatable :: coeffs(:, :, :, :)
+end type spline_2d_t
+```
+
+并增加误差诊断：
+
+$$
+\epsilon_{\mathrm{interp}}
+=
+\max_i
+\left|
+V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
+\right|.
+$$
+
+### 对应源码
+
+- [src/mod_interpolation.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_interpolation.f90)
+- 二维码：
+
+![](qr/src__mod_interpolation.f90.png){width=2.0cm}
+
+## 12.8　数据 I/O
+
+`mod_io_utils` 提供文本表和矩阵输出。
+
+### 已有能力
+
+- `save_data_table_1d`；
+- `save_data_table_2d`；
+- `save_matrix_dat`；
+- 进度条和横幅。
+
+### 已知限制
+
+- 只有文本格式；
+- 没有二进制格式；
+- 没有 HDF5/NetCDF；
+- 没有元数据标准；
+- 没有自动单位记录；
+- 没有数据版本号；
+- 没有异常安全的文件打开/关闭封装。
+
+### 建议的改进
+
+定义统一实验记录结构：
+
+```fortran
+type :: experiment_record_t
+    character(len=:), allocatable :: title
+    character(len=:), allocatable :: commit
+    character(len=:), allocatable :: compiler
+    character(len=:), allocatable :: units
+    real(dp), allocatable :: parameters(:)
+end type experiment_record_t
+```
+
+并输出 JSON 或 TOML 头，便于 Python 自动读取。
+
+### 对应源码
+
+- [src/mod_io_utils.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_io_utils.f90)
+- 二维码：
+
+![](qr/src__mod_io_utils.f90.png){width=2.0cm}
+
+## 12.9　测试与构建能力
+
+项目当前有自实现测试和三套构建入口。
+
+### 已有能力
+
+- 41 个 Fortran 测试程序；
+- 36 个物理示例；
+- `Makefile`、`fpm.toml`、`CMakeLists.txt`；
+- GitHub Actions CI；
+- Python 交叉验证。
+
+### 已知限制
+
+- 没有统一断言库；
+- 没有测试覆盖率统计；
+- 没有基准测试；
+- 没有数值回归阈值管理；
+- CI 缺少多维编译器矩阵；
+- 缺少自动生成 API 文档。
+
+### 建议的断言接口
+
+```fortran
+subroutine expect_close(actual, expected, tol, name, n_pass, n_total)
+    real(dp), intent(in) :: actual, expected, tol
+    character(len=*), intent(in) :: name
+    integer, intent(inout) :: n_pass, n_total
+
+    n_total = n_total + 1
+    if (abs(actual - expected) <= tol) then
+        n_pass = n_pass + 1
+    else
+        print '(A,A,ES12.4,A,ES12.4)', 'FAIL: ', name, actual, expected
+    end if
+end subroutine expect_close
+```
+
+### 对应源码
+
+- [tests/run_all_tests.sh](https://github.com/l1Ha/QuantumGeneralModule/blob/main/tests/run_all_tests.sh)
+- 二维码：
+
+![](qr/tests__run_all_tests.sh.png){width=2.0cm}
+
+- [fpm.toml](https://github.com/l1Ha/QuantumGeneralModule/blob/main/fpm.toml)
+
+- 二维码：
+
+![](qr/fpm.toml.png){width=2.0cm}
+
+## 12.10　基础能力缺口汇总
+
+| 领域 | 当前状态 | 优先级 | 建议目标 |
+|---|---|---|---|
+| 复 Hermitian 本征 | 未具备 | 高 | 支持复哈密顿量 |
+| 稀疏本征 | 未具备 | 高 | Lanczos/Arnoldi |
+| SVD/QR/Cholesky | 未具备 | 中 | 支持拟合和正则化 |
+| 多维插值 | 未具备 | 高 | 二维/三维势能面 |
+| 自适应网格 | 未具备 | 中 | 局部加密 |
+| 并行化 | 基本未具备 | 高 | OpenMP/MPI |
+| 单位类型 | 弱 | 中 | 显式状态码 |
+| 数据格式 | 文本为主 | 高 | JSON/TOML/HDF5 |
+| 通用测试库 | 自实现 | 中 | 统一断言库 |
+| 基准测试 | 缺失 | 中 | 性能回归 |
+| 自动微分 | 未具备 | 低 | 支持灵敏度和控制 |
+
+## 12.11　最小扩展路线
+
+1. 增加 `diag_hermitian_matrix`；
+2. 增加稀疏对称本征求解；
+3. 增加二维样条；
+4. 增加 JSON/TOML 实验记录；
+5. 增加统一断言库；
+6. 增加 OpenMP 版本的 FFT 和矩阵乘法；
+7. 增加基准脚本；
+8. 为每个基础模块增加收敛性测试。
+
+## 12.12　参考文献
+
+1. G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th ed., Johns Hopkins University Press, Baltimore, 2013.
+2. Y. Saad, *Iterative Methods for Sparse Linear Systems*, 2nd ed., SIAM, Philadelphia, 2003.
+3. C. R. Harris et al., “Array programming with NumPy”, *Nature* **585**, 357 (2020). DOI: 10.1038/s41586-020-2649-2.
+4. GeneralModule 源码与文档：<https://github.com/l1Ha/QuantumGeneralModule>
