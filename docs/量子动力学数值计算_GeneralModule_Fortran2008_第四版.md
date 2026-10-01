@@ -4755,3 +4755,680 @@ end subroutine expect_close
 - 全库 41 个测试程序、367 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
+
+# 第十四部分　QCT 动力学与高维量子扩展
+
+## 第17章　准经典轨迹动力学
+
+准经典轨迹（Quasi-Classical Trajectory, QCT）方法把分子的内部自由度用经典力学描述，但把初态和末态按量子数指认。它不是“量子方法”，而是“以量子态初始化、以量子态分类的经典系综方法”。对复杂势能面、大分子和高温反应，QCT 常比全量子波包方法便宜得多；其代价是不能自然描述干涉、隧穿和分立量子态的相干演化。
+
+### 17.1　经典哈密顿方程
+
+对 $N$ 个原子的体系，取笛卡尔坐标 $\mathbf q=(\mathbf q_1,\ldots,\mathbf q_N)$ 和动量 $\mathbf p=(\mathbf p_1,\ldots,\mathbf p_N)$，经典哈密顿量为
+
+$$
+H(\mathbf q,\mathbf p)
+=
+\sum_{i=1}^{N}
+\frac{\mathbf p_i^2}{2m_i}
++
+V(\mathbf q).
+$$
+
+轨迹由 Hamilton 方程给出：
+
+$$
+\dot{\mathbf q}_i=\frac{\partial H}{\partial \mathbf p_i},
+\qquad
+\dot{\mathbf p}_i=-\frac{\partial H}{\partial \mathbf q_i}.
+$$
+
+在原子单位下 $H$ 的单位为 Hartree。若势能面 $V$ 只给出能量而不给梯度，则必须先获得解析梯度或用可微插值/机器学习势能面拟合；数值差分梯度虽然可行，但对大规模轨迹系综代价高且易受噪声影响。
+
+对原子—双原子碰撞 $A+BC$，常用 Jacobi 坐标 $(R,r,\gamma)$。经典哈密顿量可写为
+
+$$
+H
+=
+\frac{P_R^2}{2\mu_R}
++
+\frac{p_r^2}{2\mu_r}
++
+\frac{\mathbf j^2}{2\mu_r r^2}
++
+\frac{\mathbf l^2}{2\mu_R R^2}
++
+V(R,r,\gamma),
+$$
+
+其中 $\mathbf j=\mathbf r\times\mathbf p_r$ 是双原子转动角动量，$\mathbf l=\mathbf R\times\mathbf P_R$ 是轨道角动量，总角动量为
+
+$$
+\mathbf J=\mathbf l+\mathbf j.
+$$
+
+若势能面只依赖夹角 $\gamma$ 而不显式依赖绝对取向，则总角动量及其空间固定分量守恒。
+
+### 17.2　初始条件与量子态指认
+
+QCT 的“准经典”体现在初态和末态都对应量子态。对初始振转态 $(v,j)$，常用两种近似：
+
+1. **能量指认**：令经典内部能量等于量子能级，
+   $$
+   H_{\mathrm{int}}(r,p_r,\Omega_j)=G(v)+F_v(j),
+   $$
+   其中 $G(v)$ 和 $F_v(j)$ 分别为振动和转动能级。
+2. **作用量指认**：用经典作用量近似量子数，例如
+   $$
+   I_r\approx\left(v+\frac12\right)\hbar,
+   \qquad
+   |\mathbf j|\approx\hbar\sqrt{j(j+1)}.
+   $$
+
+碰撞能 $E_{\mathrm{coll}}$ 决定初始相对动量：
+
+$$
+P_{R,0}
+=
+\sqrt{2\mu_R E_{\mathrm{coll}}}.
+$$
+
+若从 $R_0$ 处以向内速度开始，则取 $P_{R,0}<0$。碰撞参数 $b$ 均匀抽样于圆盘：
+
+$$
+b=b_{\max}\sqrt{\xi_1},
+\qquad
+\phi=2\pi\xi_2,
+$$
+
+其中 $\xi_1,\xi_2\in[0,1)$ 是均匀随机数。这样，$b$ 的概率密度正比于 $b$，而不是均匀于 $b$ 本身。
+
+初始分子取向和振子相位也须均匀抽样：
+
+$$
+\Omega_{\mathrm{mol}}\in S^2,
+\qquad
+\theta_{\mathrm{vib}}\in[0,2\pi).
+$$
+
+严格做法是在给定作用量 $(I_r,\mathbf j)$ 的不变环面上均匀抽样，而不是随机给出 $r$ 和 $p_r$ 后再强行缩放。
+
+### 17.3　轨迹积分
+
+最常用的辛积分格式是 Velocity-Verlet：
+
+$$
+\mathbf p_{n+1/2}
+=
+\mathbf p_n+\frac{\Delta t}{2}\mathbf F(\mathbf q_n),
+$$
+
+$$
+\mathbf q_{n+1}
+=
+\mathbf q_n+\Delta t\,\mathbf M^{-1}\mathbf p_{n+1/2},
+$$
+
+$$
+\mathbf p_{n+1}
+=
+\mathbf p_{n+1/2}+\frac{\Delta t}{2}\mathbf F(\mathbf q_{n+1}),
+$$
+
+其中
+
+$$
+\mathbf F_i(\mathbf q)=-\nabla_{\mathbf q_i}V(\mathbf q).
+$$
+
+Velocity-Verlet 是二阶辛格式，长时间能量漂移较小。若使用广义坐标和约束，应采用 RATTLE 或 SHAKE 等约束辛积分器。自适应步长虽然方便，但一般会破坏严格辛性；若必须使用，应同时监测能量误差和相位误差。
+
+### 17.4　终态分类与截面
+
+轨迹结束判据通常是相对距离足够大，且相互作用势已趋近渐近值：
+
+$$
+R>R_{\infty},
+\qquad
+V(R,r,\gamma)-V_{\infty}\approx0.
+$$
+
+终态产物 $(v',j')$ 可用三种方式指认：
+
+1. **直方图分箱**：把最终内能和角动量四舍五入到最近量子态；
+2. **高斯分箱**：以轨迹到量子能级的高斯权重计入邻近态；
+3. **作用量分箱**：计算最终径向和转动作用量，再换算为 $v',j'$。
+
+若使用直方图分箱，态指认可近似为
+
+$$
+v'
+=
+\operatorname{round}
+\left[
+\frac{I_r'}{\hbar}-\frac12
+\right],
+\qquad
+j'
+=
+\operatorname{round}
+\left[
+-1/2+
+\sqrt{\frac14+\frac{|\mathbf j'|^2}{\hbar^2}}
+\right].
+$$
+
+其中 $I_r'$ 是最终径向作用量，$|\mathbf j'|$ 是最终转动角动量。
+
+对固定初始态 $(v,j)$ 和碰撞能 $E$，反应概率随碰撞参数的变化称为不透明度函数：
+
+$$
+P_{\mathrm{rxn}}(b;E,v,j)
+=
+\frac{
+N_{\mathrm{rxn}}(b)
+}{
+N_{\mathrm{tot}}(b)
+}.
+$$
+
+总反应截面为
+
+$$
+\sigma_{\mathrm{rxn}}(E;v,j)
+=
+2\pi\int_0^{b_{\max}}
+b\,P_{\mathrm{rxn}}(b;E,v,j)\,db.
+$$
+
+若用 $N_{\mathrm{tot}}$ 条轨迹的 Monte Carlo 平均，则
+
+$$
+\sigma_{\mathrm{rxn}}(E;v,j)
+\approx
+\pi b_{\max}^2
+\frac{N_{\mathrm{rxn}}}{N_{\mathrm{tot}}}.
+$$
+
+态到态截面为
+
+$$
+\sigma_{v j\rightarrow v'j'}(E)
+\approx
+\pi b_{\max}^2
+\frac{N_{v'j'}}{N_{\mathrm{tot}}}.
+$$
+
+若按碰撞参数分层抽样，则更稳定的估计为
+
+$$
+\sigma_{\mathrm{rxn}}(E;v,j)
+\approx
+2\pi
+\sum_s
+\Delta b_s\,b_s\,P_s.
+$$
+
+微分散射截面为
+
+$$
+\frac{d\sigma}{d\Omega}
+=
+\frac{b}{\sin\theta}
+\left|
+\frac{db}{d\theta}
+\right|,
+$$
+
+其中 $\theta$ 是散射角。
+
+热速率系数由截面对 Maxwell–Boltzmann 相对平动能分布积分：
+
+$$
+k_{v j}(T)
+=
+\left[
+\frac{8}{\pi\mu_R(k_BT)^3}
+\right]^{1/2}
+\int_0^\infty
+E\,\sigma_{v j}(E)
+e^{-E/k_BT}
+\,dE.
+$$
+
+若初始内态有热布居 $p_{v j}(T)$，则总速率为
+
+$$
+k(T)=\sum_{v j}p_{v j}(T)\,k_{v j}(T).
+$$
+
+### 17.5　统计误差与系综收敛
+
+若反应概率为 $P$，轨迹数为 $N$，二项分布标准误差为
+
+$$
+\delta\sigma
+=
+\pi b_{\max}^2
+\sqrt{\frac{P(1-P)}{N}}.
+$$
+
+对低概率事件，应使用 Wilson 置信区间而不是简单正态近似。除统计误差外，还必须检查：
+
+1. $b_{\max}$ 收敛；
+2. 初始分离距离 $R_0$ 收敛；
+3. 时间步长 $\Delta t$ 收敛；
+4. 终态判据 $R_{\infty}$ 收敛；
+5. 分箱方法收敛；
+6. 随机数种子敏感性；
+7. 总能量、总角动量守恒。
+
+### 17.6　零点能泄漏与修正
+
+经典轨迹没有量子零点能约束，振动能可能泄漏到转动或平动能，导致产物内能低于量子零点能。这称为零点能泄漏。常见处理方式包括：
+
+| 方法 | 做法 | 优点 | 缺点 |
+|---|---|---|---|
+| 被动约束 | 只在终态分箱时排除低于 ZPE 的轨迹 | 简单 | 改变样本总体，可能违反细致平衡 |
+| 主动约束 | 传播中禁止振动作用量低于 ZPE | 保持产物量子可指认 | 需要修改动力学，破坏严格经典性 |
+| 高斯分箱 | 用轨迹能量与量子能级的距离加权 | 减少硬边界伪影 | 参数依赖 |
+| 作用量分箱 | 用经典作用量而非能量指认量子态 | 更接近半经典理论 | 实现复杂 |
+| 量子修正势 | 在经典势中加入 ZPE 修正项 | 可减少泄漏 | 势能面依赖，非普适 |
+
+无论采用哪种修正，都应在文档中明确说明；不同修正会得到不同的态到态分支比。
+
+### 17.7　QCT 与表面跳跃的关系
+
+FSSH 可以看作“经典核 + 量子电子振幅”的混合方法；QCT 则是全经典核与经典内部自由度。两者的联系与区别是：
+
+| 特征 | QCT | FSSH |
+|---|---|---|
+| 电子态 | 通常冻结在一个绝热面上 | 多个电子态相干演化 |
+| 核运动 | 经典 | 经典 |
+| 非绝热跃迁 | 不描述 | 随机跳跃 |
+| 量子干涉 | 不描述 | 部分通过电子振幅保留 |
+| 成本 | 低 | 中 |
+| 适用 | 高温反应、大体系 | 非绝热光化学、电荷转移 |
+
+对非绝热反应，也可把 QCT 推广为“准经典非绝热轨迹”：核仍用经典轨迹，电子态用 FSSH 或 Ehrenfest 演化；此时需要同时记录电子态、核轨迹和内态作用量。
+
+### 17.8　推荐模块接口
+
+GeneralModule 当前已有 FSSH 模块，可用于 Tully 基准模型；但还没有通用的 QCT 反应散射模块。建议新增：
+
+```fortran
+module mod_qct_dynamics
+    use, intrinsic :: iso_fortran_env, only: dp => real64
+    implicit none
+    private
+
+    public :: qct_config_t
+    public :: qct_trajectory_t
+    public :: qct_result_t
+    public :: qct_init_trajectory
+    public :: qct_propagate_step
+    public :: qct_analyze_final_state
+    public :: run_qct_ensemble
+    public :: qct_cross_section
+    public :: qct_thermal_rate
+
+    type :: qct_config_t
+        real(dp) :: e_coll = 0.0_dp
+        real(dp) :: b_max = 0.0_dp
+        real(dp) :: r_start = 0.0_dp
+        real(dp) :: r_end = 0.0_dp
+        real(dp) :: dt = 0.0_dp
+        integer  :: n_traj = 0
+        integer  :: max_steps = 0
+        integer  :: v_initial = 0
+        integer  :: j_initial = 0
+        integer  :: seed = 0
+        logical  :: enforce_zpe = .false.
+    end type qct_config_t
+
+    type :: qct_trajectory_t
+        real(dp), allocatable :: q(:)
+        real(dp), allocatable :: p(:)
+        real(dp) :: time = 0.0_dp
+        integer  :: v_final = 0
+        integer  :: j_final = 0
+        logical  :: reactive = .false.
+        logical  :: converged = .false.
+    end type qct_trajectory_t
+
+    type :: qct_result_t
+        real(dp) :: cross_section = 0.0_dp
+        real(dp) :: stat_error = 0.0_dp
+        real(dp), allocatable :: opacity_b(:)
+        real(dp), allocatable :: opacity_p(:)
+        real(dp), allocatable :: state_cross_section(:, :)
+    end type qct_result_t
+
+contains
+
+    subroutine qct_propagate_step(cfg, traj, pes_grad)
+        type(qct_config_t), intent(in) :: cfg
+        type(qct_trajectory_t), intent(inout) :: traj
+        interface
+            pure subroutine pes_grad(q, v, grad)
+                import dp
+                real(dp), intent(in) :: q(:)
+                real(dp), intent(out) :: v
+                real(dp), intent(out) :: grad(:)
+            end subroutine pes_grad
+        end interface
+    end subroutine qct_propagate_step
+
+end module mod_qct_dynamics
+```
+
+实际实现时，势能面梯度最好由独立模块提供，例如：
+
+- 一维势能面：`mod_interpolation`；
+- 多维解析势能面：新模块 `mod_pes_surface`；
+- 机器学习势能面：`mod_pes_machine_learning`；
+- 反应 Jacobi 坐标：`mod_triatomic_geometry`。
+
+### 17.9　参考文献
+
+1. M. Karplus, R. N. Porter, and R. D. Sharma, “Exchange reactions with activation energy. I. Simple barrier potential for (H,H2)”, *J. Chem. Phys.* **43**, 3259 (1965). DOI: 10.1063/1.1697301.
+2. D. G. Truhlar and J. T. Muckerman, “Reactive scattering cross sections III: Quasiclassical trajectory calculation of cross sections”, in *Methods in Computational Physics*, Vol. 10, Academic Press, New York, 1971.
+3. J. C. Tully, “Molecular dynamics with electronic transitions”, *J. Chem. Phys.* **93**, 1061 (1990). DOI: 10.1063/1.459170.
+4. D. J. Tannor, *Introduction to Quantum Mechanics: A Time-Dependent Perspective*, University Science Books, Sausalito, 2007.
+5. GeneralModule 源码：<https://github.com/l1Ha/QuantumGeneralModule>
+
+## 第18章　高维量子方法扩展
+
+量子波包方法的困难来自维度灾难。若每个维度取 $n$ 个基函数或网格点，全张量积基的大小为
+
+$$
+N_{\mathrm{tot}}=\prod_{\kappa=1}^{D}n_\kappa.
+$$
+
+稠密矩阵存储为 $O(N_{\mathrm{tot}}^2)$，稠密对角化为 $O(N_{\mathrm{tot}}^3)$。当 $D$ 增大时，即使 $n=10$、$D=12$，全基也已达到 $10^{12}$ 个基函数。因此，高维量子方法的核心不是更快对角化，而是改变表示方式。
+
+### 18.1　和积哈密顿量
+
+高维方法的第一个关键步骤是把哈密顿量写成和积（Sum-of-Products, SOP）形式：
+
+$$
+\hat H
+=
+\sum_{\alpha=1}^{M}
+c_\alpha
+\prod_{\kappa=1}^{D}
+\hat h_{\alpha}^{(\kappa)}.
+$$
+
+作用于全张量波函数：
+
+$$
+\Psi(q_1,\ldots,q_D)
+=
+\sum_{i_1,\ldots,i_D}
+C_{i_1\ldots i_D}
+\prod_{\kappa=1}^{D}
+\chi_{i_\kappa}^{(\kappa)}(q_\kappa).
+$$
+
+SOP 哈密顿量的矩阵—向量乘法不需要构造全矩阵：
+
+$$
+\mathbf v
+=
+\sum_{\alpha=1}^{M}
+c_\alpha
+\bigotimes_{\kappa=1}^{D}
+\mathbf h_{\alpha}^{(\kappa)}
+\mathbf u^{(\kappa)}.
+$$
+
+若每个局部算符为稠密 $n\times n$ 矩阵，代价为 $O(MDn^{D+1})$；若局部算符稀疏或可用 FFT，则可显著降低。SOP 表示是 MCTDH、张量网络和高维 Krylov 方法的基础。
+
+势能面通常不是严格 SOP，可使用：
+
+1. **POTFIT**：把全网格势能拟合成最优 SOP；
+2. **MCTDH 变分势能拟合**：在时变单粒子函数空间中重新拟合；
+3. **逐维优先拟合**：先拟合强耦合维，再处理弱耦合维；
+4. **神经网势能面**：直接给出能量和梯度，再通过自动微分得到 SOP 近似；
+5. **对称不变多项式**：对同核/置换对称体系尤其有效。
+
+### 18.2　MCTDH 与多层扩展
+
+MCTDH 把波函数写成时间依赖单粒子函数（SPF）的张量积展开：
+
+$$
+\Psi(q_1,\ldots,q_D,t)
+=
+\sum_{j_1,\ldots,j_D}
+A_{j_1\ldots j_D}(t)
+\prod_{\kappa=1}^{D}
+\varphi_{j_\kappa}^{(\kappa)}(q_\kappa,t).
+$$
+
+若每个维度保留 $n_{\mathrm{SPF}}$ 个 SPF，系数张量大小为 $n_{\mathrm{SPF}}^D$。对低维问题这已经减小；对更高维，则使用多层 MCTDH（ML-MCTDH）：把多个物理坐标组合成逻辑自由度，再分层组织 SPF 和系数张量。
+
+MCTDH 的系数方程为
+
+$$
+i\hbar\dot{\mathbf A}
+=
+\mathcal H(t)\mathbf A.
+$$
+
+SPF 方程一般形式为
+
+$$
+i\hbar\dot{\boldsymbol\varphi}^{(\kappa)}
+=
+\left[
+1-P^{(\kappa)}
+\right]
+\left[\rho^{(\kappa)}\right]^{-1}
+\mathcal H^{(\kappa)}
+\boldsymbol\varphi^{(\kappa)},
+$$
+
+其中 $P^{(\kappa)}$ 是第 $\kappa$ 维 SPF 空间的投影算符，$\rho^{(\kappa)}$ 是该维密度矩阵。MCTDH 的优势是 SPF 随时间自适应；代价是每步需要构造均值场矩阵和势能 SOP。
+
+MCTDH 适合：
+
+- 中等维强耦合体系；
+- 需要高精度量子干涉和隧穿；
+- 势能面可以写成 SOP；
+- 维度约在 6—24，视耦合结构和 SPF 数而定。
+
+### 18.3　张量列车与矩阵乘积态
+
+张量列车（Tensor Train, TT）把高阶张量表示为一串三阶核：
+
+$$
+C_{i_1\ldots i_D}
+=
+\sum_{\alpha_1,\ldots,\alpha_{D-1}}
+G_{\alpha_1 i_1}^{(1)}
+G_{\alpha_1\alpha_2 i_2}^{(2)}
+\cdots
+G_{\alpha_{D-1}i_D}^{(D)}.
+$$
+
+若所有键维为 $r$，存储量约为
+
+$$
+O(Dnr^2),
+$$
+
+而不是全张量的 $O(n^D)$。矩阵乘积态（MPS）是 TT 在量子多体中的等价形式。
+
+TT/MPS 的关键操作包括：
+
+1. **TT-SVD**：由全张量截断得到 TT；
+2. **TT 舍入**：控制键维并最小化误差；
+3. **TT-Cross**：不构造全张量，仅抽样重要切片；
+4. **DMRG-type 变分**：求基态或定态本征对；
+5. **TDVP**：时间依赖变分原理传播；
+6. **TEBD**：对近邻耦合哈密顿量做键维截断的时间演化。
+
+TT/MPS 对一维近邻耦合特别高效；对长程耦合或高维张量网络，需要更一般的分层张量表示。
+
+### 18.4　稀疏网格与 Smolyak 构造
+
+全张量网格的网格数为 $n^D$。对光滑函数，稀疏网格可显著减少网格数。Smolyak 构造为
+
+$$
+\mathcal U_N^D f
+=
+\sum_{|\mathbf l|_1\le N}
+(-1)^{N-|\mathbf l|_1}
+\binom{D-1}{N-|\mathbf l|_1}
+\left[
+\bigotimes_{\kappa=1}^{D}
+\mathcal U_{l_\kappa}^{(\kappa)}
+\right]f.
+$$
+
+其中 $l_\kappa$ 是每一维的一维求积级别，$|\mathbf l|_1=\sum_\kappa l_\kappa$。对光滑函数，其网格数增长近似为
+
+$$
+O\!\left(N(\log N)^{D-1}\right),
+$$
+
+而不是 $O(N^D)$。稀疏网格适合中高维光滑势能面；对强振荡、强局域或奇点问题，需要自适应稀疏网格。
+
+### 18.5　剪枝乘积基
+
+另一类方法不从全张量积基出发，而是剪枝掉物理上不重要的基函数组合。若 $\epsilon_{n_\kappa}^{(\kappa)}$ 是第 $\kappa$ 维单粒子基的能量，可构造能量截断乘积基：
+
+$$
+\mathcal B_{\mathrm{pruned}}
+=
+\left\{
+(n_1,\ldots,n_D):
+\sum_{\kappa=1}^{D}
+\epsilon_{n_\kappa}^{(\kappa)}
+\le
+E_{\mathrm{cut}},
+\quad
+n_\kappa\in\mathcal S_\kappa
+\right\}.
+$$
+
+也可结合 QCT 采样得到的可达相空间来剪枝：
+
+$$
+\mathcal B_{\mathrm{QCT}}
+=
+\left\{
+(n_1,\ldots,n_D):
+(n_1,\ldots,n_D)
+\text{ 与 QCT 轨迹终态分布重叠}
+\right\}.
+$$
+
+剪枝基的优点是易与现有 DVR/FGH 框架兼容；缺点是基组不再有全张量结构，矩阵—向量乘法需要自定义稀疏索引。
+
+### 18.6　高维势能面
+
+高维量子方法的瓶颈常不在传播，而在势能面：
+
+| 方法 | 适用 | 优点 | 难点 |
+|---|---|---|---|
+| 全网格表 | 低维 | 精确、简单 | 网格数指数增长 |
+| 张量样条 | 中维 | 局部支撑 | 高维存储大 |
+| POTFIT/SOP | MCTDH | 与传播器匹配 | 拟合误差 |
+| 神经网络势 | 高维 | 可扩展、可微 | 需要主动学习与不确定性 |
+| 对称不变多项式 | 同核/置换体系 | 保持对称性 | 基函数规模增长 |
+| 局域谐波近似 | 大分子 | 可自动生成 | 精度受振幅限制 |
+
+对高维势能面，应同时提供能量、梯度和 Hessians 的检验，特别是对称性、渐近行为和梯度守恒。
+
+### 18.7　方法选择
+
+| 维度 | 推荐方法 |
+|---|---|
+| 1—3 | FGH/DVR 直接对角化或 Split-Operator |
+| 4—9 | SOP + Krylov/Chebyshev，或剪枝乘积基 |
+| 10—24 | MCTDH / ML-MCTDH |
+| 更高维 | TT/MPS、TDVP、TEBD |
+| 量子效应弱 | QCT / 表面跳跃 |
+| 需要干涉与隧穿 | 全量子方法 |
+
+### 18.8　GeneralModule 的高维扩展路线
+
+当前 GeneralModule 的量子方法主要面向低维和中维问题：
+
+- `mod_dvr_grid`：一维 Sinc-DVR、Legendre-DVR、FGH；
+- `mod_linear_algebra`：稠密对称本征求解、FFT、矩阵求逆；
+- `mod_wavepacket_propagator`：1D/2D Split-Operator、RK4、ABM4；
+- `mod_chebyshev_propagator`：大步长谱传播。
+
+高维扩展建议新增四个模块：
+
+```fortran
+module mod_sop_hamiltonian
+    ! 和积哈密顿量：H = sum_alpha c_alpha prod_kappa h_alpha^(kappa)
+    public :: sop_hamiltonian_t
+    public :: sop_apply
+    public :: sop_from_potfit
+end module mod_sop_hamiltonian
+
+module mod_tensor_train
+    ! TT/MPS 表示与舍入
+    public :: tt_tensor_t
+    public :: tt_from_dense
+    public :: tt_round
+    public :: tt_apply
+    public :: tt_dot
+end module mod_tensor_train
+
+module mod_mctdh_core
+    ! MCTDH 系数与 SPF 传播
+    public :: mctdh_config_t
+    public :: mctdh_state_t
+    public :: mctdh_propagate_step
+    public :: mctdh_mean_field
+end module mod_mctdh_core
+
+module mod_sparse_grid
+    ! Smolyak 稀疏网格与自适应加点
+    public :: sparse_grid_t
+    public :: smolyak_build
+    public :: sparse_grid_refine
+end module mod_sparse_grid
+```
+
+建议的最小实现顺序：
+
+1. 先实现 SOP 哈密顿量及其矩阵—向量乘法；
+2. 用低维 FGH 结果验证 SOP 动作正确；
+3. 实现 SOP + Chebyshev/Krylov 传播；
+4. 实现 TT 舍入与 TT-Cross；
+5. 用 TT 表示重现低维波包；
+6. 实现 MCTDH 系数和 SPF 方程；
+7. 用 3—6 维基准模型与 FGH/DVR 比对；
+8. 最后接入高维势能面模块。
+
+### 18.9　验证策略
+
+高维量子方法的验证层次：
+
+| 层次 | 检查内容 |
+|---|---|
+| 代数 | SOP 与稠密矩阵作用的相对误差 |
+| 表示 | TT/MCTDH 截断误差随键维/SPF 数收敛 |
+| 动力学 | 范数、能量、布居守恒 |
+| 物理极限 | 弱耦合极限退化为可分离解 |
+| 交叉验证 | 与 FGH/DVR、Split-Operator、QCT 比较 |
+| 观测量 | 能级、速率、分支比、隧穿概率 |
+| 性能 | 时间、内存、强/弱扩展 |
+
+特别注意：TT/MCTDH 的截断误差可能对初态和势能面敏感；不能只用一个参数点验证。
+
+### 18.10　参考文献
+
+1. U. Manthe, H.-D. Meyer, and L. S. Cederbaum, “Wave-packet dynamics within the multiconfiguration Hartree framework: General aspects and application to NOCl”, *J. Chem. Phys.* **97**, 3199 (1992). DOI: 10.1063/1.463007.
+2. M. H. Beck, A. Jäckle, G. A. Worth, and H.-D. Meyer, “The multiconfiguration time-dependent Hartree (MCTDH) method: a highly efficient algorithm for propagating wavepackets”, *Phys. Rep.* **324**, 1 (2000). DOI: 10.1016/S0370-1573(99)00047-2.
+3. I. V. Oseledets, “Tensor-train decomposition”, *SIAM J. Sci. Comput.* **33**, 2295 (2011). DOI: 10.1137/090752286.
+4. U. Schollwöck, “The density-matrix renormalization group in the age of matrix product states”, *Phys. Rep.* **526**, 96 (2013). DOI: 10.1016/j.physrep.2012.12.001.
+5. H.-J. Bungartz and M. Griebel, “Sparse grids”, *Acta Numer.* **13**, 147 (2004). DOI: 10.1017/S0962492904000182.
+6. GeneralModule 源码：<https://github.com/l1Ha/QuantumGeneralModule>
