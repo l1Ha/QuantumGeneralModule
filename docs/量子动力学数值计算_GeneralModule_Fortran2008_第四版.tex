@@ -4,8 +4,9 @@
 \PassOptionsToPackage{dvipsnames,svgnames*,x11names*}{xcolor}
 %
 \documentclass[
+  10pt,
   a4paper,
-]{ctexbook}
+  openany]{ctexbook}
 \usepackage{lmodern}
 \usepackage{amssymb,amsmath}
 \usepackage{ifxetex,ifluatex}
@@ -50,7 +51,7 @@
   urlcolor=teal,
   pdfcreator={LaTeX via pandoc}}
 \urlstyle{same} % disable monospaced font for URLs
-\usepackage[margin=2.4cm]{geometry}
+\usepackage[margin=2.2cm]{geometry}
 \usepackage{color}
 \usepackage{fancyvrb}
 \newcommand{\VerbBar}{|}
@@ -115,6 +116,30 @@
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{etoolbox}
+\usepackage{needspace}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{fvextra}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\AtBeginEnvironment{longtable}{\small}
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.12}
+\setlength{\emergencystretch}{3em}
+\setlist{topsep=2pt,itemsep=2pt,parsep=0pt}
+\captionsetup{font=small,labelfont=bf}
+\widowpenalty=10000
+\clubpenalty=10000
+\usepackage{sectsty}
+\allsectionsfont{\sffamily}
+\usepackage[htt]{hyphenat}
+\AtBeginEnvironment{longtable}{\footnotesize\sloppy}
+\setlength{\tabcolsep}{3pt}
 
 \title{量子动力学数值计算}
 \usepackage{etoolbox}
@@ -132,11 +157,11 @@
 
 {
 \hypersetup{linkcolor=}
-\setcounter{tocdepth}{3}
+\setcounter{tocdepth}{2}
 \tableofcontents
 }
 \hypertarget{ux5173ux4e8eux672cux4e66}{%
-\section{关于本书}\label{ux5173ux4e8eux672cux4e66}}
+\chapter{关于本书}\label{ux5173ux4e8eux672cux4e66}}
 
 本书围绕 GeneralModule
 开源代码库，系统讨论量子动力学问题的数学表述、离散化方法、数值算法和工程实现。本书强调理论、算法与代码验证的完整链条。
@@ -153,7 +178,7 @@
 \includegraphics[width=2cm,height=\textheight]{qr/repo_root.png}
 
 \hypertarget{ux7b26ux53f7ux4e0eux7ea6ux5b9a}{%
-\section{符号与约定}\label{ux7b26ux53f7ux4e0eux7ea6ux5b9a}}
+\chapter{符号与约定}\label{ux7b26ux53f7ux4e0eux7ea6ux5b9a}}
 
 除特别说明外，本书使用原子单位：
 
@@ -163,12 +188,11 @@
 
 能量单位为 Hartree，长度单位为 Bohr。
 
-\hypertarget{generalmodule-ux7b2cux56dbux7248-ux6269ux5c55ux7ae0ux8282ux7b2cux4e00ux90e8ux5206}{%
-\section{GeneralModule 第四版 ·
-扩展章节（第一部分）}\label{generalmodule-ux7b2cux56dbux7248-ux6269ux5c55ux7ae0ux8282ux7b2cux4e00ux90e8ux5206}}
+\hypertarget{ux7b2cux4e00ux90e8ux5206-ux7406ux8bbaux4e0eux5750ux6807ux8868ux8c61}{%
+\part{第一部分　理论与坐标表象}\label{ux7b2cux4e00ux90e8ux5206-ux7406ux8bbaux4e0eux5750ux6807ux8868ux8c61}}
 
-\hypertarget{ux91cfux5b50ux529bux5b66ux6570ux5b66ux7ed3ux6784ux89d2ux52a8ux91cfux4ee3ux6570ux5206ux5b50ux5750ux6807ux7406ux8bbaux4e0eux6570ux503cux65b9ux6cd5ux57faux7840}{%
-\subsection{量子力学数学结构、角动量代数、分子坐标理论与数值方法基础}\label{ux91cfux5b50ux529bux5b66ux6570ux5b66ux7ed3ux6784ux89d2ux52a8ux91cfux4ee3ux6570ux5206ux5b50ux5750ux6807ux7406ux8bbaux4e0eux6570ux503cux65b9ux6cd5ux57faux7840}}
+\hypertarget{ux672cux7ae0ux5bfcux8bfb}{%
+\chapter{本章导读}\label{ux672cux7ae0ux5bfcux8bfb}}
 
 本章为 GeneralModule
 第四版新增的理论扩展章节，面向计算量子动力学、分子光谱学与超冷碰撞领域的研究生读者及算法开发者。全章沿四条主线递进展开：第一章论述希尔伯特空间与算符谱理论，这是有限基组与离散变量表象方法的数学根基；第二章系统建立角动量代数、Clebsch--Gordan
@@ -197,14 +221,13 @@ Wigner D 函数、Legendre
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\hypertarget{ux7b2cux4e00ux7ae0-ux5e0cux5c14ux4f2fux7279ux7a7aux95f4ux4e0eux7b97ux7b26ux8c31ux7406ux8bba}{%
-\subsection{第一章
-希尔伯特空间与算符谱理论}\label{ux7b2cux4e00ux7ae0-ux5e0cux5c14ux4f2fux7279ux7a7aux95f4ux4e0eux7b97ux7b26ux8c31ux7406ux8bba}}
+\hypertarget{ux7b2c1ux7ae0-ux6001ux7b97ux7b26ux4e0eux6f14ux5316}{%
+\chapter{第1章　态、算符与演化}\label{ux7b2c1ux7ae0-ux6001ux7b97ux7b26ux4e0eux6f14ux5316}}
 
 量子力学的全部数学结构建立在内积空间及其完备化之上。计算量子动力学的每一个数值算法------无论是有限基组展开、离散变量表象（DVR）还是波包传播------都是在希尔伯特空间的某个有限维截断子空间内工作。因此，严格理解无限维理论与有限维近似之间的对应与偏差，是判别数值结果可靠性的前提。本节内容由浅入深：先给出内积与完备性的基本定义，继而讨论基组展开与表象变换，然后陈述自伴算符的谱定理，最后落实到幺正演化的数值实现。
 
 \hypertarget{ux5185ux79efux8303ux6570ux4e0eux5e0cux5c14ux4f2fux7279ux7a7aux95f4}{%
-\subsubsection{1.1
+\section{1.1
 内积、范数与希尔伯特空间}\label{ux5185ux79efux8303ux6570ux4e0eux5e0cux5c14ux4f2fux7279ux7a7aux95f4}}
 
 \textbf{定义。} 设 \(\mathcal{H}\) 为复数域 \(\mathbb{C}\)
@@ -270,11 +293,7 @@ space）处理；数值计算中则以大盒子边界条件将连续谱离散化
 计算期望值）、\texttt{dvr\_matrix\_element}（两态跃迁矩阵元）。GitHub
 直链：\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_dvr_grid.f90}{src/mod\_dvr\_grid.f90}。二维码：\texttt{qr/src\_\_mod\_dvr\_grid.f90.png}。
 
-\begin{figure}
-\centering
 \includegraphics{qr/src__mod_dvr_grid.f90.png}
-\caption{DVR 网格模块二维码}
-\end{figure}
 
 \textbf{小型数值实验。} 取 Gauss 波包
 \(\psi(x)=\pi^{-1/4}\exp(-x^{2}/2)\)，在区间 \([-10,10]\) 上以 Sinc-DVR
@@ -292,7 +311,7 @@ space）处理；数值计算中则以大盒子边界条件将连续谱离散化
 如何在 \(L\to\infty\) 时恢复连续谱。
 
 \hypertarget{ux5b8cux5907ux6027ux57faux7ec4ux5c55ux5f00ux4e0eux8868ux8c61ux53d8ux6362}{%
-\subsubsection{1.2
+\section{1.2
 完备性、基组展开与表象变换}\label{ux5b8cux5907ux6027ux57faux7ec4ux5c55ux5f00ux4e0eux8868ux8c61ux53d8ux6362}}
 
 \textbf{定义。} 设 \(\{\varphi_n\}_{n=1}^{\infty}\subset\mathcal{H}\)
@@ -378,7 +397,7 @@ DOI: 10.1063/1.462125）以及 Marston 与 Balint-Kurti（J. Chem. Phys. 91,
 条能级所需的最小格距。
 
 \hypertarget{ux81eaux4f34ux7b97ux7b26ux4e0eux8c31ux5b9aux7406}{%
-\subsubsection{1.3
+\section{1.3
 自伴算符与谱定理}\label{ux81eaux4f34ux7b97ux7b26ux4e0eux8c31ux5b9aux7406}}
 
 \textbf{定义。} 稠密定义域 \(\mathcal{D}(A)\) 上的线性算符 \(A\)
@@ -435,11 +454,7 @@ Landau--Zener 行为直接联系起来。
 Gauss--Jordan 求逆，\texttt{stat=-1} 指示奇异矩阵）。GitHub
 直链：\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90}{src/mod\_linear\_algebra.f90}。二维码：\texttt{qr/src\_\_mod\_linear\_algebra.f90.png}。
 
-\begin{figure}
-\centering
 \includegraphics{qr/src__mod_linear_algebra.f90.png}
-\caption{线性代数模块二维码}
-\end{figure}
 
 \textbf{小型数值实验。} 取 \(n=300\) 的随机实对称矩阵（元素均匀分布于
 \([-1,1]\)），调用 \texttt{diag\_symmetric\_matrix} 后逐列计算残余
@@ -455,7 +470,7 @@ Gauss--Jordan 求逆，\texttt{stat=-1} 指示奇异矩阵）。GitHub
 \(\|\sum_k|k\rangle\langle k|-\mathbb{1}\|_{F}\) 并解释其量级。
 
 \hypertarget{ux5e7aux6b63ux6f14ux5316ux4e0eux6ce2ux5305ux4f20ux64ad}{%
-\subsubsection{1.4
+\section{1.4
 幺正演化与波包传播}\label{ux5e7aux6b63ux6f14ux5316ux4e0eux6ce2ux5305ux4f20ux64ad}}
 
 \textbf{定义。} 算符 \(U\) 称为幺正的，若
@@ -526,11 +541,7 @@ Phys. 47, 412 (1982), DOI: 10.1016/0021-9991(82)90091-2）、Kosloff（J.
 Phys. Chem. 92, 2087 (1988), DOI: 10.1021/j100319a003）。GitHub
 直链：\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_wavepacket_propagator.f90}{src/mod\_wavepacket\_propagator.f90}。二维码：\texttt{qr/src\_\_mod\_wavepacket\_propagator.f90.png}。
 
-\begin{figure}
-\centering
 \includegraphics{qr/src__mod_wavepacket_propagator.f90.png}
-\caption{波包传播模块二维码}
-\end{figure}
 
 \textbf{小型数值实验。}
 一维谐振子（\(m=1\)，\(\omega=0.02\ E_h/\hbar\)），网格
@@ -548,9 +559,8 @@ Phys. Chem. 92, 2087 (1988), DOI: 10.1021/j100319a003）。GitHub
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\hypertarget{ux7b2cux4e8cux7ae0-ux89d2ux52a8ux91cfux4ee3ux6570ux4e0eux91cdux8026ux5408ux7406ux8bba}{%
-\subsection{第二章
-角动量代数与重耦合理论}\label{ux7b2cux4e8cux7ae0-ux89d2ux52a8ux91cfux4ee3ux6570ux4e0eux91cdux8026ux5408ux7406ux8bba}}
+\hypertarget{ux7b2c2ux7ae0-ux89d2ux52a8ux91cfux4ee3ux6570ux4e0eux91cdux8026ux5408ux7406ux8bba}{%
+\chapter{第2章　角动量代数与重耦合理论}\label{ux7b2c2ux7ae0-ux89d2ux52a8ux91cfux4ee3ux6570ux4e0eux91cdux8026ux5408ux7406ux8bba}}
 
 角动量是量子力学中唯一具有普适代数结构的守恒量族：无论体系是原子、分子还是超冷碰撞通道，其耦合与变换均由同一套
 Racah 代数支配。本章从转动群与角动量本征基出发，依次建立 Clebsch--Gordan
@@ -567,7 +577,7 @@ Racah 代数支配。本章从转动群与角动量本征基出发，依次建�
 节看到全部抽象如何凝结为光谱学的选择定则。贯穿全章的方法论提示是：角动量代数的每一个公式都具有双重身份------代数身份（对易关系与幺正性）与几何身份（旋转下的变换性质），二者互相校验，任何一方的偏离都应视为实现错误的信号。
 
 \hypertarget{ux8f6cux52a8ux7fa4ux4e0eux89d2ux52a8ux91cfux672cux5f81ux57fa}{%
-\subsubsection{2.1
+\section{2.1
 转动群与角动量本征基}\label{ux8f6cux52a8ux7fa4ux4e0eux89d2ux52a8ux91cfux672cux5f81ux57fa}}
 
 \textbf{定义。} 角动量算符
@@ -635,11 +645,7 @@ Racah 代数支配。本章从转动群与角动量本征基出发，依次建�
 角向矩阵。GitHub
 直链：\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90}{src/mod\_special\_functions.f90}。二维码：\texttt{qr/src\_\_mod\_special\_functions.f90.png}。
 
-\begin{figure}
-\centering
 \includegraphics{qr/src__mod_special_functions.f90.png}
-\caption{特殊函数模块二维码}
-\end{figure}
 
 \textbf{小型数值实验。} 以 \(n=40\) 的 Gauss--Legendre 节点构造
 \(\hat{J}^{2}\) 的谱求和表示（见 2.5 节），对角化后与本征值序列
@@ -653,7 +659,7 @@ Racah 代数支配。本章从转动群与角动量本征基出发，依次建�
 \(j=1/2\) 的 Pauli 矩阵表示下成立。
 
 \hypertarget{clebschgordan-ux7cfbux6570ux4e0e-wigner-3j-ux7b26ux53f7}{%
-\subsubsection{2.2 Clebsch--Gordan 系数与 Wigner 3j
+\section{2.2 Clebsch--Gordan 系数与 Wigner 3j
 符号}\label{clebschgordan-ux7cfbux6570ux4e0e-wigner-3j-ux7b26ux53f7}}
 
 \textbf{定义。} 两个角动量 \(\hat{\mathbf{J}}_1,\hat{\mathbf{J}}_2\)
@@ -754,7 +760,7 @@ Theory of Angular Momentum}, World Scientific, Singapore (1988), DOI:
 的完备性关系，统计求和项数以估计工作量。
 
 \hypertarget{wigner-6j-ux4e0e-9j-ux7b26ux53f7ux91cdux8026ux5408ux7406ux8bba}{%
-\subsubsection{2.3 Wigner 6j 与 9j
+\section{2.3 Wigner 6j 与 9j
 符号：重耦合理论}\label{wigner-6j-ux4e0e-9j-ux7b26ux53f7ux91cdux8026ux5408ux7406ux8bba}}
 
 \textbf{定义。} 三个角动量 \(j_1,j_2,j_3\) 耦合到总角动量 \(J\)
@@ -769,9 +775,13 @@ Wigner 6j 符号（Racah W 系数）给出：
 四个角动量的重耦合（如原子结构中的 \(LS\) 与 \(jj\) 耦合方案互换）则由
 Wigner 9j 符号承担：
 
-\[\bigl\langle (j_{11}j_{12})j_{13},(j_{21}j_{22})j_{23};J \big| (j_{11}j_{21})j_{31},(j_{12}j_{22})j_{32};J \bigr\rangle
-=\sqrt{(2j_{13}+1)(2j_{23}+1)(2j_{31}+1)(2j_{32}+1)}
-\begin{Bmatrix} j_{11} & j_{12} & j_{13} \\ j_{21} & j_{22} & j_{23} \\ j_{31} & j_{32} & J \end{Bmatrix}.\]
+\[
+\begin{aligned}
+&\bigl\langle (j_{11}j_{12})j_{13},(j_{21}j_{22})j_{23};J \big| (j_{11}j_{21})j_{31},(j_{12}j_{22})j_{32};J \bigr\rangle \\
+&\quad=\sqrt{(2j_{13}+1)(2j_{23}+1)(2j_{31}+1)(2j_{32}+1)}
+\begin{Bmatrix} j_{11} & j_{12} & j_{13} \\ j_{21} & j_{22} & j_{23} \\ j_{31} & j_{32} & J \end{Bmatrix}.
+\end{aligned}
+\]
 
 \textbf{公式与推导。} 6j
 符号满足四重三角条件（四面体四面的三角关系）与正交关系
@@ -848,7 +858,7 @@ Wigner 9j 符号承担：
 符号任一行或列满足三角条件。
 
 \hypertarget{ux4e0dux53efux7ea6ux5f20ux91cfux7b97ux7b26wignereckart-ux5b9aux7406ux4e0eux9009ux62e9ux5b9aux5219}{%
-\subsubsection{2.4 不可约张量算符、Wigner--Eckart
+\section{2.4 不可约张量算符、Wigner--Eckart
 定理与选择定则}\label{ux4e0dux53efux7ea6ux5f20ux91cfux7b97ux7b26wignereckart-ux5b9aux7406ux4e0eux9009ux62e9ux5b9aux5219}}
 
 \textbf{定义。} 相对于角动量 \(\hat{\mathbf{J}}\) 的 \(k\)
@@ -884,10 +894,15 @@ Wigner--Eckart 定理断言其矩阵元分解为几何因子与约化矩阵元�
 分解为零秩与二秩两部分，\(\cos^{2}\theta\) 的矩阵元仅在
 \(\Delta J=0,\pm2\) 时非零（拉曼与分子对齐选择定则）。闭式矩阵元为
 
-\[\langle J m|\cos\theta|J\pm1,m\rangle
-=\sqrt{\frac{(J\pm1)^{2}-m^{2}}{(2J\pm1)(2J\pm3)}},\qquad
+\[
+\begin{aligned}
+\langle J m|\cos\theta|J\pm1,m\rangle
+&=\sqrt{\frac{(J\pm1)^{2}-m^{2}}{(2J\pm1)(2J\pm3)}},\\
 \langle J m|\cos^{2}\theta|J m\rangle
-=\frac{(J+1)^{2}-m^{2}}{(2J+1)(2J+3)}+\frac{J^{2}-m^{2}}{(2J-1)(2J+1)}.\]
+&=\frac{(J+1)^{2}-m^{2}}{(2J+1)(2J+3)}
++\frac{J^{2}-m^{2}}{(2J-1)(2J+1)}.
+\end{aligned}
+\]
 
 \textbf{物理含义。} 选择定则是光谱学的语言：红外平行带
 \(\Delta J=\pm1\)、拉曼散射
@@ -936,9 +951,8 @@ Wigner--Eckart 定理不仅给出选择定则，还直接给出矩阵元的完�
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\hypertarget{ux7b2cux4e09ux7ae0-ux5206ux5b50ux5750ux6807ux4f53ux7cfbux4e0eux8f6cux632fux54c8ux5bc6ux987fux91cf}{%
-\subsection{第三章
-分子坐标体系与转振哈密顿量}\label{ux7b2cux4e09ux7ae0-ux5206ux5b50ux5750ux6807ux4f53ux7cfbux4e0eux8f6cux632fux54c8ux5bc6ux987fux91cf}}
+\hypertarget{ux7b2c3ux7ae0-ux5206ux5b50ux5750ux6807ux4f53ux7cfbux4e0eux8f6cux632fux54c8ux5bc6ux987fux91cf}{%
+\chapter{第3章　分子坐标体系与转振哈密顿量}\label{ux7b2c3ux7ae0-ux5206ux5b50ux5750ux6807ux4f53ux7cfbux4e0eux8f6cux632fux54c8ux5bc6ux987fux91cf}}
 
 分子的转振动力学在数学上等价于在合适的广义坐标下分离并处理动能算符。坐标选择的优劣直接决定哈密顿量矩阵的稀疏性、耦合的强弱与基组收敛速度。本章由浅入深地讨论四套坐标体系：以
 Euler 角连接的空间固定系与体固定系（3.1 节）、描述反应碰撞的 Jacobi
@@ -951,7 +965,7 @@ Euler 角连接的空间固定系与体固定系（3.1 节）、描述反应碰�
 坐标与超球坐标则针对反应散射的通道结构优化分块，使三套排列通道在同一组变量下对称出现。理解每种坐标体系以何种代价换取何种可解释性，是构造高效转振与反应散射算法的先决条件。
 
 \hypertarget{ux7a7aux95f4ux56faux5b9aux7cfbux4f53ux56faux5b9aux7cfbeuler-ux89d2ux4e0e-wigner-d-ux51fdux6570}{%
-\subsubsection{3.1 空间固定系、体固定系、Euler 角与 Wigner D
+\section{3.1 空间固定系、体固定系、Euler 角与 Wigner D
 函数}\label{ux7a7aux95f4ux56faux5b9aux7cfbux4f53ux56faux5b9aux7cfbeuler-ux89d2ux4e0e-wigner-d-ux51fdux6570}}
 
 \textbf{定义。} 空间固定系（SF，space-fixed frame）\(\{X,Y,Z\}\)
@@ -1047,7 +1061,7 @@ Research Press, Ottawa (1998)；Varshalovich 等 (1988)。GitHub
 的完备性推导立体角积分化为 D 函数耦合系数的公式。
 
 \hypertarget{jacobi-ux5750ux6807ux4e0eux4e09ux539fux5b50ux53cdux5e94ux51e0ux4f55}{%
-\subsubsection{3.2 Jacobi
+\section{3.2 Jacobi
 坐标与三原子反应几何}\label{jacobi-ux5750ux6807ux4e0eux4e09ux539fux5b50ux53cdux5e94ux51e0ux4f55}}
 
 \textbf{定义。} 对 \(A+BC\) 型三原子体系，质心分离后取原子--双原子
@@ -1133,11 +1147,7 @@ Horowitz（J. Chem. Phys. 68, 2466 (1978), DOI:
 10.1098/rspa.1984.0023）。GitHub
 直链：\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_triatomic_geometry.f90}{src/mod\_triatomic\_geometry.f90}。二维码：\texttt{qr/src\_\_mod\_triatomic\_geometry.f90.png}。
 
-\begin{figure}
-\centering
 \includegraphics{qr/src__mod_triatomic_geometry.f90.png}
-\caption{三原子几何模块二维码}
-\end{figure}
 
 \textbf{小型数值实验。} 三项校验：(a) 往返一致性：随机取
 \((r,R,\gamma)=(1.4,3.2,1.1)\ (a_0,\ a_0,\ \mathrm{rad})\)，经
@@ -1160,7 +1170,7 @@ London 面（未加 Sato 修正）的参考值约为
 Sato 参数 \(\Delta\in[0.05,0.20]\)，讨论势垒高度对 \(\Delta\) 的单调性。
 
 \hypertarget{delves-ux8d28ux91cfux6807ux5ea6ux8d85ux7403ux5750ux6807}{%
-\subsubsection{3.3 Delves
+\section{3.3 Delves
 质量标度超球坐标}\label{delves-ux8d28ux91cfux6807ux5ea6ux8d85ux7403ux5750ux6807}}
 
 \textbf{定义。} 将 Jacobi 坐标作质量标度变换
@@ -1192,11 +1202,26 @@ Laplace--Beltrami 算符。 \(\hat{\Lambda}^{2}\)
 平面内相差一个由质量决定的刚性旋转，通道轴之间的夹角即反应偏角（reaction
 skew angle）：
 
-\[\tan\beta_{\mathrm{skew}}=\sqrt{\frac{m_B M}{m_A m_C}},\qquad
-\sin\beta_{\mathrm{skew}}=\sqrt{\frac{m_B M}{(m_A+m_B)(m_B+m_C)}},\qquad
-\cos\beta_{\mathrm{skew}}=\sqrt{\frac{m_A m_C}{(m_A+m_B)(m_B+m_C)}}.\]
+\[
+\begin{aligned}
+\tan\beta_{\mathrm{skew}}&=\sqrt{\frac{m_B M}{m_A m_C}},\\
+\sin\beta_{\mathrm{skew}}&=\sqrt{\frac{m_B M}{(m_A+m_B)(m_B+m_C)}},\\
+\cos\beta_{\mathrm{skew}}&=\sqrt{\frac{m_A m_C}{(m_A+m_B)(m_B+m_C)}}.
+\end{aligned}
+\]
 
-三个表达式自洽：\(\sin^{2}\beta+\cos^{2}\beta=\dfrac{m_B(m_A+m_B+m_C)+m_A m_C}{(m_A+m_B)(m_B+m_C)}=\dfrac{(m_A+m_B)(m_B+m_C)}{(m_A+m_B)(m_B+m_C)}=1\)，代数上严格成立。
+三个表达式自洽：
+
+\[
+\sin^{2}\beta+\cos^{2}\beta
+=
+\frac{m_B(m_A+m_B+m_C)+m_A m_C}{(m_A+m_B)(m_B+m_C)}
+=
+\frac{(m_A+m_B)(m_B+m_C)}{(m_A+m_B)(m_B+m_C)}
+=1,
+\]
+
+代数上严格成立。
 
 \textbf{物理含义。} 超球坐标把三原子体系的全部构型纳入一个统一的
 \((\rho,\alpha)\) 平面：\(\rho\) 度量整体尺寸，\(\alpha\)
@@ -1232,11 +1257,7 @@ T. Pack 与 G. A. Parker（J. Chem. Phys. 87, 3888 (1987), DOI:
 10.1063/1.452944）。GitHub
 直链：\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_hyperspherical_reactive.f90}{src/mod\_hyperspherical\_reactive.f90}。二维码：\texttt{qr/src\_\_mod\_hyperspherical\_reactive.f90.png}。
 
-\begin{figure}
-\centering
 \includegraphics{qr/src__mod_hyperspherical_reactive.f90.png}
-\caption{超球反应模块二维码}
-\end{figure}
 
 \textbf{小型数值实验。} (a) 对 \(\mathrm{H}+\mathrm{H}_2\)（三质量均为
 \(1.0078\ \mathrm{amu}\)）调用 \texttt{init\_reaction\_mass}，得偏角
@@ -1253,7 +1274,7 @@ T. Pack 与 G. A. Parker（J. Chem. Phys. 87, 3888 (1987), DOI:
 计算等边三角形构型的超半径与超角，并验证三个通道扇区的等价性。
 
 \hypertarget{watson-ux8f6cux632fux54c8ux5bc6ux987fux91cfcoriolis-ux8026ux5408ux79bbux5fc3ux7578ux53d8ux4e0eux632fux52a8ux89d2ux52a8ux91cf}{%
-\subsubsection{3.4 Watson 转振哈密顿量、Coriolis
+\section{3.4 Watson 转振哈密顿量、Coriolis
 耦合、离心畸变与振动角动量}\label{watson-ux8f6cux632fux54c8ux5bc6ux987fux91cfcoriolis-ux8026ux5408ux79bbux5fc3ux7578ux53d8ux4e0eux632fux52a8ux89d2ux52a8ux91cf}}
 
 \textbf{定义。} 在满足 Eckart 条件的体固定系中，精确的振转哈密顿量由
@@ -1346,11 +1367,7 @@ Vibrations}, McGraw-Hill, New York (1955)；J. K. G. Watson, Mol. Phys.
 15, 479 (1968)；Bunker 与 Jensen (1998)。GitHub
 直链：\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_rovibrational.f90}{src/mod\_rovibrational.f90}。二维码：\texttt{qr/src\_\_mod\_rovibrational.f90.png}。
 
-\begin{figure}
-\centering
 \includegraphics{qr/src__mod_rovibrational.f90.png}
-\caption{转振模块二维码}
-\end{figure}
 
 \textbf{小型数值实验。} 对 Morse 型
 \(\mathrm{H}_2\)（\(D_e=0.1744\ E_h\)，\(r_e=1.401\ a_0\)，\(\beta=1.044\ a_0^{-1}\)，\(\mu=0.5\ \mathrm{amu}\)），在
@@ -1379,9 +1396,8 @@ Coriolis 项消失。(3) 以本库 \(B_v\) 序列拟合
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\hypertarget{ux7b2cux56dbux7ae0-ux5355ux4f4dux5236ux4e0eux672cux5f81ux6c42ux89e3ux7684ux6570ux503cux5206ux6790}{%
-\subsection{第四章
-单位制与本征求解的数值分析}\label{ux7b2cux56dbux7ae0-ux5355ux4f4dux5236ux4e0eux672cux5f81ux6c42ux89e3ux7684ux6570ux503cux5206ux6790}}
+\hypertarget{ux7b2c4ux7ae0-ux5355ux4f4dux5236ux4e0eux672cux5f81ux6c42ux89e3ux7684ux6570ux503cux5206ux6790}{%
+\chapter{第4章　单位制与本征求解的数值分析}\label{ux7b2c4ux7ae0-ux5355ux4f4dux5236ux4e0eux672cux5f81ux6c42ux89e3ux7684ux6570ux503cux5206ux6790}}
 
 理论正确而数值失真，是计算物理中最隐蔽的一类失败。本章讨论三层数值基础：单位制与量纲一致性（4.1
 节）、实对称本征问题的 Householder 三对角化与 QL 隐式位移迭代（4.2、4.3
@@ -1393,7 +1409,7 @@ Coriolis 项消失。(3) 以本库 \(B_v\) 序列拟合
 节的正交性校验一脉相承，构成本库持续集成测试体系的理论基础。
 
 \hypertarget{ux5355ux4f4dux5236ux539fux5b50ux5355ux4f4dux4e0eux91cfux7eb2ux4e00ux81f4ux6027}{%
-\subsubsection{4.1
+\section{4.1
 单位制、原子单位与量纲一致性}\label{ux5355ux4f4dux5236ux539fux5b50ux5355ux4f4dux4e0eux91cfux7eb2ux4e00ux81f4ux6027}}
 
 \textbf{定义。}
@@ -1463,11 +1479,7 @@ Breit--Rabi
 等）与纯函数 \texttt{to\_au}、\texttt{from\_au}。GitHub
 直链：\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_constants.f90}{src/mod\_constants.f90}。二维码：\texttt{qr/src\_\_mod\_constants.f90.png}。
 
-\begin{figure}
-\centering
 \includegraphics{qr/src__mod_constants.f90.png}
-\caption{常数模块二维码}
-\end{figure}
 
 \textbf{小型数值实验。} 两项自洽性检验：(a) 计算
 \texttt{AU2EV/AU2CM}，得
@@ -1485,7 +1497,7 @@ Breit--Rabi
 \(\mathrm{(k_B/hc)}=0.695\ \mathrm{cm^{-1}}\) 并与 CODATA 比对。
 
 \hypertarget{ux5b9eux5bf9ux79f0ux672cux5f81ux95eeux9898ux4e0e-householder-ux4e09ux5bf9ux89d2ux5316}{%
-\subsubsection{4.2 实对称本征问题与 Householder
+\section{4.2 实对称本征问题与 Householder
 三对角化}\label{ux5b9eux5bf9ux79f0ux672cux5f81ux95eeux9898ux4e0e-householder-ux4e09ux5bf9ux89d2ux5316}}
 
 \textbf{定义。} 实对称本征问题
@@ -1557,7 +1569,7 @@ Baltimore (2013)。GitHub
 \(\frac{4}{3}n^{3}\) 的量级。
 
 \hypertarget{ql-ux9690ux5f0fux4f4dux79fbux8fedux4ee3wilkinson-ux4f4dux79fbux4e0eux6536ux655bux7406ux8bba}{%
-\subsubsection{4.3 QL 隐式位移迭代、Wilkinson
+\section{4.3 QL 隐式位移迭代、Wilkinson
 位移与收敛理论}\label{ql-ux9690ux5f0fux4f4dux79fbux8fedux4ee3wilkinson-ux4f4dux79fbux4e0eux6536ux655bux7406ux8bba}}
 
 \textbf{定义。} 对三对角矩阵 \(T\)，QL 迭代取正交阵 \(Q_k\) 使
@@ -1626,7 +1638,7 @@ Wilkinson 位移下三阶收敛。(3) 修改实验为 \(n=1000\)，验证最大�
 \(c\,\varepsilon\|A\|\) 并估计常数 \(c\)。
 
 \hypertarget{ux6761ux4ef6ux6570ux8befux5deeux4f20ux64adux4e0eux6536ux655bux9636}{%
-\subsubsection{4.4
+\section{4.4
 条件数、误差传播与收敛阶}\label{ux6761ux4ef6ux6570ux8befux5deeux4f20ux64adux4e0eux6536ux655bux9636}}
 
 \textbf{定义。} 函数求值的（相对）条件数定义为
@@ -1716,7 +1728,7 @@ Richardson 外推由 \(h\) 与 \(h/2\) 两点外推 \(f'(1)\)，与精确值
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{ux53c2ux8003ux6587ux732e}{%
-\subsection{参考文献}\label{ux53c2ux8003ux6587ux732e}}
+\chapter{参考文献}\label{ux53c2ux8003ux6587ux732e}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -1797,11 +1809,14 @@ Richardson 外推由 \(h\) 与 \(h/2\) 两点外推 \(f'(1)\)，与精确值
 Fortran 11.4（\texttt{-O2\ -std=f2008}），双精度
 \texttt{real64}。项目文件在本章节撰写过程中未作任何修改。}
 
-\hypertarget{ux7b2cux4e8cux90e8ux5206-ux8c31ux65b9ux6cd5ux79bbux6563ux8868ux793aux4e0eux6536ux655bux7406ux8bba}{%
-\section{第二部分　谱方法、离散表示与收敛理论}\label{ux7b2cux4e8cux90e8ux5206-ux8c31ux65b9ux6cd5ux79bbux6563ux8868ux793aux4e0eux6536ux655bux7406ux8bba}}
+\hypertarget{ux7b2cux4e8cux90e8ux5206-ux79bbux6563ux8868ux793aux4e0eux8c31ux65b9ux6cd5}{%
+\part{第二部分　离散表示与谱方法}\label{ux7b2cux4e8cux90e8ux5206-ux79bbux6563ux8868ux793aux4e0eux8c31ux65b9ux6cd5}}
+
+\hypertarget{ux7b2c5ux7ae0-ux8c31ux65b9ux6cd5ux79bbux6563ux8868ux793aux4e0eux6536ux655bux7406ux8bba}{%
+\chapter{第5章　谱方法、离散表示与收敛理论}\label{ux7b2c5ux7ae0-ux8c31ux65b9ux6cd5ux79bbux6563ux8868ux793aux4e0eux6536ux655bux7406ux8bba}}
 
 \hypertarget{ux4eceux57faux7ec4ux5c55ux5f00ux5230ux77e9ux9635ux95eeux9898}{%
-\subsection{2.1　从基组展开到矩阵问题}\label{ux4eceux57faux7ec4ux5c55ux5f00ux5230ux77e9ux9635ux95eeux9898}}
+\section{5.1　从基组展开到矩阵问题}\label{ux4eceux57faux7ec4ux5c55ux5f00ux5230ux77e9ux9635ux95eeux9898}}
 
 设哈密顿量为
 
@@ -1861,8 +1876,7 @@ S=LL^T,
 的最小本征值接近零，\(\kappa(S)\) 会急剧增大。
 
 \hypertarget{dvr-ux7684ux57faux672cux7ed3ux6784}{%
-\subsection{2.2　DVR
-的基本结构}\label{dvr-ux7684ux57faux672cux7ed3ux6784}}
+\section{5.2　DVR 的基本结构}\label{dvr-ux7684ux57faux672cux7ed3ux6784}}
 
 离散变量表象不是一种具体算法，而是一类满足以下条件的表示：
 
@@ -1908,8 +1922,7 @@ V_{ij}=V(x_i)\delta_{ij}.
 \(O(N^2)\) 降至 \(O(N)\)。
 
 \hypertarget{fourier-ux7f51ux683cux4e0e-fgh}{%
-\subsection{2.3　Fourier 网格与
-FGH}\label{fourier-ux7f51ux683cux4e0e-fgh}}
+\section{5.3　Fourier 网格与 FGH}\label{fourier-ux7f51ux683cux4e0e-fgh}}
 
 均匀周期域 \(x\in[0,L)\) 上的 Fourier 基为
 
@@ -1970,7 +1983,7 @@ k_{\max}\gtrsim 6\sigma_k.
 增加一倍，观察本征值和期望值是否稳定。
 
 \hypertarget{sinc-dvr-ux7684ux63a8ux5bfcux4e0eux8befux5deeux7ed3ux6784}{%
-\subsection{2.4　Sinc-DVR
+\section{5.4　Sinc-DVR
 的推导与误差结构}\label{sinc-dvr-ux7684ux63a8ux5bfcux4e0eux8befux5deeux7ed3ux6784}}
 
 对均匀网格
@@ -2018,7 +2031,7 @@ H_{ij}=T_{ij}+V(x_i)\delta_{ij}.
 \]
 
 \hypertarget{ux8befux5deeux6765ux6e90}{%
-\subsubsection{误差来源}\label{ux8befux5deeux6765ux6e90}}
+\subsection{误差来源}\label{ux8befux5deeux6765ux6e90}}
 
 Sinc-DVR 的误差主要来自四类：
 
@@ -2051,7 +2064,7 @@ E_N-E\sim CN^{-p}.
 Richardson 外推。
 
 \hypertarget{legendre-dvr-ux4e0eux89d2ux5411ux8868ux793a}{%
-\subsection{2.5　Legendre-DVR
+\section{5.5　Legendre-DVR
 与角向表示}\label{legendre-dvr-ux4e0eux89d2ux5411ux8868ux793a}}
 
 分子取向问题常采用
@@ -2141,7 +2154,7 @@ l(l+1)\frac{2l+1}{2}P_l(x_i)P_l(x_j).
 \texttt{dvr\_legendre\_init} 现在按上式构造 \(J^2\) 矩阵。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801}}
 
 \begin{itemize}
 \tightlist
@@ -2154,7 +2167,7 @@ l(l+1)\frac{2l+1}{2}P_l(x_i)P_l(x_j).
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_dvr_grid.f90.png}
 
 \hypertarget{dvr-ux7c7bux578bux7684ux9002ux7528ux8303ux56f4}{%
-\subsection{2.6　DVR
+\section{5.6　DVR
 类型的适用范围}\label{dvr-ux7c7bux578bux7684ux9002ux7528ux8303ux56f4}}
 
 DVR 不是单一算法。不同 DVR 的差异在于权重、动能矩阵和边界条件。
@@ -2183,8 +2196,7 @@ Distributed Gaussian DVR & 可调局域高斯 & 动能重叠矩阵 &
 Gauss-Legendre DVR，并可通过同一框架扩展到其他正交多项式网格。
 
 \hypertarget{ux591aux7ef4ux5f20ux91cfux79ef-dvr}{%
-\subsection{2.7　多维张量积
-DVR}\label{ux591aux7ef4ux5f20ux91cfux79ef-dvr}}
+\section{5.7　多维张量积 DVR}\label{ux591aux7ef4ux5f20ux91cfux79ef-dvr}}
 
 若体系有 \(d\) 个自由度，则张量积网格为
 
@@ -2223,7 +2235,7 @@ V_1(q_1)
 耦合势能项在网格点集上仍是对角的，但以全维度索引展开。
 
 \hypertarget{ux590dux6742ux5ea6}{%
-\subsubsection{复杂度}\label{ux590dux6742ux5ea6}}
+\subsection{复杂度}\label{ux590dux6742ux5ea6}}
 
 若每个维度有 \(N\) 个点，\(d\) 维张量积网格大小为
 \(N^d\)。稠密对角化复杂度为
@@ -2242,7 +2254,7 @@ O(N^{2d}).
 方法、Chebyshev 传播、张量分解或缩减基方法。
 
 \hypertarget{ux6536ux655bux6027ux4e0e-richardson-ux5916ux63a8}{%
-\subsection{2.8　收敛性与 Richardson
+\section{5.8　收敛性与 Richardson
 外推}\label{ux6536ux655bux6027ux4e0e-richardson-ux5916ux63a8}}
 
 设精确本征值为 \(E\)，数值本征值为 \(E_N\)。若误差服从
@@ -2271,7 +2283,7 @@ p
 不稳定，则说明尚未进入渐近区，或存在边界、奇点、混叠等系统误差。
 
 \hypertarget{ux6570ux503cux5b9eux9a8c}{%
-\subsubsection{数值实验}\label{ux6570ux503cux5b9eux9a8c}}
+\subsection{数值实验}\label{ux6570ux503cux5b9eux9a8c}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -2287,7 +2299,7 @@ p
 \end{enumerate}
 
 \hypertarget{ux4eceux77e9ux9635ux7ed3ux6784ux5230ux7b97ux6cd5ux9009ux62e9}{%
-\subsection{2.9　从矩阵结构到算法选择}\label{ux4eceux77e9ux9635ux7ed3ux6784ux5230ux7b97ux6cd5ux9009ux62e9}}
+\section{5.9　从矩阵结构到算法选择}\label{ux4eceux77e9ux9635ux7ed3ux6784ux5230ux7b97ux6cd5ux9009ux62e9}}
 
 在 DVR 中，哈密顿量矩阵的结构决定算法：
 
@@ -2311,8 +2323,7 @@ GeneralModule 的 \texttt{mod\_linear\_algebra}
 提供时间演化。三者构成一个完整的谱方法教学与验证链路。
 
 \hypertarget{python-ux4ea4ux53c9ux9a8cux8bc1}{%
-\subsection{2.10　Python
-交叉验证}\label{python-ux4ea4ux53c9ux9a8cux8bc1}}
+\section{5.10　Python 交叉验证}\label{python-ux4ea4ux53c9ux9a8cux8bc1}}
 
 \texttt{pygenmod} 使用 NumPy 和 Matplotlib 对
 DVR、散射和谱方法进行独立实现与可视化。这有两个作用：
@@ -2331,7 +2342,7 @@ NumPy 的数组操作和 FFT 实现可作为参考算法，Matplotlib
 2007】。此类交叉验证不是替代 Fortran 主计算，而是数值验证工具。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-1}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-1}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-1}}
 
 \begin{itemize}
 \tightlist
@@ -2344,7 +2355,7 @@ NumPy 的数组操作和 FFT 实现可作为参考算法，Matplotlib
 \includegraphics[width=2cm,height=\textheight]{qr/python__pygenmod__visualizer.py.png}
 
 \hypertarget{ux53c2ux8003ux6587ux732e-1}{%
-\subsection{2.11　参考文献}\label{ux53c2ux8003ux6587ux732e-1}}
+\section{5.11　参考文献}\label{ux53c2ux8003ux6587ux732e-1}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -2376,11 +2387,14 @@ NumPy 的数组操作和 FFT 实现可作为参考算法，Matplotlib
 \item
   GeneralModule
   源码与文档：\url{https://github.com/l1Ha/QuantumGeneralModule} \#
-  第三部分　含时演化、开放系统与量子控制
+  第三部分　含时演化与开放系统
 \end{enumerate}
 
+\hypertarget{ux7b2c6ux7ae0-ux542bux65f6ux6f14ux5316ux5f00ux653eux7cfbux7edfux4e0eux91cfux5b50ux63a7ux5236}{%
+\chapter{第6章　含时演化、开放系统与量子控制}\label{ux7b2c6ux7ae0-ux542bux65f6ux6f14ux5316ux5f00ux653eux7cfbux7edfux4e0eux91cfux5b50ux63a7ux5236}}
+
 \hypertarget{ux65f6ux95f4ux6f14ux5316ux4e0eux5b88ux6052ux7ed3ux6784}{%
-\subsection{3.1　时间演化与守恒结构}\label{ux65f6ux95f4ux6f14ux5316ux4e0eux5b88ux6052ux7ed3ux6784}}
+\section{6.1　时间演化与守恒结构}\label{ux65f6ux95f4ux6f14ux5316ux4e0eux5b88ux6052ux7ed3ux6784}}
 
 含时薛定谔方程为
 
@@ -2436,7 +2450,7 @@ i\hbar\frac{\partial}{\partial t}|\psi(t)\rangle
 数值传播器必须保持或至少诊断该性质。
 
 \hypertarget{ux53efux89c2ux6d4bux91cf}{%
-\subsubsection{可观测量}\label{ux53efux89c2ux6d4bux91cf}}
+\subsection{可观测量}\label{ux53efux89c2ux6d4bux91cf}}
 
 坐标期望值为
 
@@ -2465,8 +2479,7 @@ i\hbar\frac{\partial}{\partial t}|\psi(t)\rangle
 \]
 
 \hypertarget{split-operator-ux65b9ux6cd5}{%
-\subsection{3.2　Split-Operator
-方法}\label{split-operator-ux65b9ux6cd5}}
+\section{6.2　Split-Operator 方法}\label{split-operator-ux65b9ux6cd5}}
 
 对于不含时哈密顿量
 
@@ -2557,7 +2570,7 @@ e^{-iV(x)\Delta t/2}
 \]
 
 \hypertarget{ux6570ux503cux6b65ux9aa4}{%
-\subsubsection{数值步骤}\label{ux6570ux503cux6b65ux9aa4}}
+\subsection{数值步骤}\label{ux6570ux503cux6b65ux9aa4}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -2580,7 +2593,7 @@ e^{-iV(x)\Delta t/2}
 \(O(N^3)\)。
 
 \hypertarget{ux8303ux6570ux4e0eux7a33ux5b9aux6027}{%
-\subsubsection{范数与稳定性}\label{ux8303ux6570ux4e0eux7a33ux5b9aux6027}}
+\subsection{范数与稳定性}\label{ux8303ux6570ux4e0eux7a33ux5b9aux6027}}
 
 每个指数相位因子都是幺正算符。因此，在无穷精度下 Split-Operator
 严格保持范数：
@@ -2620,7 +2633,7 @@ e^{-iV(x)\Delta t/2}
 而不是在每步强制归一化。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-2}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-2}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-2}}
 
 \begin{itemize}
 \tightlist
@@ -2633,7 +2646,7 @@ e^{-iV(x)\Delta t/2}
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_wavepacket_propagator.f90.png}
 
 \hypertarget{fftux52a8ux91cfux7f51ux683cux4e0eux6df7ux53e0}{%
-\subsection{3.3　FFT、动量网格与混叠}\label{fftux52a8ux91cfux7f51ux683cux4e0eux6df7ux53e0}}
+\section{6.3　FFT、动量网格与混叠}\label{fftux52a8ux91cfux7f51ux683cux4e0eux6df7ux53e0}}
 
 均匀网格 \(x_i=x_0+i\Delta x\)，\(i=0,\ldots,N-1\) 对应动量网格
 
@@ -2697,7 +2710,7 @@ m\in\mathbb{Z}.
 在数值实验中应通过逐步减小 \(\Delta x\) 检查可观测量是否收敛。
 
 \hypertarget{rungekutta-ux4e0eux591aux6b65ux65b9ux6cd5}{%
-\subsection{3.4　Runge--Kutta
+\section{6.4　Runge--Kutta
 与多步方法}\label{rungekutta-ux4e0eux591aux6b65ux65b9ux6cd5}}
 
 将波函数或密度矩阵写成常微分方程
@@ -2759,7 +2772,7 @@ y_n
 多步方法依赖历史点的一致性和启动策略。若历史导数来自不同时间步长或不同坐标系，阶数会退化。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-3}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-3}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-3}}
 
 \begin{itemize}
 \tightlist
@@ -2772,7 +2785,7 @@ y_n
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_wavepacket_propagator.f90.png}
 
 \hypertarget{ux7ec3ux4e60}{%
-\subsubsection{练习}\label{ux7ec3ux4e60}}
+\subsection{练习}\label{ux7ec3ux4e60}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -2788,7 +2801,7 @@ y_n
 \end{enumerate}
 
 \hypertarget{ux4e8cux80fdux7ea7ux7cfbux7edfux4e0e-bloch-ux65b9ux7a0b}{%
-\subsection{3.5　二能级系统与 Bloch
+\section{6.5　二能级系统与 Bloch
 方程}\label{ux4e8cux80fdux7ea7ux7cfbux7edfux4e0e-bloch-ux65b9ux7a0b}}
 
 二能级系统的态可写为
@@ -2855,7 +2868,7 @@ c_1(t)|1\rangle+c_2(t)|2\rangle.
 该方程是检验 RK4、保范数传播和激光脉冲合成的基础模型。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-4}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-4}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-4}}
 
 \begin{itemize}
 \tightlist
@@ -2868,7 +2881,7 @@ c_1(t)|1\rangle+c_2(t)|2\rangle.
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_wavepacket_propagator.f90.png}
 
 \hypertarget{ux590dux5438ux6536ux8fb9ux754c}{%
-\subsection{3.6　复吸收边界}\label{ux590dux5438ux6536ux8fb9ux754c}}
+\section{6.6　复吸收边界}\label{ux590dux5438ux6536ux8fb9ux754c}}
 
 当波包离开有限计算域时，硬边界会产生非物理反射。复吸收势（Complex
 Absorbing Potential, CAP）在边界区域加入虚部势：
@@ -2950,7 +2963,7 @@ J(x,t)
 \end{enumerate}
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-5}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-5}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-5}}
 
 \begin{itemize}
 \tightlist
@@ -2963,7 +2976,7 @@ J(x,t)
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_absorbing_boundary.f90.png}
 
 \hypertarget{chebyshev-ux4f20ux64adux4e0eux8c31ux65b9ux6cd5ux5927ux6b65ux957f}{%
-\subsection{3.7　Chebyshev
+\section{6.7　Chebyshev
 传播与谱方法大步长}\label{chebyshev-ux4f20ux64adux4e0eux8c31ux65b9ux6cd5ux5927ux6b65ux957f}}
 
 对不含时哈密顿量，可利用 Chebyshev 多项式展开演化算符：
@@ -3014,7 +3027,7 @@ Chebyshev
 方法适合大时间步和长时传播，但要求谱界估计准确。若谱外态存在，可能出现非物理放大。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-6}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-6}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-6}}
 
 \begin{itemize}
 \tightlist
@@ -3027,7 +3040,7 @@ Chebyshev
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_chebyshev_propagator.f90.png}
 
 \hypertarget{ux5bc6ux5ea6ux77e9ux9635ux4e0eux5f00ux653eux91cfux5b50ux7cfbux7edf}{%
-\subsection{3.8　密度矩阵与开放量子系统}\label{ux5bc6ux5ea6ux77e9ux9635ux4e0eux5f00ux653eux91cfux5b50ux7cfbux7edf}}
+\section{6.8　密度矩阵与开放量子系统}\label{ux5bc6ux5ea6ux77e9ux9635ux4e0eux5f00ux653eux91cfux5b50ux7cfbux7edf}}
 
 封闭系统的态可用纯态 \(|\psi\rangle\) 描述，对应密度矩阵
 
@@ -3087,7 +3100,7 @@ Kossakowski \& Sudarshan 1976；Lindblad 1976】。Breuer 和 Petruccione
 对开放量子系统理论作了系统论述【Breuer \& Petruccione 2002】。
 
 \hypertarget{ux5b8cux5168ux6b63ux5b9aux6027ux4e0eux8ff9ux5b88ux6052}{%
-\subsubsection{完全正定性与迹守恒}\label{ux5b8cux5168ux6b63ux5b9aux6027ux4e0eux8ff9ux5b88ux6052}}
+\subsection{完全正定性与迹守恒}\label{ux5b8cux5168ux6b63ux5b9aux6027ux4e0eux8ff9ux5b88ux6052}}
 
 Lindblad 形式保证
 
@@ -3111,7 +3124,7 @@ Lindblad 形式保证
 \end{enumerate}
 
 \hypertarget{ux5e38ux89c1ux8017ux6563ux901aux9053}{%
-\subsubsection{常见耗散通道}\label{ux5e38ux89c1ux8017ux6563ux901aux9053}}
+\subsection{常见耗散通道}\label{ux5e38ux89c1ux8017ux6563ux901aux9053}}
 
 自发辐射跃迁算符为
 
@@ -3148,7 +3161,7 @@ T_2^{-1}
 \]
 
 \hypertarget{ux7eafux5ea6ux76f8ux5e72ux5ea6ux4e0eux71b5}{%
-\subsubsection{纯度、相干度与熵}\label{ux7eafux5ea6ux76f8ux5e72ux5ea6ux4e0eux71b5}}
+\subsection{纯度、相干度与熵}\label{ux7eafux5ea6ux76f8ux5e72ux5ea6ux4e0eux71b5}}
 
 纯度为
 
@@ -3173,7 +3186,7 @@ C_{l1}(\hat\rho)
 这三个量分别描述混合程度、非对角相干和信息含量。
 
 \hypertarget{rk4-ux6570ux503cux63a8ux8fdb}{%
-\subsubsection{RK4 数值推进}\label{rk4-ux6570ux503cux63a8ux8fdb}}
+\subsection{RK4 数值推进}\label{rk4-ux6570ux503cux63a8ux8fdb}}
 
 将 Lindblad 方程写成矩阵值常微分方程
 
@@ -3195,7 +3208,7 @@ C_{l1}(\hat\rho)
 每一步之后可检查厄米性和迹，但不应在参数研究开始前就强制归一化，否则会掩盖真实时间步长误差。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-7}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-7}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-7}}
 
 \begin{itemize}
 \tightlist
@@ -3208,7 +3221,7 @@ C_{l1}(\hat\rho)
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_open_quantum.f90.png}
 
 \hypertarget{ux91cfux5b50ux6700ux4f18ux63a7ux5236ux4e0e-krotov-ux65b9ux6cd5}{%
-\subsection{3.9　量子最优控制与 Krotov
+\section{6.9　量子最优控制与 Krotov
 方法}\label{ux91cfux5b50ux6700ux4f18ux63a7ux5236ux4e0e-krotov-ux65b9ux6cd5}}
 
 量子控制的目标是设计外场
@@ -3267,7 +3280,7 @@ i\hbar\frac{\partial}{\partial t}|\chi(t)\rangle
 2012】。
 
 \hypertarget{krotov-ux5355ux6b21ux8fedux4ee3ux6d41ux7a0b}{%
-\subsubsection{Krotov
+\subsection{Krotov
 单次迭代流程}\label{krotov-ux5355ux6b21ux8fedux4ee3ux6d41ux7a0b}}
 
 \begin{enumerate}
@@ -3291,7 +3304,7 @@ i\hbar\frac{\partial}{\partial t}|\chi(t)\rangle
 收敛判据应同时包括保真度增量、场变化和物理约束。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-8}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-8}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-8}}
 
 \begin{itemize}
 \tightlist
@@ -3304,7 +3317,7 @@ i\hbar\frac{\partial}{\partial t}|\chi(t)\rangle
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_optimal_control.f90.png}
 
 \hypertarget{ux9a8cux8bc1ux4e0eux6536ux655bux5b9eux9a8c}{%
-\subsection{3.10　验证与收敛实验}\label{ux9a8cux8bc1ux4e0eux6536ux655bux5b9eux9a8c}}
+\section{6.10　验证与收敛实验}\label{ux9a8cux8bc1ux4e0eux6536ux655bux5b9eux9a8c}}
 
 含时量子动力学的验证应包含以下层次：
 
@@ -3350,7 +3363,7 @@ x_0+\frac{\hbar k_0}{m}t.
 数值传播应再现该线性运动和动量守恒。
 
 \hypertarget{ux5bf9ux5e94ux6d4bux8bd5}{%
-\subsubsection{对应测试}\label{ux5bf9ux5e94ux6d4bux8bd5}}
+\subsection{对应测试}\label{ux5bf9ux5e94ux6d4bux8bd5}}
 
 \begin{itemize}
 \tightlist
@@ -3365,7 +3378,7 @@ x_0+\frac{\hbar k_0}{m}t.
 \includegraphics[width=2cm,height=\textheight]{qr/tests__test_propagators.f90.png}
 
 \hypertarget{ux53c2ux8003ux6587ux732e-2}{%
-\subsection{3.11　参考文献}\label{ux53c2ux8003ux6587ux732e-2}}
+\section{6.11　参考文献}\label{ux53c2ux8003ux6587ux732e-2}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -3404,11 +3417,14 @@ x_0+\frac{\hbar k_0}{m}t.
 \item
   GeneralModule
   源码与文档：\url{https://github.com/l1Ha/QuantumGeneralModule} \#
-  第四部分　散射、分子动力学与复杂体系
+  第四部分　散射与分子动力学
 \end{enumerate}
 
+\hypertarget{ux7b2c7ux7ae0-ux6563ux5c04ux5206ux5b50ux52a8ux529bux5b66ux4e0eux590dux6742ux4f53ux7cfb}{%
+\chapter{第7章　散射、分子动力学与复杂体系}\label{ux7b2c7ux7ae0-ux6563ux5c04ux5206ux5b50ux52a8ux529bux5b66ux4e0eux590dux6742ux4f53ux7cfb}}
+
 \hypertarget{ux5b9aux6001ux6563ux5c04ux7684ux57faux672cux95eeux9898}{%
-\subsection{4.1　定态散射的基本问题}\label{ux5b9aux6001ux6563ux5c04ux7684ux57faux672cux95eeux9898}}
+\section{7.1　定态散射的基本问题}\label{ux5b9aux6001ux6563ux5c04ux7684ux57faux672cux95eeux9898}}
 
 对中心势 \(V(r)\)，径向波函数 \(u_l(r)\) 满足
 
@@ -3483,7 +3499,7 @@ T_l=S_l-I.
 \]
 
 \hypertarget{numerov-ux65b9ux6cd5ux4e0eux6563ux5c04ux957fux5ea6}{%
-\subsection{4.2　Numerov
+\section{7.2　Numerov
 方法与散射长度}\label{numerov-ux65b9ux6cd5ux4e0eux6563ux5c04ux957fux5ea6}}
 
 Numerov 方法适用于二阶常微分方程
@@ -3531,7 +3547,7 @@ u'(r_N)
 \]
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-9}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-9}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-9}}
 
 \begin{itemize}
 \tightlist
@@ -3544,7 +3560,7 @@ u'(r_N)
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_ti_scattering.f90.png}
 
 \hypertarget{johnson-ux5bf9ux6570ux5bfcux6570ux65b9ux6cd5}{%
-\subsection{4.3　Johnson
+\section{7.3　Johnson
 对数导数方法}\label{johnson-ux5bf9ux6570ux5bfcux6570ux65b9ux6cd5}}
 
 直接传播 \(u(r)\) 在深势阱中容易指数溢出。Johnson 方法传播相邻点比值
@@ -3572,8 +3588,14 @@ w_i=\frac{\Delta r^2}{12}f_i,
 u''(r)=f(r)u(r).
 \]
 
-若在程序中改写为 \(u''+q(r)u=0\)（\(q=-f\)），则上式相应变为
-\(R_{i+1}=\left[2(1-5q_i)-(1+q_{i-1})/R_i\right]/(1+q_{i+1})\)。两种写法不可混用。
+若在程序中改写为 \(u''+q(r)u=0\)（其中 \(q=-f\)），则 Johnson
+比值递推相应变为
+
+\[
+R_{i+1}=\frac{2(1-5q_i)-(1+q_{i-1})/R_i}{1+q_{i+1}}.
+\]
+
+两种写法不可混用。
 
 渐近截距可由
 
@@ -3586,7 +3608,7 @@ a_s
 得到。Johnson 方法在深势阱和长程势中数值稳定性更好。
 
 \hypertarget{ux76f8ux79fbux4e0eux5149ux5b66ux5b9aux7406}{%
-\subsection{4.4　相移与光学定理}\label{ux76f8ux79fbux4e0eux5149ux5b66ux5b9aux7406}}
+\section{7.4　相移与光学定理}\label{ux76f8ux79fbux4e0eux5149ux5b66ux5b9aux7406}}
 
 散射波函数可展开为
 
@@ -3625,7 +3647,7 @@ S_l=e^{2i\delta_l}.
 该关系可用于检验散射振幅、相移和截面计算的一致性。
 
 \hypertarget{ux6709ux6548ux529bux7a0bux5c55ux5f00}{%
-\subsection{4.5　有效力程展开}\label{ux6709ux6548ux529bux7a0bux5c55ux5f00}}
+\section{7.5　有效力程展开}\label{ux6709ux6548ux529bux7a0bux5c55ux5f00}}
 
 低能散射的有效力程展开为
 
@@ -3665,7 +3687,7 @@ GeneralModule 的 \texttt{fit\_effective\_range\_expansion} 和
 \texttt{gribakin\_flambaum\_length} 分别实现这两类低能分析。
 
 \hypertarget{ux591aux901aux9053ux8026ux5408ux4e0e-johnson-ux77e9ux9635ux5bf9ux6570ux5bfcux6570}{%
-\subsection{4.6　多通道耦合与 Johnson
+\section{7.6　多通道耦合与 Johnson
 矩阵对数导数}\label{ux591aux901aux9053ux8026ux5408ux4e0e-johnson-ux77e9ux9635ux5bf9ux6570ux5bfcux6570}}
 
 设通道波函数为 \(\mathbf F(r)\)，则耦合径向方程为
@@ -3734,7 +3756,7 @@ P_{i\rightarrow j}=|S_{ij}|^2.
 \]
 
 \hypertarget{ux5206ux6bb5ux7f51ux683cux4e0eux5c40ux90e8ux6247ux533a}{%
-\subsection{4.7　分段网格与局部扇区}\label{ux5206ux6bb5ux7f51ux683cux4e0eux5c40ux90e8ux6247ux533a}}
+\section{7.7　分段网格与局部扇区}\label{ux5206ux6bb5ux7f51ux683cux4e0eux5c40ux90e8ux6247ux533a}}
 
 在长程势或强局域势问题中，单一均匀网格往往效率低。分段网格将径向区间划分为多个局部扇区：
 
@@ -3766,7 +3788,7 @@ GeneralModule 的 \texttt{segmented\_grid\_t}
 \end{itemize}
 
 \hypertarget{feshbach-ux5171ux632f}{%
-\subsection{4.8　Feshbach 共振}\label{feshbach-ux5171ux632f}}
+\section{7.8　Feshbach 共振}\label{feshbach-ux5171ux632f}}
 
 闭通道束缚态与开通道连续谱耦合会产生 Feshbach
 共振。散射长度随磁场变化可写为
@@ -3787,7 +3809,7 @@ GeneralModule 的 \texttt{calc\_feshbach\_resonance\_scan}
 在磁场网格上计算 \(a_s(B)\)，并拟合共振参数。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-10}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-10}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-10}}
 
 \begin{itemize}
 \tightlist
@@ -3800,7 +3822,7 @@ GeneralModule 的 \texttt{calc\_feshbach\_resonance\_scan}
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_field_scattering.f90.png}
 
 \hypertarget{ux542bux65f6ux6ce2ux5305ux6563ux5c04}{%
-\subsection{4.9　含时波包散射}\label{ux542bux65f6ux6ce2ux5305ux6563ux5c04}}
+\section{7.9　含时波包散射}\label{ux542bux65f6ux6ce2ux5305ux6563ux5c04}}
 
 初始高斯波包为
 
@@ -3862,7 +3884,7 @@ GeneralModule 的 \texttt{ex07}
 示例专门用于定态和含时散射波函数交叉验证。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-11}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-11}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-11}}
 
 \begin{itemize}
 \tightlist
@@ -3875,7 +3897,7 @@ GeneralModule 的 \texttt{ex07}
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_td_scattering.f90.png}
 
 \hypertarget{ux5206ux5b50ux8f6cux632fux54c8ux5bc6ux987fux91cfux4e0eux5149ux8c31}{%
-\subsection{4.10　分子转振哈密顿量与光谱}\label{ux5206ux5b50ux8f6cux632fux54c8ux5bc6ux987fux91cfux4e0eux5149ux8c31}}
+\section{7.10　分子转振哈密顿量与光谱}\label{ux5206ux5b50ux8f6cux632fux54c8ux5bc6ux987fux91cfux4e0eux5149ux8c31}}
 
 双分子振转哈密顿量可近似为
 
@@ -3957,7 +3979,7 @@ F_{v'v''}
 \]
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-12}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-12}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-12}}
 
 \begin{itemize}
 \tightlist
@@ -3970,7 +3992,7 @@ F_{v'v''}
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_rovibrational.f90.png}
 
 \hypertarget{ux5149ux788eux7247ux52a8ux80fdux91caux653eux8c31}{%
-\subsection{4.11　光碎片动能释放谱}\label{ux5149ux788eux7247ux52a8ux80fdux91caux653eux8c31}}
+\section{7.11　光碎片动能释放谱}\label{ux5149ux788eux7247ux52a8ux80fdux91caux653eux8c31}}
 
 自相关函数为
 
@@ -3999,7 +4021,7 @@ P(E_k)
 \]
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-13}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-13}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-13}}
 
 \begin{itemize}
 \tightlist
@@ -4012,7 +4034,7 @@ P(E_k)
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_photofragment_flux.f90.png}
 
 \hypertarget{ux975eux7eddux70edux52a8ux529bux5b66ux4e0e-fssh}{%
-\subsection{4.12　非绝热动力学与
+\section{7.12　非绝热动力学与
 FSSH}\label{ux975eux7eddux70edux52a8ux529bux5b66ux4e0e-fssh}}
 
 设电子态为 \(|\phi_1\rangle,|\phi_2\rangle\)，核坐标为
@@ -4104,7 +4126,7 @@ c_j^{*}c_k\,\mathbf v\cdot\mathbf d_{jk}
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_surface_hopping_fssh.f90.png}
 
 \hypertarget{ux9ad8ux7ea7ux4e13ux9898ux7684ux7edfux4e00ux7814ux7a76ux6846ux67b6}{%
-\subsection{4.13　高级专题的统一研究框架}\label{ux9ad8ux7ea7ux4e13ux9898ux7684ux7edfux4e00ux7814ux7a76ux6846ux67b6}}
+\section{7.13　高级专题的统一研究框架}\label{ux9ad8ux7ea7ux4e13ux9898ux7684ux7edfux4e00ux7814ux7a76ux6846ux67b6}}
 
 GeneralModule 还包含多个研究级专题模块。它们不是孤立
 API，而是同一套数学结构的延伸。
@@ -4148,7 +4170,7 @@ Penning 电离 & \texttt{mod\_penning\_associative\_ionization} &
 这些模块的共同验证策略是：先在解析极限或低维模型中验证，再逐步加入耦合、外场、耗散和多通道效应。
 
 \hypertarget{ux53c2ux8003ux6587ux732e-3}{%
-\subsection{4.14　参考文献}\label{ux53c2ux8003ux6587ux732e-3}}
+\section{7.14　参考文献}\label{ux53c2ux8003ux6587ux732e-3}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -4176,11 +4198,14 @@ Penning 电离 & \texttt{mod\_penning\_associative\_ionization} &
   源码与文档：\url{https://github.com/l1Ha/QuantumGeneralModule}
 \end{enumerate}
 
-\hypertarget{ux7b2cux4e94ux90e8ux5206-ux5de5ux7a0bux5b9eux73b0ux9a8cux8bc1ux4e0eux590dux73b0}{%
-\section{第五部分　工程实现、验证与复现}\label{ux7b2cux4e94ux90e8ux5206-ux5de5ux7a0bux5b9eux73b0ux9a8cux8bc1ux4e0eux590dux73b0}}
+\hypertarget{ux7b2cux4e94ux90e8ux5206-ux5de5ux7a0bux5b9eux8df5ux4e0eux590dux73b0}{%
+\part{第五部分　工程实践与复现}\label{ux7b2cux4e94ux90e8ux5206-ux5de5ux7a0bux5b9eux8df5ux4e0eux590dux73b0}}
+
+\hypertarget{ux7b2c8ux7ae0-ux5de5ux7a0bux5b9eux73b0ux9a8cux8bc1ux4e0eux590dux73b0}{%
+\chapter{第8章　工程实现、验证与复现}\label{ux7b2c8ux7ae0-ux5de5ux7a0bux5b9eux73b0ux9a8cux8bc1ux4e0eux590dux73b0}}
 
 \hypertarget{ux4ee3ux7801ux67b6ux6784ux7684ux5206ux5c42ux539fux5219}{%
-\subsection{5.1　代码架构的分层原则}\label{ux4ee3ux7801ux67b6ux6784ux7684ux5206ux5c42ux539fux5219}}
+\section{8.1　代码架构的分层原则}\label{ux4ee3ux7801ux67b6ux6784ux7684ux5206ux5c42ux539fux5219}}
 
 GeneralModule 的工程结构不是按物理主题随机堆叠，而是按依赖方向分层：
 
@@ -4227,7 +4252,7 @@ GeneralModule 的工程结构不是按物理主题随机堆叠，而是按依赖
 这种接口风格便于编译器检查，也便于 AI 辅助生成代码时减少隐式错误。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-14}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-14}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-14}}
 
 \begin{itemize}
 \tightlist
@@ -4246,7 +4271,7 @@ GeneralModule 的工程结构不是按物理主题随机堆叠，而是按依赖
 \end{itemize}
 
 \hypertarget{ux4e09ux5957ux6784ux5efaux4f53ux7cfbux7684ux5206ux5de5}{%
-\subsection{5.2　三套构建体系的分工}\label{ux4e09ux5957ux6784ux5efaux4f53ux7cfbux7684ux5206ux5de5}}
+\section{8.2　三套构建体系的分工}\label{ux4e09ux5957ux6784ux5efaux4f53ux7cfbux7684ux5206ux5de5}}
 
 GeneralModule 同时提供 \texttt{Makefile}、\texttt{fpm.toml} 和
 \texttt{CMakeLists.txt}。三者不是重复实现，而是服务于不同工作流。
@@ -4318,7 +4343,7 @@ CMakeLists.txt & 跨平台与 IDE & 对象库、静态库、共享库、CTest &
 \includegraphics[width=2cm,height=\textheight]{qr/CMakeLists.txt.png}
 
 \hypertarget{ux6d4bux8bd5ux4f53ux7cfbux7684ux9a8cux8bc1ux5c42ux6b21}{%
-\subsection{5.3　测试体系的验证层次}\label{ux6d4bux8bd5ux4f53ux7cfbux7684ux9a8cux8bc1ux5c42ux6b21}}
+\section{8.3　测试体系的验证层次}\label{ux6d4bux8bd5ux4f53ux7cfbux7684ux9a8cux8bc1ux5c42ux6b21}}
 
 GeneralModule 当前包含 41 个 Fortran 测试程序和 36
 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。
@@ -4343,7 +4368,7 @@ DVR & 网格收敛、边界效应 & 网格欠采样\tabularnewline
 \end{longtable}
 
 \hypertarget{ux5355ux5143ux6d4bux8bd5ux793aux4f8b}{%
-\subsubsection{单元测试示例}\label{ux5355ux5143ux6d4bux8bd5ux793aux4f8b}}
+\subsection{单元测试示例}\label{ux5355ux5143ux6d4bux8bd5ux793aux4f8b}}
 
 常数和单位转换测试应包含
 
@@ -4381,7 +4406,7 @@ DVR 测试应检查
 \]
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-15}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-15}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-15}}
 
 \begin{itemize}
 \tightlist
@@ -4412,7 +4437,7 @@ DVR 测试应检查
 \includegraphics[width=2cm,height=\textheight]{qr/tests__test_ti_scattering.f90.png}
 
 \hypertarget{ux6301ux7eedux96c6ux6210ux4e0eux5e73ux53f0ux9a8cux8bc1}{%
-\subsection{5.4　持续集成与平台验证}\label{ux6301ux7eedux96c6ux6210ux4e0eux5e73ux53f0ux9a8cux8bc1}}
+\section{8.4　持续集成与平台验证}\label{ux6301ux7eedux96c6ux6210ux4e0eux5e73ux53f0ux9a8cux8bc1}}
 
 GitHub Actions 配置位于：
 
@@ -4441,7 +4466,7 @@ GitHub Actions 配置位于：
 CI 不能替代物理收敛研究，但可以快速暴露接口和平台相关问题。
 
 \hypertarget{python-ux4ea4ux53c9ux9a8cux8bc1ux4e0eux53efux89c6ux5316}{%
-\subsection{5.5　Python
+\section{8.5　Python
 交叉验证与可视化}\label{python-ux4ea4ux53c9ux9a8cux8bc1ux4e0eux53efux89c6ux5316}}
 
 Python 包 \texttt{pygenmod} 使用 NumPy 和 Matplotlib
@@ -4494,7 +4519,7 @@ Python 测试位于：
 \end{enumerate}
 
 \hypertarget{ux53efux590dux73b0ux5b9eux9a8cux8bb0ux5f55}{%
-\subsection{5.6　可复现实验记录}\label{ux53efux590dux73b0ux5b9eux9a8cux8bb0ux5f55}}
+\section{8.6　可复现实验记录}\label{ux53efux590dux73b0ux5b9eux9a8cux8bb0ux5f55}}
 
 数值实验应至少记录：
 
@@ -4518,7 +4543,7 @@ Python 测试位于：
 没有上述记录，即使结果看起来正确，也难以复现或定位误差。
 
 \hypertarget{ux5f15ux7528ux4e0eux5f00ux6e90ux89c4ux8303}{%
-\subsection{5.7　引用与开源规范}\label{ux5f15ux7528ux4e0eux5f00ux6e90ux89c4ux8303}}
+\section{8.7　引用与开源规范}\label{ux5f15ux7528ux4e0eux5f00ux6e90ux89c4ux8303}}
 
 本书引用的文献用于说明理论来源和算法背景。GeneralModule
 的实现是独立编写的；引用不表示复制第三方源码。若未来引入第三方代码，必须：
@@ -4536,11 +4561,14 @@ Python 测试位于：
   在文档中给出原始仓库或论文链接。
 \end{enumerate}
 
-\hypertarget{ux7b2cux516dux90e8ux5206-ux9ad8ux7ea7ux4e13ux9898ux4e0eux4ee3ux7801ux6620ux5c04}{%
-\section{第六部分　高级专题与代码映射}\label{ux7b2cux516dux90e8ux5206-ux9ad8ux7ea7ux4e13ux9898ux4e0eux4ee3ux7801ux6620ux5c04}}
+\hypertarget{ux7b2cux516dux90e8ux5206-ux9ad8ux7ea7ux4e13ux9898}{%
+\part{第六部分　高级专题}\label{ux7b2cux516dux90e8ux5206-ux9ad8ux7ea7ux4e13ux9898}}
+
+\hypertarget{ux7b2c9ux7ae0-ux9ad8ux7ea7ux4e13ux9898ux4e0eux4ee3ux7801ux6620ux5c04}{%
+\chapter{第9章　高级专题与代码映射}\label{ux7b2c9ux7ae0-ux9ad8ux7ea7ux4e13ux9898ux4e0eux4ee3ux7801ux6620ux5c04}}
 
 \hypertarget{ux4e09ux4f53ux590dux5408ux4e0e-efimov-ux7269ux7406}{%
-\subsection{6.1　三体复合与 Efimov
+\section{9.1　三体复合与 Efimov
 物理}\label{ux4e09ux4f53ux590dux5408ux4e0e-efimov-ux7269ux7406}}
 
 在共振两体相互作用极限下（\(|a|\gg r_0\)），全同玻色子三体超径向波函数方程导出特征超越方程
@@ -4576,7 +4604,7 @@ V_{\mathrm{eff}}(R)
 Braaten 和 Hammer 对少体普适性作了系统综述【Braaten \& Hammer 2006】。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-16}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-16}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-16}}
 
 \begin{itemize}
 \tightlist
@@ -4585,7 +4613,7 @@ Braaten 和 Hammer 对少体普适性作了系统综述【Braaten \& Hammer 2006
 \end{itemize}
 
 \hypertarget{ux4f4eux7ef4ux53d7ux9650ux6563ux5c04ux4e0e-cir}{%
-\subsection{6.2　低维受限散射与
+\section{9.2　低维受限散射与
 CIR}\label{ux4f4eux7ef4ux53d7ux9650ux6563ux5c04ux4e0e-cir}}
 
 在横向谐振子紧束缚光波导中，
@@ -4623,7 +4651,7 @@ a_{\mathrm{CIR}}=\frac{a_\perp}{C}
 Olshanii 给出了准一维约束诱导共振理论【Olshanii 1998】。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-17}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-17}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-17}}
 
 \begin{itemize}
 \tightlist
@@ -4632,7 +4660,7 @@ Olshanii 给出了准一维约束诱导共振理论【Olshanii 1998】。
 \end{itemize}
 
 \hypertarget{fano-ux5171ux632fux4e0eux590dux5750ux6807ux65cbux8f6c}{%
-\subsection{6.3　Fano
+\section{9.3　Fano
 共振与复坐标旋转}\label{fano-ux5171ux632fux4e0eux590dux5750ux6807ux65cbux8f6c}}
 
 当离散准束缚态 \(|\phi\rangle\) 与连续态 \(|\psi_E\rangle\)
@@ -4676,7 +4704,7 @@ Fano 给出了组态相互作用理论【Fano 1961】；Reinhardt 和 Moiseyev
 讨论了复坐标旋转方法【Reinhardt 1982；Moiseyev 1998】。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-18}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-18}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-18}}
 
 \begin{itemize}
 \tightlist
@@ -4685,7 +4713,7 @@ Fano 给出了组态相互作用理论【Fano 1961】；Reinhardt 和 Moiseyev
 \end{itemize}
 
 \hypertarget{ux4ea4ux53c9ux7535ux78c1ux573aux4e0eux5206ux5b50ux53d6ux5411}{%
-\subsection{6.4　交叉电磁场与分子取向}\label{ux4ea4ux53c9ux7535ux78c1ux573aux4e0eux5206ux5b50ux53d6ux5411}}
+\section{9.4　交叉电磁场与分子取向}\label{ux4ea4ux53c9ux7535ux78c1ux573aux4e0eux5206ux5b50ux53d6ux5411}}
 
 极性开壳层分子在非共线静电场和磁场中的哈密顿量可写为
 
@@ -4713,7 +4741,7 @@ B_z\hat S_z+B_x\hat S_x
 反交叉谱。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-19}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-19}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-19}}
 
 \begin{itemize}
 \tightlist
@@ -4722,7 +4750,7 @@ B_z\hat S_z+B_x\hat S_x
 \end{itemize}
 
 \hypertarget{ux4e09ux539fux5b50ux53cdux5e94ux4e0e-berry-ux76f8ux4f4d}{%
-\subsection{6.5　三原子反应与 Berry
+\section{9.5　三原子反应与 Berry
 相位}\label{ux4e09ux539fux5b50ux53cdux5e94ux4e0e-berry-ux76f8ux4f4d}}
 
 在 \(A+BC\) 反应中，Jacobi 坐标 \((r,R,\gamma)\) 与三原子核间距
@@ -4756,7 +4784,7 @@ Longuet-Higgins 等讨论了 Jahn--Teller 与几何相位【Longuet-Higgins et
 al.~1958】；Berry 给出了量子几何相位的一般表述【Berry 1984】。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-20}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-20}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-20}}
 
 \begin{itemize}
 \tightlist
@@ -4765,7 +4793,7 @@ al.~1958】；Berry 给出了量子几何相位的一般表述【Berry 1984】�
 \end{itemize}
 
 \hypertarget{ux65cbux91cf-bec-ux4e0eux81eaux65cbux6df7ux5408}{%
-\subsection{6.6　旋量 BEC
+\section{9.6　旋量 BEC
 与自旋混合}\label{ux65cbux91cf-bec-ux4e0eux81eaux65cbux6df7ux5408}}
 
 自旋 \(F=1\) 玻色气体的低能碰撞由总自旋 \(F_{\mathrm{tot}}=0,2\)
@@ -4809,7 +4837,7 @@ Ho 和 Ohmi--Machida 给出了旋量 BEC 理论【Ho 1998；Ohmi \& Machida
 1998】。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-21}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-21}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-21}}
 
 \begin{itemize}
 \tightlist
@@ -4818,7 +4846,7 @@ Ho 和 Ohmi--Machida 给出了旋量 BEC 理论【Ho 1998；Ohmi \& Machida
 \end{itemize}
 
 \hypertarget{ux8868ux9762ux6563ux5c04ux4e0eux7535ux5b50ux6469ux64e6}{%
-\subsection{6.7　表面散射与电子摩擦}\label{ux8868ux9762ux6563ux5c04ux4e0eux7535ux5b50ux6469ux64e6}}
+\section{9.7　表面散射与电子摩擦}\label{ux8868ux9762ux6563ux5c04ux4e0eux7535ux5b50ux6469ux64e6}}
 
 表面散射需要同时处理表面周期势、入射动量和吸附通道。Eley--Rideal
 机理描述气相原子或分子直接撞击表面吸附物并发生反应。电子摩擦则将金属表面电子---空穴对激发等效为阻尼力：
@@ -4830,7 +4858,7 @@ Ho 和 Ohmi--Machida 给出了旋量 BEC 理论【Ho 1998；Ohmi \& Machida
 这类问题通常需要结合势能面、非绝热耦合和经典轨迹。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-22}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-22}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-22}}
 
 \begin{itemize}
 \tightlist
@@ -4843,7 +4871,7 @@ Ho 和 Ohmi--Machida 给出了旋量 BEC 理论【Ho 1998；Ohmi \& Machida
 \end{itemize}
 
 \hypertarget{ux76f8ux5bf9ux8bbaux539fux5b50ux4e0e-rixs}{%
-\subsection{6.8　相对论原子与
+\section{9.8　相对论原子与
 RIXS}\label{ux76f8ux5bf9ux8bbaux539fux5b50ux4e0e-rixs}}
 
 相对论径向 Dirac 方程为
@@ -4880,7 +4908,7 @@ I_{fi}(\omega)
 这类模块主要用于内壳层激发、共振非弹性散射和精细结构分析。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-23}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-23}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-23}}
 
 \begin{itemize}
 \tightlist
@@ -4891,7 +4919,7 @@ I_{fi}(\omega)
 \end{itemize}
 
 \hypertarget{penning-ux4e0eux7f14ux5408ux7535ux79bb}{%
-\subsection{6.9　Penning
+\section{9.9　Penning
 与缔合电离}\label{penning-ux4e0eux7f14ux5408ux7535ux79bb}}
 
 Penning 电离发生在亚稳态原子与中性原子碰撞时：
@@ -4920,7 +4948,7 @@ S(b)
 \]
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-24}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-24}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-24}}
 
 \begin{itemize}
 \tightlist
@@ -4929,7 +4957,7 @@ S(b)
 \end{itemize}
 
 \hypertarget{ux5f3aux573aux7269ux7406ux4e0e-hhg}{%
-\subsection{6.10　强场物理与
+\section{9.10　强场物理与
 HHG}\label{ux5f3aux573aux7269ux7406ux4e0e-hhg}}
 
 强场物理中常用 Keldysh 参数
@@ -4956,7 +4984,7 @@ Corkum 提出三步模型【Corkum 1993】；Lewenstein
 等给出强场近似下的偶极响应理论【Lewenstein et al.~1994】。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-25}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-25}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-25}}
 
 \begin{itemize}
 \tightlist
@@ -4969,7 +4997,7 @@ Corkum 提出三步模型【Corkum 1993】；Lewenstein
 \end{itemize}
 
 \hypertarget{ux91ccux5fb7ux5821ux963bux585eux4e0eux91cfux5b50ux591aux4f53}{%
-\subsection{6.11　里德堡阻塞与量子多体}\label{ux91ccux5fb7ux5821ux963bux585eux4e0eux91cfux5b50ux591aux4f53}}
+\section{9.11　里德堡阻塞与量子多体}\label{ux91ccux5fb7ux5821ux963bux585eux4e0eux91cfux5b50ux591aux4f53}}
 
 里德堡阻塞源于强偶极相互作用引起的能级移位：
 
@@ -4982,7 +5010,7 @@ V(R)\sim\frac{C_3}{R^3}.
 当相互作用能大于激发激光线宽时，一个里德堡激发会阻止邻近原子再被激发。该机制用于量子门、多体动力学和量子多体疤痕。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-26}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-26}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-26}}
 
 \begin{itemize}
 \tightlist
@@ -4991,7 +5019,7 @@ V(R)\sim\frac{C_3}{R^3}.
 \end{itemize}
 
 \hypertarget{ux53c2ux8003ux6587ux732e-4}{%
-\subsection{6.12　参考文献}\label{ux53c2ux8003ux6587ux732e-4}}
+\section{9.12　参考文献}\label{ux53c2ux8003ux6587ux732e-4}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -5043,15 +5071,18 @@ V(R)\sim\frac{C_3}{R^3}.
 \item
   GeneralModule
   源码与文档：\url{https://github.com/l1Ha/QuantumGeneralModule} \#
-  第七部分　典型数值实验与代码映射
+  第七部分　数值实验
 \end{enumerate}
 
+\hypertarget{ux7b2c10ux7ae0-ux5178ux578bux6570ux503cux5b9eux9a8cux4e0eux4ee3ux7801ux6620ux5c04}{%
+\chapter{第10章　典型数值实验与代码映射}\label{ux7b2c10ux7ae0-ux5178ux578bux6570ux503cux5b9eux9a8cux4e0eux4ee3ux7801ux6620ux5c04}}
+
 \hypertarget{morse-ux52bfux80fdux9762ux7684-fgh-ux672cux5f81ux6001}{%
-\subsection{7.1　Morse 势能面的 FGH
+\section{10.1　Morse 势能面的 FGH
 本征态}\label{morse-ux52bfux80fdux9762ux7684-fgh-ux672cux5f81ux6001}}
 
 \hypertarget{ux7269ux7406ux6a21ux578b}{%
-\subsubsection{物理模型}\label{ux7269ux7406ux6a21ux578b}}
+\subsection{物理模型}\label{ux7269ux7406ux6a21ux578b}}
 
 双原子分子 Morse 势为
 
@@ -5082,7 +5113,7 @@ V(R).
 \]
 
 \hypertarget{ux6570ux503cux5b9eux9a8c-1}{%
-\subsubsection{数值实验}\label{ux6570ux503cux5b9eux9a8c-1}}
+\subsection{数值实验}\label{ux6570ux503cux5b9eux9a8c-1}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -5106,7 +5137,7 @@ V(R).
 \end{enumerate}
 
 \hypertarget{ux89e3ux6790ux80fdux7ea7}{%
-\subsubsection{解析能级}\label{ux89e3ux6790ux80fdux7ea7}}
+\subsection{解析能级}\label{ux89e3ux6790ux80fdux7ea7}}
 
 Morse 势的解析能级为
 
@@ -5127,7 +5158,7 @@ E_v
 \]
 
 \hypertarget{ux9a8cux8bc1ux6307ux6807}{%
-\subsubsection{验证指标}\label{ux9a8cux8bc1ux6307ux6807}}
+\subsection{验证指标}\label{ux9a8cux8bc1ux6307ux6807}}
 
 \begin{itemize}
 \tightlist
@@ -5142,7 +5173,7 @@ E_v
 \end{itemize}
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-27}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-27}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-27}}
 
 \begin{itemize}
 \tightlist
@@ -5164,11 +5195,11 @@ E_v
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_dvr_grid.f90.png}
 
 \hypertarget{ux4e00ux7ef4ux6ce2ux5305ux7684-split-operator-ux4f20ux64ad}{%
-\subsection{7.2　一维波包的 Split-Operator
+\section{10.2　一维波包的 Split-Operator
 传播}\label{ux4e00ux7ef4ux6ce2ux5305ux7684-split-operator-ux4f20ux64ad}}
 
 \hypertarget{ux7269ux7406ux6a21ux578b-1}{%
-\subsubsection{物理模型}\label{ux7269ux7406ux6a21ux578b-1}}
+\subsection{物理模型}\label{ux7269ux7406ux6a21ux578b-1}}
 
 考虑自由粒子或一维势阱中的高斯波包：
 
@@ -5189,7 +5220,7 @@ E_v
 \]
 
 \hypertarget{ux6570ux503cux5b9eux9a8c-2}{%
-\subsubsection{数值实验}\label{ux6570ux503cux5b9eux9a8c-2}}
+\subsection{数值实验}\label{ux6570ux503cux5b9eux9a8c-2}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -5209,7 +5240,7 @@ E_v
 \end{enumerate}
 
 \hypertarget{ux9a8cux8bc1ux6307ux6807-1}{%
-\subsubsection{验证指标}\label{ux9a8cux8bc1ux6307ux6807-1}}
+\subsection{验证指标}\label{ux9a8cux8bc1ux6307ux6807-1}}
 
 \begin{itemize}
 \tightlist
@@ -5226,7 +5257,7 @@ E_v
 \end{itemize}
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-28}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-28}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-28}}
 
 \begin{itemize}
 \tightlist
@@ -5248,10 +5279,10 @@ E_v
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_wavepacket_propagator.f90.png}
 
 \hypertarget{ux5b9aux6001ux4e0eux542bux65f6ux6563ux5c04ux7684ux4ea4ux53c9ux9a8cux8bc1}{%
-\subsection{7.3　定态与含时散射的交叉验证}\label{ux5b9aux6001ux4e0eux542bux65f6ux6563ux5c04ux7684ux4ea4ux53c9ux9a8cux8bc1}}
+\section{10.3　定态与含时散射的交叉验证}\label{ux5b9aux6001ux4e0eux542bux65f6ux6563ux5c04ux7684ux4ea4ux53c9ux9a8cux8bc1}}
 
 \hypertarget{ux7269ux7406ux6a21ux578b-2}{%
-\subsubsection{物理模型}\label{ux7269ux7406ux6a21ux578b-2}}
+\subsection{物理模型}\label{ux7269ux7406ux6a21ux578b-2}}
 
 一维散射问题的定态形式为
 
@@ -5268,7 +5299,7 @@ i\hbar\frac{\partial\psi}{\partial t}
 \]
 
 \hypertarget{ux6570ux503cux5b9eux9a8c-3}{%
-\subsubsection{数值实验}\label{ux6570ux503cux5b9eux9a8c-3}}
+\subsection{数值实验}\label{ux6570ux503cux5b9eux9a8c-3}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -5286,7 +5317,7 @@ i\hbar\frac{\partial\psi}{\partial t}
 \end{enumerate}
 
 \hypertarget{ux9a8cux8bc1ux6307ux6807-2}{%
-\subsubsection{验证指标}\label{ux9a8cux8bc1ux6307ux6807-2}}
+\subsection{验证指标}\label{ux9a8cux8bc1ux6307ux6807-2}}
 
 \begin{itemize}
 \tightlist
@@ -5301,7 +5332,7 @@ i\hbar\frac{\partial\psi}{\partial t}
 \end{itemize}
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-29}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-29}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-29}}
 
 \begin{itemize}
 \tightlist
@@ -5323,11 +5354,11 @@ i\hbar\frac{\partial\psi}{\partial t}
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_td_scattering.f90.png}
 
 \hypertarget{ux591aux901aux9053-feshbach-ux626bux63cf}{%
-\subsection{7.4　多通道 Feshbach
+\section{10.4　多通道 Feshbach
 扫描}\label{ux591aux901aux9053-feshbach-ux626bux63cf}}
 
 \hypertarget{ux7269ux7406ux6a21ux578b-3}{%
-\subsubsection{物理模型}\label{ux7269ux7406ux6a21ux578b-3}}
+\subsection{物理模型}\label{ux7269ux7406ux6a21ux578b-3}}
 
 多通道散射矩阵由开通道 K 矩阵构造：
 
@@ -5347,7 +5378,7 @@ a_{\mathrm{bg}}
 \]
 
 \hypertarget{ux6570ux503cux5b9eux9a8c-4}{%
-\subsubsection{数值实验}\label{ux6570ux503cux5b9eux9a8c-4}}
+\subsection{数值实验}\label{ux6570ux503cux5b9eux9a8c-4}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -5367,7 +5398,7 @@ a_{\mathrm{bg}}
 \end{enumerate}
 
 \hypertarget{ux9a8cux8bc1ux6307ux6807-3}{%
-\subsubsection{验证指标}\label{ux9a8cux8bc1ux6307ux6807-3}}
+\subsection{验证指标}\label{ux9a8cux8bc1ux6307ux6807-3}}
 
 \begin{itemize}
 \tightlist
@@ -5382,7 +5413,7 @@ a_{\mathrm{bg}}
 \end{itemize}
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-30}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-30}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-30}}
 
 \begin{itemize}
 \tightlist
@@ -5404,11 +5435,11 @@ a_{\mathrm{bg}}
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_field_scattering.f90.png}
 
 \hypertarget{lindblad-ux5f1bux8c6bux4e0eux9000ux76f8ux4f4d}{%
-\subsection{7.5　Lindblad
+\section{10.5　Lindblad
 弛豫与退相位}\label{lindblad-ux5f1bux8c6bux4e0eux9000ux76f8ux4f4d}}
 
 \hypertarget{ux7269ux7406ux6a21ux578b-4}{%
-\subsubsection{物理模型}\label{ux7269ux7406ux6a21ux578b-4}}
+\subsection{物理模型}\label{ux7269ux7406ux6a21ux578b-4}}
 
 二能级 Lindblad 主方程为
 
@@ -5432,7 +5463,7 @@ a_{\mathrm{bg}}
 \]
 
 \hypertarget{ux6570ux503cux5b9eux9a8c-5}{%
-\subsubsection{数值实验}\label{ux6570ux503cux5b9eux9a8c-5}}
+\subsection{数值实验}\label{ux6570ux503cux5b9eux9a8c-5}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -5452,7 +5483,7 @@ a_{\mathrm{bg}}
 \end{enumerate}
 
 \hypertarget{ux9a8cux8bc1ux6307ux6807-4}{%
-\subsubsection{验证指标}\label{ux9a8cux8bc1ux6307ux6807-4}}
+\subsection{验证指标}\label{ux9a8cux8bc1ux6307ux6807-4}}
 
 \begin{itemize}
 \tightlist
@@ -5467,7 +5498,7 @@ a_{\mathrm{bg}}
 \end{itemize}
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-31}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-31}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-31}}
 
 \begin{itemize}
 \tightlist
@@ -5489,11 +5520,10 @@ a_{\mathrm{bg}}
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_open_quantum.f90.png}
 
 \hypertarget{tully-fssh-ux5206ux652fux6bd4}{%
-\subsection{7.6　Tully FSSH
-分支比}\label{tully-fssh-ux5206ux652fux6bd4}}
+\section{10.6　Tully FSSH 分支比}\label{tully-fssh-ux5206ux652fux6bd4}}
 
 \hypertarget{ux7269ux7406ux6a21ux578b-5}{%
-\subsubsection{物理模型}\label{ux7269ux7406ux6a21ux578b-5}}
+\subsection{物理模型}\label{ux7269ux7406ux6a21ux578b-5}}
 
 FSSH 在活性态 \(j\) 上向态 \(k\) 的跳跃概率为
 
@@ -5512,7 +5542,7 @@ c_j^{*}c_k\,\mathbf v\cdot\mathbf d_{jk}
 \]
 
 \hypertarget{ux6570ux503cux5b9eux9a8c-6}{%
-\subsubsection{数值实验}\label{ux6570ux503cux5b9eux9a8c-6}}
+\subsection{数值实验}\label{ux6570ux503cux5b9eux9a8c-6}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -5532,7 +5562,7 @@ c_j^{*}c_k\,\mathbf v\cdot\mathbf d_{jk}
 \end{enumerate}
 
 \hypertarget{ux9a8cux8bc1ux6307ux6807-5}{%
-\subsubsection{验证指标}\label{ux9a8cux8bc1ux6307ux6807-5}}
+\subsection{验证指标}\label{ux9a8cux8bc1ux6307ux6807-5}}
 
 \begin{itemize}
 \tightlist
@@ -5547,7 +5577,7 @@ c_j^{*}c_k\,\mathbf v\cdot\mathbf d_{jk}
 \end{itemize}
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-32}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-32}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-32}}
 
 \begin{itemize}
 \tightlist
@@ -5569,7 +5599,7 @@ c_j^{*}c_k\,\mathbf v\cdot\mathbf d_{jk}
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_surface_hopping_fssh.f90.png}
 
 \hypertarget{python-ux53efux89c6ux5316ux4e0eux4ea4ux53c9ux9a8cux8bc1}{%
-\subsection{7.7　Python
+\section{10.7　Python
 可视化与交叉验证}\label{python-ux53efux89c6ux5316ux4e0eux4ea4ux53c9ux9a8cux8bc1}}
 
 Fortran 输出通常为文本或二进制数据。Python 可用于：
@@ -5591,7 +5621,7 @@ Fortran 输出通常为文本或二进制数据。Python 可用于：
 2007】。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-33}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-33}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-33}}
 
 \begin{itemize}
 \tightlist
@@ -5604,7 +5634,7 @@ Fortran 输出通常为文本或二进制数据。Python 可用于：
 \includegraphics[width=2cm,height=\textheight]{qr/python__pygenmod__visualizer.py.png}
 
 \hypertarget{ux5b9eux9a8cux8bb0ux5f55ux6a21ux677f}{%
-\subsection{7.8　实验记录模板}\label{ux5b9eux9a8cux8bb0ux5f55ux6a21ux677f}}
+\section{10.8　实验记录模板}\label{ux5b9eux9a8cux8bb0ux5f55ux6a21ux677f}}
 
 \begin{longtable}[]{@{}ll@{}}
 \toprule
@@ -5624,11 +5654,14 @@ Fortran 输出通常为文本或二进制数据。Python 可用于：
 \bottomrule
 \end{longtable}
 
-\hypertarget{ux7b2cux516bux90e8ux5206-ux6e90ux7801ux9605ux8bfbux6a21ux5757ux6269ux5c55ux4e0eux5de5ux7a0bux5b9eux8df5}{%
-\section{第八部分　源码阅读、模块扩展与工程实践}\label{ux7b2cux516bux90e8ux5206-ux6e90ux7801ux9605ux8bfbux6a21ux5757ux6269ux5c55ux4e0eux5de5ux7a0bux5b9eux8df5}}
+\hypertarget{ux7b2cux516bux90e8ux5206-ux6e90ux7801ux9605ux8bfbux4e0eux6269ux5c55}{%
+\part{第八部分　源码阅读与扩展}\label{ux7b2cux516bux90e8ux5206-ux6e90ux7801ux9605ux8bfbux4e0eux6269ux5c55}}
+
+\hypertarget{ux7b2c11ux7ae0-ux6e90ux7801ux9605ux8bfbux6a21ux5757ux6269ux5c55ux4e0eux5de5ux7a0bux5b9eux8df5}{%
+\chapter{第11章　源码阅读、模块扩展与工程实践}\label{ux7b2c11ux7ae0-ux6e90ux7801ux9605ux8bfbux6a21ux5757ux6269ux5c55ux4e0eux5de5ux7a0bux5b9eux8df5}}
 
 \hypertarget{ux9605ux8bfb-generalmodule-ux6e90ux7801ux7684ux987aux5e8f}{%
-\subsection{8.1　阅读 GeneralModule
+\section{11.1　阅读 GeneralModule
 源码的顺序}\label{ux9605ux8bfb-generalmodule-ux6e90ux7801ux7684ux987aux5e8f}}
 
 阅读大型科学计算库时，建议按以下顺序：
@@ -5690,7 +5723,7 @@ Fortran 输出通常为文本或二进制数据。Python 可用于：
 \includegraphics[width=2cm,height=\textheight]{qr/LITERATURE.md.png}
 
 \hypertarget{ux6a21ux5757ux6a21ux677fux4e0eux63a5ux53e3ux8bbeux8ba1}{%
-\subsection{8.2　模块模板与接口设计}\label{ux6a21ux5757ux6a21ux677fux4e0eux63a5ux53e3ux8bbeux8ba1}}
+\section{11.2　模块模板与接口设计}\label{ux6a21ux5757ux6a21ux677fux4e0eux63a5ux53e3ux8bbeux8ba1}}
 
 一个新模块应遵循以下结构：
 
@@ -5756,7 +5789,7 @@ Fortran 输出通常为文本或二进制数据。Python 可用于：
 \end{itemize}
 
 \hypertarget{ux6570ux503cux7b97ux6cd5ux7684ux9a8cux8bc1ux6a21ux677f}{%
-\subsection{8.3　数值算法的验证模板}\label{ux6570ux503cux7b97ux6cd5ux7684ux9a8cux8bc1ux6a21ux677f}}
+\section{11.3　数值算法的验证模板}\label{ux6570ux503cux7b97ux6cd5ux7684ux9a8cux8bc1ux6a21ux677f}}
 
 每个新算法至少应准备三类测试：
 
@@ -5806,7 +5839,7 @@ H=H^T.
 \]
 
 \hypertarget{ux6d4bux8bd5ux6a21ux677f}{%
-\subsection{8.4　测试模板}\label{ux6d4bux8bd5ux6a21ux677f}}
+\section{11.4　测试模板}\label{ux6d4bux8bd5ux6a21ux677f}}
 
 一个 Fortran 测试程序应包含：
 
@@ -5855,7 +5888,7 @@ H=H^T.
 测试应避免只检查``程序能运行''。应检查具体数值、守恒量和误差阶数。
 
 \hypertarget{ci-ux4e2dux7684ux68c0ux67e5ux5c42ux6b21}{%
-\subsection{8.5　CI
+\section{11.5　CI
 中的检查层次}\label{ci-ux4e2dux7684ux68c0ux67e5ux5c42ux6b21}}
 
 持续集成应至少包含：
@@ -5879,7 +5912,7 @@ GitHub Actions 配置位于：
 \href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/.github/workflows/ci.yml}{.github/workflows/ci.yml}
 
 \hypertarget{ux5982ux4f55ux6269ux5c55ux65b0ux7269ux7406ux6a21ux5757}{%
-\subsection{8.6　如何扩展新物理模块}\label{ux5982ux4f55ux6269ux5c55ux65b0ux7269ux7406ux6a21ux5757}}
+\section{11.6　如何扩展新物理模块}\label{ux5982ux4f55ux6269ux5c55ux65b0ux7269ux7406ux6a21ux5757}}
 
 推荐步骤：
 
@@ -5909,7 +5942,7 @@ GitHub Actions 配置位于：
 \end{enumerate}
 
 \hypertarget{ux6587ux6863ux4e0eux5f15ux7528ux89c4ux8303}{%
-\subsection{8.7　文档与引用规范}\label{ux6587ux6863ux4e0eux5f15ux7528ux89c4ux8303}}
+\section{11.7　文档与引用规范}\label{ux6587ux6863ux4e0eux5f15ux7528ux89c4ux8303}}
 
 每个模块应说明：
 
@@ -5939,7 +5972,7 @@ GitHub Actions 配置位于：
 DOI。若引用开源软件，应给出项目地址和许可证。若未来引入第三方代码，必须在源码和变更记录中明确说明。
 
 \hypertarget{ux7248ux672cux4e0eux53efux590dux73b0ux6027}{%
-\subsection{8.8　版本与可复现性}\label{ux7248ux672cux4e0eux53efux590dux73b0ux6027}}
+\section{11.8　版本与可复现性}\label{ux7248ux672cux4e0eux53efux590dux73b0ux6027}}
 
 推荐使用语义化版本：
 
@@ -5970,11 +6003,14 @@ DOI。若引用开源软件，应给出项目地址和许可证。若未来引�
   是否需要重新标定物理参数。
 \end{enumerate}
 
-\hypertarget{ux7b2cux4e5dux90e8ux5206-ux8defux7ebfux56fe}{%
-\section{第九部分　路线图}\label{ux7b2cux4e5dux90e8ux5206-ux8defux7ebfux56fe}}
+\hypertarget{ux7b2cux4e5dux90e8ux5206-ux53d1ux5c55ux8defux7ebf}{%
+\part{第九部分　发展路线}\label{ux7b2cux4e5dux90e8ux5206-ux53d1ux5c55ux8defux7ebf}}
+
+\hypertarget{ux7b2c12ux7ae0-ux8defux7ebfux56fe}{%
+\chapter{第12章　路线图}\label{ux7b2c12ux7ae0-ux8defux7ebfux56fe}}
 
 \hypertarget{ux7b97ux6cd5ux65b9ux5411}{%
-\subsection{9.1　算法方向}\label{ux7b97ux6cd5ux65b9ux5411}}
+\section{12.1　算法方向}\label{ux7b97ux6cd5ux65b9ux5411}}
 
 \begin{itemize}
 \tightlist
@@ -5993,7 +6029,7 @@ DOI。若引用开源软件，应给出项目地址和许可证。若未来引�
 \end{itemize}
 
 \hypertarget{ux7269ux7406ux65b9ux5411}{%
-\subsection{9.2　物理方向}\label{ux7269ux7406ux65b9ux5411}}
+\section{12.2　物理方向}\label{ux7269ux7406ux65b9ux5411}}
 
 \begin{itemize}
 \tightlist
@@ -6012,7 +6048,7 @@ DOI。若引用开源软件，应给出项目地址和许可证。若未来引�
 \end{itemize}
 
 \hypertarget{ux5de5ux7a0bux65b9ux5411}{%
-\subsection{9.3　工程方向}\label{ux5de5ux7a0bux65b9ux5411}}
+\section{12.3　工程方向}\label{ux5de5ux7a0bux65b9ux5411}}
 
 \begin{itemize}
 \tightlist
@@ -6031,7 +6067,7 @@ DOI。若引用开源软件，应给出项目地址和许可证。若未来引�
 \end{itemize}
 
 \hypertarget{ux6587ux6863ux65b9ux5411}{%
-\subsection{9.4　文档方向}\label{ux6587ux6863ux65b9ux5411}}
+\section{12.4　文档方向}\label{ux6587ux6863ux65b9ux5411}}
 
 \begin{itemize}
 \tightlist
@@ -6047,8 +6083,11 @@ DOI。若引用开源软件，应给出项目地址和许可证。若未来引�
   增加可复现实验清单。
 \end{itemize}
 
-\hypertarget{ux7b2cux5341ux90e8ux5206-ux6e90ux7801ux7d22ux5f15ux4e0eux4e8cux7ef4ux7801}{%
-\section{第十部分　源码索引与二维码}\label{ux7b2cux5341ux90e8ux5206-ux6e90ux7801ux7d22ux5f15ux4e0eux4e8cux7ef4ux7801}}
+\hypertarget{ux7b2cux5341ux90e8ux5206-ux6e90ux7801ux7d22ux5f15}{%
+\part{第十部分　源码索引}\label{ux7b2cux5341ux90e8ux5206-ux6e90ux7801ux7d22ux5f15}}
+
+\hypertarget{ux7b2c13ux7ae0-ux6e90ux7801ux7d22ux5f15ux4e0eux4e8cux7ef4ux7801}{%
+\chapter{第13章　源码索引与二维码}\label{ux7b2c13ux7ae0-ux6e90ux7801ux7d22ux5f15ux4e0eux4e8cux7ef4ux7801}}
 
 以下二维码均指向 GeneralModule 仓库中的对应文件。二维码图像保存在
 \texttt{qr/}，文件名规则是把源码路径中的 \texttt{/} 替换为
@@ -6349,7 +6388,7 @@ Python 可视化\strut
 \end{longtable}
 
 \hypertarget{ux7ed3ux8bed}{%
-\section{结语}\label{ux7ed3ux8bed}}
+\chapter{结语}\label{ux7ed3ux8bed}}
 
 本书的目标是把 GeneralModule
 从``可编译的代码库''推进到``可验证、可复现、可教学、可扩展的科研资料''。后续版本应继续沿三个方向推进：
@@ -6378,11 +6417,14 @@ Python 可视化\strut
   仓库：\url{https://github.com/l1Ha/QuantumGeneralModule}
 \end{itemize}
 
-\hypertarget{ux7b2cux5341ux4e00ux90e8ux5206-ux9ad8ux9636ux65b9ux6cd5ux4e0eux5b9eux73b0ux7ec6ux8282}{%
-\section{第十一部分　高阶方法与实现细节}\label{ux7b2cux5341ux4e00ux90e8ux5206-ux9ad8ux9636ux65b9ux6cd5ux4e0eux5b9eux73b0ux7ec6ux8282}}
+\hypertarget{ux7b2cux5341ux4e00ux90e8ux5206-ux9ad8ux9636ux65b9ux6cd5}{%
+\part{第十一部分　高阶方法}\label{ux7b2cux5341ux4e00ux90e8ux5206-ux9ad8ux9636ux65b9ux6cd5}}
+
+\hypertarget{ux7b2c14ux7ae0-ux9ad8ux9636ux65b9ux6cd5ux4e0eux5b9eux73b0ux7ec6ux8282}{%
+\chapter{第14章　高阶方法与实现细节}\label{ux7b2c14ux7ae0-ux9ad8ux9636ux65b9ux6cd5ux4e0eux5b9eux73b0ux7ec6ux8282}}
 
 \hypertarget{krylov-ux5b50ux7a7aux95f4ux65b9ux6cd5}{%
-\subsection{11.1　Krylov
+\section{14.1　Krylov
 子空间方法}\label{krylov-ux5b50ux7a7aux95f4ux65b9ux6cd5}}
 
 当哈密顿矩阵过大而无法稠密对角化时，可以使用 Krylov 子空间方法。给定初态
@@ -6435,7 +6477,7 @@ Lanczos
 方法适合求极端本征值和时间演化，但对重复本征值和近简并子空间需要块方法或重启策略。
 
 \hypertarget{ux9ad8ux9636ux5206ux88c2ux7b97ux7b26}{%
-\subsection{11.2　高阶分裂算符}\label{ux9ad8ux9636ux5206ux88c2ux7b97ux7b26}}
+\section{14.2　高阶分裂算符}\label{ux9ad8ux9636ux5206ux88c2ux7b97ux7b26}}
 
 二阶 Strang 分裂为
 
@@ -6468,7 +6510,7 @@ p_2=1-2p_1.
 更高阶方法虽然每步代价增加，但对长时间积分和严格要求幺正性的问题更有效。
 
 \hypertarget{ux7a00ux758fux77e9ux9635ux4e0eux5b58ux50a8ux7b56ux7565}{%
-\subsection{11.3　稀疏矩阵与存储策略}\label{ux7a00ux758fux77e9ux9635ux4e0eux5b58ux50a8ux7b56ux7565}}
+\section{14.3　稀疏矩阵与存储策略}\label{ux7a00ux758fux77e9ux9635ux4e0eux5b58ux50a8ux7b56ux7565}}
 
 在 DVR 中，若只保留非零矩阵元，可显著降低存储需求。设平均每行非零元数为
 \(z\)，则稀疏存储需求为
@@ -6506,7 +6548,7 @@ O(zN),
 \end{itemize}
 
 \hypertarget{ux5f20ux91cfux5206ux89e3ux4e0eux9ad8ux7ef4ux95eeux9898}{%
-\subsection{11.4　张量分解与高维问题}\label{ux5f20ux91cfux5206ux89e3ux4e0eux9ad8ux7ef4ux95eeux9898}}
+\section{14.4　张量分解与高维问题}\label{ux5f20ux91cfux5206ux89e3ux4e0eux9ad8ux7ef4ux95eeux9898}}
 
 高维问题的网格数为
 
@@ -6546,7 +6588,7 @@ G_d(i_d).
 若张量秩较低，存储和计算代价可从指数级降低到多项式级。
 
 \hypertarget{ux591aux901aux9053ux6563ux5c04ux7684ux5339ux914dux4e0eux6e10ux8fd1ux5c55ux5f00}{%
-\subsection{11.5　多通道散射的匹配与渐近展开}\label{ux591aux901aux9053ux6563ux5c04ux7684ux5339ux914dux4e0eux6e10ux8fd1ux5c55ux5f00}}
+\section{14.5　多通道散射的匹配与渐近展开}\label{ux591aux901aux9053ux6563ux5c04ux7684ux5339ux914dux4e0eux6e10ux8fd1ux5c55ux5f00}}
 
 在匹配半径 \(R_m\) 处，径向波函数可写成入射波和出射波叠加：
 
@@ -6589,7 +6631,7 @@ G_d(i_d).
 \]
 
 \hypertarget{ux5206ux6bb5ux7f51ux683cux7684ux8befux5deeux63a7ux5236}{%
-\subsection{11.6　分段网格的误差控制}\label{ux5206ux6bb5ux7f51ux683cux7684ux8befux5deeux63a7ux5236}}
+\section{14.6　分段网格的误差控制}\label{ux5206ux6bb5ux7f51ux683cux7684ux8befux5deeux63a7ux5236}}
 
 分段网格将径向域划分为若干扇区：
 
@@ -6626,7 +6668,7 @@ C_s\Delta r_s^p
 这样在强变化区域使用细网格，在平滑区域使用粗网格。
 
 \hypertarget{fssh-ux7684ux7edfux8ba1ux8befux5dee}{%
-\subsection{11.7　FSSH
+\section{14.7　FSSH
 的统计误差}\label{fssh-ux7684ux7edfux8ba1ux8befux5dee}}
 
 FSSH 是随机轨迹方法。若透射概率为 \(p\)，轨迹数为 \(N\)，则标准误差为
@@ -6659,7 +6701,7 @@ z\sqrt{
 增加轨迹数时，统计误差按 \(N^{-1/2}\) 下降。
 
 \hypertarget{ux5f00ux653eux7cfbux7edfux7684ux8c31ux65b9ux6cd5}{%
-\subsection{11.8　开放系统的谱方法}\label{ux5f00ux653eux7cfbux7edfux7684ux8c31ux65b9ux6cd5}}
+\section{14.8　开放系统的谱方法}\label{ux5f00ux653eux7cfbux7edfux7684ux8c31ux65b9ux6cd5}}
 
 Lindblad 主方程为
 
@@ -6699,7 +6741,7 @@ e^{\lambda t}
 实部为负的本征值对应衰减模式，纯虚本征值对应相干振荡。
 
 \hypertarget{ux91cfux5b50ux63a7ux5236ux4e2dux7684ux7ea6ux675f}{%
-\subsection{11.9　量子控制中的约束}\label{ux91cfux5b50ux63a7ux5236ux4e2dux7684ux7ea6ux675f}}
+\section{14.9　量子控制中的约束}\label{ux91cfux5b50ux63a7ux5236ux4e2dux7684ux7ea6ux675f}}
 
 最优控制不仅要最大化保真度，还要满足物理约束：
 
@@ -6731,7 +6773,7 @@ J_\epsilon
 若使用硬约束，则可采用投影或罚函数方法。
 
 \hypertarget{ux6570ux503cux5b9eux9a8cux5efaux8bae}{%
-\subsection{11.10　数值实验建议}\label{ux6570ux503cux5b9eux9a8cux5efaux8bae}}
+\section{14.10　数值实验建议}\label{ux6570ux503cux5b9eux9a8cux5efaux8bae}}
 
 \begin{longtable}[]{@{}ll@{}}
 \toprule
@@ -6751,7 +6793,7 @@ Lindblad & 改变耗散率，检查谱分解\tabularnewline
 \end{longtable}
 
 \hypertarget{ux53c2ux8003ux6587ux732e-5}{%
-\subsection{11.11　参考文献}\label{ux53c2ux8003ux6587ux732e-5}}
+\section{14.11　参考文献}\label{ux53c2ux8003ux6587ux732e-5}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -6772,11 +6814,14 @@ Lindblad & 改变耗散率，检查谱分解\tabularnewline
 \item
   GeneralModule
   源码与文档：\url{https://github.com/l1Ha/QuantumGeneralModule} \#
-  第十二部分　基础代码能力与缺口
+  第十二部分　基础能力审计
 \end{enumerate}
 
+\hypertarget{ux7b2c15ux7ae0-ux57faux7840ux4ee3ux7801ux80fdux529bux4e0eux7f3aux53e3}{%
+\chapter{第15章　基础代码能力与缺口}\label{ux7b2c15ux7ae0-ux57faux7840ux4ee3ux7801ux80fdux529bux4e0eux7f3aux53e3}}
+
 \hypertarget{ux80fdux529bux5206ux5c42}{%
-\subsection{12.1　能力分层}\label{ux80fdux529bux5206ux5c42}}
+\section{15.1　能力分层}\label{ux80fdux529bux5206ux5c42}}
 
 GeneralModule 的基础代码能力可以分成四层：
 
@@ -6797,7 +6842,7 @@ L4 & 通用测试框架、基准套件、持续性能监控 & 部分具备\tabul
 API，而是说明哪些能力已经稳定、哪些还不完整、在科研工作流中应该怎样使用。
 
 \hypertarget{ux6570ux503cux7c7bux578bux4e0eux5e38ux6570ux6a21ux5757}{%
-\subsection{12.2　数值类型与常数模块}\label{ux6570ux503cux7c7bux578bux4e0eux5e38ux6570ux6a21ux5757}}
+\section{15.2　数值类型与常数模块}\label{ux6570ux503cux7c7bux578bux4e0eux5e38ux6570ux6a21ux5757}}
 
 \texttt{mod\_constants} 提供统一的双精度类型别名和物理常数：
 
@@ -6824,7 +6869,7 @@ API，而是说明哪些能力已经稳定、哪些还不完整、在科研工�
 \end{itemize}
 
 \hypertarget{ux5df2ux6709ux80fdux529b}{%
-\subsubsection{已有能力}\label{ux5df2ux6709ux80fdux529b}}
+\subsection{已有能力}\label{ux5df2ux6709ux80fdux529b}}
 
 \begin{itemize}
 \tightlist
@@ -6841,7 +6886,7 @@ API，而是说明哪些能力已经稳定、哪些还不完整、在科研工�
 \end{itemize}
 
 \hypertarget{ux5df2ux77e5ux9650ux5236}{%
-\subsubsection{已知限制}\label{ux5df2ux77e5ux9650ux5236}}
+\subsection{已知限制}\label{ux5df2ux77e5ux9650ux5236}}
 
 \begin{itemize}
 \tightlist
@@ -6856,7 +6901,7 @@ API，而是说明哪些能力已经稳定、哪些还不完整、在科研工�
 \end{itemize}
 
 \hypertarget{ux5efaux8baeux7684ux6539ux8fdb}{%
-\subsubsection{建议的改进}\label{ux5efaux8baeux7684ux6539ux8fdb}}
+\subsection{建议的改进}\label{ux5efaux8baeux7684ux6539ux8fdb}}
 
 引入一个显式状态码版本：
 
@@ -6882,7 +6927,7 @@ API，而是说明哪些能力已经稳定、哪些还不完整、在科研工�
 \]
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-34}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-34}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-34}}
 
 \begin{itemize}
 \tightlist
@@ -6895,13 +6940,13 @@ API，而是说明哪些能力已经稳定、哪些还不完整、在科研工�
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_constants.f90.png}
 
 \hypertarget{ux7279ux6b8aux51fdux6570ux4e0eux89d2ux52a8ux91cfux4ee3ux6570}{%
-\subsection{12.3　特殊函数与角动量代数}\label{ux7279ux6b8aux51fdux6570ux4e0eux89d2ux52a8ux91cfux4ee3ux6570}}
+\section{15.3　特殊函数与角动量代数}\label{ux7279ux6b8aux51fdux6570ux4e0eux89d2ux52a8ux91cfux4ee3ux6570}}
 
 \texttt{mod\_special\_functions} 提供 Legendre 多项式、缔合 Legendre
 函数、Wigner \(3j\)、Clebsch--Gordan、\(6j\)、\(9j\) 和转动偶极矩阵元。
 
 \hypertarget{ux5df2ux6709ux80fdux529b-1}{%
-\subsubsection{已有能力}\label{ux5df2ux6709ux80fdux529b-1}}
+\subsection{已有能力}\label{ux5df2ux6709ux80fdux529b-1}}
 
 \begin{itemize}
 \tightlist
@@ -6918,7 +6963,7 @@ API，而是说明哪些能力已经稳定、哪些还不完整、在科研工�
 \end{itemize}
 
 \hypertarget{ux5df2ux77e5ux9650ux5236-1}{%
-\subsubsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-1}}
+\subsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-1}}
 
 \begin{itemize}
 \tightlist
@@ -6933,7 +6978,7 @@ API，而是说明哪些能力已经稳定、哪些还不完整、在科研工�
 \end{itemize}
 
 \hypertarget{ux5efaux8baeux7684ux6539ux8fdb-1}{%
-\subsubsection{建议的改进}\label{ux5efaux8baeux7684ux6539ux8fdb-1}}
+\subsection{建议的改进}\label{ux5efaux8baeux7684ux6539ux8fdb-1}}
 
 增加批量接口：
 
@@ -6957,7 +7002,7 @@ C^{J,-M}_{j_1,-m_1j_2,-m_2}.
 \]
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-35}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-35}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-35}}
 
 \begin{itemize}
 \tightlist
@@ -6970,7 +7015,7 @@ C^{J,-M}_{j_1,-m_1j_2,-m_2}.
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_special_functions.f90.png}
 
 \hypertarget{ux7a20ux5bc6ux7ebfux6027ux4ee3ux6570}{%
-\subsection{12.4　稠密线性代数}\label{ux7a20ux5bc6ux7ebfux6027ux4ee3ux6570}}
+\section{15.4　稠密线性代数}\label{ux7a20ux5bc6ux7ebfux6027ux4ee3ux6570}}
 
 \texttt{mod\_linear\_algebra} 提供四类基础能力：
 
@@ -6991,7 +7036,7 @@ FFT & \texttt{fft\_1d}, \texttt{fft\_2d} & Cooley--Tukey + 慢 DFT
 \end{longtable}
 
 \hypertarget{ux5df2ux6709ux80fdux529b-2}{%
-\subsubsection{已有能力}\label{ux5df2ux6709ux80fdux529b-2}}
+\subsection{已有能力}\label{ux5df2ux6709ux80fdux529b-2}}
 
 \begin{itemize}
 \tightlist
@@ -7006,7 +7051,7 @@ FFT & \texttt{fft\_1d}, \texttt{fft\_2d} & Cooley--Tukey + 慢 DFT
 \end{itemize}
 
 \hypertarget{ux5df2ux77e5ux9650ux5236-2}{%
-\subsubsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-2}}
+\subsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-2}}
 
 \begin{itemize}
 \tightlist
@@ -7025,7 +7070,7 @@ FFT & \texttt{fft\_1d}, \texttt{fft\_2d} & Cooley--Tukey + 慢 DFT
 \end{itemize}
 
 \hypertarget{ux5efaux8baeux7684ux6539ux8fdb-2}{%
-\subsubsection{建议的改进}\label{ux5efaux8baeux7684ux6539ux8fdb-2}}
+\subsection{建议的改进}\label{ux5efaux8baeux7684ux6539ux8fdb-2}}
 
 优先级最高的三个扩展是：
 
@@ -7067,7 +7112,7 @@ B & A
 的情况下复用现有实对称本征求解器。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-36}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-36}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-36}}
 
 \begin{itemize}
 \tightlist
@@ -7080,13 +7125,13 @@ B & A
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_linear_algebra.f90.png}
 
 \hypertarget{fft-ux4e0eux8c31ux8ba1ux7b97}{%
-\subsection{12.5　FFT 与谱计算}\label{fft-ux4e0eux8c31ux8ba1ux7b97}}
+\section{15.5　FFT 与谱计算}\label{fft-ux4e0eux8c31ux8ba1ux7b97}}
 
 FFT 是 Split-Operator 和 FGH 的基础。当前 \texttt{fft\_1d} 已支持常见 2
 的幂长度，并对非 2 的幂使用慢 DFT。
 
 \hypertarget{ux5df2ux6709ux80fdux529b-3}{%
-\subsubsection{已有能力}\label{ux5df2ux6709ux80fdux529b-3}}
+\subsection{已有能力}\label{ux5df2ux6709ux80fdux529b-3}}
 
 \begin{itemize}
 \tightlist
@@ -7101,7 +7146,7 @@ FFT 是 Split-Operator 和 FGH 的基础。当前 \texttt{fft\_1d} 已支持常�
 \end{itemize}
 
 \hypertarget{ux5df2ux77e5ux9650ux5236-3}{%
-\subsubsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-3}}
+\subsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-3}}
 
 \begin{itemize}
 \tightlist
@@ -7120,7 +7165,7 @@ FFT 是 Split-Operator 和 FGH 的基础。当前 \texttt{fft\_1d} 已支持常�
 \end{itemize}
 
 \hypertarget{ux5efaux8baeux7684ux6d4bux8bd5}{%
-\subsubsection{建议的测试}\label{ux5efaux8baeux7684ux6d4bux8bd5}}
+\subsection{建议的测试}\label{ux5efaux8baeux7684ux6d4bux8bd5}}
 
 对随机复数场验证 Parseval 定理：
 
@@ -7145,13 +7190,13 @@ FFT 是 Split-Operator 和 FGH 的基础。当前 \texttt{fft\_1d} 已支持常�
 \]
 
 \hypertarget{dvr-ux4e0eux7f51ux683cux80fdux529b}{%
-\subsection{12.6　DVR
+\section{15.6　DVR
 与网格能力}\label{dvr-ux4e0eux7f51ux683cux80fdux529b}}
 
 \texttt{mod\_dvr\_grid} 提供一维 Sinc-DVR、Legendre-DVR 和 FGH。
 
 \hypertarget{ux5df2ux6709ux80fdux529b-4}{%
-\subsubsection{已有能力}\label{ux5df2ux6709ux80fdux529b-4}}
+\subsection{已有能力}\label{ux5df2ux6709ux80fdux529b-4}}
 
 \begin{itemize}
 \tightlist
@@ -7168,7 +7213,7 @@ FFT 是 Split-Operator 和 FGH 的基础。当前 \texttt{fft\_1d} 已支持常�
 \end{itemize}
 
 \hypertarget{ux5df2ux77e5ux9650ux5236-4}{%
-\subsubsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-4}}
+\subsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-4}}
 
 \begin{itemize}
 \tightlist
@@ -7187,7 +7232,7 @@ FFT 是 Split-Operator 和 FGH 的基础。当前 \texttt{fft\_1d} 已支持常�
 \end{itemize}
 
 \hypertarget{ux5efaux8baeux7684ux6539ux8fdb-3}{%
-\subsubsection{建议的改进}\label{ux5efaux8baeux7684ux6539ux8fdb-3}}
+\subsection{建议的改进}\label{ux5efaux8baeux7684ux6539ux8fdb-3}}
 
 引入统一网格接口：
 
@@ -7221,7 +7266,7 @@ FFT 是 Split-Operator 和 FGH 的基础。当前 \texttt{fft\_1d} 已支持常�
 这样可以在不重写物理模块的情况下扩展更多 DVR。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-37}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-37}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-37}}
 
 \begin{itemize}
 \tightlist
@@ -7234,12 +7279,12 @@ FFT 是 Split-Operator 和 FGH 的基础。当前 \texttt{fft\_1d} 已支持常�
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_dvr_grid.f90.png}
 
 \hypertarget{ux63d2ux503cux4e0eux52bfux80fdux9762ux9884ux5904ux7406}{%
-\subsection{12.7　插值与势能面预处理}\label{ux63d2ux503cux4e0eux52bfux80fdux9762ux9884ux5904ux7406}}
+\section{15.7　插值与势能面预处理}\label{ux63d2ux503cux4e0eux52bfux80fdux9762ux9884ux5904ux7406}}
 
 \texttt{mod\_interpolation} 提供三次样条、导数计算和势能面插值。
 
 \hypertarget{ux5df2ux6709ux80fdux529b-5}{%
-\subsubsection{已有能力}\label{ux5df2ux6709ux80fdux529b-5}}
+\subsection{已有能力}\label{ux5df2ux6709ux80fdux529b-5}}
 
 \begin{itemize}
 \tightlist
@@ -7256,7 +7301,7 @@ FFT 是 Split-Operator 和 FGH 的基础。当前 \texttt{fft\_1d} 已支持常�
 \end{itemize}
 
 \hypertarget{ux5df2ux77e5ux9650ux5236-5}{%
-\subsubsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-5}}
+\subsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-5}}
 
 \begin{itemize}
 \tightlist
@@ -7273,7 +7318,7 @@ FFT 是 Split-Operator 和 FGH 的基础。当前 \texttt{fft\_1d} 已支持常�
 \end{itemize}
 
 \hypertarget{ux5efaux8baeux7684ux6539ux8fdb-4}{%
-\subsubsection{建议的改进}\label{ux5efaux8baeux7684ux6539ux8fdb-4}}
+\subsection{建议的改进}\label{ux5efaux8baeux7684ux6539ux8fdb-4}}
 
 增加二维双三次样条接口：
 
@@ -7299,7 +7344,7 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \]
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-38}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-38}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-38}}
 
 \begin{itemize}
 \tightlist
@@ -7312,12 +7357,12 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_interpolation.f90.png}
 
 \hypertarget{ux6570ux636e-io}{%
-\subsection{12.8　数据 I/O}\label{ux6570ux636e-io}}
+\section{15.8　数据 I/O}\label{ux6570ux636e-io}}
 
 \texttt{mod\_io\_utils} 提供文本表和矩阵输出。
 
 \hypertarget{ux5df2ux6709ux80fdux529b-6}{%
-\subsubsection{已有能力}\label{ux5df2ux6709ux80fdux529b-6}}
+\subsection{已有能力}\label{ux5df2ux6709ux80fdux529b-6}}
 
 \begin{itemize}
 \tightlist
@@ -7332,7 +7377,7 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \end{itemize}
 
 \hypertarget{ux5df2ux77e5ux9650ux5236-6}{%
-\subsubsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-6}}
+\subsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-6}}
 
 \begin{itemize}
 \tightlist
@@ -7353,7 +7398,7 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \end{itemize}
 
 \hypertarget{ux5efaux8baeux7684ux6539ux8fdb-5}{%
-\subsubsection{建议的改进}\label{ux5efaux8baeux7684ux6539ux8fdb-5}}
+\subsection{建议的改进}\label{ux5efaux8baeux7684ux6539ux8fdb-5}}
 
 定义统一实验记录结构：
 
@@ -7372,7 +7417,7 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 并输出 JSON 或 TOML 头，便于 Python 自动读取。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-39}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-39}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-39}}
 
 \begin{itemize}
 \tightlist
@@ -7385,12 +7430,12 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_io_utils.f90.png}
 
 \hypertarget{ux6d4bux8bd5ux4e0eux6784ux5efaux80fdux529b}{%
-\subsection{12.9　测试与构建能力}\label{ux6d4bux8bd5ux4e0eux6784ux5efaux80fdux529b}}
+\section{15.9　测试与构建能力}\label{ux6d4bux8bd5ux4e0eux6784ux5efaux80fdux529b}}
 
 项目当前有自实现测试和三套构建入口。
 
 \hypertarget{ux5df2ux6709ux80fdux529b-7}{%
-\subsubsection{已有能力}\label{ux5df2ux6709ux80fdux529b-7}}
+\subsection{已有能力}\label{ux5df2ux6709ux80fdux529b-7}}
 
 \begin{itemize}
 \tightlist
@@ -7407,7 +7452,7 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \end{itemize}
 
 \hypertarget{ux5df2ux77e5ux9650ux5236-7}{%
-\subsubsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-7}}
+\subsection{已知限制}\label{ux5df2ux77e5ux9650ux5236-7}}
 
 \begin{itemize}
 \tightlist
@@ -7426,7 +7471,7 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \end{itemize}
 
 \hypertarget{ux5efaux8baeux7684ux65adux8a00ux63a5ux53e3}{%
-\subsubsection{建议的断言接口}\label{ux5efaux8baeux7684ux65adux8a00ux63a5ux53e3}}
+\subsection{建议的断言接口}\label{ux5efaux8baeux7684ux65adux8a00ux63a5ux53e3}}
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -7446,7 +7491,7 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \end{Shaded}
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-40}{%
-\subsubsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-40}}
+\subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-40}}
 
 \begin{itemize}
 \tightlist
@@ -7468,7 +7513,7 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \includegraphics[width=2cm,height=\textheight]{qr/fpm.toml.png}
 
 \hypertarget{ux57faux7840ux80fdux529bux7f3aux53e3ux6c47ux603b}{%
-\subsection{12.10　基础能力缺口汇总}\label{ux57faux7840ux80fdux529bux7f3aux53e3ux6c47ux603b}}
+\section{15.10　基础能力缺口汇总}\label{ux57faux7840ux80fdux529bux7f3aux53e3ux6c47ux603b}}
 
 \begin{longtable}[]{@{}llll@{}}
 \toprule
@@ -7490,7 +7535,7 @@ SVD/QR/Cholesky & 未具备 & 中 & 支持拟合和正则化\tabularnewline
 \end{longtable}
 
 \hypertarget{ux6700ux5c0fux6269ux5c55ux8defux7ebf}{%
-\subsection{12.11　最小扩展路线}\label{ux6700ux5c0fux6269ux5c55ux8defux7ebf}}
+\section{15.11　最小扩展路线}\label{ux6700ux5c0fux6269ux5c55ux8defux7ebf}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -7514,7 +7559,7 @@ SVD/QR/Cholesky & 未具备 & 中 & 支持拟合和正则化\tabularnewline
 \end{enumerate}
 
 \hypertarget{ux53c2ux8003ux6587ux732e-6}{%
-\subsection{12.12　参考文献}\label{ux53c2ux8003ux6587ux732e-6}}
+\section{15.12　参考文献}\label{ux53c2ux8003ux6587ux732e-6}}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -7531,11 +7576,14 @@ SVD/QR/Cholesky & 未具备 & 中 & 支持拟合和正则化\tabularnewline
 \item
   GeneralModule
   源码与文档：\url{https://github.com/l1Ha/QuantumGeneralModule} \#
-  第十三部分　理论核查记录
+  第十三部分　理论核查
 \end{enumerate}
 
+\hypertarget{ux7b2c16ux7ae0-ux7406ux8bbaux6838ux67e5ux8bb0ux5f55}{%
+\chapter{第16章　理论核查记录}\label{ux7b2c16ux7ae0-ux7406ux8bbaux6838ux67e5ux8bb0ux5f55}}
+
 \hypertarget{ux6838ux67e5ux65b9ux6cd5}{%
-\subsection{13.1　核查方法}\label{ux6838ux67e5ux65b9ux6cd5}}
+\section{16.1　核查方法}\label{ux6838ux67e5ux65b9ux6cd5}}
 
 本版对书稿中的关键推导做了三类核查：
 
@@ -7554,7 +7602,7 @@ SVD/QR/Cholesky & 未具备 & 中 & 支持拟合和正则化\tabularnewline
 本版已根据核查结果修正若干公式与表述。所有修改均以可重复测试或标准文献为依据，不把约定差异误判为错误。
 
 \hypertarget{ux5df2ux4feeux6b63ux7684ux9519ux8bef}{%
-\subsection{13.2　已修正的错误}\label{ux5df2ux4feeux6b63ux7684ux9519ux8bef}}
+\section{16.2　已修正的错误}\label{ux5df2ux4feeux6b63ux7684ux9519ux8bef}}
 
 \begin{longtable}[]{@{}lll@{}}
 \toprule
@@ -7638,7 +7686,7 @@ Morse/谐振子极限求和结果\strut
 \end{longtable}
 
 \hypertarget{ux590dux6838ux901aux8fc7ux7684ux6838ux5fc3ux7ed3ux679c}{%
-\subsection{13.3　复核通过的核心结果}\label{ux590dux6838ux901aux8fc7ux7684ux6838ux5fc3ux7ed3ux679c}}
+\section{16.3　复核通过的核心结果}\label{ux590dux6838ux901aux8fc7ux7684ux6838ux5fc3ux7ed3ux679c}}
 
 以下推导经独立代数检查或数值验收后确认正确：
 
@@ -7667,7 +7715,7 @@ Morse/谐振子极限求和结果\strut
 \end{itemize}
 
 \hypertarget{ux6570ux503cux9a8cux6536}{%
-\subsection{13.4　数值验收}\label{ux6570ux503cux9a8cux6536}}
+\section{16.4　数值验收}\label{ux6570ux503cux9a8cux6536}}
 
 修正后的 \texttt{dvr\_legendre\_init} 已加入单元测试：
 
