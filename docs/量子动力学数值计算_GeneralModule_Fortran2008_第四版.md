@@ -4824,6 +4824,7 @@ QCT 的“准经典”体现在初态和末态都对应量子态。对初始振�
    \qquad
    |\mathbf j|\approx\hbar\sqrt{j(j+1)}.
    $$
+   这是 EBK/WKB 型近似；对 Morse 等非谐振子，严格作用量还依赖势能面积分，不应把上式当作精确恒等式。
 
 碰撞能 $E_{\mathrm{coll}}$ 决定初始相对动量：
 
@@ -4980,7 +4981,20 @@ $$
 \right|,
 $$
 
-其中 $\theta$ 是散射角。
+其中 $\theta$ 是散射角。若存在多个碰撞参数分支（例如彩虹散射或多次转折）映射到同一散射角，则应逐支求和：
+
+$$
+\frac{d\sigma}{d\Omega}
+=
+\frac{1}{\sin\theta}
+\sum_s
+b_s
+\left|
+\frac{db_s}{d\theta}
+\right|.
+$$
+
+上式只在 $b\mapsto\theta$ 单调分支内适用；$\theta=0,\pi$ 处还须按立体角定义单独处理。
 
 热速率系数由截面对 Maxwell–Boltzmann 相对平动能分布积分：
 
@@ -5229,7 +5243,7 @@ i\hbar\dot{\boldsymbol\varphi}^{(\kappa)}
 \boldsymbol\varphi^{(\kappa)},
 $$
 
-其中 $P^{(\kappa)}$ 是第 $\kappa$ 维 SPF 空间的投影算符，$\rho^{(\kappa)}$ 是该维密度矩阵。MCTDH 的优势是 SPF 随时间自适应；代价是每步需要构造均值场矩阵和势能 SOP。
+其中 $P^{(\kappa)}$ 是第 $\kappa$ 维 SPF 空间的投影算符，$\rho^{(\kappa)}$ 是该维密度矩阵。上式应理解为规范固定后的标准形式；实际实现中 $\rho^{(\kappa)}$ 可能奇异或病态，需使用伪逆、正则化或合适的规范条件。MCTDH 的优势是 SPF 随时间自适应；代价是每步需要构造均值场矩阵和势能 SOP。
 
 MCTDH 适合：
 
@@ -5258,7 +5272,8 @@ $$
 O(Dnr^2),
 $$
 
-而不是全张量的 $O(n^D)$。矩阵乘积态（MPS）是 TT 在量子多体中的等价形式。
+而不是全张量的 $O(n^D)$。若键维逐点变化 $r_{\kappa}$，则更一般的存储量为
+$O\!\left(\sum_{\kappa=1}^{D}n_\kappa r_{\kappa-1}r_\kappa\right)$。矩阵乘积态（MPS）是 TT 在量子多体中的等价形式。
 
 TT/MPS 的关键操作包括：
 
@@ -5293,7 +5308,7 @@ $$
 O\!\left(N(\log N)^{D-1}\right),
 $$
 
-而不是 $O(N^D)$。稀疏网格适合中高维光滑势能面；对强振荡、强局域或奇点问题，需要自适应稀疏网格。
+而不是 $O(N^D)$。该复杂度依赖于函数光滑性和一维求积规则的选择；对强振荡、强局域或奇点问题，需要自适应稀疏网格。
 
 ### 18.5　剪枝乘积基
 
@@ -5432,3 +5447,16 @@ end module mod_sparse_grid
 4. U. Schollwöck, “The density-matrix renormalization group in the age of matrix product states”, *Phys. Rep.* **526**, 96 (2013). DOI: 10.1016/j.physrep.2012.12.001.
 5. H.-J. Bungartz and M. Griebel, “Sparse grids”, *Acta Numer.* **13**, 147 (2004). DOI: 10.1017/S0962492904000182.
 6. GeneralModule 源码：<https://github.com/l1Ha/QuantumGeneralModule>
+## 13.5　QCT 与高维章节核查
+
+新增的第 17、18 章按公式逐项核查：
+
+- QCT 的 Hamilton 方程、Velocity-Verlet、不透明度函数和 Monte Carlo 截面估计一致；
+- 态到态截面公式要求碰撞参数在圆盘内均匀抽样；
+- 微分散射截面已补充多分支 rainbow 求和和端点处理说明；
+- EBK/WKB 作用量指认已明确为近似，不适用于所有 Morse 体系的精确恒等式；
+- MCTDH 的 SPF 方程已补充规范自由度与密度矩阵伪逆/正则化说明；
+- TT/MPS 存储复杂度已补充变键维表达式；
+- Smolyak 稀疏网格复杂度已明确依赖函数光滑性和一维求积规则。
+
+第 17、18 章尚未实现为 GeneralModule 源码；因此本节核查是公式与算法层面的验证，不是代码回归测试。
