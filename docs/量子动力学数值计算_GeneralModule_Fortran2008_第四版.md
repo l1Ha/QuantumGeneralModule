@@ -184,7 +184,7 @@ $$Y_{lm}(\theta,\varphi)=(-1)^{m}\sqrt{\frac{2l+1}{4\pi}\,\frac{(l-m)!}{(l+m)!}}
 
 ![特殊函数模块二维码](qr/src__mod_special_functions.f90.png)
 
-**小型数值实验。** 以 $n=40$ 的 Gauss–Legendre 节点构造 $\hat{J}^{2}$ 的谱求和表示（见 2.5 节），对角化后与本征值序列 $j(j+1)$，$j=0,\ldots,39$ 比对：最大偏差 $1.8\times10^{-12}$。该实验同时验证了 Legendre DVR 与角动量代数的相容性，是角向网格的必备验收测试。
+**小型数值实验。** 以 $n=40$ 的 Gauss–Legendre 节点构造 $\hat{J}^{2}$ 的谱求和表示（见 5.5 节），对角化后与本征值序列 $j(j+1)$，$j=0,\ldots,39$ 比对：最大偏差 $1.8\times10^{-12}$。该实验同时验证了 Legendre DVR 与角动量代数的相容性，是角向网格的必备验收测试。
 
 **练习。** (1) 完成升降算符系数的推导。(2) 证明 $Y_{ll}(\theta,\varphi)\propto\sin^{l}\theta\,e^{il\varphi}$ 并归一化。(3) 验证对易关系 $[\hat{J}_x,\hat{J}_y]=i\hbar\hat{J}_z$ 在 $j=1/2$ 的 Pauli 矩阵表示下成立。
 
@@ -354,7 +354,7 @@ SF 与 BF 的矢量分量通过一秩转动矩阵（方向余弦）相连：$\ha
 
 **GeneralModule 实现映射。** 源码 `src/mod_special_functions.f90`：`assoc_legendre_poly`（$K=0$ 线型转子的 $d^{J}_{M0}\propto P^{M}_{J}$ 构件）、`rot_matrix_cos_theta` 与 `rot_matrix_cos2_theta`（方向余弦矩阵元）；`src/mod_dvr_grid.f90`：`dvr_legendre_init`（$\theta$ 方向 Gauss–Legendre DVR，可组装 $\hat{J}^{2}$ 与 $\cos\theta$ 矩阵）；`src/mod_rovibrational.f90`：`build_rovibrational_hamiltonian`（$E(v,J)=E_{\mathrm{vib}}(v)+B_vJ(J+1)$）。文献依据：Bunker 与 Jensen, *Molecular Symmetry and Spectroscopy*, 2nd ed., NRC Research Press, Ottawa (1998)；Varshalovich 等 (1988)。GitHub 直链：[src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)。二维码：`qr/src__mod_special_functions.f90.png`。
 
-**小型数值实验。** 以 2.5 节验证过的 $\hat{J}^{2}$ 谱求和矩阵表示线型刚性转子 $\hat{H}=B\hat{J}^{2}$，取 $\mathrm{H}_2$ 的振动平均转动常数 $B_0=60.18\ \mathrm{cm^{-1}}$（见 3.4 节实验）：对角化得 $E_J/B_0=j(j+1)$，$E_1=120.36\ \mathrm{cm^{-1}}$、$E_2=360.9\ \mathrm{cm^{-1}}$，与实验转动能级（$118.5$、$354.0\ \mathrm{cm^{-1}}$，计入离心畸变后下移）的偏差在一阶刚转子近似预期之内。该实验演示了"角动量代数 + DVR + 谱定理"三位一体的最小转动能级计算。
+**小型数值实验。** 以 5.5 节验证过的 $\hat{J}^{2}$ 谱求和矩阵表示线型刚性转子 $\hat{H}=B\hat{J}^{2}$，取 $\mathrm{H}_2$ 的振动平均转动常数 $B_0=60.18\ \mathrm{cm^{-1}}$（见 3.4 节实验）：对角化得 $E_J/B_0=j(j+1)$，$E_1=120.36\ \mathrm{cm^{-1}}$、$E_2=360.9\ \mathrm{cm^{-1}}$，与实验转动能级（$118.5$、$354.0\ \mathrm{cm^{-1}}$，计入离心畸变后下移）的偏差在一阶刚转子近似预期之内。该实验演示了"角动量代数 + DVR + 谱定理"三位一体的最小转动能级计算。
 
 **练习。** (1) 证明 Wigner D 函数的正交归一关系。(2) 对不对称陀螺写出 $\langle JK|\hat{J}_a^{2}|J,K\pm2\rangle$ 的显式表达式并讨论 $K$ 结构。(3) 由 $D^{J}_{MK}$ 的完备性推导立体角积分化为 D 函数耦合系数的公式。
 
@@ -5293,16 +5293,18 @@ TT/MPS 对一维近邻耦合特别高效；对长程耦合或高维张量网络�
 $$
 \mathcal U_N^D f
 =
-\sum_{|\mathbf l|_1\le N}
+\sum_{N-D+1\le|\mathbf l|_1\le N}
 (-1)^{N-|\mathbf l|_1}
 \binom{D-1}{N-|\mathbf l|_1}
 \left[
 \bigotimes_{\kappa=1}^{D}
 \mathcal U_{l_\kappa}^{(\kappa)}
-\right]f.
+\right]f,
+\qquad
+l_\kappa\ge1.
 $$
 
-其中 $l_\kappa$ 是每一维的一维求积级别，$|\mathbf l|_1=\sum_\kappa l_\kappa$。对光滑函数，其网格数增长近似为
+其中 $l_\kappa$ 是每一维的一维求积级别，$|\mathbf l|_1=\sum_\kappa l_\kappa$。等价地，可写成差分算子形式 $\sum_{|\mathbf l|_1\le N}\Delta_{\mathbf l}$，其中 $\Delta_l=\mathcal U_l-\mathcal U_{l-1}$。对光滑函数，其网格数增长近似为
 
 $$
 O\!\left(N(\log N)^{D-1}\right),
@@ -5444,7 +5446,7 @@ end module mod_sparse_grid
 1. U. Manthe, H.-D. Meyer, and L. S. Cederbaum, “Wave-packet dynamics within the multiconfiguration Hartree framework: General aspects and application to NOCl”, *J. Chem. Phys.* **97**, 3199 (1992). DOI: 10.1063/1.463007.
 2. M. H. Beck, A. Jäckle, G. A. Worth, and H.-D. Meyer, “The multiconfiguration time-dependent Hartree (MCTDH) method: a highly efficient algorithm for propagating wavepackets”, *Phys. Rep.* **324**, 1 (2000). DOI: 10.1016/S0370-1573(99)00047-2.
 3. I. V. Oseledets, “Tensor-train decomposition”, *SIAM J. Sci. Comput.* **33**, 2295 (2011). DOI: 10.1137/090752286.
-4. U. Schollwöck, “The density-matrix renormalization group in the age of matrix product states”, *Phys. Rep.* **526**, 96 (2013). DOI: 10.1016/j.physrep.2012.12.001.
+4. U. Schollwöck, “The density-matrix renormalization group in the age of matrix product states”, *Ann. Phys.* **326**, 96 (2011). DOI: 10.1016/j.aop.2010.09.012.
 5. H.-J. Bungartz and M. Griebel, “Sparse grids”, *Acta Numer.* **13**, 147 (2004). DOI: 10.1017/S0962492904000182.
 6. GeneralModule 源码：<https://github.com/l1Ha/QuantumGeneralModule>
 ## 13.5　QCT 与高维章节核查

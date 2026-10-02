@@ -648,7 +648,7 @@ Racah 代数支配。本章从转动群与角动量本征基出发，依次建�
 \includegraphics{qr/src__mod_special_functions.f90.png}
 
 \textbf{小型数值实验。} 以 \(n=40\) 的 Gauss--Legendre 节点构造
-\(\hat{J}^{2}\) 的谱求和表示（见 2.5 节），对角化后与本征值序列
+\(\hat{J}^{2}\) 的谱求和表示（见 5.5 节），对角化后与本征值序列
 \(j(j+1)\)，\(j=0,\ldots,39\) 比对：最大偏差
 \(1.8\times10^{-12}\)。该实验同时验证了 Legendre DVR
 与角动量代数的相容性，是角向网格的必备验收测试。
@@ -1048,7 +1048,7 @@ Wigner D 函数不同于转子态的
 Research Press, Ottawa (1998)；Varshalovich 等 (1988)。GitHub
 直链：\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90}{src/mod\_special\_functions.f90}。二维码：\texttt{qr/src\_\_mod\_special\_functions.f90.png}。
 
-\textbf{小型数值实验。} 以 2.5 节验证过的 \(\hat{J}^{2}\)
+\textbf{小型数值实验。} 以 5.5 节验证过的 \(\hat{J}^{2}\)
 谱求和矩阵表示线型刚性转子 \(\hat{H}=B\hat{J}^{2}\)，取 \(\mathrm{H}_2\)
 的振动平均转动常数 \(B_0=60.18\ \mathrm{cm^{-1}}\)（见 3.4
 节实验）：对角化得
@@ -8419,17 +8419,21 @@ TT/MPS
 \[
 \mathcal U_N^D f
 =
-\sum_{|\mathbf l|_1\le N}
+\sum_{N-D+1\le|\mathbf l|_1\le N}
 (-1)^{N-|\mathbf l|_1}
 \binom{D-1}{N-|\mathbf l|_1}
 \left[
 \bigotimes_{\kappa=1}^{D}
 \mathcal U_{l_\kappa}^{(\kappa)}
-\right]f.
+\right]f,
+\qquad
+l_\kappa\ge1.
 \]
 
 其中 \(l_\kappa\)
-是每一维的一维求积级别，\(|\mathbf l|_1=\sum_\kappa l_\kappa\)。对光滑函数，其网格数增长近似为
+是每一维的一维求积级别，\(|\mathbf l|_1=\sum_\kappa l_\kappa\)。等价地，可写成差分算子形式
+\(\sum_{|\mathbf l|_1\le N}\Delta_{\mathbf l}\)，其中
+\(\Delta_l=\mathcal U_l-\mathcal U_{l-1}\)。对光滑函数，其网格数增长近似为
 
 \[
 O\!\left(N(\log N)^{D-1}\right),
@@ -8637,8 +8641,8 @@ POTFIT/SOP & MCTDH & 与传播器匹配 & 拟合误差\tabularnewline
   Comput.} \textbf{33}, 2295 (2011). DOI: 10.1137/090752286.
 \item
   U. Schollwöck, ``The density-matrix renormalization group in the age
-  of matrix product states'', \emph{Phys. Rep.} \textbf{526}, 96 (2013).
-  DOI: 10.1016/j.physrep.2012.12.001.
+  of matrix product states'', \emph{Ann. Phys.} \textbf{326}, 96 (2011).
+  DOI: 10.1016/j.aop.2010.09.012.
 \item
   H.-J. Bungartz and M. Griebel, ``Sparse grids'', \emph{Acta Numer.}
   \textbf{13}, 147 (2004). DOI: 10.1017/S0962492904000182.
