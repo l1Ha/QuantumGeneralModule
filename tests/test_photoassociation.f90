@@ -9,7 +9,7 @@
 !   6. Two-photon Raman association effective coupling \Omega_{eff}
 ! ==============================================================================
 program test_photoassociation
-    use mod_constants, only: dp, PI
+    use mod_constants, only: dp
     use mod_photoassociation
     implicit none
 
@@ -19,7 +19,7 @@ program test_photoassociation
     ! 临时测试变量
     integer, parameter :: N_PTS = 200
     real(dp) :: r_grid(N_PTS), u_scat(N_PTS), chi_bound(N_PTS), dip_mat(N_PTS)
-    real(dp) :: r0, sigma, k_wave, fc_int, fc_dens
+    real(dp) :: k_wave, fc_int, fc_dens
     real(dp) :: gamma_stim_1, gamma_stim_2
     real(dp) :: detuning_au, gamma_nat_au, k_pa_therm
     real(dp) :: delta_scan(21), k_scan(21), omega_eff

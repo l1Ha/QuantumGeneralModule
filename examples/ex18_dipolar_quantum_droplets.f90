@@ -11,7 +11,7 @@
 ! Standard: Fortran 2008
 ! ==============================================================================
 program ex18_dipolar_quantum_droplets
-    use mod_constants, only: dp, PI
+    use mod_constants, only: dp
     use mod_dipolar_droplets_lhy
     implicit none
 

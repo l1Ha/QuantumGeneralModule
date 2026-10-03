@@ -9,7 +9,7 @@
 !   6. Universal dipole length scale a_d and multi-partial-wave potential matrix
 ! ==============================================================================
 program test_dipolar_scattering
-    use mod_constants, only: dp, PI
+    use mod_constants, only: dp
     use mod_dipolar_scattering
     implicit none
 

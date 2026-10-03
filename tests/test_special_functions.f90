@@ -6,7 +6,7 @@ program test_special_functions
     integer :: n_tests = 0
     integer :: n_passed = 0
     real(dp) :: tol = 1.0e-10_dp
-    real(dp) :: res, exp_val
+    real(dp) :: exp_val
 
     print '(A)', "=================================================="
     print '(A)', "   GeneralModule Unit Tests: Special Functions    "

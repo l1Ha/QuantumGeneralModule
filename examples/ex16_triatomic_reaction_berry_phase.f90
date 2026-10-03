@@ -10,7 +10,7 @@
 ! Standard: Fortran 2008
 ! ==============================================================================
 program ex16_triatomic_reaction_berry_phase
-    use mod_constants, only: dp, PI, AU2EV, AU2CM
+    use mod_constants, only: dp, PI
     use mod_triatomic_geometry
     implicit none
 

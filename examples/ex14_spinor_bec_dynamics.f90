@@ -10,7 +10,7 @@
 ! Standard: Fortran 2008
 ! ==============================================================================
 program ex14_spinor_bec_dynamics
-    use mod_constants, only: dp, PI, FS2AU, AU2FS
+    use mod_constants, only: dp
     use mod_spinor_bec
     implicit none
 

@@ -6,7 +6,7 @@ program test_photofragment_flux
     integer :: n_tests = 0, n_passed = 0
     integer, parameter :: nt = 500, nw = 100, ne = 80
     real(dp) :: dt, t_arr(nt), omega_arr(nw), e_kin_grid(ne)
-    complex(dp) :: psi0(128), psit(128), c_hist(nt), psi_rd(nt), amp_e(ne)
+    complex(dp) :: psi0(128), c_hist(nt), psi_rd(nt), amp_e(ne)
     real(dp) :: abs_spec(nw), ker_spec(ne), ker_channels(ne, 2), yields(2), ratios(2)
     real(dp) :: omega_0, gamma_decay, t_val, sum_ratios, peak_w
     integer :: it, iw, ie, max_idx

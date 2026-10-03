@@ -10,7 +10,7 @@
 ! Standard: Fortran 2008
 ! ==============================================================================
 program ex11_three_body_efimov_recombination
-    use mod_constants, only: dp, PI, AMU2AU
+    use mod_constants, only: dp, AMU2AU
     use mod_three_body_recombination
     implicit none
 

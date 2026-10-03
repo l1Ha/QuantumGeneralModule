@@ -6,8 +6,8 @@ program test_open_quantum_opt
     integer :: n_tests = 0, n_passed = 0
     complex(dp) :: rho_pure(2, 2), rho_mixed(2, 2), rho_t(2, 2)
     complex(dp) :: h_2lvl(2, 2), l_relax(2, 2, 1), l_dephase(2, 2, 1)
-    real(dp) :: gamma_r(1), gamma_d(1), purity, entropy, coherence
-    real(dp) :: dt, t_end
+    real(dp) :: gamma_r(1), gamma_d(1), entropy, coherence
+    real(dp) :: dt
     integer :: step, nt
 
     ! 最优控制变量

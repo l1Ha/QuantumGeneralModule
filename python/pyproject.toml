@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pygenmod"
-version = "1.0.0"
+version = "1.4.0"
 authors = [
   { name="LiHao" },
 ]
@@ -21,3 +21,8 @@ dependencies = [
     "numpy>=1.20",
     "matplotlib>=3.3",
 ]
+
+[tool.setuptools]
+# 显式声明包列表，避免 flat-layout 自动发现在目录结构变化时把
+# examples/ 等脚本目录误当作包。
+packages = ["pygenmod"]

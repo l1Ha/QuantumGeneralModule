@@ -7,15 +7,15 @@
 ! ==============================================================================
 
 program test_hyperspherical_reactive
-    use mod_constants, only: dp, PI, AMU2AU
+    use mod_constants, only: dp, AMU2AU
     use mod_hyperspherical_reactive
     implicit none
 
     integer :: n_pass, n_total
-    type(reaction_mass_t)    :: rmass_h3, rmass_fh2
+    type(reaction_mass_t)    :: rmass_h3
     type(transition_state_t) :: ts_h3
     real(dp) :: rho, alpha, r_out, r_at_out, p_half, p_low, p_high
-    real(dp) :: n_e1, n_e2, k_rate_300k, k_rate_500k, k_tst, kappa_w
+    real(dp) :: n_e1, n_e2, k_rate_300k, k_rate_500k, k_tst
 
     n_pass = 0
     n_total = 0

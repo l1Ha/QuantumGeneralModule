@@ -11,7 +11,7 @@
 ! 4. 双光子受激 Raman 缔合产生 X^1\Sigma_g^+ (v=0) 极性分子的有效拉比频率
 ! ==============================================================================
 program ex10_photoassociation_spectroscopy
-    use mod_constants, only: dp, PI, TO_AU, FROM_AU
+    use mod_constants, only: dp, PI
     use mod_photoassociation
     use mod_io_utils, only: print_banner
     implicit none
@@ -19,7 +19,7 @@ program ex10_photoassociation_spectroscopy
     integer, parameter :: N_PTS = 300, N_DELTA = 31
     real(dp) :: r_grid(N_PTS), u_scat(N_PTS), chi_v(N_PTS), dip_mat(N_PTS)
     real(dp) :: delta_scan(N_DELTA), k_pa_low(N_DELTA), k_pa_mid(N_DELTA), k_pa_high(N_DELTA)
-    real(dp) :: fc_int, fc_dens, gamma_stim_mid, omega_eff
+    real(dp) :: fc_int, fc_dens, omega_eff
     real(dp) :: r, dr, norm_sq
     integer  :: i, u, st
 

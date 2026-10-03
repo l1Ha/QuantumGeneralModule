@@ -4,7 +4,12 @@
 # ==============================================================================
 
 FC := gfortran
+# Xcode 命令行工具路径只在 macOS 上才有意义。在 Linux/Windows 上无条件导出该
+# 变量会污染所有子进程环境（并可能误导依赖该变量的工具链），因此按平台条件设置；
+# 用户仍可用命令行变量覆盖。
+ifeq ($(shell uname -s),Darwin)
 export DEVELOPER_DIR ?= /Library/Developer/CommandLineTools
+endif
 FFLAGS ?= -O2 -fPIC -Wall -Wextra -std=f2008 -ffree-line-length-none
 AR ?= ar
 ARFLAGS ?= rcs

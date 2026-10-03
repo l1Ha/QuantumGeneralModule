@@ -5,7 +5,6 @@ program ex04_field_free_orientation
     implicit none
 
     integer, parameter :: j_max = 15
-    integer, parameter :: n_states = j_max + 1
     integer, parameter :: nt = 500
 
     real(dp) :: b_rot, dipole, alpha_par, alpha_perp, delta_alpha

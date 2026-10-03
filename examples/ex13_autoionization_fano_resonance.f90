@@ -10,7 +10,7 @@
 ! Standard: Fortran 2008
 ! ==============================================================================
 program ex13_autoionization_fano_resonance
-    use mod_constants, only: dp, PI, FS2AU, AU2FS
+    use mod_constants, only: dp, FS2AU, AU2FS
     use mod_autoionization_fano
     implicit none
 

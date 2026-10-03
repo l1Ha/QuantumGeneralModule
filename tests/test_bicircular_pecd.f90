@@ -7,12 +7,12 @@
 ! ==============================================================================
 
 program test_bicircular_pecd
-    use mod_constants, only: dp, PI
+    use mod_constants, only: dp
     use mod_bicircular_pecd
     implicit none
 
     integer :: n_pass, n_total
-    type(bicircular_field_t) :: field_counter, field_co
+    type(bicircular_field_t) :: field_counter
     type(chiral_tetrahedral_molecule_t) :: mol_r, mol_s, mol_achiral
     real(dp) :: chi_r, chi_s, chi_achiral
     real(dp) :: beta1_r, beta1_s, beta1_achiral, g_r, g_s

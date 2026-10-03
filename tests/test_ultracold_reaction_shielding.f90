@@ -13,8 +13,8 @@ program test_ultracold_reaction_shielding
 
     integer :: n_pass, n_total
     type(ultracold_molecule_t) :: krb, narb
-    type(shielding_config_t) :: mw_cfg, dc_cfg
-    real(dp) :: v_eff_k, r_bar, v_bar_k, t_tunnel
+    type(shielding_config_t) :: mw_cfg
+    real(dp) :: r_bar, v_bar_k, t_tunnel
     real(dp) :: k2_el, k2_inel, gamma_ratio
     real(dp) :: det_arr(5), gamma_arr(5)
 

@@ -6,7 +6,12 @@ set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SRC_DIR="$DIR/../src"
-export DEVELOPER_DIR="/Library/Developer/CommandLineTools"
+
+# 仅在 macOS 且确实安装了 Xcode 命令行工具时设置 DEVELOPER_DIR；
+# 其他平台无条件导出会污染子进程环境。
+if [ -d "/Library/Developer/CommandLineTools" ]; then
+    export DEVELOPER_DIR="/Library/Developer/CommandLineTools"
+fi
 
 echo "================================================================"
 echo "          Building and Running GeneralModule Examples           "

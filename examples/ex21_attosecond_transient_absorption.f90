@@ -10,7 +10,7 @@
 ! Standard: Fortran 2008
 ! ==============================================================================
 program ex21_attosecond_transient_absorption
-    use mod_constants, only: dp, PI
+    use mod_constants, only: dp
     use mod_attosecond_transient_absorption
     implicit none
 

@@ -11,7 +11,7 @@
 ! Standard: Fortran 2008
 ! ==============================================================================
 program ex20_feshbach_molecular_bound_states
-    use mod_constants, only: dp, AU2EV, PI
+    use mod_constants, only: dp, AU2EV
     use mod_feshbach_bound_states
     implicit none
 

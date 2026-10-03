@@ -11,7 +11,7 @@
 ! 3. 极性分子 KRb 外加直流电场 (0 ~ 20 kV/cm) 下 Stark 诱导偶极与特征偶极力程 a_d
 ! ==============================================================================
 program ex09_dipolar_relaxation_scattering
-    use mod_constants, only: dp, PI, TO_AU, FROM_AU
+    use mod_constants, only: dp
     use mod_dipolar_scattering
     use mod_io_utils, only: print_banner
     implicit none

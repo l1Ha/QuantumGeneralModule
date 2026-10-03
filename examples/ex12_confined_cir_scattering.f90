@@ -10,7 +10,7 @@
 ! Standard: Fortran 2008
 ! ==============================================================================
 program ex12_confined_cir_scattering
-    use mod_constants, only: dp, PI, TWOPI, AMU2AU
+    use mod_constants, only: dp, TWOPI, AMU2AU
     use mod_confined_scattering
     implicit none
 

@@ -2,6 +2,33 @@
 pygenmod: Python Interface and High-Level Scientific Tools for GeneralModule
 """
 
+import os as _os
+import sys as _sys
+
+
+def _ensure_headless_backend() -> None:
+    """在没有显示环境时把 matplotlib 固定到 Agg 后端。
+
+    CI 容器、SSH 登录会话与远程批处理节点通常没有 X11/Wayland 显示。若让
+    matplotlib 自行探测后端，它会去加载 GTK/Qt 绑定，进而抛出
+    ``ImportWarning: DynamicImporter.exec_module() not found`` 甚至直接失败。
+
+    仅在 Linux 且检测不到显示、并且用户没有通过 ``MPLBACKEND`` 环境变量显式
+    指定后端时才介入，因此本地图形会话的行为不受影响。
+    """
+    if _os.environ.get("MPLBACKEND"):
+        return
+    if not _sys.platform.startswith("linux"):
+        return
+    if _os.environ.get("DISPLAY") or _os.environ.get("WAYLAND_DISPLAY"):
+        return
+    import matplotlib
+
+    matplotlib.use("Agg", force=True)
+
+
+_ensure_headless_backend()
+
 from .constants import (
     PI, TWOPI, HALFPI, SQRTPI,
     C_LIGHT, HBAR, H_PLANCK, M_E, CHARGE_E, EPS0, KB, AMU2AU,

@@ -11,7 +11,7 @@
 ! Standard: Fortran 2008
 ! ==============================================================================
 program ex17_hyperspherical_reaction_rates
-    use mod_constants, only: dp, PI, EV2AU, AU2EV, CM2AU
+    use mod_constants, only: dp, EV2AU, AU2EV, CM2AU
     use mod_hyperspherical_reactive
     implicit none
 

@@ -161,7 +161,7 @@ program test_three_body_recombination
     ! --------------------------------------------------------------------------
     call calc_three_body_recombination_universal(0.0_dp, mass_rb87, param, res_zero, stat)
     n_total = n_total + 1
-    if (stat == 0 .and. res_zero%k3_au == 0.0_dp) then
+    if (stat == 0 .and. abs(res_zero%k3_au) <= 1.0e-14_dp) then
         print *, " [PASS] Zero scattering length safely returns zero loss"
         n_pass = n_pass + 1
     else

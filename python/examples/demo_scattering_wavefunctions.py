@@ -7,10 +7,13 @@ Solving and Comparing Continuous Scattering Energy Eigenfunctions
 import os
 import sys
 import numpy as np
-import matplotlib.pyplot as plt
 
 # Add pygenmod to python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+import pygenmod  # noqa: F401  先导入以触发无显示环境下 matplotlib 后端的自动选择
+
+import matplotlib.pyplot as plt
 
 from pygenmod import (
     calc_scattering_wavefunction_1d_cartesian,

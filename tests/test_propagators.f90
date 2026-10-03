@@ -8,7 +8,7 @@ program test_propagators
     real(dp) :: tol = 1.0e-3_dp
 
     ! Bloch 测试变量
-    real(dp) :: r_bloch(3), rabi, detun, dt, t, bloch_norm
+    real(dp) :: r_bloch(3), rabi, detun, dt, bloch_norm
     integer :: step, n_steps
 
     ! Split-Operator 测试变量
@@ -20,7 +20,6 @@ program test_propagators
     ! CAP 吸收边界测试变量
     type(absorbing_boundary_t) :: cap_obj
     complex(dp) :: v_cap
-    real(dp) :: norm_after_cap
 
     print '(A)', "=================================================="
     print '(A)', "     GeneralModule Unit Tests: Propagators        "

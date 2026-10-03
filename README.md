@@ -173,8 +173,10 @@ GeneralModule/
 │   └── build_examples.sh           # 算例编译运行脚本 (全 36 算例编译运行通过)
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
+    ├── README.md                  # pygenmod 子包独立说明与快速上手
     ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 12/12 测试)
     ├── plot_rovibrational_dynamics.py # 出版级分子转振受控动力学一键绘图管道
+    ├── examples/                  # Python 算例 (TI vs TD 散射波函数对比)
     └── pygenmod/
         ├── __init__.py
         ├── constants.py
@@ -1419,7 +1421,7 @@ $$
 ## 📖 详细配置手册
 
 本算法库配备了详尽的配置与环境搭建指南：
-👉 **[CONFIG_GUIDE.md](file:///Users/lihao/Library/CloudStorage/SynologyDrive-aecho/Codes/Fortran/GeneralModule/CONFIG_GUIDE.md)**
+👉 **[CONFIG_GUIDE.md](CONFIG_GUIDE.md)**
 - **全平台编译器配置**：GCC/gfortran (9~15)、Intel oneAPI (ifx/ifort)、macOS Xcode 许可绕过说明。
 - **构建系统深度指南**：fpm, CMake, 通用 Makefile, 纯命令行打包实战。
 - **算法参数配置全典**：`pulse_config_t`, `dvr_1d_t`, `absorbing_boundary_t`, `atom_config_t` 取值范围与物理单位换算。
@@ -1642,12 +1644,18 @@ chmod +x build_examples.sh
 
 ## 🐍 Python 辅助分析套件 (`pygenmod`)
 
-提供轻量 Python 库，用于数据交互、前处理计算与出版级可视化：
+提供轻量 Python 库，用于数据交互、前处理计算与出版级可视化。子包自带独立说明
+[python/README.md](python/README.md)：
 
 ```bash
 cd GeneralModule/python
 python3 test_pygenmod.py   # 运行 12 大单元测试 (100% Pass)
+pip install ./python       # 或按标准 Python 包安装 (pygenmod 1.4.0)
 ```
+
+> 无显示环境（CI 容器、SSH 会话、批处理节点）下，包在导入时会自动把 Matplotlib
+> 切到 `Agg` 后端，无需手动设置 `MPLBACKEND`；若需图形界面显示，可显式设置
+> `MPLBACKEND=TkAgg` 覆盖该行为。
 
 ### 1. 超冷散射长度与零能波函数渐近线可视化 (`scattering.py`)
 计算任意相互作用势的零能波函数 $u(r)$，解析并可视化渐近线 $C(r - a_s)$ 与 $r$ 轴截距所确定的散射长度 $a_s$：

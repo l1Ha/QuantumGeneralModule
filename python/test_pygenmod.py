@@ -312,7 +312,9 @@ class TestPyGenMod(unittest.TestCase):
         np.testing.assert_allclose(p_exc, np.diag(np.diag(p_exc)), atol=1e-14)
 
         # 5. Feshbach fit
+        # 避开 b0 = 80 G 共振极点：解析式在 B = b0 处发散，采样网格需错开该点。
         b_test = np.linspace(50.0, 110.0, 61)
+        b_test = b_test[np.abs(b_test - 80.0) > 1.0e-9]
         a_test = 100.0 * (1.0 - 5.0 / (b_test - 80.0))
         b0_fit, delta_b_fit, a_bg_fit = fit_feshbach_resonance_parameters(b_test, a_test)
         self.assertAlmostEqual(b0_fit, 80.0, delta=1.0)

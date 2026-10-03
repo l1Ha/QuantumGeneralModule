@@ -2,7 +2,7 @@
 ! GeneralModule Unit Tests: Time-Dependent Scattering (mod_td_scattering)
 ! ==============================================================================
 program test_td_scattering
-    use mod_constants, only: dp, PI, TWOPI
+    use mod_constants, only: dp, TWOPI
     use mod_wavepacket_propagator, only: propagate_split_operator_1d
     use mod_td_scattering
     implicit none

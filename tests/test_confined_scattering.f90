@@ -7,7 +7,7 @@
 ! ==============================================================================
 
 program test_confined_scattering
-    use mod_constants, only: dp, PI, TWOPI, AMU2AU, HBAR
+    use mod_constants, only: dp, TWOPI, AMU2AU
     use mod_confined_scattering
     implicit none
 
@@ -134,7 +134,8 @@ program test_confined_scattering
                                     mu_rb87, a_cir_x, a_cir_y, stat)
 
     n_total = n_total + 1
-    if (stat == 0 .and. a_cir_x /= a_cir_y) then
+    if (stat == 0 .and. abs(a_cir_x - a_cir_y) > &
+        1.0e-8_dp * max(abs(a_cir_x), abs(a_cir_y))) then
         print *, " [PASS] Anisotropic CIR poles split: a_CIR,x = ", a_cir_x, &
                  ", a_CIR,y = ", a_cir_y
         n_pass = n_pass + 1

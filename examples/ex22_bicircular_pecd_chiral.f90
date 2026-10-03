@@ -11,7 +11,7 @@
 ! Standard: Fortran 2008
 ! ==============================================================================
 program ex22_bicircular_pecd_chiral
-    use mod_constants, only: dp, PI, FS2AU, AU2FS
+    use mod_constants, only: dp, FS2AU, AU2FS
     use mod_bicircular_pecd
     implicit none
 

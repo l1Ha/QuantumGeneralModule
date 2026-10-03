@@ -20,7 +20,7 @@ program test_laser_rovibrational_control
     real(dp) :: d_e, r_e, beta
     real(dp), allocatable :: v_morse(:), dip_r(:), inv_r2(:)
     real(dp), allocatable :: eig_vals(:), eig_vecs(:, :), chi_wavefuncs(:, :)
-    integer :: stat, v, j, k, step, file_unit
+    integer :: stat, v, j, k, step
 
     ! 转振基底参数
     real(dp) :: e_vib(0:v_max)
@@ -41,7 +41,6 @@ program test_laser_rovibrational_control
 
     ! 测试断言变量
     integer :: n_tests = 0, n_passed = 0
-    real(dp) :: tol = 1.0e-5_dp
 
     call print_banner("GeneralModule: Laser Rovibrational State Control Test", 68)
 
@@ -242,7 +241,7 @@ contains
         do i_idx = 1, dim_n
             h_c = diag_e(i_idx) * c_in(i_idx)
             do j_idx = 1, dim_n
-                if (dip_m(i_idx, j_idx) /= 0.0_dp) then
+                if (abs(dip_m(i_idx, j_idx)) > 1.0e-14_dp) then
                     h_c = h_c - e_t * dip_m(i_idx, j_idx) * c_in(j_idx)
                 end if
             end do

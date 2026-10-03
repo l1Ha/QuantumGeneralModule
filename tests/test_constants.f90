@@ -6,7 +6,7 @@ program test_constants
     integer :: n_tests = 0
     integer :: n_passed = 0
     real(dp) :: tol = 1.0e-10_dp
-    real(dp) :: val_in, val_au, val_out, err
+    real(dp) :: val_in, val_au, val_out
 
     print '(A)', "=================================================="
     print '(A)', "       GeneralModule Unit Tests: Constants        "
