@@ -95,7 +95,7 @@ test: lib
 	@echo "==> Running full unit test suite (41 test suites)..."
 	@bash $(TEST_DIR)/run_all_tests.sh
 
-test-python: ## Run pygenmod Python unit tests (26 tests)
+test-python: ## Run pygenmod Python unit tests (27 tests)
 	@echo "==> Running pygenmod Python unit tests..."
 	@cd python && python3 test_pygenmod.py
 

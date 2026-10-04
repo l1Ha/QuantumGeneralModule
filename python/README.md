@@ -75,7 +75,7 @@ plot_scattering_length_wavefunction(r, v_pot, u_wf, a_s, save_path="scattering_l
 python3 test_pygenmod.py
 ```
 
-该脚本使用标准库 `unittest`，不依赖 pytest；全部 26 项测试覆盖常数换算、
+该脚本使用标准库 `unittest`，不依赖 pytest；全部 27 项测试覆盖常数换算、
 脉冲、DVR、HHG、多通道散射、冷原子场致散射、绘图冒烟测试，以及第 17—18 章
 参考实现的验证层次：QCT 守恒律与统计一致性、SOP 作用对照稠密 Kronecker 和、
 TT 舍入往返、Smolyak 两种构造逐点一致、MCTDH 全空间精确性/规范与守恒/SPF 收敛。

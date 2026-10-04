@@ -1655,7 +1655,7 @@ chmod +x build_examples.sh
 
 ```bash
 cd GeneralModule/python
-python3 test_pygenmod.py   # 运行 26 项单元测试 (100% Pass)
+python3 test_pygenmod.py   # 运行 27 项单元测试 (100% Pass)
 pip install ./python       # 或按标准 Python 包安装 (pygenmod 1.5.0)
 ```
 

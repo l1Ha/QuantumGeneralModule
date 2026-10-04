@@ -58,7 +58,7 @@ jobs:
         run: |
           bash examples/build_examples.sh
 
-      - name: Run Python Package Unit Tests (pygenmod, 26 Tests)
+      - name: Run Python Package Unit Tests (pygenmod, 27 Tests)
         run: |
           python3 python/test_pygenmod.py
 

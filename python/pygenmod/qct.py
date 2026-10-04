@@ -781,7 +781,9 @@ def qct_thermal_rate(energies, sigmas, temperature: float, mu_r: float):
     order = np.argsort(e)
     e, s = e[order], s[order]
     integrand = e * s * np.exp(-e / temperature)
-    integral = np.trapz(integrand, e)
+    # np.trapz is deprecated in NumPy 2.x; prefer trapezoid when available
+    trapz = getattr(np, "trapezoid", None) or np.trapz
+    integral = float(trapz(integrand, e))
     pref = math.sqrt(8.0 / (math.pi * mu_r * temperature ** 3))
     return pref * integral
 
