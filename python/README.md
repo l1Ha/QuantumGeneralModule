@@ -41,6 +41,11 @@ pip install ./python
 | `rovibrational.py` | 转振态索引映射、Franck-Condon 因子、转动常数与跃迁偶极矩阵 |
 | `scattering.py` | Numerov 散射长度、多通道紧密耦合、散射波函数与微分截面 |
 | `field_scattering.py` | Breit-Rabi 能级、场致碰撞通道、自旋交换矩阵与 Feshbach 拟合 |
+| `qct.py` | QCT 反应散射：LEPS 势能面、EBK 作用量初条件、Velocity-Verlet、不透明度函数、截面与热速率（教科书第 17 章） |
+| `sop_hamiltonian.py` | 和积（SOP）哈密顿量的矩阵自由作用与 POTFIT 分解（第 18.1 节） |
+| `tensor_train.py` | 张量列车：TT-SVD、舍入、内积、TT 算符应用（第 18.3 节） |
+| `mctdh_core.py` | MCTDH 核心：A 系数与单粒子函数（SPF）联合传播（第 18.2 节） |
+| `sparse_grid.py` | Smolyak 稀疏网格与嵌套 Clenshaw–Curtis 规则（第 18.4 节） |
 | `visualizer.py` | 发表级绘图样式与波函数、脉冲、取向对齐动力学出图 |
 
 ## 快速示例
@@ -66,5 +71,17 @@ plot_scattering_length_wavefunction(r, v_pot, u_wf, a_s, save_path="scattering_l
 python3 test_pygenmod.py
 ```
 
-该脚本使用标准库 `unittest`，不依赖 pytest；全部 12 组测试覆盖常数换算、
-脉冲、DVR、HHG、多通道散射、冷原子场致散射与绘图冒烟测试。
+该脚本使用标准库 `unittest`，不依赖 pytest；全部 26 项测试覆盖常数换算、
+脉冲、DVR、HHG、多通道散射、冷原子场致散射、绘图冒烟测试，以及第 17—18 章
+参考实现的验证层次：QCT 守恒律与统计一致性、SOP 作用对照稠密 Kronecker 和、
+TT 舍入往返、Smolyak 两种构造逐点一致、MCTDH 全空间精确性/规范与守恒/SPF 收敛。
+`docs/audit_textbook.py` 会对同一套不变量做独立复核。
+
+## 性能说明
+
+- QCT 系综传播已向量化（全部轨迹合并为 `(N, 3, 3)` 数组推进），
+  Velocity-Verlet 每步只做一次势能梯度求值（力复用），300 条轨迹约 0.3 s；
+- 初始条件的 EBK 轨道表按 `(v, j)` 缓存，整个系综只积分一次径向轨道；
+- MCTDH 的 SPF 基矩阵 eta 在 A 方程与平均场之间共享，每步只构造一次；
+- Clenshaw–Curtis 规则带 LRU 缓存。更大规模的 QCT/MCTDH 计算建议放到
+  服务器或批处理队列上执行，先用小系综确认收敛再放大轨迹数与键维。

@@ -7,7 +7,9 @@ Checks:
 3. every internal GitHub blob link maps to an existing local path;
 4. every internal "X.Y 节" cross-reference resolves to a section heading;
 5. every DOI has syntactically valid form and (with --online) resolves at Crossref;
-6. key QCT and high-dimensional formulas are validated by independent numerical tests.
+6. key QCT and high-dimensional formulas are validated by independent numerical tests;
+7. the pygenmod reference implementations (qct, sop_hamiltonian, tensor_train,
+   sparse_grid, mctdh_core) reproduce the same invariants on the shipped code.
 """
 from __future__ import annotations
 
@@ -198,6 +200,85 @@ def numerical_checks() -> dict:
     return results
 
 
+def pygenmod_checks() -> dict:
+    """Cross-checks against the shipped pygenmod reference implementations."""
+    results: dict[str, float | bool] = {}
+    sys.path.insert(0, str(ROOT / "python"))
+
+    from pygenmod.qct import (InitialSampler, LEPSParameters, QCTConfig,
+                              _product_internal_state, _product_jacobi,
+                              _total_angular_momentum, _total_energy,
+                              propagate_trajectory, qct_init_trajectory)
+    from pygenmod.sop_hamiltonian import SOPHamiltonian, SOPTerm
+    from pygenmod.tensor_train import tt_from_dense, tt_round, tt_to_dense
+
+    # 1. SOP matrix-free action vs dense Kronecker sum (shipped code).
+    rng = np.random.default_rng(5)
+    terms = [SOPTerm(coeff=float(rng.normal()),
+                     factors=[rng.normal(size=(4, 4)) for _ in range(3)])
+             for _ in range(4)]
+    sop = SOPHamiltonian(dims=(4, 4, 4), terms=terms)
+    v = rng.normal(size=(4, 4, 4))
+    dense = np.zeros((64, 64))
+    for term in terms:
+        op = np.array([[term.coeff]])
+        for f in term.factors:
+            op = np.kron(op, f)
+        dense += op
+    results["sop_action_rel_error"] = float(
+        np.linalg.norm(sop.apply(v).ravel() - dense @ v.ravel()) / np.linalg.norm(dense @ v.ravel()))
+
+    # 2. TT-SVD + rounding roundtrip.
+    a = rng.normal(size=(4, 5, 6))
+    tt = tt_round(tt_from_dense(a, eps=1e-12), eps=1e-12)
+    results["tt_roundtrip_rel_error"] = float(
+        np.linalg.norm(tt_to_dense(tt) - a) / np.linalg.norm(a))
+
+    # 3. QCT trajectory: energy and angular-momentum conservation.
+    par = LEPSParameters()
+    cfg = QCTConfig(e_coll=1.5 / 27.211386245988, b_max=3.0, r_start=9.0,
+                    r_end=11.0, dt=3.0, max_steps=8000, seed=7)
+    sampler = InitialSampler.build(cfg, par)
+    tr = qct_init_trajectory(cfg, np.random.default_rng(cfg.seed), par, sampler)
+    e0, j0 = tr.e_total, float(np.linalg.norm(tr.j_total))
+    propagate_trajectory(tr, cfg, par)
+    e1 = _total_energy(tr.q, tr.p, cfg.mass, par)
+    j1 = float(np.linalg.norm(_total_angular_momentum(tr.q, tr.p, cfg.mass)))
+    results["qct_energy_drift"] = abs(e1 - e0)
+    results["qct_angular_momentum_drift"] = abs(j1 - j0) / max(j0, 1.0)
+    pair, atom = _product_jacobi(tr.q)
+    e_int, _, _, _ = _product_internal_state(tr.q, tr.p, pair, atom, cfg.mass,
+                                             par, tr.r_dir_initial)
+    results["qct_internal_energy_bound_ok"] = bool(
+        abs(e_int - tr.e_total - par.d_e) <= cfg.e_coll + par.d_e + 1.0e-4)
+
+    # 4. MCTDH: norm conservation and full-space fidelity over 20 RK4 steps.
+    from pygenmod.mctdh_core import MCTDHConfig, MCTDHState, mctdh_propagate
+    h = [rng.normal(size=(4, 4)) for _ in range(3)]
+    h = [x + x.T for x in h]
+    sop_m = SOPHamiltonian(dims=(4, 4, 4), terms=[
+        SOPTerm(1.0, [h[0], np.eye(4), np.eye(4)]),
+        SOPTerm(1.0, [np.eye(4), h[1], np.eye(4)]),
+        SOPTerm(0.2, [h[0], h[1], np.eye(4)]),
+        SOPTerm(0.2, [np.eye(4), h[1], h[2]]),
+    ])
+    a0 = rng.normal(size=(4, 4, 4)) + 1j * rng.normal(size=(4, 4, 4))
+    a0 /= np.linalg.norm(a0)
+    st = MCTDHState(A=a0.copy(), spf=[np.eye(4, dtype=complex)] * 3)
+    hd = 0.5 * (sop_m.to_dense() + sop_m.to_dense().conj().T)
+    w_eig, u_eig = np.linalg.eigh(hd)
+    a_ex = u_eig.conj().T @ a0.reshape(-1)
+    t_end, dt = 0.1, 0.0025
+    a_ex = np.einsum("ij,j->i", u_eig,
+                     np.exp(-1j * w_eig * t_end) * a_ex).reshape(a0.shape)
+    mctdh_propagate(st, sop_m, MCTDHConfig(dt=dt, n_steps=int(t_end / dt)))
+    results["mctdh_norm_drift"] = abs(st.norm() - 1.0)
+    results["mctdh_fidelity_error"] = float(1.0 - abs(
+        np.sum(a_ex.conj() * st.A)) ** 2 / np.linalg.norm(st.A) ** 2)
+
+    return results
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--online", action="store_true", help="verify DOIs through Crossref")
@@ -212,6 +293,7 @@ def main() -> int:
         "cross_references": check_cross_references(text),
         "dois": check_dois(text, args.online),
         "numerical": numerical_checks(),
+        "pygenmod": pygenmod_checks(),
     }
 
     if args.json:
@@ -233,6 +315,13 @@ def main() -> int:
         or report["numerical"]["qct_differential_sigma_rel_error"] > 0.01
         or report["numerical"]["sop_action_rel_error"] > 1e-12
         or report["numerical"]["smolyak_max_rel_error"] > 1e-10
+        or report["pygenmod"]["sop_action_rel_error"] > 1e-12
+        or report["pygenmod"]["tt_roundtrip_rel_error"] > 1e-10
+        or report["pygenmod"]["qct_energy_drift"] > 1e-4
+        or report["pygenmod"]["qct_angular_momentum_drift"] > 1e-10
+        or not report["pygenmod"]["qct_internal_energy_bound_ok"]
+        or report["pygenmod"]["mctdh_norm_drift"] > 1e-8
+        or report["pygenmod"]["mctdh_fidelity_error"] > 1e-6
     )
     return 1 if failures else 0
 

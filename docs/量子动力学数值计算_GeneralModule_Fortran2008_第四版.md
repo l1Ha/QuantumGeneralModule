@@ -459,7 +459,7 @@ $$\hat{H}_{\mathrm{vr}}=\frac{1}{2}\sum_{\alpha\beta}\mu_{\alpha\beta}\bigl(\hat
 +\frac{1}{2}\sum_{k}\hat{p}_{k}^{2}+V(\mathbf{Q})
 -\frac{\hbar^{2}}{8}\sum_{\alpha}\mu_{\alpha\alpha},$$
 
-其中 $\mu_{\alpha\beta}$ 为有效惯量逆张量（简正坐标的函数），$\hat{J}_{\alpha}$ 为体固定角动量分量，$\hat{\pi}_{\alpha}=\sum_{kl}\zeta^{\alpha}_{kl}Q_k\hat{p}_l$ 为振动角动量，$\zeta^{\alpha}_{kl}$ 为 Coriolis ζ 常数（对 $k,l$ 反对称），末项为 Watson 伪势。Eckart 条件
+其中 $\mu_{\alpha\beta}$ 为有效惯量逆张量（简正坐标的函数），$\hat{J}_{\alpha}$ 为体固定角动量分量，$\hat{\pi}_{\alpha}=\sum_{kl}\zeta^{\alpha}_{kl}Q_k\hat{p}_l$ 为振动角动量，$\zeta^{\alpha}_{kl}$ 为 Coriolis $\zeta$ 常数（对 $k,l$ 反对称），末项为 Watson 伪势。Eckart 条件
 
 $$\sum_i m_i\mathbf{a}_i=\mathbf{0},\qquad \sum_i m_i\,\mathbf{r}_{i,e}\times\mathbf{a}_i=\mathbf{0}$$
 
@@ -483,7 +483,7 @@ $$\Delta E_{vJ}^{(2)}=\sum_{v'\ne v}\frac{|\langle v'|\Delta B|v\rangle|^{2}}{E_
 
 **物理含义。** Watson 哈密顿量是高分辨转动光谱拟合的标准模型（分子常数 $A,B,C,D_J,D_{JK},\ldots,\zeta$ 的物理载体）。离心畸变度量化学键的转动软化：转得越快，键被离心力拉伸，$B$ 下降，能级相对刚转子逐级下压；Coriolis 耦合则是转动能级内振动角动量再分配的通道，是红外–微波双共振与 $l$ 型倍频光谱的核心机制。对范德华络合物与其它 floppy 体系，微扰展开失效，须回到精确动能算符做变分处理——这正是 DVR 与密耦方法的价值所在。
 
-**数值陷阱。** 其一，度量约定：FGH/DVR 求解器返回的本征矢系数在格点 Kronecker 度量下归一化，而 quadrature 型积分函数（如 `calc_rotational_constants_bv`）期望物理波函数 $\psi=z/\sqrt{\Delta x}$；直接以原始系数调用会得到缩小 $\Delta x$ 倍的 $B_v$（下述实验实测 $0.6726$ 对 $60.18\ \mathrm{cm^{-1}}$）。其二，Watson 伪势 $-\hbar^{2}\sum_\alpha\mu_{\alpha\alpha}/8$ 虽小，对轻氢化物可达 $0.1\ \mathrm{cm^{-1}}$ 量级，高分辨拟合中不可忽略。其三，A reduction 在近球形陀螺极限退化，应改用 S reduction；ζ 常数的符号约定在 Wilson–Decius–Cross 与 Watson 两套文献中相反。其四，微扰离心畸变常数在低频模体系（范德华模、弯曲模）失效，误差可达一个量级。
+**数值陷阱。** 其一，度量约定：FGH/DVR 求解器返回的本征矢系数在格点 Kronecker 度量下归一化，而 quadrature 型积分函数（如 `calc_rotational_constants_bv`）期望物理波函数 $\psi=z/\sqrt{\Delta x}$；直接以原始系数调用会得到缩小 $\Delta x$ 倍的 $B_v$（下述实验实测 $0.6726$ 对 $60.18\ \mathrm{cm^{-1}}$）。其二，Watson 伪势 $-\hbar^{2}\sum_\alpha\mu_{\alpha\alpha}/8$ 虽小，对轻氢化物可达 $0.1\ \mathrm{cm^{-1}}$ 量级，高分辨拟合中不可忽略。其三，A reduction 在近球形陀螺极限退化，应改用 S reduction；$\zeta$ 常数的符号约定在 Wilson–Decius–Cross 与 Watson 两套文献中相反。其四，微扰离心畸变常数在低频模体系（范德华模、弯曲模）失效，误差可达一个量级。
 
 **GeneralModule 实现映射。** 源码 `src/mod_rovibrational.f90`：`build_rovibrational_hamiltonian`（零级转振能级组装）、`calc_rotational_constants_bv`（振动平均转动常数 $\langle\chi_v|\hbar^{2}/(2\mu R^{2})|\chi_v\rangle$）、`calc_vibrational_dipole_matrix` 与 `calc_franck_condon_factors`；`src/mod_dvr_grid.f90`：`dvr_sinc_init` 与 `fgh_solve_bound_states`（提供 $\chi_v$）。文献依据：E. B. Wilson, Jr., J. C. Decius 与 P. C. Cross, *Molecular Vibrations*, McGraw-Hill, New York (1955)；J. K. G. Watson, Mol. Phys. 15, 479 (1968)；Bunker 与 Jensen (1998)。GitHub 直链：[src/mod_rovibrational.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_rovibrational.f90)。二维码：`qr/src__mod_rovibrational.f90.png`。
 
@@ -3881,6 +3881,11 @@ GitHub Actions 配置位于：
 | Feshbach 示例 | [examples/ex08_ultracold_feshbach_segmented.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex08_ultracold_feshbach_segmented.f90) | `qr/examples__ex08_ultracold_feshbach_segmented.f90.png` |
 | FSSH 示例 | [examples/ex30_tully_surface_hopping.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex30_tully_surface_hopping.f90) | `qr/examples__ex30_tully_surface_hopping.f90.png` |
 | Python 可视化 | [python/pygenmod/visualizer.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/visualizer.py) | `qr/python__pygenmod__visualizer.py.png` |
+| QCT 动力学 | [python/pygenmod/qct.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/qct.py) | `qr/python__pygenmod__qct.py.png` |
+| SOP 哈密顿量 | [python/pygenmod/sop_hamiltonian.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/sop_hamiltonian.py) | `qr/python__pygenmod__sop_hamiltonian.py.png` |
+| 张量列车 | [python/pygenmod/tensor_train.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/tensor_train.py) | `qr/python__pygenmod__tensor_train.py.png` |
+| MCTDH 核心 | [python/pygenmod/mctdh_core.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/mctdh_core.py) | `qr/python__pygenmod__mctdh_core.py.png` |
+| 稀疏网格 | [python/pygenmod/sparse_grid.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/sparse_grid.py) | `qr/python__pygenmod__sparse_grid.py.png` |
 
 ## 结语
 
@@ -4756,6 +4761,34 @@ end subroutine expect_close
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 
+### 16.5　QCT 与高维章节核查
+
+新增的第 17、18 章按公式逐项核查：
+
+- QCT 的 Hamilton 方程、Velocity-Verlet、不透明度函数和 Monte Carlo 截面估计一致；
+- 态到态截面公式要求碰撞参数在圆盘内均匀抽样；
+- 微分散射截面已补充多分支 rainbow 求和和端点处理说明；
+- EBK/WKB 作用量指认已明确为近似，不适用于所有 Morse 体系的精确恒等式；
+- MCTDH 的 SPF 方程已补充规范自由度与密度矩阵伪逆/正则化说明；
+- TT/MPS 存储复杂度已补充变键维表达式；
+- Smolyak 稀疏网格复杂度已明确依赖函数光滑性和一维求积规则。
+
+两章的算法已同步落地为 Python 参考实现（`python/pygenmod` 的 `qct`、
+`sop_hamiltonian`、`tensor_train`、`mctdh_core`、`sparse_grid` 五个模块），
+并有 26 项单元测试覆盖下列不变量：
+
+- EBK 作用量量子化对 Morse 振子精确（偏差 $<10^{-9}D_e$）；
+- QCT 轨迹的总能量漂移低于 $10^{-4}$ Hartree，总角动量守恒到 $10^{-10}$；
+- 产物内能满足严格不等式 $|\Delta E_{\mathrm{int}}|\le E_{\mathrm{coll}}$；
+- SOP 矩阵自由作用与稠密 Kronecker 和一致（偏差 $\sim10^{-16}$）；
+- POTFIT/TT-SVD 重构误差满足给定容差；
+- Smolyak 网格的系数形式与差分形式逐点一致，常数积分精确；
+- MCTDH 在全单粒子函数空间复现精确演化（旋转基下亦然），
+  范数与正交归一守恒到 $10^{-10}$，能量守恒，且保真度随 SPF 数单调提高。
+
+Fortran 版本的 `mod_qct_dynamics` 与四个高维模块仍在第 12 章路线图中；
+数值验收详见 16.4 节与 `docs/audit_textbook.py`。
+
 # 第十四部分　QCT 动力学与高维量子扩展
 
 ## 第17章　准经典轨迹动力学
@@ -4883,6 +4916,15 @@ $$
 $$
 
 Velocity-Verlet 是二阶辛格式，长时间能量漂移较小。若使用广义坐标和约束，应采用 RATTLE 或 SHAKE 等约束辛积分器。自适应步长虽然方便，但一般会破坏严格辛性；若必须使用，应同时监测能量误差和相位误差。
+
+#### 对应源码
+
+- [python/pygenmod/qct.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/qct.py)（Python 参考实现：LEPS 势能面、EBK 初条件与 Velocity-Verlet 轨迹引擎）
+- 二维码：`qr/python__pygenmod__qct.py.png`
+
+![](qr/python__pygenmod__qct.py.png){width=2.0cm}
+
+
 
 ### 17.4　终态分类与截面
 
@@ -5143,6 +5185,13 @@ end module mod_qct_dynamics
 - 机器学习势能面：`mod_pes_machine_learning`；
 - 反应 Jacobi 坐标：`mod_triatomic_geometry`。
 
+上述接口的 Python 参考实现已经可用：`python/pygenmod/qct.py` 按
+`qct_config_t`/`qct_trajectory_t`/`qct_result_t` 的字段组织数据类，
+并提供 `qct_init_trajectory`、`qct_propagate_step`、`qct_analyze_final_state`、
+`run_qct_ensemble`、`qct_cross_section`、`qct_thermal_rate` 等同名函数；
+默认势能面为 H + H$_2$ 的 LEPS 面（Karplus–Porter–Sharma），初条件按
+17.2 节在不变环面上均匀抽样。
+
 ### 17.9　参考文献
 
 1. M. Karplus, R. N. Porter, and R. D. Sharma, “Exchange reactions with activation energy. I. Simple barrier potential for (H,H2)”, *J. Chem. Phys.* **43**, 3259 (1965). DOI: 10.1063/1.1697301.
@@ -5199,6 +5248,13 @@ $$
 
 若每个局部算符为稠密 $n\times n$ 矩阵，代价为 $O(MDn^{D+1})$；若局部算符稀疏或可用 FFT，则可显著降低。SOP 表示是 MCTDH、张量网络和高维 Krylov 方法的基础。
 
+#### 对应源码
+
+- [python/pygenmod/sop_hamiltonian.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/sop_hamiltonian.py)（Python 参考实现：SOP 矩阵自由作用与 POTFIT 分解）
+- 二维码：`qr/python__pygenmod__sop_hamiltonian.py.png`
+
+![](qr/python__pygenmod__sop_hamiltonian.py.png){width=2.0cm}
+
 势能面通常不是严格 SOP，可使用：
 
 1. **POTFIT**：把全网格势能拟合成最优 SOP；
@@ -5245,6 +5301,13 @@ $$
 
 其中 $P^{(\kappa)}$ 是第 $\kappa$ 维 SPF 空间的投影算符，$\rho^{(\kappa)}$ 是该维密度矩阵。上式应理解为规范固定后的标准形式；实际实现中 $\rho^{(\kappa)}$ 可能奇异或病态，需使用伪逆、正则化或合适的规范条件。MCTDH 的优势是 SPF 随时间自适应；代价是每步需要构造均值场矩阵和势能 SOP。
 
+#### 对应源码
+
+- [python/pygenmod/mctdh_core.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/mctdh_core.py)（Python 参考实现：A 系数与 SPF 联合传播（自然规范 + RK4））
+- 二维码：`qr/python__pygenmod__mctdh_core.py.png`
+
+![](qr/python__pygenmod__mctdh_core.py.png){width=2.0cm}
+
 MCTDH 适合：
 
 - 中等维强耦合体系；
@@ -5286,6 +5349,15 @@ TT/MPS 的关键操作包括：
 
 TT/MPS 对一维近邻耦合特别高效；对长程耦合或高维张量网络，需要更一般的分层张量表示。
 
+#### 对应源码
+
+- [python/pygenmod/tensor_train.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/tensor_train.py)（Python 参考实现：TT-SVD、舍入、内积与 TT 算符）
+- 二维码：`qr/python__pygenmod__tensor_train.py.png`
+
+![](qr/python__pygenmod__tensor_train.py.png){width=2.0cm}
+
+
+
 ### 18.4　稀疏网格与 Smolyak 构造
 
 全张量网格的网格数为 $n^D$。对光滑函数，稀疏网格可显著减少网格数。Smolyak 构造为
@@ -5311,6 +5383,15 @@ O\!\left(N(\log N)^{D-1}\right),
 $$
 
 而不是 $O(N^D)$。该复杂度依赖于函数光滑性和一维求积规则的选择；对强振荡、强局域或奇点问题，需要自适应稀疏网格。
+
+#### 对应源码
+
+- [python/pygenmod/sparse_grid.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/sparse_grid.py)（Python 参考实现：嵌套 Clenshaw–Curtis 规则与 Smolyak 构造）
+- 二维码：`qr/python__pygenmod__sparse_grid.py.png`
+
+![](qr/python__pygenmod__sparse_grid.py.png){width=2.0cm}
+
+
 
 ### 18.5　剪枝乘积基
 
@@ -5414,6 +5495,15 @@ module mod_sparse_grid
 end module mod_sparse_grid
 ```
 
+四个模块的 Python 参考实现已同步落地：
+[`sop_hamiltonian.py`](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/sop_hamiltonian.py)、
+[`tensor_train.py`](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/tensor_train.py)、
+[`mctdh_core.py`](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/mctdh_core.py)、
+[`sparse_grid.py`](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/sparse_grid.py)，
+与本节的 Fortran 接口一一对应，并已按 18.9 节的验证层次通过单元测试
+（SOP 作用对照稠密 Kronecker 和、TT 舍入往返、Smolyak 两种构造逐点一致、
+MCTDH 全空间精确性与 SPF 收敛）。
+
 建议的最小实现顺序：
 
 1. 先实现 SOP 哈密顿量及其矩阵—向量乘法；
@@ -5449,16 +5539,3 @@ end module mod_sparse_grid
 4. U. Schollwöck, “The density-matrix renormalization group in the age of matrix product states”, *Ann. Phys.* **326**, 96 (2011). DOI: 10.1016/j.aop.2010.09.012.
 5. H.-J. Bungartz and M. Griebel, “Sparse grids”, *Acta Numer.* **13**, 147 (2004). DOI: 10.1017/S0962492904000182.
 6. GeneralModule 源码：<https://github.com/l1Ha/QuantumGeneralModule>
-## 13.5　QCT 与高维章节核查
-
-新增的第 17、18 章按公式逐项核查：
-
-- QCT 的 Hamilton 方程、Velocity-Verlet、不透明度函数和 Monte Carlo 截面估计一致；
-- 态到态截面公式要求碰撞参数在圆盘内均匀抽样；
-- 微分散射截面已补充多分支 rainbow 求和和端点处理说明；
-- EBK/WKB 作用量指认已明确为近似，不适用于所有 Morse 体系的精确恒等式；
-- MCTDH 的 SPF 方程已补充规范自由度与密度矩阵伪逆/正则化说明；
-- TT/MPS 存储复杂度已补充变键维表达式；
-- Smolyak 稀疏网格复杂度已明确依赖函数光滑性和一维求积规则。
-
-第 17、18 章尚未实现为 GeneralModule 源码；因此本节核查是公式与算法层面的验证，不是代码回归测试。

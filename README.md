@@ -188,6 +188,11 @@ GeneralModule/
         ├── rovibrational.py       # 转振态索引映射、FC因子、转动常数与跃迁偶极
         ├── scattering.py          # 散射长度(Numerov/方势阱/范德华)与波函数渐近线绘图
         ├── field_scattering.py    # 四大基组幺正变换、Breit-Rabi图谱与磁Feshbach色散拟合
+        ├── qct.py                 # QCT 反应散射：LEPS 面、EBK 初条件、Velocity-Verlet、截面与热速率
+        ├── sop_hamiltonian.py     # 和积(SOP)哈密顿量矩阵自由作用与 POTFIT 分解
+        ├── tensor_train.py        # 张量列车：TT-SVD、舍入、内积与 TT 算符
+        ├── mctdh_core.py          # MCTDH 核心：A 系数与 SPF 联合传播
+        ├── sparse_grid.py         # Smolyak 稀疏网格（嵌套 Clenshaw-Curtis）
         └── visualizer.py          # 发表级科学绘图工具
 ```
 
@@ -1644,13 +1649,14 @@ chmod +x build_examples.sh
 
 ## 🐍 Python 辅助分析套件 (`pygenmod`)
 
-提供轻量 Python 库，用于数据交互、前处理计算与出版级可视化。子包自带独立说明
+提供轻量 Python 库，用于数据交互、前处理计算、出版级可视化，以及教科书
+第 17—18 章（QCT 动力学与高维量子方法）的参考实现。子包自带独立说明
 [python/README.md](python/README.md)：
 
 ```bash
 cd GeneralModule/python
-python3 test_pygenmod.py   # 运行 12 大单元测试 (100% Pass)
-pip install ./python       # 或按标准 Python 包安装 (pygenmod 1.4.0)
+python3 test_pygenmod.py   # 运行 26 项单元测试 (100% Pass)
+pip install ./python       # 或按标准 Python 包安装 (pygenmod 1.5.0)
 ```
 
 > 无显示环境（CI 容器、SSH 会话、批处理节点）下，包在导入时会自动把 Matplotlib

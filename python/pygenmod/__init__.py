@@ -94,7 +94,37 @@ from .visualizer import (
     set_publication_style, plot_wavefunctions, plot_pulses, plot_alignment_dynamics
 )
 
-__version__ = "1.4.0"
+
+from .qct import (
+    LEPSParameters, QCTConfig, QCTTrajectory, QCTResult,
+    qct_init_trajectory, qct_propagate_step, propagate_trajectory,
+    qct_analyze_final_state, run_qct_ensemble,
+    qct_cross_section, stratified_cross_section, opacity_function,
+    state_resolved_cross_sections, differential_cross_section,
+    qct_thermal_rate, thermal_population, wilson_interval,
+    morse_vibrational_energy, ebk_internal_energy,
+)
+
+from .sop_hamiltonian import (
+    SOPTerm, SOPHamiltonian, sop_apply, sop_to_dense, sop_from_potfit,
+)
+
+from .tensor_train import (
+    TTTensor, tt_from_dense, tt_to_dense, tt_round, tt_dot, tt_norm,
+    tt_to_sop, sop_to_tt_operator, tt_operator_apply, tt_operator_to_dense,
+)
+
+from .sparse_grid import (
+    SparseGrid, clenshaw_curtis, smolyak_build, smolyak_integrate,
+    smolyak_refine, smolyak_multi_indices,
+)
+
+from .mctdh_core import (
+    MCTDHConfig, MCTDHState, mctdh_mean_field,
+    mctdh_propagate_step, mctdh_propagate,
+)
+
+__version__ = "1.5.0"
 __all__ = [
     "PI", "TWOPI", "HALFPI", "SQRTPI",
     "to_au", "from_au",
@@ -123,6 +153,20 @@ __all__ = [
     "build_asymptotic_hamiltonian", "build_spin_exchange_matrix",
     "fit_feshbach_resonance_parameters", "plot_breit_rabi_diagram",
     "plot_magnetic_feshbach_resonance",
-    "plot_wavefunctions", "plot_pulses", "plot_alignment_dynamics"
+    "plot_wavefunctions", "plot_pulses", "plot_alignment_dynamics",
+    "LEPSParameters", "QCTConfig", "QCTTrajectory", "QCTResult",
+    "qct_init_trajectory", "qct_propagate_step", "propagate_trajectory",
+    "qct_analyze_final_state", "run_qct_ensemble",
+    "qct_cross_section", "stratified_cross_section", "opacity_function",
+    "state_resolved_cross_sections", "differential_cross_section",
+    "qct_thermal_rate", "thermal_population", "wilson_interval",
+    "morse_vibrational_energy", "ebk_internal_energy",
+    "SOPTerm", "SOPHamiltonian", "sop_apply", "sop_to_dense", "sop_from_potfit",
+    "TTTensor", "tt_from_dense", "tt_to_dense", "tt_round", "tt_dot", "tt_norm",
+    "tt_to_sop", "sop_to_tt_operator", "tt_operator_apply", "tt_operator_to_dense",
+    "SparseGrid", "clenshaw_curtis", "smolyak_build", "smolyak_integrate",
+    "smolyak_refine", "smolyak_multi_indices",
+    "MCTDHConfig", "MCTDHState", "mctdh_mean_field",
+    "mctdh_propagate_step", "mctdh_propagate",
 ]
 

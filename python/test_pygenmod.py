@@ -345,5 +345,371 @@ class TestPyGenMod(unittest.TestCase):
         np.testing.assert_allclose(u_s_het @ u_s_het.T, np.eye(12), atol=1e-12)
 
 
+# ---------------------------------------------------------------------------
+# Chapter 17: QCT dynamics (pygenmod.qct)
+# ---------------------------------------------------------------------------
+
+class TestQCT(unittest.TestCase):
+    """QCT 轨迹引擎：守恒律、统计一致性、EBK 指认（书中第 17 章）。"""
+
+    def test_ebk_action_quantization(self):
+        # EBK 对 Morse 振子是精确的：j=0 时应逐位复现 G(v)
+        import pygenmod.qct as Q
+        par = Q.LEPSParameters()
+        for v in (0, 1, 2, 3):
+            e_ebk = Q.ebk_internal_energy(v, 0, par)
+            g = Q.morse_vibrational_energy(v, par)
+            self.assertAlmostEqual(e_ebk + par.d_e, g, delta=1e-9 * par.d_e)
+
+    def test_trajectory_conservation(self):
+        # Velocity-Verlet: 总能量漂移 < 1e-4 Ha，总角动量守恒到 1e-10
+        import pygenmod.qct as Q
+        from pygenmod.constants import EV2AU
+        par = Q.LEPSParameters()
+        cfg = Q.QCTConfig(e_coll=1.5 * EV2AU, b_max=3.0, r_start=9.0, r_end=11.0,
+                          dt=3.0, max_steps=8000, v_initial=0, j_initial=0, seed=7)
+        rng = np.random.default_rng(cfg.seed)
+        sampler = Q.InitialSampler.build(cfg, par)
+        for _ in range(5):
+            tr = Q.qct_init_trajectory(cfg, rng, par, sampler)
+            e0, j0 = tr.e_total, np.linalg.norm(tr.j_total)
+            Q.propagate_trajectory(tr, cfg, par)
+            e1 = Q._total_energy(tr.q, tr.p, cfg.mass, par)
+            j1 = np.linalg.norm(Q._total_angular_momentum(tr.q, tr.p, cfg.mass))
+            self.assertLess(abs(e1 - e0), 1.0e-4)
+            self.assertLess(abs(j1 - j0), 1.0e-10 * max(j0, 1.0))
+            self.assertTrue(tr.converged)
+
+    def test_internal_energy_bound(self):
+        # 严格不等式：|dE_int| <= E_coll（能量只在内部与平动之间流动）
+        import pygenmod.qct as Q
+        from pygenmod.constants import EV2AU
+        par = Q.LEPSParameters()
+        cfg = Q.QCTConfig(e_coll=1.5 * EV2AU, b_max=3.0, r_start=9.0, r_end=11.0,
+                          dt=3.0, n_traj=80, max_steps=8000, seed=42)
+        res = Q.run_qct_ensemble(cfg, par)
+        e0 = -par.d_e + Q.morse_vibrational_energy(0, par)
+        for t in res.trajectories:
+            if not t.converged:
+                continue
+            pair, atom = Q._product_jacobi(t.q)
+            e_int, _, _, _ = Q._product_internal_state(
+                t.q, t.p, pair, atom, cfg.mass, par, t.r_dir_initial)
+            self.assertLessEqual(abs(e_int - e0), cfg.e_coll + 1.0e-6)
+
+    def test_ensemble_statistics(self):
+        # MC 估计量、分层估计量与 Wilson 区间的一致性；种子可复现
+        import pygenmod.qct as Q
+        from pygenmod.constants import EV2AU
+        par = Q.LEPSParameters()
+        cfg = Q.QCTConfig(e_coll=1.5 * EV2AU, b_max=3.0, r_start=9.0, r_end=11.0,
+                          dt=3.0, n_traj=200, max_steps=8000, seed=42)
+        res = Q.run_qct_ensemble(cfg, par)
+        sig, err = Q.qct_cross_section(res.n_reactive, res.n_traj, cfg.b_max)
+        self.assertAlmostEqual(sig, res.cross_section, delta=1e-12)
+        self.assertAlmostEqual(err, res.stat_error, delta=1e-12)
+        self.assertLessEqual(res.wilson_lo, res.cross_section + 1e-12)
+        self.assertGreaterEqual(res.wilson_hi, res.cross_section - 1e-12)
+        strat = Q.stratified_cross_section(res.trajectories, cfg)
+        # 分层估计量应在 3 倍统计误差内与 MC 估计量一致
+        self.assertLess(abs(strat - res.cross_section),
+                        3.0 * res.stat_error + 1.0e-9)
+        # 产物态截面之和不超过总截面
+        s_sum = sum(res.state_cross_section.values())
+        self.assertLessEqual(s_sum, res.cross_section + 1e-9)
+        # 确定性
+        res2 = Q.run_qct_ensemble(cfg, par)
+        self.assertEqual(res.n_reactive, res2.n_reactive)
+
+    def test_zpe_constraint_and_thermal_rate(self):
+        # 被动 ZPE 约束剔除不可指认轨迹；MB 积分用解析 sigma 验证
+        import pygenmod.qct as Q
+        from pygenmod.constants import EV2AU
+        par = Q.LEPSParameters()
+        cfg = Q.QCTConfig(e_coll=1.5 * EV2AU, b_max=3.0, r_start=9.0, r_end=11.0,
+                          dt=3.0, n_traj=100, max_steps=8000, seed=42,
+                          enforce_zpe=True)
+        res = Q.run_qct_ensemble(cfg, par)
+        self.assertTrue(all(v >= 0 for (v, _) in res.state_cross_section))
+        # 解析检验：sigma(E) = 常数时 k(T) = pref * sigma * T^2（网格须覆盖 E ~ kT 峰）
+        mu = 0.5 * 1837.15
+        temp = 500.0 * 3.1668e-6   # 500 K in Hartree
+        energies = np.linspace(0.05 * temp, 40.0 * temp, 4000)
+        sigma0 = 1.3
+        k = Q.qct_thermal_rate(energies, np.full_like(energies, sigma0), temp, mu)
+        pref = np.sqrt(8.0 / (np.pi * mu * temp ** 3))
+        self.assertAlmostEqual(k / (pref * sigma0 * temp ** 2), 1.0, delta=5e-3)
+
+
+# ---------------------------------------------------------------------------
+# Chapter 18: high-dimensional methods (SOP / TT / Smolyak / MCTDH)
+# ---------------------------------------------------------------------------
+
+def _random_sop(rng, d, n, m, hermitian=False):
+    import pygenmod.sop_hamiltonian as S
+    terms = []
+    for _ in range(m):
+        facs = []
+        for _ in range(d):
+            a = rng.normal(size=(n, n))
+            if hermitian:
+                a = a + a.T
+            facs.append(a)
+        terms.append(S.SOPTerm(coeff=float(rng.normal()), factors=facs))
+    return S.SOPHamiltonian(dims=(n,) * d, terms=terms)
+
+
+def _sop_dense_kron(sop):
+    n_tot = int(np.prod(sop.dims))
+    h = np.zeros((n_tot, n_tot), dtype=complex)
+    for t in sop.terms:
+        op = np.array([[t.coeff]])
+        for f in t.factors:
+            op = np.kron(op, f)
+        h += op
+    return h
+
+
+class TestSOPHamiltonian(unittest.TestCase):
+    """SOP 矩阵自由作用与 POTFIT 分解（书中 18.1 节）。"""
+
+    def test_apply_matches_dense(self):
+        import pygenmod.sop_hamiltonian as S
+        rng = np.random.default_rng(0)
+        sop = _random_sop(rng, d=3, n=4, m=5)
+        v = rng.normal(size=(4, 4, 4))
+        hv = sop.apply(v)
+        href = (_sop_dense_kron(sop) @ v.ravel()).reshape(4, 4, 4)
+        self.assertLess(np.abs(hv - href).max() / np.abs(href).max(), 1e-12)
+
+    def test_potfit_reconstruction(self):
+        import pygenmod.sop_hamiltonian as S
+        rng = np.random.default_rng(1)
+        vg = rng.normal(size=(4, 5, 6))
+        sop = S.sop_from_potfit(vg, eps=1e-10)
+        # 重构张量 = 所有项的外积和
+        out = np.zeros(vg.shape, dtype=complex)
+        grids = np.meshgrid(*[np.arange(n) for n in vg.shape], indexing="ij")
+        for term in sop.terms:
+            acc = np.ones(vg.shape, dtype=complex)
+            for k, f in enumerate(term.factors):
+                acc = acc * np.asarray(f, dtype=complex)[grids[k]]
+            out += term.coeff * acc
+        self.assertLess(np.abs(out - vg).max() / np.abs(vg).max(), 1e-8)
+
+
+class TestTensorTrain(unittest.TestCase):
+    """TT-SVD、舍入、内积与 TT 算符（书中 18.3 节）。"""
+
+    def test_roundtrip_and_dot(self):
+        import pygenmod.tensor_train as T
+        rng = np.random.default_rng(2)
+        a = rng.normal(size=(4, 5, 6, 3))
+        tt = T.tt_from_dense(a, eps=1e-12)
+        self.assertLess(np.abs(T.tt_to_dense(tt) - a).max() / np.abs(a).max(), 1e-10)
+        ttr = T.tt_round(tt, eps=1e-10)
+        self.assertLess(np.abs(T.tt_to_dense(ttr) - a).max() / np.abs(a).max(), 1e-8)
+        b = rng.normal(size=a.shape)
+        dot_tt = T.tt_dot(T.tt_from_dense(a, eps=1e-14), T.tt_from_dense(b, eps=1e-14))
+        self.assertLess(abs(dot_tt - np.sum(a * b.conj())), 1e-10)
+
+    def test_operator_from_sop(self):
+        import pygenmod.sop_hamiltonian as S
+        import pygenmod.tensor_train as T
+        rng = np.random.default_rng(3)
+        sop = _random_sop(rng, d=3, n=4, m=5)
+        cores = T.sop_to_tt_operator(sop)
+        hd = _sop_dense_kron(sop)
+        self.assertLess(np.abs(T.tt_operator_to_dense(cores) - hd).max()
+                        / np.abs(hd).max(), 1e-12)
+        v = rng.normal(size=(4, 4, 4))
+        hv = sop.apply(v)
+        w = T.tt_operator_apply(cores, T.tt_from_dense(v, eps=1e-14), eps=1e-12)
+        self.assertLess(np.abs(T.tt_to_dense(w) - hv).max() / np.abs(hv).max(), 1e-10)
+
+
+class TestSparseGrid(unittest.TestCase):
+    """Smolyak 稀疏网格（书中 18.4 节）。"""
+
+    def test_coefficient_equals_difference_form(self):
+        import pygenmod.sparse_grid as G
+        for (d, n) in ((2, 5), (3, 6)):
+            g1 = G.smolyak_build(d, n)
+            g2 = G._difference_form_grid(d, n)
+            self.assertEqual(len(g1.points), len(g2.points))
+            d1 = {tuple(np.round(p, 10)): w for p, w in zip(g1.points, g1.weights)}
+            d2 = {tuple(np.round(p, 10)): w for p, w in zip(g2.points, g2.weights)}
+            self.assertEqual(set(d1), set(d2))
+            for key in d1:
+                self.assertAlmostEqual(d1[key], d2[key], delta=1e-10)
+            # 常数必须精确：权重和 = 2^D
+            self.assertAlmostEqual(g1.weights.sum(), 2.0 ** d, delta=1e-12)
+
+    def test_integration_convergence(self):
+        import pygenmod.sparse_grid as G
+        cs = np.array([2.0, 0.7])
+        exact = np.prod([2.0 * np.sin(c) / c for c in cs])
+        errs = []
+        for n_level in (4, 6, 8):
+            g = G.smolyak_build(2, n_level)
+            vals = np.prod(np.cos(g.points * cs), axis=-1)
+            errs.append(abs(g.integrate(vals) - exact))
+        self.assertLess(errs[-1], 1e-8)
+        self.assertLess(errs[-1], errs[0])   # 收敛
+
+
+class TestMCTDHCore(unittest.TestCase):
+    """MCTDH 核心：全空间精确性、规范与守恒、SPF 收敛（书中 18.2 节）。"""
+
+    @classmethod
+    def setUpClass(cls):
+        import pygenmod.sop_hamiltonian as S
+        rng = np.random.default_rng(1)
+        d, n = 3, 6
+        def herm(nn):
+            a = rng.normal(size=(nn, nn)) + 1j * rng.normal(size=(nn, nn))
+            return a + a.conj().T
+        h1, h2, h3 = herm(n), herm(n), herm(n)
+        cls.sop = S.SOPHamiltonian(dims=(n,) * d, terms=[
+            S.SOPTerm(1.0, [h1, np.eye(n), np.eye(n)]),
+            S.SOPTerm(1.0, [np.eye(n), h2, np.eye(n)]),
+            S.SOPTerm(1.0, [np.eye(n), np.eye(n), h3]),
+            S.SOPTerm(0.3, [h1, h2, np.eye(n)]),
+            S.SOPTerm(0.3, [np.eye(n), h2, h3]),
+        ])
+        cls.hd = 0.5 * (cls.sop.to_dense() + cls.sop.to_dense().conj().T)
+        cls.w_eig, cls.U = np.linalg.eigh(cls.hd)
+        cls.a0 = rng.normal(size=(n,) * 3) + 1j * rng.normal(size=(n,) * 3)
+        cls.a0 /= np.linalg.norm(cls.a0)
+        cls.r = np.random.default_rng(42)
+        cls.qs = []
+        for k in range(3):
+            q, _ = np.linalg.qr(cls.r.normal(size=(n, n)) + 1j * cls.r.normal(size=(n, n)))
+            cls.qs.append(q)
+
+    @staticmethod
+    def _project(a, spfs):
+        # primitive -> coefficients: A[i] = <phi_i|psi>，需要 conj(spf)
+        b = a
+        for k in range(len(spfs)):
+            b = np.moveaxis(np.tensordot(spfs[k].conj(), b, axes=([1], [k])), 0, k)
+        return b
+
+    def _psi(self, st):
+        psi = st.A
+        for k in range(len(st.spf)):
+            psi = np.moveaxis(np.tensordot(st.spf[k], psi, axes=([0], [k])), 0, k)
+        return psi
+
+    def _energy(self, st):
+        # <Psi|H|Psi> = <A|H_A A>，H_A 通过 SPF 基矩阵 eta 作用
+        import pygenmod.mctdh_core as M
+        d = st.A.ndim
+        e = 0.0 + 0.0j
+        for term in self.sop.terms:
+            c = st.A
+            for k in range(d):
+                eta = M._spf_apply(st.spf[k], term.factors[k])
+                c = M._apply_along_axis(eta, c, k)
+            e += term.coeff * np.sum(st.A.conj() * c)
+        return float(np.real(e))
+
+    def test_full_space_exact(self):
+        # 单位基与随机旋转基都须复现精确演化（rotated 基检验 SPF 方程）；
+        # 精确参考必须从同一初态出发（rotated 基下的投影态）。
+        import pygenmod.mctdh_core as M
+        from scipy.linalg import expm
+        t_end, dt = 0.5, 0.002
+        n_steps = int(t_end / dt)
+        aex = self.U.conj().T @ self.a0.reshape(-1)
+        aex = np.einsum("ij,j->i", self.U,
+                        np.exp(-1j * self.w_eig * t_end) * aex).reshape(self.a0.shape)
+        st = M.MCTDHState(A=self.a0.copy(),
+                          spf=[np.eye(self.a0.shape[0], dtype=complex)] * 3)
+        M.mctdh_propagate(st, self.sop, M.MCTDHConfig(dt=dt, n_steps=n_steps))
+        fid_id = abs(np.sum(aex.conj() * st.A)) ** 2 / np.linalg.norm(st.A) ** 2
+        spfs = [self.qs[k].T.copy() for k in range(3)]
+        a_rot = self._project(self.a0, spfs)
+        st2 = M.MCTDHState(A=a_rot.copy(), spf=[s.copy() for s in spfs])
+        psi0 = self._psi(st2)
+        arex = self.U.conj().T @ psi0.reshape(-1)
+        arex = np.einsum("ij,j->i", self.U,
+                         np.exp(-1j * self.w_eig * t_end) * arex).reshape(self.a0.shape)
+        M.mctdh_propagate(st2, self.sop, M.MCTDHConfig(dt=dt, n_steps=n_steps))
+        psi = self._psi(st2)
+        fid_rot = abs(np.sum(arex.conj() * psi)) ** 2 / (np.linalg.norm(arex) ** 2 *
+                                                         np.linalg.norm(psi) ** 2)
+        self.assertGreater(fid_id, 1 - 1e-7)
+        self.assertGreater(fid_rot, 1 - 1e-6)
+
+    def test_reduced_conservation_and_convergence(self):
+        # 归约流形上：范数、正交归一与能量守恒；保真度随 SPF 数单调提高
+        import pygenmod.mctdh_core as M
+        t_end, dt = 0.5, 0.002
+        n_steps = int(t_end / dt)
+        fids = []
+        for n_spf in (3, 4):
+            spfs = [self.qs[k][:, :n_spf].T.copy() for k in range(3)]
+            a_red = self._project(self.a0, spfs)
+            a_red /= np.linalg.norm(a_red)
+            # 匹配的精确参考：从同一投影初态出发
+            psi0 = self._psi(M.MCTDHState(A=a_red, spf=spfs))
+            c0 = self.U.conj().T @ psi0.reshape(-1)
+            arex = np.einsum("ij,j->i", self.U,
+                             np.exp(-1j * self.w_eig * t_end) * c0).reshape(self.a0.shape)
+            st = M.MCTDHState(A=a_red.copy(), spf=[s.copy() for s in spfs])
+            e0 = self._energy(st)
+            for _ in range(n_steps // 2):
+                M.mctdh_propagate_step(st, self.sop, M.MCTDHConfig(dt=dt, n_steps=1))
+            e_mid = self._energy(st)
+            for _ in range(n_steps // 2):
+                M.mctdh_propagate_step(st, self.sop, M.MCTDHConfig(dt=dt, n_steps=1))
+            psi = self._psi(st)
+            e1 = self._energy(st)
+            orth = max(np.abs(s @ s.conj().T - np.eye(s.shape[0])).max() for s in st.spf)
+            self.assertLess(orth, 1e-10)
+            self.assertLess(abs(st.norm() - 1.0), 1e-8)
+            self.assertLess(abs(e_mid - e0) / max(abs(e0), 1.0), 5e-3)
+            self.assertLess(abs(e1 - e0) / max(abs(e0), 1.0), 5e-3)
+            fid = abs(np.sum(arex.conj() * psi)) ** 2 / (np.linalg.norm(arex) ** 2 *
+                                                         np.linalg.norm(psi) ** 2)
+            fids.append(fid)
+        self.assertGreater(fids[1], fids[0])
+
+    def test_separable_product_tracking(self):
+        # 可分离哈密顿量 + 乘积初态：MCTDH 应高精度跟随精确解
+        import pygenmod.sop_hamiltonian as S
+        import pygenmod.mctdh_core as M
+        rng = np.random.default_rng(5)
+        nn = 6
+        def herm(nn):
+            a = rng.normal(size=(nn, nn)) + 1j * rng.normal(size=(nn, nn))
+            return a + a.conj().T
+        g1, g2 = herm(nn), herm(nn)
+        sop = S.SOPHamiltonian(dims=(nn, nn), terms=[
+            S.SOPTerm(1.0, [g1, np.eye(nn)]), S.SOPTerm(1.0, [np.eye(nn), g2])])
+        w1, u1 = np.linalg.eigh(g1)
+        w2, u2 = np.linalg.eigh(g2)
+        t_end, dt = 1.0, 0.001
+        v1 = u1 @ (np.exp(-1j * w1 * t_end) * (u1.conj().T @ np.eye(nn)[:, 0]))
+        v2 = u2 @ (np.exp(-1j * w2 * t_end) * (u2.conj().T @ np.eye(nn)[:, 0]))
+        psi_ex = np.outer(v1, v2)
+        spfs = []
+        rr = np.random.default_rng(50)
+        for _ in range(2):
+            vecs = np.column_stack([np.eye(nn)[:, 0],
+                                    rr.normal(size=nn) + 1j * rr.normal(size=nn)])
+            q, _ = np.linalg.qr(vecs)
+            spfs.append(q.T.copy())
+        a = np.zeros((2, 2), dtype=complex)
+        a[0, 0] = 1.0
+        st = M.MCTDHState(A=a, spf=spfs)
+        M.mctdh_propagate(st, sop, M.MCTDHConfig(dt=dt, n_steps=int(t_end / dt)))
+        psi = self._psi(st)
+        fid = abs(np.sum(psi_ex.conj() * psi)) ** 2 / np.linalg.norm(psi) ** 2
+        self.assertGreater(fid, 0.999)
+
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
