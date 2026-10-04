@@ -243,7 +243,6 @@ def calc_multichannel_close_coupling(r_grid: np.ndarray, v_mat: np.ndarray,
     q1_inv = np.linalg.inv(q1)
     m1 = 12.0 * q1_inv - 10.0 * np.eye(n_chan)
     r_curr = m1.copy()
-    q_prev = q1.copy()
 
     for step in range(1, n_pts - 1):
         w_step = build_w(step)

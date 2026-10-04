@@ -349,7 +349,7 @@ class InitialSampler:
 
     def sample(self, rng: np.random.Generator) -> Tuple[np.ndarray, np.ndarray, float]:
         """Return (q, p, b) for one trajectory: positions, momenta, impact parameter."""
-        cfg, par = self.cfg, self.par
+        cfg = self.cfg
         m = cfg.mass
         mu_r = 0.5 * m
         mu_r_tot = 2.0 * m / 3.0
@@ -364,7 +364,6 @@ class InitialSampler:
         j_vec = j_mag * j_hat
         u0 = _vector_orthogonal_to(j_hat, rng)
         phi_rot = 2.0 * math.pi * rng.random()
-        omega = j_mag / (mu_r * r0 * r0)
         c, s = math.cos(phi_rot), math.sin(phi_rot)
         axis = u0 * c + np.cross(j_hat, u0) * s
         axis = axis / np.linalg.norm(axis)          # stays orthogonal to j_hat
@@ -580,9 +579,7 @@ def _product_internal_state(q, p, pair, atom, m, par, r_dir_init=None):
     """
     r_vec = q[pair[1]] - q[pair[0]]
     p_r_vec = 0.5 * (p[pair[1]] - p[pair[0]])            # mu_r = m/2
-    com_q = 0.5 * (q[pair[0]] + q[pair[1]])
     com_p = 0.5 * (p[pair[0]] + p[pair[1]])
-    r_big = q[atom] - com_q
     mu_r_tot = 2.0 * m / 3.0
     p_big = mu_r_tot * (p[atom] / m - com_p / m)         # P = mu_R (v_atom - v_com)
     j_vec = np.cross(r_vec, p_r_vec)

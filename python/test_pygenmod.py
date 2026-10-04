@@ -11,32 +11,43 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from pygenmod import (
-    to_au, from_au, AU2EV, FS2AU,
-    PulseConfig, PULSE_GAUSSIAN, PULSE_SIN2,
-    pulse_envelope, pulse_electric_field, pulse_stark_shift,
+    to_au, from_au, FS2AU,
+    PulseConfig, PULSE_GAUSSIAN,
+    pulse_envelope, pulse_electric_field,
     dvr_sinc_init, fgh_solve_bound_states,
     get_atom_config, keldysh_parameter, hhg_cutoff_energy,
     soft_core_coulomb_potential, adk_ionization_rate,
     landau_zener_probability, calculate_channel_populations,
     rovibrational_state_index, rovibrational_state_unindex,
     rot_matrix_cos_theta, calc_franck_condon_factors,
-    calc_rotational_constants_bv, build_rovibrational_hamiltonian,
-    build_rovibrational_dipole_matrix,
     van_der_waals_mean_length, square_well_scattering_length_exact,
     calc_scattering_length_numerov, plot_scattering_length_wavefunction,
     calc_differential_cross_section, calc_differential_cross_section_identical,
     plot_differential_cross_sections,
     calc_multichannel_close_coupling, plot_multichannel_smatrix, plot_feshbach_resonance,
     calc_scattering_wavefunction_ti, plot_scattering_wavefunction,
-    plot_wavefunctions, plot_pulses,
+    plot_wavefunctions,
     BASIS_UNCOUPLED, BASIS_F_COUPLED, BASIS_TOTAL_SPIN, BASIS_FIELD_DRESSED,
-    AU2GHZ, clebsch_gordan_half, ColdAtom, get_cold_atom_preset,
-    calc_breit_rabi_energies, FieldChannel, build_field_collision_channels,
-    calc_basis_transform_matrix, build_asymptotic_hamiltonian,
+    AU2GHZ, clebsch_gordan_half, get_cold_atom_preset,
+    calc_breit_rabi_energies, build_field_collision_channels,
+    calc_basis_transform_matrix,
     build_spin_exchange_matrix, fit_feshbach_resonance_parameters,
     plot_breit_rabi_diagram, plot_magnetic_feshbach_resonance
 )
 
+
+
+class TestPublicAPI(unittest.TestCase):
+    """包根 __all__ 声明的每个名字都必须真实可导入（公开 API 表面）。"""
+
+    def test_all_names_importable(self):
+        import pygenmod
+        missing = [name for name in pygenmod.__all__ if not hasattr(pygenmod, name)]
+        self.assertEqual(missing, [])
+        # 第 17/18 章参考实现的关鍵入口必须出现在 __all__ 中
+        for name in ("run_qct_ensemble", "SOPHamiltonian", "tt_round",
+                     "smolyak_build", "mctdh_propagate"):
+            self.assertIn(name, pygenmod.__all__)
 
 
 class TestPyGenMod(unittest.TestCase):
@@ -474,7 +485,6 @@ class TestSOPHamiltonian(unittest.TestCase):
     """SOP 矩阵自由作用与 POTFIT 分解（书中 18.1 节）。"""
 
     def test_apply_matches_dense(self):
-        import pygenmod.sop_hamiltonian as S
         rng = np.random.default_rng(0)
         sop = _random_sop(rng, d=3, n=4, m=5)
         v = rng.normal(size=(4, 4, 4))
@@ -514,7 +524,6 @@ class TestTensorTrain(unittest.TestCase):
         self.assertLess(abs(dot_tt - np.sum(a * b.conj())), 1e-10)
 
     def test_operator_from_sop(self):
-        import pygenmod.sop_hamiltonian as S
         import pygenmod.tensor_train as T
         rng = np.random.default_rng(3)
         sop = _random_sop(rng, d=3, n=4, m=5)
@@ -618,7 +627,6 @@ class TestMCTDHCore(unittest.TestCase):
         # 单位基与随机旋转基都须复现精确演化（rotated 基检验 SPF 方程）；
         # 精确参考必须从同一初态出发（rotated 基下的投影态）。
         import pygenmod.mctdh_core as M
-        from scipy.linalg import expm
         t_end, dt = 0.5, 0.002
         n_steps = int(t_end / dt)
         aex = self.U.conj().T @ self.a0.reshape(-1)

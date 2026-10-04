@@ -30,8 +30,8 @@ References:
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Sequence
+from dataclasses import dataclass
+from typing import List
 
 import numpy as np
 

@@ -16,7 +16,7 @@ Fortran counterpart (roadmap): `mod_sop_hamiltonian` with
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence
 
 import numpy as np
 
