@@ -76,7 +76,7 @@ MODULE_SRCS = \
 MODULE_OBJS = $(MODULE_SRCS:.f90=.o)
 STATIC_LIB = $(SRC_DIR)/libgeneral_module.a
 
-.PHONY: all lib test examples clean check help
+.PHONY: all lib test test-python examples clean check help
 
 all: lib
 
@@ -94,6 +94,10 @@ $(STATIC_LIB): $(MODULE_SRCS)
 test: lib
 	@echo "==> Running full unit test suite (41 test suites)..."
 	@bash $(TEST_DIR)/run_all_tests.sh
+
+test-python: ## Run pygenmod Python unit tests (26 tests)
+	@echo "==> Running pygenmod Python unit tests..."
+	@cd python && python3 test_pygenmod.py
 
 examples: lib
 	@echo "==> Building and running physical examples (36 examples)..."

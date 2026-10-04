@@ -8,6 +8,7 @@ NumPy 友好的接口，便于在 Jupyter、脚本或 CI 流水线中直接调�
 
 - Python ≥ 3.8
 - NumPy ≥ 1.20
+- SciPy ≥ 1.5（QCT 模块的 EBK 根查找与作用量积分）
 - Matplotlib ≥ 3.3
 
 在无显示环境（CI 容器、SSH 会话、批处理节点）下，包在导入时会自动把
@@ -46,6 +47,9 @@ pip install ./python
 | `tensor_train.py` | 张量列车：TT-SVD、舍入、内积、TT 算符应用（第 18.3 节） |
 | `mctdh_core.py` | MCTDH 核心：A 系数与单粒子函数（SPF）联合传播（第 18.2 节） |
 | `sparse_grid.py` | Smolyak 稀疏网格与嵌套 Clenshaw–Curtis 规则（第 18.4 节） |
+
+可运行示例：`python3 examples/demo_qct_highdim.py` 在数秒内跑通第 17—18 章
+的主流程（QCT 系综、SOP 作用、POTFIT、TT 舍入、Smolyak 积分、MCTDH 传播）。
 | `visualizer.py` | 发表级绘图样式与波函数、脉冲、取向对齐动力学出图 |
 
 ## 快速示例

@@ -79,6 +79,29 @@ if(BUILD_EXAMPLES)
     endforeach()
 endif()
 
+# Python 伴侣包测试（pygenmod）：仅在找到 Python3 + numpy + scipy 时注册
+option(ENABLE_PYTHON_TESTS "Run pygenmod unit tests via CTest" ON)
+if(ENABLE_PYTHON_TESTS)
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        execute_process(
+            COMMAND ${Python3_EXECUTABLE} -c "import numpy, scipy, matplotlib"
+            RESULT_VARIABLE _py_deps_result
+            OUTPUT_QUIET ERROR_QUIET
+        )
+        if(_py_deps_result EQUAL 0)
+            add_test(NAME pygenmod_unit_tests
+                COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/python/test_pygenmod.py
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/python)
+            set_tests_properties(pygenmod_unit_tests PROPERTIES
+                ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/python")
+            message(STATUS "pygenmod tests registered in CTest")
+        else()
+            message(STATUS "numpy/scipy/matplotlib not available; pygenmod tests skipped")
+        endif()
+    endif()
+endif()
+
 # 安装目标规范
 install(TARGETS GeneralModule_static GeneralModule_shared
     ARCHIVE DESTINATION lib

@@ -176,7 +176,7 @@ GeneralModule/
     ├── README.md                  # pygenmod 子包独立说明与快速上手
     ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 12/12 测试)
     ├── plot_rovibrational_dynamics.py # 出版级分子转振受控动力学一键绘图管道
-    ├── examples/                  # Python 算例 (TI vs TD 散射波函数对比)
+    ├── examples/                  # Python 算例 (TI vs TD 散射波函数对比；QCT 与高维方法演示)
     └── pygenmod/
         ├── __init__.py
         ├── constants.py

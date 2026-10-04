@@ -50,7 +50,7 @@ jobs:
           cmake --build build -j 4
           ctest --test-dir build --output-on-failure
 
-      - name: Run Direct Fortran Unit Test Suite (41 Test Suites, 340 Assertions)
+      - name: Run Direct Fortran Unit Test Suite (41 Test Suites, 367 Assertions)
         run: |
           bash tests/run_all_tests.sh
 
@@ -58,9 +58,13 @@ jobs:
         run: |
           bash examples/build_examples.sh
 
-      - name: Run Python Package Unit Tests (pygenmod)
+      - name: Run Python Package Unit Tests (pygenmod, 26 Tests)
         run: |
           python3 python/test_pygenmod.py
+
+      - name: Run Textbook Correctness Audit (offline)
+        run: |
+          python3 docs/audit_textbook.py
 
       - name: Run Rovibrational Dynamics Visualization Pipeline
         run: |

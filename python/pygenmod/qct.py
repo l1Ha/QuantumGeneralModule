@@ -505,6 +505,11 @@ def _propagate_ensemble(q0: np.ndarray, p0: np.ndarray, cfg: QCTConfig,
     Equivalent to calling :func:`propagate_trajectory` on each trajectory
     (same force field, same integrator); trajectories are frozen once their
     product separation exceeds r_end. Returns (q_f, p_f, times, converged).
+
+    Hardware-efficiency notes: the three pair separations are computed
+    directly (no (N, 3, 3, 3) distance tensor), the product-pair lookup is a
+    table gather instead of a per-step Python loop, and the loop exits as
+    soon as every trajectory has terminated.
     """
     if cfg.r_end <= cfg.r_start:
         raise ValueError("cfg.r_end must exceed cfg.r_start")
@@ -517,6 +522,11 @@ def _propagate_ensemble(q0: np.ndarray, p0: np.ndarray, cfg: QCTConfig,
     active = np.ones(n, dtype=bool)
     times = np.zeros(n)
     converged = np.zeros(n, dtype=bool)
+    pair_list = ((0, 1), (1, 2), (0, 2))
+    n1_tab = np.array([pr[0] for pr in pair_list])
+    n2_tab = np.array([pr[1] for pr in pair_list])
+    nat_tab = np.array([({0, 1, 2} - set(pr)).pop() for pr in pair_list])
+    rows = np.arange(n)
     _, f = leps_energy_gradient(q, par)
     for _ in range(cfg.max_steps):
         p += 0.5 * cfg.dt * f
@@ -524,16 +534,18 @@ def _propagate_ensemble(q0: np.ndarray, p0: np.ndarray, cfg: QCTConfig,
         _, f = leps_energy_gradient(q, par)
         p += 0.5 * cfg.dt * f
         times[active] += cfg.dt
-        # product separation for every trajectory
-        r, _ = _pair_distances(q)
-        seps = np.stack([r[:, a, b] for a, b in ((0, 1), (1, 2), (0, 2))], axis=1)
+        # three pair separations, computed directly (memory-lean)
+        d01 = q[:, 0, :] - q[:, 1, :]
+        d12 = q[:, 1, :] - q[:, 2, :]
+        d02 = q[:, 0, :] - q[:, 2, :]
+        seps = np.stack([np.einsum("ij,ij->i", d01, d01),
+                         np.einsum("ij,ij->i", d12, d12),
+                         np.einsum("ij,ij->i", d02, d02)], axis=1)
+        np.sqrt(seps, out=seps)
         pair_idx = np.argmin(seps, axis=1)
-        pair_list = ((0, 1), (1, 2), (0, 2))
-        rows = np.arange(n)
-        n1 = np.array([pair_list[k][0] for k in pair_idx])
-        n2 = np.array([pair_list[k][1] for k in pair_idx])
-        natom = np.array([({0, 1, 2} - {pair_list[k][0], pair_list[k][1]}).pop()
-                          for k in pair_idx])
+        n1 = n1_tab[pair_idx]
+        n2 = n2_tab[pair_idx]
+        natom = nat_tab[pair_idx]
         com = 0.5 * (q[rows, n1, :] + q[rows, n2, :])
         r_sep = np.linalg.norm(q[rows, natom, :] - com, axis=1)
         done = active & (r_sep > cfg.r_end)
@@ -726,7 +738,8 @@ def state_resolved_cross_sections(trajs, cfg, enforce_zpe: Optional[bool] = None
 
 
 def differential_cross_section(trajs, cfg, n_theta: int = 18,
-                               b_max: Optional[float] = None):
+                               b_max: Optional[float] = None,
+                               par: Optional[LEPSParameters] = None):
     """Monte Carlo d(sigma)/d(Omega) histogram over the scattering angle.
 
     Uses d sigma/d Omega = (pi b_max^2 / N) * N_bin / (2 pi sin(theta) dtheta):
@@ -734,7 +747,8 @@ def differential_cross_section(trajs, cfg, n_theta: int = 18,
     and the multi-branch structure of theta(b) (rainbow scattering) is summed
     automatically by the binning (book section 17.4). Bins touching
     theta = 0 or pi are returned as NaN: the forward/backward directions need
-    separate treatment, as the book notes.
+    separate treatment, as the book notes. ``par`` should match the surface
+    the ensemble was run with.
     """
     b_max = cfg.b_max if b_max is None else b_max
     edges = np.linspace(0.0, math.pi, n_theta + 1)
@@ -747,7 +761,7 @@ def differential_cross_section(trajs, cfg, n_theta: int = 18,
             continue
         pair, atom = _product_jacobi(t.q)
         _, _, _, cos_t = _product_internal_state(t.q, t.p, pair, atom, cfg.mass,
-                                                 None, t.r_dir_initial)
+                                                 par, t.r_dir_initial)
         ang = math.acos(max(-1.0, min(1.0, cos_t)))
         counts[min(int(ang / dtheta), n_theta - 1)] += 1
     with np.errstate(divide="ignore", invalid="ignore"):
