@@ -69,19 +69,18 @@ contains
         end do
 
         ! Colbert-Miller 解析动能矩阵元 T_ij = (hbar^2 / 2m*dx^2) * [...]
+        ! 利用 Toeplitz 矩阵对称性 T_ij = T_ji，仅遍历上三角以减少一半浮点计算
         factor = 1.0_dp / (2.0_dp * mass * dvr%dx**2)
         do i = 1, n_pts
-            do j = 1, n_pts
-                if (i == j) then
-                    dvr%t_mat(i, j) = factor * (PI**2 / 3.0_dp)
+            dvr%t_mat(i, i) = factor * (PI**2 / 3.0_dp)
+            do j = i + 1, n_pts
+                diff_sq = real((i - j)**2, dp)
+                if (mod(i - j, 2) == 0) then
+                    dvr%t_mat(i, j) = factor * (2.0_dp / diff_sq)
                 else
-                    diff_sq = real((i - j)**2, dp)
-                    if (mod(i - j, 2) == 0) then
-                        dvr%t_mat(i, j) = factor * (2.0_dp / diff_sq)
-                    else
-                        dvr%t_mat(i, j) = -factor * (2.0_dp / diff_sq)
-                    end if
+                    dvr%t_mat(i, j) = -factor * (2.0_dp / diff_sq)
                 end if
+                dvr%t_mat(j, i) = dvr%t_mat(i, j)
             end do
         end do
     end subroutine dvr_sinc_init
@@ -95,6 +94,7 @@ contains
         real(dp) :: z, z1, p1, p2, p3, pp
         real(dp) :: coeff
         real(dp), allocatable :: p_curr(:), p_prev(:), p_next(:)
+        real(dp), allocatable :: sq_w(:), v(:)
 
         dvr%n_points = n_pts
         if (allocated(dvr%x)) deallocate(dvr%x)
@@ -138,16 +138,19 @@ contains
         ! 使用 Legendre 谱求和：
         ! J2(i,j)=sqrt(w_i w_j) sum_{l=0}^{N-1} l(l+1)(2l+1)/2 P_l(x_i)P_l(x_j)。
         ! 该矩阵已含非均匀 Gauss 权重，可用普通对称本征求解器；本征值为 l(l+1)。
+        ! 性能优化：将 sqrt(w) 提至外层只计算一次，并在内层利用对称性 v(i)*v(j) 仅遍历上三角，
+        ! 消除 O(N^3) 次 sqrt 调用并减少一半浮点计算。
         dvr%j2_mat = 0.0_dp
-        allocate(p_curr(n_pts), p_prev(n_pts), p_next(n_pts))
+        allocate(p_curr(n_pts), p_prev(n_pts), p_next(n_pts), sq_w(n_pts), v(n_pts))
+        sq_w = sqrt(dvr%weights)
 
         p_curr = 1.0_dp
         do l = 0, n_pts - 1
             coeff = real(l * (l + 1), dp) * real(2 * l + 1, dp) / 2.0_dp
+            v = sq_w * p_curr
             do i = 1, n_pts
-                do j = 1, n_pts
-                    dvr%j2_mat(i, j) = dvr%j2_mat(i, j) + coeff * &
-                        sqrt(dvr%weights(i) * dvr%weights(j)) * p_curr(i) * p_curr(j)
+                do j = i, n_pts
+                    dvr%j2_mat(i, j) = dvr%j2_mat(i, j) + coeff * v(i) * v(j)
                 end do
             end do
 
@@ -161,8 +164,12 @@ contains
             end if
         end do
 
-        dvr%j2_mat = 0.5_dp * (dvr%j2_mat + transpose(dvr%j2_mat))
-        deallocate(p_curr, p_prev, p_next)
+        do i = 1, n_pts
+            do j = 1, i - 1
+                dvr%j2_mat(i, j) = dvr%j2_mat(j, i)
+            end do
+        end do
+        deallocate(p_curr, p_prev, p_next, sq_w, v)
     end subroutine dvr_legendre_init
 
     !> \brief 使用 Fourier Grid Hamiltonian (FGH) 求解任意分子势能面束缚态

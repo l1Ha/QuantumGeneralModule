@@ -48,6 +48,20 @@ target_include_directories(GeneralModule_shared PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
+# OpenMP 共享内存多线程支持 (针对服务器多核高性能计算)
+option(ENABLE_OPENMP "Enable OpenMP parallelization for server multi-core acceleration" OFF)
+if(ENABLE_OPENMP)
+    find_package(OpenMP COMPONENTS Fortran)
+    if(OpenMP_Fortran_FOUND)
+        target_link_libraries(GeneralModule_obj PUBLIC OpenMP::OpenMP_Fortran)
+        target_link_libraries(GeneralModule_static PUBLIC OpenMP::OpenMP_Fortran)
+        target_link_libraries(GeneralModule_shared PUBLIC OpenMP::OpenMP_Fortran)
+        message(STATUS "OpenMP enabled for GeneralModule (multi-core acceleration active)")
+    else()
+        message(WARNING "OpenMP requested but Fortran OpenMP support not found; building single-threaded")
+    endif()
+endif()
+
 # 单元测试构建配置 (41 个单元测试套件)
 include(CTest)
 if(BUILD_TESTING)

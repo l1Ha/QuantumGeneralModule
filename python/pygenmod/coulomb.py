@@ -5,7 +5,6 @@ Mirrors `mod_coulomb_atomic.f90`.
 import numpy as np
 import math
 from dataclasses import dataclass
-from .constants import AU2EV, EV2AU
 
 
 @dataclass

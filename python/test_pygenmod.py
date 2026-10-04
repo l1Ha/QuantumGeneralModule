@@ -451,6 +451,21 @@ class TestQCT(unittest.TestCase):
         pref = np.sqrt(8.0 / (np.pi * mu * temp ** 3))
         self.assertAlmostEqual(k / (pref * sigma0 * temp ** 2), 1.0, delta=5e-3)
 
+    def test_parallel_ensemble_execution(self):
+        # 多进程并行采样（针对服务器多核硬件加速）：轨迹总数严格守恒
+        import pygenmod.qct as Q
+        from pygenmod.constants import EV2AU
+        par = Q.LEPSParameters()
+        cfg_seq = Q.QCTConfig(e_coll=1.5 * EV2AU, b_max=3.0, n_traj=160,
+                              max_steps=6000, seed=42, n_workers=1)
+        res_seq = Q.run_qct_ensemble(cfg_seq, par)
+        cfg_par = Q.QCTConfig(e_coll=1.5 * EV2AU, b_max=3.0, n_traj=160,
+                              max_steps=6000, seed=42, n_workers=2)
+        res_par = Q.run_qct_ensemble(cfg_par, par)
+        self.assertEqual(res_par.n_traj, 160)
+        self.assertLess(abs(res_par.cross_section - res_seq.cross_section),
+                        3.0 * res_seq.stat_error + 0.5)
+
 
 # ---------------------------------------------------------------------------
 # Chapter 18: high-dimensional methods (SOP / TT / Smolyak / MCTDH)

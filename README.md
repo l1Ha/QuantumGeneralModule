@@ -25,6 +25,9 @@
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
 5. **全自动 CI/CD 持续集成**
    - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 41 大测试套件（367 个单元断言 100% 通过）与 36 大物理应用工程算例。
+6. **服务器级高性能与多核硬件加速 (HPC & Multi-Core Ready)**
+   - 核心计算密集模块（2D 分裂算符波包传播、2D FFT、DVR 动能矩阵构造、Penning 碰撞截面、RIXS 2D 强度谱、ATAS 瞬态吸收光谱）内嵌标准 OpenMP 哨兵指令，支持零依赖单核运行与 `make OPENMP=1` / `cmake -DENABLE_OPENMP=ON` 服务器多核多线程加速。
+   - Python 伴侣包 `pygenmod` 的 QCT 轨迹系综（`run_qct_ensemble`）支持进程级多核并发（`n_workers=-1` 自动侦测并打满服务器核心），满足大规模科研级高通量计算需求。
 
 ---
 
@@ -1655,7 +1658,7 @@ chmod +x build_examples.sh
 
 ```bash
 cd GeneralModule/python
-python3 test_pygenmod.py   # 运行 27 项单元测试 (100% Pass)
+python3 test_pygenmod.py   # 运行 28 项单元测试 (100% Pass)
 pip install ./python       # 或按标准 Python 包安装 (pygenmod 1.5.0)
 ```
 

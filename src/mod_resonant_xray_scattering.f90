@@ -166,12 +166,14 @@ contains
 
         integer :: i_in, i_loss
 
+        !$omp parallel do collapse(2) private(i_in, i_loss) schedule(static)
         do i_in = 1, n_in
             do i_loss = 1, n_loss
                 rixs_map(i_loss, i_in) = calc_kramers_heisenberg_cross_section(sys, &
                     omega_in_grid(i_in), omega_loss_grid(i_loss))
             end do
         end do
+        !$omp end parallel do
     end subroutine calc_rixs_2d_map
 
     !> \brief 计算电子-声子耦合 Huang-Rhys 振动 Franck-Condon RIXS 级数强度

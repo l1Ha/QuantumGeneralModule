@@ -161,6 +161,7 @@ class QCTConfig:
     init_mode: str = "action"       # "action" (EBK) or "energy" (G + F assignment)
     n_b_bins: int = 20              # stratification bins for the opacity function
     mass: float = 1837.15           # atom mass; symmetric H3-type system (m_e)
+    n_workers: int = 1              # CPU processes: 1 = single-core, >1 or -1 = multi-core server parallel
 
 
 @dataclass
@@ -637,6 +638,30 @@ def qct_analyze_final_state(traj: QCTTrajectory, cfg: QCTConfig,
 # Ensemble driver and cross sections (book sections 17.4-17.5)
 # ---------------------------------------------------------------------------
 
+def _run_qct_worker(args):
+    """Worker task executed in a worker process for parallel ensemble runs."""
+    cfg, par, n_sub, sub_seed = args
+    cfg_sub = QCTConfig(
+        e_coll=cfg.e_coll, b_max=cfg.b_max, r_start=cfg.r_start,
+        r_end=cfg.r_end, dt=cfg.dt, n_traj=n_sub, max_steps=cfg.max_steps,
+        v_initial=cfg.v_initial, j_initial=cfg.j_initial, seed=sub_seed,
+        enforce_zpe=cfg.enforce_zpe, init_mode=cfg.init_mode,
+        n_b_bins=cfg.n_b_bins, mass=cfg.mass, n_workers=1
+    )
+    rng = np.random.default_rng(sub_seed)
+    sampler = InitialSampler.build(cfg_sub, par)
+    trajs = [qct_init_trajectory(cfg_sub, rng, par, sampler) for _ in range(n_sub)]
+    if not trajs:
+        return []
+    q0 = np.stack([t.q for t in trajs])
+    p0 = np.stack([t.p for t in trajs])
+    qf, pf, times, converged = _propagate_ensemble(q0, p0, cfg_sub, par)
+    for i, t in enumerate(trajs):
+        t.q, t.p, t.time, t.converged = qf[i], pf[i], float(times[i]), bool(converged[i])
+        qct_analyze_final_state(t, cfg_sub, par)
+    return trajs
+
+
 def run_qct_ensemble(cfg: QCTConfig, par: Optional[LEPSParameters] = None,
                      progress: Optional[Callable[[int, int], None]] = None) -> QCTResult:
     """Run an ensemble of QCT trajectories and estimate cross sections.
@@ -644,23 +669,48 @@ def run_qct_ensemble(cfg: QCTConfig, par: Optional[LEPSParameters] = None,
     Initial conditions are sampled on the invariant torus of the selected
     (v, j) state; the ensemble is propagated with the vectorized Velocity-Verlet
     integrator (identical dynamics to :func:`propagate_trajectory`).
+
+    Supports multi-core server parallelization via cfg.n_workers:
+      * n_workers = 1: vectorized single-core execution (no IPC overhead).
+      * n_workers = -1: auto-detect all available physical/logical CPU cores.
+      * n_workers > 1: partitions n_traj across worker processes with independent
+        sub-seeds (seed + worker_id * 10007), concatenating trajectories.
     """
     if par is None:
         par = LEPSParameters()
-    rng = np.random.default_rng(cfg.seed)
-    sampler = InitialSampler.build(cfg, par)
-    trajs = []
-    for _ in range(cfg.n_traj):
-        trajs.append(qct_init_trajectory(cfg, rng, par, sampler))
-    q0 = np.stack([t.q for t in trajs])
-    p0 = np.stack([t.p for t in trajs])
-    qf, pf, times, converged = _propagate_ensemble(q0, p0, cfg, par)
-    for i, t in enumerate(trajs):
-        t.q, t.p, t.time, t.converged = qf[i], pf[i], float(times[i]), bool(converged[i])
-        qct_analyze_final_state(t, cfg, par)
-        if progress is not None:
-            progress(i + 1, cfg.n_traj)
-    return _assemble_result(trajs, cfg)
+    n_workers = cfg.n_workers
+    if n_workers == -1:
+        import os
+        n_workers = max(1, os.cpu_count() or 1)
+
+    if n_workers <= 1 or cfg.n_traj <= 1:
+        rng = np.random.default_rng(cfg.seed)
+        sampler = InitialSampler.build(cfg, par)
+        trajs = []
+        for _ in range(cfg.n_traj):
+            trajs.append(qct_init_trajectory(cfg, rng, par, sampler))
+        q0 = np.stack([t.q for t in trajs])
+        p0 = np.stack([t.p for t in trajs])
+        qf, pf, times, converged = _propagate_ensemble(q0, p0, cfg, par)
+        for i, t in enumerate(trajs):
+            t.q, t.p, t.time, t.converged = qf[i], pf[i], float(times[i]), bool(converged[i])
+            qct_analyze_final_state(t, cfg, par)
+            if progress is not None:
+                progress(i + 1, cfg.n_traj)
+        return _assemble_result(trajs, cfg)
+    else:
+        import concurrent.futures
+        base, rem = divmod(cfg.n_traj, n_workers)
+        chunks = [base + (1 if w < rem else 0) for w in range(n_workers)]
+        chunks = [c for c in chunks if c > 0]
+        tasks = [(cfg, par, c, cfg.seed + w * 10007) for w, c in enumerate(chunks)]
+        all_trajs = []
+        with concurrent.futures.ProcessPoolExecutor(max_workers=len(chunks)) as executor:
+            for trajs in executor.map(_run_qct_worker, tasks):
+                all_trajs.extend(trajs)
+                if progress is not None:
+                    progress(len(all_trajs), cfg.n_traj)
+        return _assemble_result(all_trajs, cfg)
 
 
 def _assemble_result(trajs, cfg) -> QCTResult:

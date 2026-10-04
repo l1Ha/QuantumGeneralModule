@@ -10,7 +10,11 @@ FC := gfortran
 ifeq ($(shell uname -s),Darwin)
 export DEVELOPER_DIR ?= /Library/Developer/CommandLineTools
 endif
+OPENMP ?= 0
 FFLAGS ?= -O2 -fPIC -Wall -Wextra -std=f2008 -ffree-line-length-none
+ifeq ($(OPENMP),1)
+FFLAGS += -fopenmp
+endif
 AR ?= ar
 ARFLAGS ?= rcs
 
@@ -95,7 +99,7 @@ test: lib
 	@echo "==> Running full unit test suite (41 test suites)..."
 	@bash $(TEST_DIR)/run_all_tests.sh
 
-test-python: ## Run pygenmod Python unit tests (27 tests)
+test-python: ## Run pygenmod Python unit tests (28 tests)
 	@echo "==> Running pygenmod Python unit tests..."
 	@cd python && python3 test_pygenmod.py
 

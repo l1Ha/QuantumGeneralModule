@@ -196,6 +196,32 @@ add_executable(run_dynamics src/main.f90)
 target_link_libraries(run_dynamics PRIVATE GeneralModule_static)
 ```
 
+#### 3) 服务器多核计算与 OpenMP 硬件加速配置
+
+`GeneralModule` 在核心计算密集模块（2D 分裂算符波包演化、2D FFT、Gauss-Legendre / Sinc DVR 网格构造、FSSH 非绝热轨迹系综、Penning 电离截面、RIXS 2D 强度谱图、ATAS 瞬态吸收光谱）内嵌了标准 Fortran OpenMP 哨兵指令（`!$omp`）。
+
+- **零依赖兼容**：未开启 OpenMP 时，指令自动退化为标准 Fortran 注释，单核行为严格不变；
+- **服务器多核加速**：在多核计算服务器或批处理节点上开启后，自动充分利用多核资源。
+
+**通过 Makefile 开启 OpenMP：**
+```bash
+make clean
+make OPENMP=1 -j 8 lib     # 开启 OpenMP 多线程构建
+export OMP_NUM_THREADS=16  # 指定使用的服务器物理核心数
+make OPENMP=1 test         # 运行全套测试验证
+```
+
+**通过 CMake 开启 OpenMP：**
+```bash
+cmake -B build -S . -DENABLE_OPENMP=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j 8
+export OMP_NUM_THREADS=16
+ctest --test-dir build --output-on-failure
+```
+
+**Python 伴侣包多进程服务器加速（pygenmod）：**
+QCT 轨迹系综（`run_qct_ensemble`）支持进程级多核并发：设置 `cfg = QCTConfig(..., n_workers=-1)` 自动侦测并饱和利用服务器所有物理核心；或指定 `n_workers=16`，各进程采用独立且可复现的子种子序列。可在 `python/examples/demo_qct_highdim.py` 中直接观察加速效果。
+
 ---
 
 ### 2.3 零外部依赖通用 Makefile 模板

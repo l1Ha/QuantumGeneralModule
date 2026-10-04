@@ -75,17 +75,21 @@ plot_scattering_length_wavefunction(r, v_pot, u_wf, a_s, save_path="scattering_l
 python3 test_pygenmod.py
 ```
 
-该脚本使用标准库 `unittest`，不依赖 pytest；全部 27 项测试覆盖常数换算、
+该脚本使用标准库 `unittest`，不依赖 pytest；全部 28 项测试覆盖常数换算、
 脉冲、DVR、HHG、多通道散射、冷原子场致散射、绘图冒烟测试，以及第 17—18 章
 参考实现的验证层次：QCT 守恒律与统计一致性、SOP 作用对照稠密 Kronecker 和、
 TT 舍入往返、Smolyak 两种构造逐点一致、MCTDH 全空间精确性/规范与守恒/SPF 收敛。
 `docs/audit_textbook.py` 会对同一套不变量做独立复核。
 
-## 性能说明
+## 性能与服务器多核利用
 
-- QCT 系综传播已向量化（全部轨迹合并为 `(N, 3, 3)` 数组推进），
-  Velocity-Verlet 每步只做一次势能梯度求值（力复用），300 条轨迹约 0.3 s；
-- 初始条件的 EBK 轨道表按 `(v, j)` 缓存，整个系综只积分一次径向轨道；
-- MCTDH 的 SPF 基矩阵 eta 在 A 方程与平均场之间共享，每步只构造一次；
-- Clenshaw–Curtis 规则带 LRU 缓存。更大规模的 QCT/MCTDH 计算建议放到
-  服务器或批处理队列上执行，先用小系综确认收敛再放大轨迹数与键维。
+- **QCT 向量化与多进程扩展**：全部轨迹合并为 `(N, 3, 3)` 数组推进，
+  Velocity-Verlet 每步仅做一次势能梯度求值（力复用），300 条轨迹单核约 0.26 s。
+  在多核服务器上，可通过设置 `QCTConfig(..., n_workers=-1)` 自动打满全部 CPU 核心，
+  或显式指定 `n_workers=16/32`，各个工作进程使用独立的种子流并行演化。
+- **EBK 轨道表缓存**：初始条件的径向轨道按 `(v, j)` 缓存，整个系综只积分一次一维轨道；
+- **MCTDH 矩阵共享**：SPF 基矩阵 eta 在 A 方程与平均场之间共享，每步只构造一次；
+- **稀疏网格缓存**：Clenshaw–Curtis 规则带 LRU 缓存。
+- 更大规模的 QCT/MCTDH 计算建议直接在服务器或批处理集群上执行，
+  可先用小系综确认物理收敛再将轨迹数放大至 $10^4\sim 10^6$。运行 `python3 examples/demo_qct_highdim.py`
+  可直接观察单核 vs 多核服务器加速效果。

@@ -4,7 +4,7 @@ Mirrors `mod_laser_pulse.f90`.
 """
 import numpy as np
 from dataclasses import dataclass
-from .constants import PI, TWOPI, HALFPI, FS2AU
+from .constants import PI, FS2AU
 
 
 PULSE_GAUSSIAN = 1

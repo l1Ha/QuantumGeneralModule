@@ -4775,7 +4775,7 @@ end subroutine expect_close
 
 两章的算法已同步落地为 Python 参考实现（`python/pygenmod` 的 `qct`、
 `sop_hamiltonian`、`tensor_train`、`mctdh_core`、`sparse_grid` 五个模块），
-并有 27 项单元测试覆盖下列不变量：
+并有 28 项单元测试覆盖下列不变量：
 
 - EBK 作用量量子化对 Morse 振子精确（偏差 $<10^{-9}D_e$）；
 - QCT 轨迹的总能量漂移低于 $10^{-4}$ Hartree，总角动量守恒到 $10^{-10}$；

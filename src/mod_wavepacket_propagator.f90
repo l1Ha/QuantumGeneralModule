@@ -209,10 +209,11 @@ contains
         ! 坐标空间势能半步
         exp_v_half = exp(-EYE * v_pot * (0.5_dp * dt))
 
-        ! 动量空间相位矩阵
+        ! 动量空间相位矩阵 (OpenMP 共享内存多线程加速)
         dpx = TWOPI / (real(nx, dp) * dx)
         dpy = TWOPI / (real(ny, dp) * dy)
 
+        !$omp parallel do private(iy, py, ix, px, e_kin) schedule(static)
         do iy = 1, ny
             if (iy <= ny / 2) then
                 py = real(iy - 1, dp) * dpy
@@ -229,6 +230,7 @@ contains
                 exp_t(ix, iy) = exp(-EYE * e_kin * dt)
             end do
         end do
+        !$omp end parallel do
 
         psi = psi * exp_v_half
         call fft_2d(psi, -1)

@@ -361,6 +361,8 @@ contains
         sum_pi  = 0.0_dp
         sum_ai  = 0.0_dp
 
+        !$omp parallel do reduction(+:sum_tot, sum_pi, sum_ai) &
+        !$omp private(i, b_val, weight, traj_res) schedule(dynamic)
         do i = 1, n_b
             b_val = (real(i, dp) - 0.5_dp) * db
             call calc_penning_trajectory_prob(sys, e_coll_ev, b_val, traj_res)
@@ -370,6 +372,7 @@ contains
             sum_pi  = sum_pi  + traj_res%p_penning * weight
             sum_ai  = sum_ai  + traj_res%p_associative * weight
         end do
+        !$omp end parallel do
 
         res%sigma_tot_ang2 = TWOPI * sum_tot
         res%sigma_pi_ang2  = TWOPI * sum_pi

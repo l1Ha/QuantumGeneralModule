@@ -168,6 +168,9 @@ contains
         ! NIR 极化交流 Stark 位移: Delta E_Stark = -1/4 * alpha * F0^2
         ac_stark_au = 0.25_dp * bright_state%polarizability * (f0_au**2)
 
+        !$omp parallel do private(i_tau, tau, delta_phi, q_eff, e_shifted_ev, &
+        !$omp                     i_e, e_ev, epsilon, sigma_fano, sigma_unperturbed) &
+        !$omp schedule(dynamic)
         do i_tau = 1, n_delay
             tau = tau_grid_fs(i_tau)
 
@@ -197,6 +200,7 @@ contains
                 spec_2d(i_e, i_tau) = (sigma_fano - sigma_unperturbed) * 0.1_dp
             end do
         end do
+        !$omp end parallel do
     end subroutine calc_atas_spectrum
 
 end module mod_attosecond_transient_absorption

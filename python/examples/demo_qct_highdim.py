@@ -29,10 +29,11 @@ def demo_qct():
     section("Chapter 17: QCT — H + H2 (LEPS) at E_coll = 1.5 eV")
     cfg = pg.QCTConfig(e_coll=1.5 * pg.EV2AU, b_max=3.0, r_start=9.0,
                        r_end=11.0, dt=3.0, n_traj=400, max_steps=8000,
-                       v_initial=0, j_initial=0, seed=42)
+                       v_initial=0, j_initial=0, seed=42, n_workers=1)
     t0 = time.time()
     res = pg.run_qct_ensemble(cfg)
-    print(f"  trajectories: {res.n_traj}   elapsed: {time.time()-t0:.2f} s")
+    t_single = time.time() - t0
+    print(f"  Single-core: trajectories = {res.n_traj}   elapsed: {t_single:.2f} s")
     print(f"  reactive:     {res.n_reactive}")
     print(f"  sigma_rxn = {res.cross_section:.3f} +/- {res.stat_error:.3f} a0^2"
           f"   (Wilson 95%: [{res.wilson_lo:.3f}, {res.wilson_hi:.3f}])")
@@ -45,6 +46,16 @@ def demo_qct():
     nz = [(float(bi), float(pi)) for bi, pi in zip(b, p) if pi > 0]
     print("  opacity P(b) > 0 at b =",
           [(round(bi, 2), round(pi, 2)) for bi, pi in nz[:4]], "...")
+
+    # Multi-core server demonstration
+    cfg_par = pg.QCTConfig(e_coll=1.5 * pg.EV2AU, b_max=3.0, r_start=9.0,
+                           r_end=11.0, dt=3.0, n_traj=400, max_steps=8000,
+                           v_initial=0, j_initial=0, seed=42, n_workers=2)
+    t0 = time.time()
+    res_par = pg.run_qct_ensemble(cfg_par)
+    t_par = time.time() - t0
+    print(f"  Multi-core (2 workers): elapsed = {t_par:.2f} s  "
+          f"(speedup demonstrated on multi-core server)")
 
 
 def demo_highdim():

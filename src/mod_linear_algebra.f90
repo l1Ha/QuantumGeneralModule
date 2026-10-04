@@ -407,24 +407,27 @@ contains
         nx = size(data_mat, 1)
         ny = size(data_mat, 2)
 
-        allocate(row(ny))
-        allocate(col(nx))
-
-        ! 对每行做 1D FFT
+        ! 对每行做 1D FFT (OpenMP 共享内存多线程加速)
+        !$omp parallel do private(ix, row) schedule(static)
         do ix = 1, nx
+            allocate(row(ny))
             row = data_mat(ix, :)
             call fft_1d(row, isign)
             data_mat(ix, :) = row
+            deallocate(row)
         end do
+        !$omp end parallel do
 
-        ! 对每列做 1D FFT
+        ! 对每列做 1D FFT (OpenMP 共享内存多线程加速)
+        !$omp parallel do private(iy, col) schedule(static)
         do iy = 1, ny
+            allocate(col(nx))
             col = data_mat(:, iy)
             call fft_1d(col, isign)
             data_mat(:, iy) = col
+            deallocate(col)
         end do
-
-        deallocate(row, col)
+        !$omp end parallel do
     end subroutine fft_2d
 
     !> \brief 通用实方阵求逆（Gauss-Jordan 全主元消去法，零外部依赖）
