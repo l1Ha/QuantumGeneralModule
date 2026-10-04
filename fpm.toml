@@ -220,6 +220,26 @@ name = "test_penning_associative_ionization"
 source-dir = "tests"
 main = "test_penning_associative_ionization.f90"
 
+[[test]]
+name = "test_qct_dynamics"
+source-dir = "tests"
+main = "test_qct_dynamics.f90"
+
+[[test]]
+name = "test_sop_hamiltonian"
+source-dir = "tests"
+main = "test_sop_hamiltonian.f90"
+
+[[test]]
+name = "test_tensor_train"
+source-dir = "tests"
+main = "test_tensor_train.f90"
+
+[[test]]
+name = "test_sparse_grid"
+source-dir = "tests"
+main = "test_sparse_grid.f90"
+
 [[example]]
 name = "ex01_fgh_diatomic_bound_states"
 source-dir = "examples"

@@ -24,7 +24,7 @@
 4. **全链路双语生态支持**
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
 5. **全自动 CI/CD 持续集成**
-   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 41 大测试套件（367 个单元断言 100% 通过）与 36 大物理应用工程算例。
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 45 大测试套件（387 个单元断言 100% 通过）与 36 大物理应用工程算例。
 6. **服务器级高性能与多核硬件加速 (HPC & Multi-Core Ready)**
    - 核心计算密集模块（2D 分裂算符波包传播、2D FFT、DVR 动能矩阵构造、Penning 碰撞截面、RIXS 2D 强度谱、ATAS 瞬态吸收光谱）内嵌标准 OpenMP 哨兵指令，支持零依赖单核运行与 `make OPENMP=1` / `cmake -DENABLE_OPENMP=ON` 服务器多核多线程加速。
    - Python 伴侣包 `pygenmod` 的 QCT 轨迹系综（`run_qct_ensemble`）支持进程级多核并发（`n_workers=-1` 自动侦测并打满服务器核心），满足大规模科研级高通量计算需求。
@@ -42,7 +42,7 @@ GeneralModule/
 ├── CMakeLists.txt                 # CMake 跨平台构建系统
 ├── README.md                      # 本文档
 ├── .gitignore                     # Git 忽略规则
-├── src/                           # 核心 Fortran 源代码 (48 核心模块 + 1 聚合入口)
+├── src/                           # 核心 Fortran 源代码 (52 核心模块 + 1 聚合入口)
 │   ├── mod_constants.f90          # 1. 物理常数与各单位 a.u. 双向转换
 │   ├── mod_special_functions.f90  # 2. 勒让德、Wigner 3j/6j/9j、CG半整数代数、转动偶极/取向矩阵元
 │   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解 (EISPACK TRED2/TQL2)、实/复方阵求逆、1D/2D FFT
@@ -93,7 +93,7 @@ GeneralModule/
 │   ├── mod_resonant_xray_scattering.f90 # 48. 共振非弹性 X 射线散射 (RIXS)、Kramers-Heisenberg 二阶截面、XAS/XES 与 Huang-Rhys 振动级数
 │   ├── mod_penning_associative_ionization.f90 # 49. 亚稳态原子潘宁电离与缔合化学电离动力学、光学势自电离宽度、PIES 电子发射能谱与自旋抑制
 │   └── general_module.f90          # 顶层聚合入口模块 (use general_module, 49 大核心物理模块)
-├── tests/                          # 自动化单元测试套件 (41 个套件，100% 全部通过，367/367 断言)
+├── tests/                          # 自动化单元测试套件 (45 个套件，100% 全部通过，387/387 断言)
 │   ├── test_constants.f90
 │   ├── test_special_functions.f90
 │   ├── test_dvr_grid.f90
@@ -135,7 +135,7 @@ GeneralModule/
 │   ├── test_relativistic_atomic.f90       # 狄拉克氢 1s 基态、2p 精细结构劈裂、Cs 核心极化与相对论 E1 振子强度测试
 │   ├── test_resonant_xray_scattering.f90  # Cu L3 XAS 吸收峰、Kramers-Heisenberg 共振放大、2D RIXS 图谱与 Laguerre 声子级数测试
 │   ├── test_penning_associative_ionization.f90 # 潘宁电离与缔合电离势能面、自电离宽度、低能 AI 俘获主导至高能 PI 转变与 PIES 能谱测试
-│   └── run_all_tests.sh            # 自动化测试运行脚本 (100% Pass, 367/367 断言, 41 测试套件)
+│   └── run_all_tests.sh            # 自动化测试运行脚本 (100% Pass, 387/387 断言, 45 测试套件)
 ├── examples/                       # 典型物理应用算例 (36 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90            # 啁啾、双色、太赫兹脉冲时频生成
@@ -1560,7 +1560,7 @@ chmod +x run_all_tests.sh
 40. Resonant X-ray RIXS Tests:           5 /  5 PASSED
 41. Penning & Associative Ioniz Tests:  5 /  5 PASSED
 ----------------------------------------------------------------
-ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 367/367 断言通过)
+ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 387/387 断言通过)
 ================================================================
 ```
 

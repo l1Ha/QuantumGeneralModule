@@ -206,7 +206,7 @@ Pandoc 兼容的 LaTeX 记号，行内公式以 \(...\) 界定，独立公式以
 四章之间存在紧密的逻辑依赖，建议按序阅读。第一章的谱定理为第三章一切变分计算提供合法性依据；第二章的角动量代数在第三章以
 Wigner D 函数、Legendre
 展开与重耦合网络的形式反复出现；第四章的谱与误差理论则是前三章全部数值实验的度量衡。反过来，第四章的验收测试方法------以已知解析谱校验数值实现------在每一章的小型数值实验中都有实例，读者可将全部实验脚本合并为一个回归测试套件纳入自身的持续集成体系，这也正是本库
-367 项单元断言的构建思路。
+387 项单元断言的构建思路。
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
@@ -4311,7 +4311,7 @@ CMakeLists.txt & 跨平台与 IDE & 对象库、静态库、共享库、CTest &
 \end{longtable}
 
 \texttt{Makefile} 使用显式模块顺序编译，保证 \texttt{.mod}
-文件依赖正确。\texttt{fpm.toml} 显式列出 41 个测试和 36
+文件依赖正确。\texttt{fpm.toml} 显式列出 45 个测试和 36
 个示例，避免隐式自动发现。\texttt{CMakeLists.txt}
 使用对象库组织源码，并生成静态库、共享库和可执行文件。
 
@@ -4366,7 +4366,7 @@ CMakeLists.txt & 跨平台与 IDE & 对象库、静态库、共享库、CTest &
 \hypertarget{ux6d4bux8bd5ux4f53ux7cfbux7684ux9a8cux8bc1ux5c42ux6b21}{%
 \section{8.3　测试体系的验证层次}\label{ux6d4bux8bd5ux4f53ux7cfbux7684ux9a8cux8bc1ux5c42ux6b21}}
 
-GeneralModule 当前包含 41 个 Fortran 测试程序和 36
+GeneralModule 当前包含 45 个 Fortran 测试程序和 36
 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。
 
 测试应覆盖以下层次：
@@ -6440,6 +6440,34 @@ MCTDH 核心\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 \texttt{qr/python\_\_pygenmod\_\_sparse\_grid.py.png}\strut
 \end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+QCT 动力学 (Fortran)\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_qct_dynamics.f90}{src/mod\_qct\_dynamics.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{qr/src\_\_mod\_qct\_dynamics.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+SOP 哈密顿量 (Fortran)\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_sop_hamiltonian.f90}{src/mod\_sop\_hamiltonian.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{qr/src\_\_mod\_sop\_hamiltonian.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+张量列车 (Fortran)\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_tensor_train.f90}{src/mod\_tensor\_train.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{qr/src\_\_mod\_tensor\_train.f90.png}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+稀疏网格 (Fortran)\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_sparse_grid.f90}{src/mod\_sparse\_grid.f90}\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\texttt{qr/src\_\_mod\_sparse\_grid.f90.png}\strut
+\end{minipage}\tabularnewline
 \bottomrule
 \end{longtable}
 
@@ -7496,7 +7524,7 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \begin{itemize}
 \tightlist
 \item
-  41 个 Fortran 测试程序；
+  45 个 Fortran 测试程序；
 \item
   36 个物理示例；
 \item
@@ -7780,7 +7808,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 41 个测试程序、367 项断言全部通过。
+  全库 45 个测试程序、387 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的
@@ -7838,8 +7866,10 @@ Morse/谐振子极限求和结果\strut
   数单调提高。
 \end{itemize}
 
-Fortran 版本的 \texttt{mod\_qct\_dynamics} 与四个高维模块仍在第 12
-章路线图中； 数值验收详见 16.4 节与 \texttt{docs/audit\_textbook.py}。
+Fortran 版本的
+\texttt{mod\_qct\_dynamics}、\texttt{mod\_sop\_hamiltonian}、\texttt{mod\_tensor\_train}
+与 \texttt{mod\_sparse\_grid} 已原生实现并纳入核心库； 数值验收详见 16.4
+节与 \texttt{docs/audit\_textbook.py}。
 
 \hypertarget{ux7b2cux5341ux56dbux90e8ux5206-qct-ux52a8ux529bux5b66ux4e0eux9ad8ux7ef4ux91cfux5b50ux6269ux5c55}{%
 \part{第十四部分　QCT
@@ -8331,6 +8361,21 @@ QCT 反应散射模块。建议新增：
 等同名函数； 默认势能面为 H + H\(_2\) 的 LEPS
 面（Karplus--Porter--Sharma），初条件按 17.2 节在不变环面上均匀抽样。
 
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-fortran-ux539fux751fux5b9eux73b0}{%
+\subsection{对应源码 (Fortran
+原生实现)}\label{ux5bf9ux5e94ux6e90ux7801-fortran-ux539fux751fux5b9eux73b0}}
+
+\begin{itemize}
+\tightlist
+\item
+  \href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_qct_dynamics.f90}{src/mod\_qct\_dynamics.f90}（QCT
+  反应动力学模块）
+\item
+  二维码：\texttt{qr/src\_\_mod\_qct\_dynamics.f90.png}
+\end{itemize}
+
+\includegraphics[width=2cm,height=\textheight]{qr/src__mod_qct_dynamics.f90.png}
+
 \hypertarget{ux53c2ux8003ux6587ux732e-7}{%
 \section{17.9　参考文献}\label{ux53c2ux8003ux6587ux732e-7}}
 
@@ -8771,6 +8816,26 @@ POTFIT/SOP & MCTDH & 与传播器匹配 & 拟合误差\tabularnewline
 与本节的 Fortran 接口一一对应，并已按 18.9 节的验证层次通过单元测试
 （SOP 作用对照稠密 Kronecker 和、TT 舍入往返、Smolyak 两种构造逐点一致、
 MCTDH 全空间精确性与 SPF 收敛）。
+
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-fortran-ux539fux751fux5b9eux73b0-1}{%
+\subsection{对应源码 (Fortran
+原生实现)}\label{ux5bf9ux5e94ux6e90ux7801-fortran-ux539fux751fux5b9eux73b0-1}}
+
+\begin{itemize}
+\tightlist
+\item
+  \href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_sop_hamiltonian.f90}{src/mod\_sop\_hamiltonian.f90}
+\item
+  \href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_tensor_train.f90}{src/mod\_tensor\_train.f90}
+\item
+  \href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_sparse_grid.f90}{src/mod\_sparse\_grid.f90}
+\item
+  二维码：\texttt{qr/src\_\_mod\_sop\_hamiltonian.f90.png}、\texttt{qr/src\_\_mod\_tensor\_train.f90.png}、\texttt{qr/src\_\_mod\_sparse\_grid.f90.png}
+\end{itemize}
+
+\includegraphics[width=2cm,height=\textheight]{qr/src__mod_sop_hamiltonian.f90.png}
+\includegraphics[width=2cm,height=\textheight]{qr/src__mod_tensor_train.f90.png}
+\includegraphics[width=2cm,height=\textheight]{qr/src__mod_sparse_grid.f90.png}
 
 建议的最小实现顺序：
 

@@ -24,7 +24,7 @@ EX_DIR = examples
 LIB_DIR = lib
 MOD_DIR = include
 
-# 48 核心模块源文件 (按拓扑依赖顺序排列)
+# 52 核心模块源文件 (按拓扑依赖顺序排列)
 MODULE_SRCS = \
 	$(SRC_DIR)/mod_constants.f90 \
 	$(SRC_DIR)/mod_special_functions.f90 \
@@ -75,6 +75,10 @@ MODULE_SRCS = \
 	$(SRC_DIR)/mod_relativistic_atomic.f90 \
 	$(SRC_DIR)/mod_resonant_xray_scattering.f90 \
 	$(SRC_DIR)/mod_penning_associative_ionization.f90 \
+	$(SRC_DIR)/mod_qct_dynamics.f90 \
+	$(SRC_DIR)/mod_sop_hamiltonian.f90 \
+	$(SRC_DIR)/mod_tensor_train.f90 \
+	$(SRC_DIR)/mod_sparse_grid.f90 \
 	$(SRC_DIR)/general_module.f90
 
 MODULE_OBJS = $(MODULE_SRCS:.f90=.o)
@@ -96,7 +100,7 @@ $(STATIC_LIB): $(MODULE_SRCS)
 	@echo "==> Library built: $(STATIC_LIB)"
 
 test: lib
-	@echo "==> Running full unit test suite (41 test suites)..."
+	@echo "==> Running full unit test suite (45 test suites)..."
 	@bash $(TEST_DIR)/run_all_tests.sh
 
 test-python: ## Run pygenmod Python unit tests (28 tests)
@@ -123,7 +127,7 @@ clean:
 help:
 	@echo "Available targets in GeneralModule Makefile:"
 	@echo "  make all      - Build the core static library (libgeneral_module.a)"
-	@echo "  make test     - Run all 41 unit test suites (367 assertions)"
+	@echo "  make test     - Run all 45 unit test suites (387 assertions)"
 	@echo "  make examples - Build and execute all 35 physics examples"
 	@echo "  make check    - Run Fortran tests and Python pygenmod test suite"
 	@echo "  make clean    - Remove all compiled objects, modules, and data outputs"

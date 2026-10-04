@@ -68,12 +68,16 @@ gfortran $FFLAGS -c mod_reaction_path_hamiltonian.f90
 gfortran $FFLAGS -c mod_relativistic_atomic.f90
 gfortran $FFLAGS -c mod_resonant_xray_scattering.f90
 gfortran $FFLAGS -c mod_penning_associative_ionization.f90
+gfortran $FFLAGS -c mod_qct_dynamics.f90
+gfortran $FFLAGS -c mod_sop_hamiltonian.f90
+gfortran $FFLAGS -c mod_tensor_train.f90
+gfortran $FFLAGS -c mod_sparse_grid.f90
 gfortran $FFLAGS -c general_module.f90
 ar rcs libgeneral_module.a *.o
 
 cd "$DIR"
 
-# 2. 编译并运行各项测试 (共 41 大完整测试套件)
+# 2. 编译并运行各项测试 (共 45 大完整测试套件)
 TESTS=(
     "test_constants"
     "test_special_functions"
@@ -116,6 +120,10 @@ TESTS=(
     "test_relativistic_atomic"
     "test_resonant_xray_scattering"
     "test_penning_associative_ionization"
+    "test_qct_dynamics"
+    "test_sop_hamiltonian"
+    "test_tensor_train"
+    "test_sparse_grid"
 )
 
 for test_name in "${TESTS[@]}"; do

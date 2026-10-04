@@ -52,6 +52,10 @@ module general_module
     use mod_relativistic_atomic
     use mod_resonant_xray_scattering
     use mod_penning_associative_ionization
+    use mod_qct_dynamics
+    use mod_sop_hamiltonian
+    use mod_tensor_train
+    use mod_sparse_grid
     implicit none
 
     public :: dp, int32, int64
@@ -338,5 +342,22 @@ module general_module
     public :: calc_penning_turning_point, calc_penning_trajectory_prob
     public :: calc_penning_cross_sections, calc_penning_electron_spectrum
     public :: calc_penning_thermal_rate, calc_ultracold_penning_complex_length
+
+    ! 准经典轨迹动力学 (Quasi-Classical Trajectory - QCT, 第17章)
+    public :: qct_config_t, qct_trajectory_t, qct_result_t, qct_leps_param_t
+    public :: init_qct_leps_param, eval_leps_energy_gradient, qct_init_trajectory
+    public :: qct_propagate_step, qct_analyze_final_state, run_qct_ensemble, qct_cross_section
+
+    ! 和积哈密顿量与矩阵自由作用 (Sum-of-Products - SOP, 第18.1节)
+    public :: sop_term_1d_t, sop_hamiltonian_3d_t
+    public :: init_sop_hamiltonian_3d, destroy_sop_hamiltonian_3d, sop_apply_3d
+
+    ! 张量列车与矩阵乘积态 (Tensor Train - TT / MPS, 第18.3节)
+    public :: tt_tensor_3d_t
+    public :: init_tt_tensor_3d, destroy_tt_tensor_3d, tt_3d_to_dense, tt_3d_inner_product, tt_3d_norm
+
+    ! Smolyak 稀疏网格数值求积 (Sparse Grid Quadrature, 第18.4节)
+    public :: clenshaw_curtis_1d, smolyak_grid_2d_t
+    public :: build_smolyak_grid_2d, destroy_smolyak_grid_2d, smolyak_integrate_2d
 
 end module general_module

@@ -37,7 +37,7 @@ $$
 
 每一节均按统一体例组织：**定义**、**公式与推导**、**物理含义**、**数值陷阱**、**GeneralModule 实现映射**（源码路径、函数、GitHub 直链与二维码）、**小型数值实验**与**练习**。所有数值实验结果均由本库源码直接编译运行获得（GNU Fortran 11.4，`real64` 双精度，随机数种子取默认值），可复现、可作为读者自建验收测试的基线。
 值得强调的是验收测试的分层思想：第一层是代数恒等式（正交性、对称性、选择定则），应达到机器精度；第二层是解析特例（谐振子、Morse 势、刚转子、Laplacian 精确谱），应达到截断误差与舍入误差的预期标度；第三层才是与实验数据的比对（如 $\mathrm{H}_2$ 的 $B_v$、$D_J$），其偏差属于物理模型的系统误差而非数值误差。三层界限分明，才能在结果异常时迅速定位问题属于代码、算法还是模型。行文约定：公式采用 Pandoc 兼容的 LaTeX 记号，行内公式以 $...$ 界定，独立公式以 $$...$$ 界定。
-四章之间存在紧密的逻辑依赖，建议按序阅读。第一章的谱定理为第三章一切变分计算提供合法性依据；第二章的角动量代数在第三章以 Wigner D 函数、Legendre 展开与重耦合网络的形式反复出现；第四章的谱与误差理论则是前三章全部数值实验的度量衡。反过来，第四章的验收测试方法——以已知解析谱校验数值实现——在每一章的小型数值实验中都有实例，读者可将全部实验脚本合并为一个回归测试套件纳入自身的持续集成体系，这也正是本库 367 项单元断言的构建思路。
+四章之间存在紧密的逻辑依赖，建议按序阅读。第一章的谱定理为第三章一切变分计算提供合法性依据；第二章的角动量代数在第三章以 Wigner D 函数、Legendre 展开与重耦合网络的形式反复出现；第四章的谱与误差理论则是前三章全部数值实验的度量衡。反过来，第四章的验收测试方法——以已知解析谱校验数值实现——在每一章的小型数值实验中都有实例，读者可将全部实验脚本合并为一个回归测试套件纳入自身的持续集成体系，这也正是本库 387 项单元断言的构建思路。
 
 ---
 
@@ -2643,7 +2643,7 @@ GeneralModule 同时提供 `Makefile`、`fpm.toml` 和 `CMakeLists.txt`。三者
 | fpm.toml | Fortran 包管理 | 标准化、依赖清晰 | 自动发现关闭 |
 | CMakeLists.txt | 跨平台与 IDE | 对象库、静态库、共享库、CTest | 配置复杂 |
 
-`Makefile` 使用显式模块顺序编译，保证 `.mod` 文件依赖正确。`fpm.toml` 显式列出 41 个测试和 36 个示例，避免隐式自动发现。`CMakeLists.txt` 使用对象库组织源码，并生成静态库、共享库和可执行文件。
+`Makefile` 使用显式模块顺序编译，保证 `.mod` 文件依赖正确。`fpm.toml` 显式列出 45 个测试和 36 个示例，避免隐式自动发现。`CMakeLists.txt` 使用对象库组织源码，并生成静态库、共享库和可执行文件。
 
 - Makefile：
 
@@ -2671,7 +2671,7 @@ GeneralModule 同时提供 `Makefile`、`fpm.toml` 和 `CMakeLists.txt`。三者
 
 ### 8.3　测试体系的验证层次
 
-GeneralModule 当前包含 41 个 Fortran 测试程序和 36 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。
+GeneralModule 当前包含 45 个 Fortran 测试程序和 36 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。
 
 测试应覆盖以下层次：
 
@@ -3886,6 +3886,10 @@ GitHub Actions 配置位于：
 | 张量列车 | [python/pygenmod/tensor_train.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/tensor_train.py) | `qr/python__pygenmod__tensor_train.py.png` |
 | MCTDH 核心 | [python/pygenmod/mctdh_core.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/mctdh_core.py) | `qr/python__pygenmod__mctdh_core.py.png` |
 | 稀疏网格 | [python/pygenmod/sparse_grid.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/sparse_grid.py) | `qr/python__pygenmod__sparse_grid.py.png` |
+| QCT 动力学 (Fortran) | [src/mod_qct_dynamics.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_qct_dynamics.f90) | `qr/src__mod_qct_dynamics.f90.png` |
+| SOP 哈密顿量 (Fortran) | [src/mod_sop_hamiltonian.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_sop_hamiltonian.f90) | `qr/src__mod_sop_hamiltonian.f90.png` |
+| 张量列车 (Fortran) | [src/mod_tensor_train.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_tensor_train.f90) | `qr/src__mod_tensor_train.f90.png` |
+| 稀疏网格 (Fortran) | [src/mod_sparse_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_sparse_grid.f90) | `qr/src__mod_sparse_grid.f90.png` |
 
 ## 结语
 
@@ -4631,7 +4635,7 @@ end type experiment_record_t
 
 #### 已有能力
 
-- 41 个 Fortran 测试程序；
+- 45 个 Fortran 测试程序；
 - 36 个物理示例；
 - `Makefile`、`fpm.toml`、`CMakeLists.txt`；
 - GitHub Actions CI；
@@ -4757,7 +4761,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 41 个测试程序、367 项断言全部通过。
+- 全库 45 个测试程序、387 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 
@@ -4786,7 +4790,7 @@ end subroutine expect_close
 - MCTDH 在全单粒子函数空间复现精确演化（旋转基下亦然），
   范数与正交归一守恒到 $10^{-10}$，能量守恒，且保真度随 SPF 数单调提高。
 
-Fortran 版本的 `mod_qct_dynamics` 与四个高维模块仍在第 12 章路线图中；
+Fortran 版本的 `mod_qct_dynamics`、`mod_sop_hamiltonian`、`mod_tensor_train` 与 `mod_sparse_grid` 已原生实现并纳入核心库；
 数值验收详见 16.4 节与 `docs/audit_textbook.py`。
 
 # 第十四部分　QCT 动力学与高维量子扩展
@@ -5192,6 +5196,14 @@ end module mod_qct_dynamics
 默认势能面为 H + H$_2$ 的 LEPS 面（Karplus–Porter–Sharma），初条件按
 17.2 节在不变环面上均匀抽样。
 
+#### 对应源码 (Fortran 原生实现)
+
+- [src/mod_qct_dynamics.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_qct_dynamics.f90)（QCT 反应动力学模块）
+- 二维码：`qr/src__mod_qct_dynamics.f90.png`
+
+![](qr/src__mod_qct_dynamics.f90.png){width=2.0cm}
+
+
 ### 17.9　参考文献
 
 1. M. Karplus, R. N. Porter, and R. D. Sharma, “Exchange reactions with activation energy. I. Simple barrier potential for (H,H2)”, *J. Chem. Phys.* **43**, 3259 (1965). DOI: 10.1063/1.1697301.
@@ -5503,6 +5515,17 @@ end module mod_sparse_grid
 与本节的 Fortran 接口一一对应，并已按 18.9 节的验证层次通过单元测试
 （SOP 作用对照稠密 Kronecker 和、TT 舍入往返、Smolyak 两种构造逐点一致、
 MCTDH 全空间精确性与 SPF 收敛）。
+
+#### 对应源码 (Fortran 原生实现)
+
+- [src/mod_sop_hamiltonian.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_sop_hamiltonian.f90)
+- [src/mod_tensor_train.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_tensor_train.f90)
+- [src/mod_sparse_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_sparse_grid.f90)
+- 二维码：`qr/src__mod_sop_hamiltonian.f90.png`、`qr/src__mod_tensor_train.f90.png`、`qr/src__mod_sparse_grid.f90.png`
+
+![](qr/src__mod_sop_hamiltonian.f90.png){width=2.0cm}
+![](qr/src__mod_tensor_train.f90.png){width=2.0cm}
+![](qr/src__mod_sparse_grid.f90.png){width=2.0cm}
 
 建议的最小实现顺序：
 
