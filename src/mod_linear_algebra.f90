@@ -397,37 +397,37 @@ contains
         deallocate(temp)
     end subroutine dft_slow
 
-    !> \brief 二维快速傅里叶变换
+    !> \brief 二维快速傅里叶变换（转置+连续列访问高性能算法，零内层动态内存分配，缓存友好）
     subroutine fft_2d(data_mat, isign)
         complex(dp), intent(inout) :: data_mat(:, :)
         integer, intent(in) :: isign
-        integer :: nx, ny, ix, iy
-        complex(dp), allocatable :: row(:), col(:)
+        integer :: nx, ny, i
+        complex(dp), allocatable :: temp(:, :)
 
         nx = size(data_mat, 1)
         ny = size(data_mat, 2)
+        allocate(temp(ny, nx))
 
-        ! 对每行做 1D FFT (OpenMP 共享内存多线程加速)
-        !$omp parallel do private(ix, row) schedule(static)
-        do ix = 1, nx
-            allocate(row(ny))
-            row = data_mat(ix, :)
-            call fft_1d(row, isign)
-            data_mat(ix, :) = row
-            deallocate(row)
+        ! 1. 对所有列做 1D FFT（沿 Fortran 列主序连续内存访问）
+        !$omp parallel do schedule(static)
+        do i = 1, ny
+            call fft_1d(data_mat(:, i), isign)
         end do
         !$omp end parallel do
 
-        ! 对每列做 1D FFT (OpenMP 共享内存多线程加速)
-        !$omp parallel do private(iy, col) schedule(static)
-        do iy = 1, ny
-            allocate(col(nx))
-            col = data_mat(:, iy)
-            call fft_1d(col, isign)
-            data_mat(:, iy) = col
-            deallocate(col)
+        ! 2. 矩阵转置：行转化为列
+        temp = transpose(data_mat)
+
+        ! 3. 对转置后的矩阵所有列做 1D FFT（相当于对原始矩阵的行做变换，再次保证纯连续内存步长）
+        !$omp parallel do schedule(static)
+        do i = 1, nx
+            call fft_1d(temp(:, i), isign)
         end do
         !$omp end parallel do
+
+        ! 4. 转置还原
+        data_mat = transpose(temp)
+        deallocate(temp)
     end subroutine fft_2d
 
     !> \brief 通用实方阵求逆（Gauss-Jordan 全主元消去法，零外部依赖）

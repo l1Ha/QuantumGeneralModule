@@ -96,17 +96,16 @@ contains
         plm = pcurrent
     end function assoc_legendre_poly
 
-    !> \brief 对数阶乘辅助函数 ln(n!)，避免高量子数阶乘溢出
+    !> \brief 对数阶乘辅助函数 ln(n!)，采用 Fortran 2008 标准内建 log_gamma 函数，消除 O(N) 循环累加
     pure function log_factorial(n) result(res)
         integer, intent(in) :: n
         real(dp) :: res
-        integer :: i
 
-        res = 0.0_dp
-        if (n <= 1) return
-        do i = 2, n
-            res = res + log(real(i, dp))
-        end do
+        if (n <= 1) then
+            res = 0.0_dp
+        else
+            res = log_gamma(real(n + 1, dp))
+        end if
     end function log_factorial
 
     !> \brief 计算 Wigner 3j 符号 (Racah 展开公式)
