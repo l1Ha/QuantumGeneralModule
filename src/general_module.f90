@@ -52,6 +52,7 @@ module general_module
     use mod_relativistic_atomic
     use mod_resonant_xray_scattering
     use mod_penning_associative_ionization
+    use mod_coulomb_threebody
     use mod_qct_dynamics
     use mod_sop_hamiltonian
     use mod_tensor_train
@@ -342,6 +343,11 @@ module general_module
     public :: calc_penning_turning_point, calc_penning_trajectory_prob
     public :: calc_penning_cross_sections, calc_penning_electron_spectrum
     public :: calc_penning_thermal_rate, calc_ultracold_penning_complex_length
+
+    ! 库仑三体系统与 Hylleraas-Pekeris 两电子变分 (Coulomb Three-Body, 第42篇文献典藏)
+    public :: perkeris_coordinate_transform, calc_perkeris_volume_element
+    public :: calc_hylleraas_analytical_integral, gauss_laguerre_nodes
+    public :: hylleraas_basis_indexing, solve_helium_ground_state_variational
 
     ! 准经典轨迹动力学 (Quasi-Classical Trajectory - QCT, 第17章)
     public :: qct_config_t, qct_trajectory_t, qct_result_t, qct_leps_param_t

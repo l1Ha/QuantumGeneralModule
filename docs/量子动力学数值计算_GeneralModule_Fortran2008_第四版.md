@@ -2643,7 +2643,7 @@ GeneralModule 同时提供 `Makefile`、`fpm.toml` 和 `CMakeLists.txt`。三者
 | fpm.toml | Fortran 包管理 | 标准化、依赖清晰 | 自动发现关闭 |
 | CMakeLists.txt | 跨平台与 IDE | 对象库、静态库、共享库、CTest | 配置复杂 |
 
-`Makefile` 使用显式模块顺序编译，保证 `.mod` 文件依赖正确。`fpm.toml` 显式列出 45 个测试和 36 个示例，避免隐式自动发现。`CMakeLists.txt` 使用对象库组织源码，并生成静态库、共享库和可执行文件。
+`Makefile` 使用显式模块顺序编译，保证 `.mod` 文件依赖正确。`fpm.toml` 显式列出 46 个测试和 36 个示例，避免隐式自动发现。`CMakeLists.txt` 使用对象库组织源码，并生成静态库、共享库和可执行文件。
 
 - Makefile：
 
@@ -2671,7 +2671,7 @@ GeneralModule 同时提供 `Makefile`、`fpm.toml` 和 `CMakeLists.txt`。三者
 
 ### 8.3　测试体系的验证层次
 
-GeneralModule 当前包含 45 个 Fortran 测试程序和 36 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。
+GeneralModule 当前包含 46 个 Fortran 测试程序和 36 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。
 
 测试应覆盖以下层次：
 
@@ -3890,6 +3890,7 @@ GitHub Actions 配置位于：
 | SOP 哈密顿量 (Fortran) | [src/mod_sop_hamiltonian.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_sop_hamiltonian.f90) | `qr/src__mod_sop_hamiltonian.f90.png` |
 | 张量列车 (Fortran) | [src/mod_tensor_train.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_tensor_train.f90) | `qr/src__mod_tensor_train.f90.png` |
 | 稀疏网格 (Fortran) | [src/mod_sparse_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_sparse_grid.f90) | `qr/src__mod_sparse_grid.f90.png` |
+| 库仑三体 (Fortran) | [src/mod_coulomb_threebody.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_coulomb_threebody.f90) | `qr/src__mod_coulomb_threebody.f90.png` |
 
 ## 结语
 
@@ -4635,7 +4636,7 @@ end type experiment_record_t
 
 #### 已有能力
 
-- 45 个 Fortran 测试程序；
+- 46 个 Fortran 测试程序；
 - 36 个物理示例；
 - `Makefile`、`fpm.toml`、`CMakeLists.txt`；
 - GitHub Actions CI；
@@ -4761,7 +4762,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 45 个测试程序、387 项断言全部通过。
+- 全库 46 个测试程序、393 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 
@@ -4779,7 +4780,7 @@ end subroutine expect_close
 
 两章的算法已同步落地为 Python 参考实现（`python/pygenmod` 的 `qct`、
 `sop_hamiltonian`、`tensor_train`、`mctdh_core`、`sparse_grid` 五个模块），
-并有 28 项单元测试覆盖下列不变量：
+并有 28 项单元测试与 Fortran 原生 393 项断言覆盖下列不变量：
 
 - EBK 作用量量子化对 Morse 振子精确（偏差 $<10^{-9}D_e$）；
 - QCT 轨迹的总能量漂移低于 $10^{-4}$ Hartree，总角动量守恒到 $10^{-10}$；
@@ -4790,7 +4791,10 @@ end subroutine expect_close
 - MCTDH 在全单粒子函数空间复现精确演化（旋转基下亦然），
   范数与正交归一守恒到 $10^{-10}$，能量守恒，且保真度随 SPF 数单调提高。
 
-Fortran 版本的 `mod_qct_dynamics`、`mod_sop_hamiltonian`、`mod_tensor_train` 与 `mod_sparse_grid` 已原生实现并纳入核心库；
+Fortran 版本的 `mod_qct_dynamics`、`mod_sop_hamiltonian`、`mod_tensor_train`、`mod_sparse_grid`
+与 `mod_coulomb_threebody`（Hylleraas-Pekeris 两电子变分）已原生实现并纳入核心库；
+其中氦原子基态变分能量收敛至 Pekeris (1958) 精确值 $-2.903724377$ Hartree（误差 $<4\times10^{-7}$），
+类氦离子 $Z=10$ 收敛至精确值 $-93.906806$（误差 $<3\times10^{-5}$）；
 数值验收详见 16.4 节与 `docs/audit_textbook.py`。
 
 # 第十四部分　QCT 动力学与高维量子扩展

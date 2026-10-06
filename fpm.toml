@@ -221,6 +221,11 @@ source-dir = "tests"
 main = "test_penning_associative_ionization.f90"
 
 [[test]]
+name = "test_coulomb_threebody"
+source-dir = "tests"
+main = "test_coulomb_threebody.f90"
+
+[[test]]
 name = "test_qct_dynamics"
 source-dir = "tests"
 main = "test_qct_dynamics.f90"

@@ -75,6 +75,7 @@ MODULE_SRCS = \
 	$(SRC_DIR)/mod_relativistic_atomic.f90 \
 	$(SRC_DIR)/mod_resonant_xray_scattering.f90 \
 	$(SRC_DIR)/mod_penning_associative_ionization.f90 \
+	$(SRC_DIR)/mod_coulomb_threebody.f90 \
 	$(SRC_DIR)/mod_qct_dynamics.f90 \
 	$(SRC_DIR)/mod_sop_hamiltonian.f90 \
 	$(SRC_DIR)/mod_tensor_train.f90 \
@@ -100,7 +101,7 @@ $(STATIC_LIB): $(MODULE_SRCS)
 	@echo "==> Library built: $(STATIC_LIB)"
 
 test: lib
-	@echo "==> Running full unit test suite (45 test suites)..."
+	@echo "==> Running full unit test suite (46 test suites)..."
 	@bash $(TEST_DIR)/run_all_tests.sh
 
 test-python: ## Run pygenmod Python unit tests (28 tests)
@@ -127,7 +128,7 @@ clean:
 help:
 	@echo "Available targets in GeneralModule Makefile:"
 	@echo "  make all      - Build the core static library (libgeneral_module.a)"
-	@echo "  make test     - Run all 45 unit test suites (387 assertions)"
+	@echo "  make test     - Run all 46 unit test suites (393 assertions)"
 	@echo "  make examples - Build and execute all 35 physics examples"
 	@echo "  make check    - Run Fortran tests and Python pygenmod test suite"
 	@echo "  make clean    - Remove all compiled objects, modules, and data outputs"

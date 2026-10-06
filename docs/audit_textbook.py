@@ -75,8 +75,15 @@ def check_cross_references(text: str) -> dict:
 
 def check_dois(text: str, online: bool) -> dict:
     dois = sorted(set(re.findall(r"10\.\d{4,9}/[-._;()/:A-Za-z0-9]+", text)))
-    dois = [d.rstrip(".,;:") for d in dois]
-    dois = sorted(set(dois))
+    cleaned = []
+    for d in dois:
+        d = d.rstrip(".,;:")
+        # 仅剥离不配平的尾括号 (markdown 链接 [DOI: xxx](url) 的 ')' 会被正则吞入);
+        # 保留 SICI 型 DOI 中部的配平括号, 如 10.1016/0003-4916(58)90007-1
+        while d.endswith(")") and d.count("(") < d.count(")"):
+            d = d[:-1]
+        cleaned.append(d)
+    dois = sorted(set(cleaned))
     syntactic = [d for d in dois if not re.fullmatch(r"10\.\d{4,9}/\S+", d)]
     resolved: list[str] = []
     unresolved: list[str] = []
@@ -296,6 +303,21 @@ def main() -> int:
         "pygenmod": pygenmod_checks(),
     }
 
+    # LITERATURE.md 学术典藏审计: 源码路径 / GitHub 链接 / DOI 解析
+    lit_path = ROOT / "LITERATURE.md"
+    if lit_path.exists():
+        lit_text = lit_path.read_text(encoding="utf-8")
+        lit_paths = check_paths(lit_text)
+        lit_links = check_github_links(lit_text)
+        lit_dois = check_dois(lit_text, args.online)
+        report["literature"] = {
+            "paths": lit_paths,
+            "github_links": lit_links,
+            "dois": {"checked": lit_dois["checked"],
+                     "syntactically_invalid": lit_dois["syntactically_invalid"],
+                     "unresolved": lit_dois["unresolved"]},
+        }
+
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:
@@ -311,6 +333,11 @@ def main() -> int:
         or report["cross_references"]["missing"]
         or report["dois"]["syntactically_invalid"]
         or report["dois"]["unresolved"]
+        or ("literature" in report and (
+            report["literature"]["paths"]["missing"]
+            or report["literature"]["github_links"]["missing"]
+            or report["literature"]["dois"]["syntactically_invalid"]
+            or report["literature"]["dois"]["unresolved"]))
         or report["numerical"]["qct_cross_section_rel_error"] > 0.02
         or report["numerical"]["qct_differential_sigma_rel_error"] > 0.01
         or report["numerical"]["sop_action_rel_error"] > 1e-12
