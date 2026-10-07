@@ -19,6 +19,10 @@ echo "================================================================"
 echo "[1/2] Compiling all modules in src/..."
 cd "$SRC_DIR"
 FFLAGS="-O2 -fPIC -ffree-line-length-none"
+# 透传 OPENMP 标志: make OPENMP=1 test 时库与测试均以 -fopenmp 编译
+if [ "${OPENMP:-0}" = "1" ]; then
+    FFLAGS="$FFLAGS -fopenmp"
+fi
 gfortran $FFLAGS -c mod_constants.f90
 gfortran $FFLAGS -c mod_special_functions.f90
 gfortran $FFLAGS -c mod_linear_algebra.f90

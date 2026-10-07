@@ -65,6 +65,8 @@ contains
         real(dp) :: val
 
         dense_out = 0.0_dp
+        ! OpenMP: 各 i3 切片独立写 dense_out, 无竞争 (服务器多核加速)
+        !$omp parallel do private(i1, i2, val, a1, a2) schedule(static)
         do i3 = 1, tt%n3
             do i2 = 1, tt%n2
                 do i1 = 1, tt%n1
@@ -78,6 +80,7 @@ contains
                 end do
             end do
         end do
+        !$omp end parallel do
     end subroutine tt_3d_to_dense
 
     !> \brief 高效计算两个 TT 张量的内积 <A, B> (无需展开全张量)

@@ -102,7 +102,7 @@ $(STATIC_LIB): $(MODULE_SRCS)
 
 test: lib
 	@echo "==> Running full unit test suite (46 test suites)..."
-	@bash $(TEST_DIR)/run_all_tests.sh
+	@OPENMP=$(OPENMP) bash $(TEST_DIR)/run_all_tests.sh
 
 test-python: ## Run pygenmod Python unit tests (28 tests)
 	@echo "==> Running pygenmod Python unit tests..."

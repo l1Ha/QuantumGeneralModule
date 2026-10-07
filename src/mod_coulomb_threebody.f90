@@ -143,7 +143,7 @@ contains
         real(dp), allocatable :: hx(:, :), smat(:, :)
         real(dp), allocatable :: a_mat(:, :), eigs(:), eigvec(:, :)
         real(dp), allocatable :: chol(:, :), linv(:, :), tmp(:, :)
-        real(dp), allocatable :: chi(:), du_fac(:), dv_fac(:), dw_fac(:)
+        real(dp) :: chi(MAX_BASIS), du_fac(MAX_BASIS), dv_fac(MAX_BASIS), dw_fac(MAX_BASIS)
         real(dp) :: uval, vval, wval, r1, r2, r12
         real(dp) :: fi, fj, dfi_u, dfi_v, dfi_w, dfj_u, dfj_v, dfj_w
         real(dp) :: g1i_r, g1j_r, g1i_u, g1j_u, g2i_r, g2j_r
@@ -163,7 +163,6 @@ contains
         allocate(hx(n_basis, n_basis), smat(n_basis, n_basis))
         allocate(a_mat(n_basis, n_basis), eigs(n_basis), eigvec(n_basis, n_basis))
         allocate(chol(n_basis, n_basis), linv(n_basis, n_basis), tmp(n_basis, n_basis))
-        allocate(chi(n_basis), du_fac(n_basis), dv_fac(n_basis), dw_fac(n_basis))
 
         hx = 0.0_dp
         smat = 0.0_dp
@@ -171,6 +170,15 @@ contains
         ! 坐标代换: x_u = 2*alpha*u, x_v = alpha*v, x_w = alpha*w —— 恰好使
         ! phi_i * phi_j 的总指数 e^{-2x_u} e^{-x_v} e^{-x_w} 与 GL 权重
         ! e^{-x_u} e^{-x_v} e^{-x_w} 逐轴完全吸收, 重叠积分对多项式严格精确
+        ! OpenMP: 求积点级并行 (每 iz 含 n_quad^2 内部工作) + hx/smat 数组归约
+        ! (OpenMP 4.5+), 服务器多核加速
+        !$omp parallel do schedule(static) &
+        !$omp private(iz, iy, ix, uval, vval, wval, r1, r2, r12, i, j, k) &
+        !$omp private(fi, fj, dfi_u, dfi_v, dfi_w, dfj_u, dfj_v, dfj_w) &
+        !$omp private(g1i_r, g1j_r, g1i_u, g1j_u, g2i_r, g2j_r) &
+        !$omp private(a1, a2, w3d, acc_t, acc_s, acc_v) &
+        !$omp private(chi, du_fac, dv_fac, dw_fac) &
+        !$omp reduction(+:hx, smat)
         do iz = 1, n_quad
             wval = xq(iz) / alpha
             do iy = 1, n_quad
@@ -227,13 +235,14 @@ contains
                             acc_t = acc_t * fi * fj
                             acc_v = -(z_charge / r1 + z_charge / r2 - 1.0_dp / r12) * fi * fj
 
-                            hx(i, j) = hx(i, j) + w3d * (0.5_dp * acc_t + acc_v)
-                            smat(i, j) = smat(i, j) + w3d * acc_s
+                    hx(i, j) = hx(i, j) + w3d * (0.5_dp * acc_t + acc_v)
+                    smat(i, j) = smat(i, j) + w3d * acc_s
                         end do
                     end do
                 end do
             end do
         end do
+        !$omp end parallel do
 
         ! --- Cholesky 分解 S = L L^T ---
         chol = 0.0_dp

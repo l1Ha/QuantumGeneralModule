@@ -92,7 +92,9 @@ contains
             if (abs(c) < 1.0e-30_dp) cycle
 
             ! 1. 作用维度 1: tmp1(i1, i2, i3) = sum_k h1(i1, k) * in_vec(k, i2, i3)
+            !    (OpenMP: 各 i3 切片独立写, 无竞争)
             tmp1 = 0.0_dp
+            !$omp parallel do private(i1, i2, k) schedule(static)
             do i3 = 1, sop%n3
                 do i2 = 1, sop%n2
                     do i1 = 1, sop%n1
@@ -102,9 +104,11 @@ contains
                     end do
                 end do
             end do
+            !$omp end parallel do
 
             ! 2. 作用维度 2: tmp2(i1, i2, i3) = sum_k h2(i2, k) * tmp1(i1, k, i3)
             tmp2 = 0.0_dp
+            !$omp parallel do private(i1, i2, k) schedule(static)
             do i3 = 1, sop%n3
                 do i2 = 1, sop%n2
                     do k = 1, sop%n2
@@ -114,9 +118,11 @@ contains
                     end do
                 end do
             end do
+            !$omp end parallel do
 
             ! 3. 作用维度 3: tmp3(i1, i2, i3) = sum_k h3(i3, k) * tmp2(i1, i2, k)
             tmp3 = 0.0_dp
+            !$omp parallel do private(i1, i2, k) schedule(static)
             do i3 = 1, sop%n3
                 do k = 1, sop%n3
                     do i2 = 1, sop%n2
@@ -126,6 +132,7 @@ contains
                     end do
                 end do
             end do
+            !$omp end parallel do
 
             out_vec = out_vec + c * tmp3
         end do
