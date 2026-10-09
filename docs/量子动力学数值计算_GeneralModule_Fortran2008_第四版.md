@@ -9,7 +9,14 @@ date: 2026-09-25
 
 ## 关于本书
 
-本书围绕 GeneralModule 开源代码库，系统讨论量子动力学问题的数学表述、离散化方法、数值算法和工程实现。本书强调理论、算法与代码验证的完整链条。
+本书围绕 GeneralModule 开源科学计算库，系统回答现代原子、分子与光物理（AMO）以及化学动力学模拟中的四大核心科学与计算问题：
+
+1. **连续谱态与受限势阱的离散化表征机制**：如何利用离散变量表象（DVR）与 Fourier 网格将微分方程严格映射为保谱离散代数问题，并量化截断误差与混叠阶数；
+2. **量子含时演化的几何辛性与酉对称性保持**：如何在强激光场驱动、非绝热避差穿越及开放体系耗散环境下，实现大时间步长下的范数守恒与能量守恒；
+3. **微观反应通道的渐近匹配与物理观测量提取**：如何从多通道径向对数导数矩阵中自洽提取反应 S 矩阵、相移、微分散射截面以及共振线宽；
+4. **高维维度灾难的结构化压缩与张量表示**：如何在和积（SOP）哈密顿量、张量列车（TT/MPS）、Smolyak 稀疏网格以及准经典轨迹（QCT）之间权衡精度与计算开销，并充分发挥现代服务器多核硬件并行效率。
+
+全书坚持“理论推导—数值实现—误差边界—源码实证”的闭环学术规范，所有结论均以可复现的单元断言与收敛基准作为支撑。
 
 本书对应的代码仓库为：
 
@@ -35,7 +42,7 @@ $$
 
 本章为 GeneralModule 第四版新增的理论扩展章节，面向计算量子动力学、分子光谱学与超冷碰撞领域的研究生读者及算法开发者。全章沿四条主线递进展开：第一章论述希尔伯特空间与算符谱理论，这是有限基组与离散变量表象方法的数学根基；第二章系统建立角动量代数、Clebsch–Gordan 系数与 Wigner 3j/6j/9j 符号的重耦合理论；第三章讨论空间固定坐标系与体固定坐标系、Euler 角、Jacobi 坐标、超球坐标，以及 Watson 转振哈密顿量、Coriolis 耦合、离心畸变与振动角动量；第四章阐述单位制、实对称本征问题的 Householder–QL 算法、条件数、误差传播与收敛阶。
 
-每一节均按统一体例组织：**定义**、**公式与推导**、**物理含义**、**数值陷阱**、**GeneralModule 实现映射**（源码路径、函数、GitHub 直链与二维码）、**小型数值实验**与**练习**。所有数值实验结果均由本库源码直接编译运行获得（GNU Fortran 11.4，`real64` 双精度，随机数种子取默认值），可复现、可作为读者自建验收测试的基线。
+每一节均按统一体例组织：**定义**、**公式与推导**、**物理含义**、**数值实现考量与误差控制**、**GeneralModule 实现映射**（源码路径、函数、GitHub 直链与二维码）、**小型数值实验**与**练习**。所有数值实验结果均由本库源码直接编译运行获得（GNU Fortran 11.4，`real64` 双精度，随机数种子取默认值），可复现、可作为读者自建验收测试的基线。
 值得强调的是验收测试的分层思想：第一层是代数恒等式（正交性、对称性、选择定则），应达到机器精度；第二层是解析特例（谐振子、Morse 势、刚转子、Laplacian 精确谱），应达到截断误差与舍入误差的预期标度；第三层才是与实验数据的比对（如 $\mathrm{H}_2$ 的 $B_v$、$D_J$），其偏差属于物理模型的系统误差而非数值误差。三层界限分明，才能在结果异常时迅速定位问题属于代码、算法还是模型。行文约定：公式采用 Pandoc 兼容的 LaTeX 记号，行内公式以 $...$ 界定，独立公式以 $$...$$ 界定。
 四章之间存在紧密的逻辑依赖，建议按序阅读。第一章的谱定理为第三章一切变分计算提供合法性依据；第二章的角动量代数在第三章以 Wigner D 函数、Legendre 展开与重耦合网络的形式反复出现；第四章的谱与误差理论则是前三章全部数值实验的度量衡。反过来，第四章的验收测试方法——以已知解析谱校验数值实现——在每一章的小型数值实验中都有实例，读者可将全部实验脚本合并为一个回归测试套件纳入自身的持续集成体系，这也正是本库 387 项单元断言的构建思路。
 
@@ -54,7 +61,7 @@ $$
 
 **物理含义。** 量子态是 $\mathcal{H}$ 中的矢量，测量概率由 Born 规则 $p(a)=\langle\psi|P_{a}|\psi\rangle$ 给出；两态之间的交叠 $\langle\psi|\phi\rangle$ 度量其相干叠加的强度，其模方在光谱学中对应跃迁线强度中的重叠因子。范数平方 $\|\psi\|^{2}=1$ 表述总概率守恒，是任何数值传播格式必须保持的第一守恒量。
 
-**数值陷阱。** 其一，离散化后内积的度量约定不一：将 $L^{2}$ 内积 $\int\psi^{*}\phi\,dx$ 以梯形或矩形公式离散，得到 $\sum_i\psi_i^{*}\phi_i\,\Delta x$；而本征求解器（如本库 `fgh_solve_bound_states`）返回的本征矢量在"格点 Kronecker 度量" $\sum_i z_i^{*}z_i'=1$ 下归一化，物理波函数须按 $\psi(x_i)=z_i/\sqrt{\Delta x}$ 还原。混淆两种度量是转振计算中出现量级为 $\Delta x$ 的系统性错误的头号来源，3.4 节的数值实验将实际演示该错误（转动常数被缩小约 90 倍）。其二，长时间传播中归一化以 $\mathcal{O}(\varepsilon)$ 每步的速度漂移，须定期监测 $\langle\psi|\psi\rangle$。
+**数值实现考量与误差控制。** 其一，离散化后内积的度量约定不一：将 $L^{2}$ 内积 $\int\psi^{*}\phi\,dx$ 以梯形或矩形公式离散，得到 $\sum_i\psi_i^{*}\phi_i\,\Delta x$；而本征求解器（如本库 `fgh_solve_bound_states`）返回的本征矢量在"格点 Kronecker 度量" $\sum_i z_i^{*}z_i'=1$ 下归一化，物理波函数须按 $\psi(x_i)=z_i/\sqrt{\Delta x}$ 还原。混淆两种度量是转振计算中出现量级为 $\Delta x$ 的系统性错误的头号来源，3.4 节的数值实验将实际演示该错误（转动常数被缩小约 90 倍）。其二，长时间传播中归一化以 $\mathcal{O}(\varepsilon)$ 每步的速度漂移，须定期监测 $\langle\psi|\psi\rangle$。
 
 **GeneralModule 实现映射。** 源码 `src/mod_dvr_grid.f90`：派生类型 `dvr_1d_t`（格点坐标 `x`、动能矩阵 `t_mat`）、`dvr_expectation_value`（以 $\sum_i|\psi_i|^{2}\,O(x_i)\,\Delta x$ 计算期望值）、`dvr_matrix_element`（两态跃迁矩阵元）。GitHub 直链：[src/mod_dvr_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_dvr_grid.f90)。二维码：`qr/src__mod_dvr_grid.f90.png`。
 
@@ -85,7 +92,7 @@ $$T_{ij}=\frac{\hbar^{2}}{2\mu\,\Delta x^{2}}
 
 **物理含义。** 选取表象对应实验上的测量基选择：坐标表象波函数描述空间概率幅，能量表象展开系数描述定态布居，角动量表象描述取向分布。Fourier 网格哈密顿量（FGH）与 DVR 方法的物理内涵是：在正交格点上以"离散坐标本征态"近似连续坐标本征态，势能算符严格对角，动能算符解析非对角，二者相加后对角化即得束缚能级。
 
-**数值陷阱。** 其一，截断基组的完备性只在变分子空间内成立：若势能面在网格外仍有可观振幅，能级不随网格增大收敛（基组套设错误，box error）；近解离能级尤其敏感，3.4 节实验中 Morse 势在盒子 $[0.4,6.0]\,a_0$ 内只得 15 条束缚能级，而半经典估计为 17 条，即为例证。其二，Fourier 网格存在 Nyquist 混叠：波数 $|k|>\pi/\Delta x$ 的分量被折叠为低频伪影，故网格间距必须满足 $\Delta x\le\pi/k_{\max}$。其三，若动能矩阵元以数值微分构造而非解析式，破坏了厄米性（$T_{ij}\neq T_{ji}^{*}$），变分上界性质随之失效。
+**数值实现考量与误差控制。** 其一，截断基组的完备性只在变分子空间内成立：若势能面在网格外仍有可观振幅，能级不随网格增大收敛（基组套设错误，box error）；近解离能级尤其敏感，3.4 节实验中 Morse 势在盒子 $[0.4,6.0]\,a_0$ 内只得 15 条束缚能级，而半经典估计为 17 条，即为例证。其二，Fourier 网格存在 Nyquist 混叠：波数 $|k|>\pi/\Delta x$ 的分量被折叠为低频伪影，故网格间距必须满足 $\Delta x\le\pi/k_{\max}$。其三，若动能矩阵元以数值微分构造而非解析式，破坏了厄米性（$T_{ij}\neq T_{ji}^{*}$），变分上界性质随之失效。
 
 **GeneralModule 实现映射。** 源码 `src/mod_dvr_grid.f90`：`dvr_sinc_init`（Colbert–Miller Sinc-DVR 动能矩阵）、`fgh_solve_bound_states`（FGH 束缚态求解，组装 $H_{ij}=T_{ij}+V(x_i)\delta_{ij}$ 并调用对称对角化）、`dvr_legendre_init`（Gauss–Legendre 角向 DVR）。文献依据见 Colbert 与 Miller（J. Chem. Phys. 96, 1982 (1992), DOI: 10.1063/1.462125）以及 Marston 与 Balint-Kurti（J. Chem. Phys. 91, 3571 (1989), DOI: 10.1063/1.456888）。GitHub 直链：[src/mod_dvr_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_dvr_grid.f90)。二维码：`qr/src__mod_dvr_grid.f90.png`。
 
@@ -106,7 +113,7 @@ $$A=\int_{\sigma(A)}\lambda\,dE_{\lambda},\qquad \mathbb{1}=\int_{\sigma(A)}dE_{
 
 **物理含义。** 可观测量与自伴算符一一对应：能量、角动量分量、偶极矩均为自伴算符，故其测量值实、本征态可构成正交完备基、含时演化保概率。数值上，DVR 或基组方法组装的哈密顿矩阵正是自伴算符在有限维子空间的投影，其对角化结果（能级与波函数）构成一切后续光谱与动力学分析的原材料。复吸收势（CAP）则刻意将哈密顿变为非厄米以吸收出射流，此时谱不再全实，须以非厄米谱理论解释（参见本库 `mod_absorbing_boundary.f90`）。
 
-**数值陷阱。** 其一，矩阵组装代码只填上三角或只填下三角而忘记镜像，得到形式上"对称"实则不对称的输入，`tred2`/`tql2` 假定对称性后给出的结果不可预测；验收办法是显式检验 $\max_{ij}|A_{ij}-A_{ji}|=0$。其二，简并本征值对应的本征矢在对角化后是简并子空间内任意正交基，依赖于舍入噪声，跨程序比对本征矢无意义，比对投影算符 $\sum_{k\in\text{简并}}|k\rangle\langle k|$ 才有意义。其三，投影矩阵 $A=PAP^{\dagger}$ 仍是自伴的，但若投影后基组不正交（如重叠矩阵未同时处理），广义本征问题 $Hc=ESc$ 被误当作标准问题对角化，能级系统性偏离。
+**数值实现考量与误差控制。** 其一，矩阵组装代码只填上三角或只填下三角而忘记镜像，得到形式上"对称"实则不对称的输入，`tred2`/`tql2` 假定对称性后给出的结果不可预测；验收办法是显式检验 $\max_{ij}|A_{ij}-A_{ji}|=0$。其二，简并本征值对应的本征矢在对角化后是简并子空间内任意正交基，依赖于舍入噪声，跨程序比对本征矢无意义，比对投影算符 $\sum_{k\in\text{简并}}|k\rangle\langle k|$ 才有意义。其三，投影矩阵 $A=PAP^{\dagger}$ 仍是自伴的，但若投影后基组不正交（如重叠矩阵未同时处理），广义本征问题 $Hc=ESc$ 被误当作标准问题对角化，能级系统性偏离。
 
 **GeneralModule 实现映射。** 源码 `src/mod_linear_algebra.f90`：`diag_symmetric_matrix`（三对角化 `tred2` 加 QL 迭代 `tql2` 的统一入口，输出升序本征值 $d$ 与正交本征矢矩阵 $z$）、`inv_real_matrix`/`inv_complex_matrix`（全主元 Gauss–Jordan 求逆，`stat=-1` 指示奇异矩阵）。GitHub 直链：[src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90)。二维码：`qr/src__mod_linear_algebra.f90.png`。
 
@@ -140,7 +147,7 @@ $$\psi(t)=e^{-i\bar{E}\tau/\hbar}\sum_{n=0}^{N}\left(2-\delta_{n0}\right)(-i)^{n
 **物理含义。** 波包传播直接给出光解通量、散射矩阵、含时对齐度等可观测量；幺正性对应封闭体系的概率守恒，任何非幺正格式（如未加修正的显式欧拉法）都会在数千步内累积出物理上无意义的增益或衰减。分裂算符格式的辛对称性还保证了相空间体积守恒的量子对应——能级布居在长时间平均下不漂移。
 从可观测量的角度，波包传播的输出直接对应实验时间序列：自相关函数的 Fourier 变换给出吸收谱（本库 `mod_photofragment_flux.f90` 的光解谱模块即按此构建），瞬态布居对应泵浦–探测信号，渐近通量对应散射矩阵元。因此传播格式的每一项保真指标——范数守恒、能量漂移、边界吸收强度——都会以确定的方式映射到光谱线形上：范数泄漏表现为基线漂移，相位误差表现为频移，吸收不完全表现为共振展宽。把数值参数与谱学不确定度定量联系起来，是从"算得出"走向"算得可信"的关键一步。
 
-**数值陷阱。** 其一，FFT 隐含周期边界：波包到达网格边缘后从另一侧回卷（wrap-around），须以足够大的盒子或复吸收势（本库 `mod_absorbing_boundary.f90`）消除。其二，时间步长须同时满足分裂误差与Nyquist 条件：$\Delta t$ 过大时高动量分量的相位 $e^{-iT(p)\Delta t/\hbar}$ 采样不足，产生高频混叠。其三，尽管格式严格幺正，浮点舍入仍以每步 $\mathcal{O}(\varepsilon)$ 引入微小的范数漂移，万步量级后可观测；宜在传播中周期性检查 $\langle\psi|\psi\rangle$ 并记录。
+**数值实现考量与误差控制。** 其一，FFT 隐含周期边界：波包到达网格边缘后从另一侧回卷（wrap-around），须以足够大的盒子或复吸收势（本库 `mod_absorbing_boundary.f90`）消除。其二，时间步长须同时满足分裂误差与Nyquist 条件：$\Delta t$ 过大时高动量分量的相位 $e^{-iT(p)\Delta t/\hbar}$ 采样不足，产生高频混叠。其三，尽管格式严格幺正，浮点舍入仍以每步 $\mathcal{O}(\varepsilon)$ 引入微小的范数漂移，万步量级后可观测；宜在传播中周期性检查 $\langle\psi|\psi\rangle$ 并记录。
 
 **GeneralModule 实现映射。** 源码 `src/mod_wavepacket_propagator.f90`：`propagate_split_operator_1d`（坐标半步势能相位、FFT 至动量空间、动能整步相位、逆变换、势能后半步，内部调用 `mod_linear_algebra.f90` 的 `fft_1d`）、`propagate_split_operator_2d`、`rk4_step`、`abm4_step`；`src/mod_chebyshev_propagator.f90` 提供切比雪夫大步长推进器。文献依据：Feit, Fleck 与 Steiger（J. Comput. Phys. 47, 412 (1982), DOI: 10.1016/0021-9991(82)90091-2）、Kosloff（J. Phys. Chem. 92, 2087 (1988), DOI: 10.1021/j100319a003）。GitHub 直链：[src/mod_wavepacket_propagator.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_wavepacket_propagator.f90)。二维码：`qr/src__mod_wavepacket_propagator.f90.png`。
 
@@ -178,7 +185,7 @@ $$Y_{lm}(\theta,\varphi)=(-1)^{m}\sqrt{\frac{2l+1}{4\pi}\,\frac{(l-m)!}{(l+m)!}}
 
 **物理含义。** 转动不变性保证 $\hat{J}^{2}$ 与 $\hat{J}_z$ 是好量子数，能级具有 $2j+1$ 重 $m$ 简并；外场沿 $z$ 轴时简并被部分解除（Zeeman 效应）， $m$ 成为光谱标识。分子转动能级 $E_J=B\,J(J+1)$ 正是 $\hat{J}^{2}$ 本征值的直接后果。
 
-**数值陷阱。** 其一，半奇数量子数若以浮点数存储，会因 $0.5$ 的二进制精确表示而侥幸可用，但 $j\pm1/2$ 的链式运算在多模块间传递时仍应以两倍整数（$2j$）贯穿全库——本库 `wigner_3j_half` 系列正是强制采用两倍整数接口以杜绝截断错误。其二，缔合勒让德函数的向上递推对 $|m|\le l$ 稳定，但当 $m$ 接近 $l$ 且 $l$ 很大时 $P_m^m\propto(1-x^{2})^{m/2}$ 急剧减小，与归一化因子的大阶乘相乘后易发生下溢，应在对数域完成阶乘组合（本库 `log_factorial`）。其三，相位约定必须全库统一：Condon–Shortley 相位若在球谐函数与 Wigner 符号两处不一致，交叉矩阵元会出现 $(-1)$ 级别的符号错误，且该错误在强度谱中不可见，仅在对称性校验中暴露。
+**数值实现考量与误差控制。** 其一，半奇数量子数若以浮点数存储，会因 $0.5$ 的二进制精确表示而侥幸可用，但 $j\pm1/2$ 的链式运算在多模块间传递时仍应以两倍整数（$2j$）贯穿全库——本库 `wigner_3j_half` 系列正是强制采用两倍整数接口以杜绝截断错误。其二，缔合勒让德函数的向上递推对 $|m|\le l$ 稳定，但当 $m$ 接近 $l$ 且 $l$ 很大时 $P_m^m\propto(1-x^{2})^{m/2}$ 急剧减小，与归一化因子的大阶乘相乘后易发生下溢，应在对数域完成阶乘组合（本库 `log_factorial`）。其三，相位约定必须全库统一：Condon–Shortley 相位若在球谐函数与 Wigner 符号两处不一致，交叉矩阵元会出现 $(-1)$ 级别的符号错误，且该错误在强度谱中不可见，仅在对称性校验中暴露。
 
 **GeneralModule 实现映射。** 源码 `src/mod_special_functions.f90`：`legendre_poly`（三项递推计算 $P_l(x)$）、`assoc_legendre_poly`（含 Condon–Shortley 相位的 $P_l^m(x)$）；`src/mod_dvr_grid.f90`：`dvr_legendre_init` 以 Newton 迭代求 Gauss–Legendre 节点并构造 $\hat{J}^{2}$ 角向矩阵。GitHub 直链：[src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)。二维码：`qr/src__mod_special_functions.f90.png`。
 
@@ -218,7 +225,7 @@ CG 系数可通过最高权态构造法从升降算符完整导出：耦合空�
 **物理含义。** CG 系数支配一切两体角动量耦合：自旋–轨道耦合、原子超精细结构 $(\mathbf{s}\,\mathbf{i})\mathbf{f}$、双原子碰撞通道耦合 $(s_1i_1)f_1,(s_2i_2)f_2$，以及转振跃迁的方向余弦矩阵元。单重态与三重态 $(\tfrac12\,\tfrac12)S=0,1$ 的展开系数 $1/\sqrt2$ 即最简单的 CG 系数，是磁 Feshbach 共振多通道计算的入口（本库 LITERATURE 全典第 5.2 节的四大基组变换即建立在 CG 与 9j 符号之上）。
 分子光谱中最直观的例子是碱金属二聚体的单重–三重结构：电子自旋交换作用 $\hat{\mathbf{s}}_1\cdot\hat{\mathbf{s}}_2$ 在总自旋基下对角，本征值由 $\tfrac12[S(S+1)-s_1(s_1+1)-s_2(s_2+1)]$ 给出，单重态与三重态的势能曲线劈裂由此完全确定；而从实验可测的塞曼子能级出发重构耦合方案时，CG 系数正是连接两套表象的词典。另一个例子是转振跃迁的 Hönl–London 因子：线强度中转动部分的全部信息包含于 $\langle J'|\cos\theta|J\rangle$ 型矩阵元的模方，其 $J$ 依赖完全由 3j 符号的几何因子决定，与振动态无关。
 
-**数值陷阱。** 其一，阶乘溢出：$j\gtrsim 20$ 时 $(2j)!$ 超出双精度范围，必须以对数阶乘 $\ln n!$ 累加后再指数化——本库以 `log_factorial` 贯穿全部符号计算。其二，Racah 求和为交错级数，$j$ 较大时出现严重相消，相对误差可达 $10^{-8}$ 以上；高 $j$ 场合应改用递推关系或扩充足位精度。其三，相位约定：CG 与 3j 之间的相位因子 $(-1)^{j_1-j_2+m_3}$ 若与库内其他模块不一致，将使干涉项符号翻转。
+**数值实现考量与误差控制。** 其一，阶乘溢出：$j\gtrsim 20$ 时 $(2j)!$ 超出双精度范围，必须以对数阶乘 $\ln n!$ 累加后再指数化——本库以 `log_factorial` 贯穿全部符号计算。其二，Racah 求和为交错级数，$j$ 较大时出现严重相消，相对误差可达 $10^{-8}$ 以上；高 $j$ 场合应改用递推关系或扩充足位精度。其三，相位约定：CG 与 3j 之间的相位因子 $(-1)^{j_1-j_2+m_3}$ 若与库内其他模块不一致，将使干涉项符号翻转。
 
 **GeneralModule 实现映射。** 源码 `src/mod_special_functions.f90`：`wigner_3j` 与 `clebsch_gordan`（整数角动量）、`wigner_3j_half` 与 `clebsch_gordan_half`（两倍整数接口，覆盖半奇数自旋）、`log_factorial`（对数阶乘辅助）。文献依据：D. A. Varshalovich, A. N. Moskalev 与 V. K. Khersonskii, *Quantum Theory of Angular Momentum*, World Scientific, Singapore (1988), DOI: 10.1142/0270。GitHub 直链：[src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)。二维码：`qr/src__mod_special_functions.f90.png`。
 
@@ -268,7 +275,7 @@ $$\langle (f_1f_2)F | (SI)F \rangle
 
 本库 `mod_field_scattering.f90` 的 `calc_basis_transform_matrix` 以机器精度实现该变换。在超球坐标反应散射中，广义角动量本征函数（超球谐函数）的耦合与排列对称化同样由 3j/6j 网络承担； Efimov 三体物理中的超径向方程分离变量亦依赖 6j 重耦合。
 
-**数值陷阱。** 其一，三角条件判断必须与求和上下界严格一致：本库 `triangle_half` 在三角条件不满足时返回零，`wigner_6j_half` 依此决定 $t$ 求和区间；若调用者以浮点传入量子数，区间端点的整数运算会静默丢失半奇数信息。其二，6j 求和同样为交错级数，$j\gtrsim 30$ 时相消显著。其三，9j 的计算量为 $\mathcal{O}(j)$ 个 6j、每个 6j 为 $\mathcal{O}(j)$ 项求和，总计 $\mathcal{O}(j^{2})$；在大通道数密耦计算中应缓存重复调用的符号值。
+**数值实现考量与误差控制。** 其一，三角条件判断必须与求和上下界严格一致：本库 `triangle_half` 在三角条件不满足时返回零，`wigner_6j_half` 依此决定 $t$ 求和区间；若调用者以浮点传入量子数，区间端点的整数运算会静默丢失半奇数信息。其二，6j 求和同样为交错级数，$j\gtrsim 30$ 时相消显著。其三，9j 的计算量为 $\mathcal{O}(j)$ 个 6j、每个 6j 为 $\mathcal{O}(j)$ 项求和，总计 $\mathcal{O}(j^{2})$；在大通道数密耦计算中应缓存重复调用的符号值。
 
 **GeneralModule 实现映射。** 源码 `src/mod_special_functions.f90`：`triangle_half`（辅助三角系数）、`wigner_6j_half`（Racah 单求和公式）、`wigner_9j_half`（三重 6j 展开）；配套 `src/mod_field_scattering.f90` 的 `calc_basis_transform_matrix` 与 `build_field_collision_channels`。GitHub 直链：[src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)。二维码：`qr/src__mod_special_functions.f90.png`。
 
@@ -309,7 +316,7 @@ $$
 **物理含义。** 选择定则是光谱学的语言：红外平行带 $\Delta J=\pm1$、拉曼散射 $\Delta J=0,\pm2$、多极相互作用对分波的约束（如磁偶极–偶极作用按二秩张量展开驱动 $L\leftrightarrow L\pm2$ 耦合但严格守恒总 $M$），全部由 Wigner–Eckart 定理统一给出。约化矩阵元与几何因子的分离还意味着：一旦计算了与取向无关的动力学量，任意取向依赖的矩阵元都是零成本的代数运算。
 给出一个完整的计算链条示例：双原子长程磁偶极–偶极作用的二秩张量展开 $\hat{V}_{dd}\propto-\frac{\sqrt{6}}{r^{3}}\sum_{q}(-1)^{q}C_{2,-q}(\hat{\mathbf{r}})\,[\mathbf{s}_1\otimes\mathbf{s}_2]^{(2)}_{q}$ 中，空间因子 $\langle L'M_L'|C_{2q}|L M_L\rangle$ 化为 3j 符号组合 $\sqrt{(2L+1)(2L'+1)}\begin{pmatrix} L' & 2 & L \\ 0 & 0 & 0\end{pmatrix}\begin{pmatrix} L' & 2 & L \\ -M_L' & q & M_L\end{pmatrix}$，其中 $(L'\,2\,L;0\,0\,0)$ 因子强制 $L+L'+2$ 为偶数，故 $s$ 波（$L=0$）仅与 $d$ 波（$L'=2$）耦合；自旋张量因子的矩阵元则由 6j 与 CG 网络给出。全部矩阵元在机器精度内解析可得，这正是各向异性偶极自旋弛豫截面计算得以高度自动化的原因，也说明 Wigner–Eckart 定理不仅给出选择定则，还直接给出矩阵元的完整算法。
 
-**数值陷阱。** 其一，约化矩阵元约定不一：文献中存在相差 $\sqrt{2j+1}$ 因子或相位的多种定义，跨文献移植公式时必须逐条核对；本库以显式矩阵元函数规避隐式约定。其二，$\cos^{2}\theta$ 矩阵元的两条闭式在 $J=0$ 边界涉及 $(-1)!$ 型奇点，实现中须以分支判断屏蔽（本库 `rot_matrix_cos2_theta` 对 $J=0$ 的对角项单独处理）。其三，$m$ 截断条件 $|m|\le\min(j,j')$ 忘记判断时会产生虚假的非零矩阵元，破坏 $m$ 分块对角结构。
+**数值实现考量与误差控制。** 其一，约化矩阵元约定不一：文献中存在相差 $\sqrt{2j+1}$ 因子或相位的多种定义，跨文献移植公式时必须逐条核对；本库以显式矩阵元函数规避隐式约定。其二，$\cos^{2}\theta$ 矩阵元的两条闭式在 $J=0$ 边界涉及 $(-1)!$ 型奇点，实现中须以分支判断屏蔽（本库 `rot_matrix_cos2_theta` 对 $J=0$ 的对角项单独处理）。其三，$m$ 截断条件 $|m|\le\min(j,j')$ 忘记判断时会产生虚假的非零矩阵元，破坏 $m$ 分块对角结构。
 
 **GeneralModule 实现映射。** 源码 `src/mod_special_functions.f90`：`rot_matrix_cos_theta`（$\langle j m|\cos\theta|j' m\rangle$，强制 $\Delta j=\pm1$）、`rot_matrix_cos2_theta`（$\Delta j=0,\pm2$）；`src/mod_rovibrational.f90`：`build_rovibrational_dipole_matrix`（按 $\Delta J=\pm1$ 组装全转振偶极矩阵）、`build_rovibrational_polarizability_matrix`（按 $\Delta J=0,\pm2$ 组装极化率矩阵）。GitHub 直链：[src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)。二维码：`qr/src__mod_special_functions.f90.png`。
 
@@ -350,7 +357,7 @@ SF 与 BF 的矢量分量通过一秩转动矩阵（方向余弦）相连：$\ha
 **物理含义。** 势能面与偶极面是分子内禀属性，天然表达在体固定系中；而光谱跃迁强度、外场对齐与散射边界条件表达在空间固定系中。两套表象的取舍是转振计算的核心策略：以 $|J M K\rangle$（对称陀螺）或宇称组合 $|J M K\rangle\pm|J M,-K\rangle$ 为基，可将哈密顿量分块至 $(J,M)$ 或 $(J,\text{宇称})$ 子空间，使矩阵维数下降一至两个量级。
 实验上可调的物理量——外场方向、偏振、波长——定义在空间固定系，而势能面与偶极面是分子内禀属性；两套语言之间转译的精度决定了模拟与实验可比对的深度。以激光对齐为例，非共振场作用 $\tfrac14\Delta\alpha E^{2}\cos^{2}\theta$ 在空间固定系中是沿实验室 $Z$ 轴固定的张量，转换到体固定系后化为对分子轴的标量作用，正是这一转译使得对齐动力学可以按 $(J,M)$ 分块求解；对齐度 $\langle\cos^{2}\theta\rangle$ 的时间演化则由少数几个分块的本征展开叠加而成。同理，Stark 移位与 Zeeman 移位的方向依赖性也全部由 D 函数承载。
 
-**数值陷阱。** 其一，Euler 角在 $\beta=0,\pi$ 存在坐标奇异性，经典轨迹法在极区必须切换参数化，而基函数法则（D 函数展开）自动规避；两套方法衔接时须显式检验。其二，转动约定（主动/被动、$z$-$y$-$z$ 与 $x$-$y$-$z$ 约定、D 函数与旋转矩阵的复共轭关系）在不同教材之间不一致，跨文献移植公式时极易引入 $\beta\to\pi-\beta$ 或复共轭级别的错误；验收手段是对已知解析矩阵元（如 $\langle 10|\cos\theta|20\rangle$）逐一比对。其三，$K$ 截断须与势能面的各向异性匹配：$K_{\max}$ 过小会系统性高估转动激发能，且收敛不一定从下方单调。
+**数值实现考量与误差控制。** 其一，Euler 角在 $\beta=0,\pi$ 存在坐标奇异性，经典轨迹法在极区必须切换参数化，而基函数法则（D 函数展开）自动规避；两套方法衔接时须显式检验。其二，转动约定（主动/被动、$z$-$y$-$z$ 与 $x$-$y$-$z$ 约定、D 函数与旋转矩阵的复共轭关系）在不同教材之间不一致，跨文献移植公式时极易引入 $\beta\to\pi-\beta$ 或复共轭级别的错误；验收手段是对已知解析矩阵元（如 $\langle 10|\cos\theta|20\rangle$）逐一比对。其三，$K$ 截断须与势能面的各向异性匹配：$K_{\max}$ 过小会系统性高估转动激发能，且收敛不一定从下方单调。
 
 **GeneralModule 实现映射。** 源码 `src/mod_special_functions.f90`：`assoc_legendre_poly`（$K=0$ 线型转子的 $d^{J}_{M0}\propto P^{M}_{J}$ 构件）、`rot_matrix_cos_theta` 与 `rot_matrix_cos2_theta`（方向余弦矩阵元）；`src/mod_dvr_grid.f90`：`dvr_legendre_init`（$\theta$ 方向 Gauss–Legendre DVR，可组装 $\hat{J}^{2}$ 与 $\cos\theta$ 矩阵）；`src/mod_rovibrational.f90`：`build_rovibrational_hamiltonian`（$E(v,J)=E_{\mathrm{vib}}(v)+B_vJ(J+1)$）。文献依据：Bunker 与 Jensen, *Molecular Symmetry and Spectroscopy*, 2nd ed., NRC Research Press, Ottawa (1998)；Varshalovich 等 (1988)。GitHub 直链：[src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)。二维码：`qr/src__mod_special_functions.f90.png`。
 
@@ -393,7 +400,7 @@ $$V=Q_1+Q_2+Q_3-\sqrt{\tfrac12\bigl[(J_1-J_2)^{2}+(J_2-J_3)^{2}+(J_3-J_1)^{2}\bi
 
 在 $\mathrm{H}+\mathrm{H}_2$ 基准体系上复现解离渐近与共线鞍点。此外，环绕锥形交叉的核置换回路的 Berry 几何相位（$\Phi_B=\pi$）亦表达在 $(r_{12},r_{23},r_{31})$ 空间的拓扑结构中（本库 `calc_berry_phase_around_ci`）。
 
-**数值陷阱。** 其一，反三角函数定义域：数值误差可使 $\cos\gamma$ 越出 $[-1,1]$，本库以截断处理，但该截断会掩盖上游误差的累积，规范做法是同时监测截断频率。其二，共线构型 $\gamma=0,\pi$ 处 $\mathbf{r}\times\mathbf{R}=0$，角动量耦合的体固定展开出现奇异性，弯曲基组须以 Legendre 或超球谐函数表达。其三，核置换对称性：同核体系（如 $\mathrm{H}_3$）要求势能面与波函数对置换群不变，坐标变换若未与置换算符一致排序，对称化误差会以 $10^{-3}$ 量级污染能级。
+**数值实现考量与误差控制。** 其一，反三角函数定义域：数值误差可使 $\cos\gamma$ 越出 $[-1,1]$，本库以截断处理，但该截断会掩盖上游误差的累积，规范做法是同时监测截断频率。其二，共线构型 $\gamma=0,\pi$ 处 $\mathbf{r}\times\mathbf{R}=0$，角动量耦合的体固定展开出现奇异性，弯曲基组须以 Legendre 或超球谐函数表达。其三，核置换对称性：同核体系（如 $\mathrm{H}_3$）要求势能面与波函数对置换群不变，坐标变换若未与置换算符一致排序，对称化误差会以 $10^{-3}$ 量级污染能级。
 
 **GeneralModule 实现映射。** 源码 `src/mod_triatomic_geometry.f90`：`jacobi_to_internuclear` 与 `internuclear_to_jacobi`（双向解析变换，含 $\cos\gamma$ 域截断）、`calc_leps_potential` 与 `init_default_h3_leps`（标准 $\mathrm{H}_3$ LEPS 面参数：$D_e=0.1744\ E_h$，$r_e=1.401\ a_0$，$\beta=1.044\ a_0^{-1}$，Sato 参数 $\Delta=0.10$）、`calc_conical_intersection_adiabats` 与 `calc_berry_phase_around_ci`。文献依据：Truhlar 与 Horowitz（J. Chem. Phys. 68, 2466 (1978), DOI: 10.1063/1.436019）、Sato（J. Chem. Phys. 23, 592 (1955), DOI: 10.1063/1.1742050）、Berry（Proc. R. Soc. Lond. A 392, 45 (1984), DOI: 10.1098/rspa.1984.0023）。GitHub 直链：[src/mod_triatomic_geometry.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_triatomic_geometry.f90)。二维码：`qr/src__mod_triatomic_geometry.f90.png`。
 
@@ -441,7 +448,7 @@ $$
 **物理含义。** 超球坐标把三原子体系的全部构型纳入一个统一的 $(\rho,\alpha)$ 平面：$\rho$ 度量整体尺寸，$\alpha$ 在三个通道扇区之间连续插值，反应即沿 $\rho$ 的推进与 $\alpha$ 的偏转。同核反应 $\mathrm{H}+\mathrm{H}_2\to\mathrm{H}_2+\mathrm{H}$ 的偏角恰为 $60^{\circ}$，三通道在超球面上完全对称，这是超球方法处理反应散射与 Efimov 物理的根本优势；本库 `mod_three_body_recombination.f90` 的 Efimov 模块与 `mod_hyperspherical_reactive.f90` 的过渡态速率模块共享同一套质量标度几何。
 超球方法的核心数值对象是固定 $\rho$ 处的表面绝热通道：将 $\hat{\Lambda}^{2}/(2\mu\rho^{2})+V(\rho,\Omega)$ 在超角基上对角化，得到绝热势曲线 $U_{\nu}(\rho)$ 与绝热通道函数 $\Phi_{\nu}(\rho;\Omega)$；沿 $\rho$ 推进时通道间由非对角导数耦合 $\langle\Phi_{\nu'}|\partial_\rho\Phi_{\nu}\rangle$ 连接，Johnson 的对角化修正可将其中的纯几何项解析扣除，使剩余耦合反映真实的非绝热物理。广义角动量基的截断 $K_{\max}$ 与通道数 $N_{\mathrm{ch}}$ 的收敛检验同样遵循 1.2 节的变分逻辑：通道数增加时累积反应几率 $N(E)$ 单调收敛，为速率常数的误差棒提供了方向性依据。
 
-**数值陷阱。** 其一，$\rho=0$（三体聚心）是动能的真正奇点，边界条件须按超球谐展开的正则性处理；普通网格方法应使网格内边界远离该点并检验能量对内边界位置的不敏感性。其二，质量极不对称体系（如 $\mathrm{Mu}+\mathrm{H}_2$）的偏角趋近极端值，通道扇区高度压缩，$K$（超角动量）基组收敛显著变慢，宜采用可变超角基或绝热通道对角化。其三，标度因子 $d$ 与通道约化质量在不同文献中存在倒数约定之别，调用跨库代码时第一项校验应是往返变换与偏角数值。
+**数值实现考量与误差控制。** 其一，$\rho=0$（三体聚心）是动能的真正奇点，边界条件须按超球谐展开的正则性处理；普通网格方法应使网格内边界远离该点并检验能量对内边界位置的不敏感性。其二，质量极不对称体系（如 $\mathrm{Mu}+\mathrm{H}_2$）的偏角趋近极端值，通道扇区高度压缩，$K$（超角动量）基组收敛显著变慢，宜采用可变超角基或绝热通道对角化。其三，标度因子 $d$ 与通道约化质量在不同文献中存在倒数约定之别，调用跨库代码时第一项校验应是往返变换与偏角数值。
 
 **GeneralModule 实现映射。** 源码 `src/mod_hyperspherical_reactive.f90`：`init_reaction_mass`（$d$、$\mu$、$\beta_{\mathrm{skew}}$ 的自动生成）、`jacobi_to_hyperspherical` 与 `hyperspherical_to_jacobi`（双向变换）、`calc_eckart_transmission`、`calc_cumulative_reaction_probability`、`calc_canonical_rate_constant`、`calc_tst_wigner_rate`。文献依据：B. R. Johnson（J. Chem. Phys. 73, 5051 (1980), DOI: 10.1063/1.440058）、R. T. Pack 与 G. A. Parker（J. Chem. Phys. 87, 3888 (1987), DOI: 10.1063/1.452944）。GitHub 直链：[src/mod_hyperspherical_reactive.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_hyperspherical_reactive.f90)。二维码：`qr/src__mod_hyperspherical_reactive.f90.png`。
 
@@ -483,7 +490,7 @@ $$\Delta E_{vJ}^{(2)}=\sum_{v'\ne v}\frac{|\langle v'|\Delta B|v\rangle|^{2}}{E_
 
 **物理含义。** Watson 哈密顿量是高分辨转动光谱拟合的标准模型（分子常数 $A,B,C,D_J,D_{JK},\ldots,\zeta$ 的物理载体）。离心畸变度量化学键的转动软化：转得越快，键被离心力拉伸，$B$ 下降，能级相对刚转子逐级下压；Coriolis 耦合则是转动能级内振动角动量再分配的通道，是红外–微波双共振与 $l$ 型倍频光谱的核心机制。对范德华络合物与其它 floppy 体系，微扰展开失效，须回到精确动能算符做变分处理——这正是 DVR 与密耦方法的价值所在。
 
-**数值陷阱。** 其一，度量约定：FGH/DVR 求解器返回的本征矢系数在格点 Kronecker 度量下归一化，而 quadrature 型积分函数（如 `calc_rotational_constants_bv`）期望物理波函数 $\psi=z/\sqrt{\Delta x}$；直接以原始系数调用会得到缩小 $\Delta x$ 倍的 $B_v$（下述实验实测 $0.6726$ 对 $60.18\ \mathrm{cm^{-1}}$）。其二，Watson 伪势 $-\hbar^{2}\sum_\alpha\mu_{\alpha\alpha}/8$ 虽小，对轻氢化物可达 $0.1\ \mathrm{cm^{-1}}$ 量级，高分辨拟合中不可忽略。其三，A reduction 在近球形陀螺极限退化，应改用 S reduction；$\zeta$ 常数的符号约定在 Wilson–Decius–Cross 与 Watson 两套文献中相反。其四，微扰离心畸变常数在低频模体系（范德华模、弯曲模）失效，误差可达一个量级。
+**数值实现考量与误差控制。** 其一，度量约定：FGH/DVR 求解器返回的本征矢系数在格点 Kronecker 度量下归一化，而 quadrature 型积分函数（如 `calc_rotational_constants_bv`）期望物理波函数 $\psi=z/\sqrt{\Delta x}$；直接以原始系数调用会得到缩小 $\Delta x$ 倍的 $B_v$（下述实验实测 $0.6726$ 对 $60.18\ \mathrm{cm^{-1}}$）。其二，Watson 伪势 $-\hbar^{2}\sum_\alpha\mu_{\alpha\alpha}/8$ 虽小，对轻氢化物可达 $0.1\ \mathrm{cm^{-1}}$ 量级，高分辨拟合中不可忽略。其三，A reduction 在近球形陀螺极限退化，应改用 S reduction；$\zeta$ 常数的符号约定在 Wilson–Decius–Cross 与 Watson 两套文献中相反。其四，微扰离心畸变常数在低频模体系（范德华模、弯曲模）失效，误差可达一个量级。
 
 **GeneralModule 实现映射。** 源码 `src/mod_rovibrational.f90`：`build_rovibrational_hamiltonian`（零级转振能级组装）、`calc_rotational_constants_bv`（振动平均转动常数 $\langle\chi_v|\hbar^{2}/(2\mu R^{2})|\chi_v\rangle$）、`calc_vibrational_dipole_matrix` 与 `calc_franck_condon_factors`；`src/mod_dvr_grid.f90`：`dvr_sinc_init` 与 `fgh_solve_bound_states`（提供 $\chi_v$）。文献依据：E. B. Wilson, Jr., J. C. Decius 与 P. C. Cross, *Molecular Vibrations*, McGraw-Hill, New York (1955)；J. K. G. Watson, Mol. Phys. 15, 479 (1968)；Bunker 与 Jensen (1998)。GitHub 直链：[src/mod_rovibrational.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_rovibrational.f90)。二维码：`qr/src__mod_rovibrational.f90.png`。
 
@@ -523,7 +530,7 @@ $$\bar{a}=\frac{2\pi}{\Gamma(1/4)^{2}}\left(\frac{2\mu C_6}{\hbar^{2}}\right)^{1
 **物理含义。** 单位制选择即物理问题的尺度选择：原子与分子过程以 Hartree、Bohr、飞秒为自然尺度；光谱学惯用波数 $\mathrm{cm^{-1}}$；动力学速率用 $\mathrm{cm^{3}\,mol^{-1}\,s^{-1}}$ 或 $\mathrm{cm^{3}\,s^{-1}}$。本库统一以 a.u. 为内部计算单位，以字符串参数 `to_au`/`from_au` 在边界处换算，使核心算法与单位策略解耦。
 单位一致性的工程价值在于其可检验性：任何以不同推导路径得到的同一物理量必须在机器精度内重合，例如由能级差换算的波数与直接以波数输入的跃迁频率、由速率常数积分还原的截面与直接计算的截面。本库的若干模块内置了此类双向校验（如 Breit–Rabi 解析式与数值对角化的自动比对），把单位问题从程序员纪律提升为可自动执行的断言。建议读者在自建计算流程中遵循同一原则：每个涉及换算的接口都应配一条往返恒等式测试。
 
-**数值陷阱。** 其一，单位混用是静默错误的头号来源：eV 与 Hartree 相差 27.2 倍、$\mathrm{cm^{-1}}$ 与 Hartree 相差 $2.2\times10^{5}$ 倍，程序照常运行但物理结论全非；对策是在每个模块入口强制换算并保留单位注释。其二，字符串换算函数的默认分支：`to_au` 对未识别的单位串不报错而原值返回，若拼写笔误（如 `cm-1` 写成 `cm^-1` 以外的变体）将被静默吞掉；调用后宜以量级断言抽查。其三，温度换算的双重含义：$T\cdot$`K2AU` 是 $k_BT$ 而非温度本身的能量数值，混用于 Maxwell–Boltzmann 权重时差一个 $k_B$。其四，约化质量须用核质量而非原子量整数，$\mu_{\mathrm{H_2}}=0.5\times1.0078=0.5039\ \mathrm{amu}$ 与 $0.5\ \mathrm{amu}$ 在高分辨比较时差 $0.8\%$。
+**数值实现考量与误差控制。** 其一，单位混用是静默错误的头号来源：eV 与 Hartree 相差 27.2 倍、$\mathrm{cm^{-1}}$ 与 Hartree 相差 $2.2\times10^{5}$ 倍，程序照常运行但物理结论全非；对策是在每个模块入口强制换算并保留单位注释。其二，字符串换算函数的默认分支：`to_au` 对未识别的单位串不报错而原值返回，若拼写笔误（如 `cm-1` 写成 `cm^-1` 以外的变体）将被静默吞掉；调用后宜以量级断言抽查。其三，温度换算的双重含义：$T\cdot$`K2AU` 是 $k_BT$ 而非温度本身的能量数值，混用于 Maxwell–Boltzmann 权重时差一个 $k_B$。其四，约化质量须用核质量而非原子量整数，$\mu_{\mathrm{H_2}}=0.5\times1.0078=0.5039\ \mathrm{amu}$ 与 $0.5\ \mathrm{amu}$ 在高分辨比较时差 $0.8\%$。
 
 **GeneralModule 实现映射。** 源码 `src/mod_constants.f90`：CODATA 基础常数（`C_LIGHT`、`HBAR`、`M_E`、`CHARGE_E`、`EPS0`、`KB`、`AMU2AU`）、数学常数（`PI`、`SQRTPI`、`EYE`）、约二十组双向换算因子（`AU2EV`/`EV2AU`、`AU2CM`/`CM2AU`、`AU2FS`/`FS2AU`、`AU2DEBYE`、`AU2VM`、`AU2W_CM2`、`AU2TESLA` 等）与纯函数 `to_au`、`from_au`。GitHub 直链：[src/mod_constants.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_constants.f90)。二维码：`qr/src__mod_constants.f90.png`。
 
@@ -550,7 +557,7 @@ $$Pu=-\mathrm{sign}(u_1)\|u\|\,\mathbf{e}_1+0\cdot\mathbf{e}_2+\cdots+0\cdot\mat
 
 **物理含义。** DVR、有限基组、密耦通道等一切厄米哈密顿量离散化后的束缚态问题都归结于此：本征值即能级，本征矢即波函数系数。两阶段结构还允许按需取舍——只要能级时只做三对角化加无矢量 QL（$\mathcal{O}(n^{2})$ 加速一个量级），需要波函数时再回补累积变换。
 
-**数值陷阱。** 其一，输入必须严格对称：组装循环应显式镜像，或在调用前以 $\max_{ij}|A_{ij}-A_{ji}|$ 断言。其二，本库 `tred2` 以绝对阈值 $10^{-35}$ 判断列向量是否为零向量（scale 判据），对元素量级悬殊（例如混合 a.u. 与 $\mathrm{cm^{-1}}$ 单位后）的矩阵，阈值语义随范数缩放失效——换算单位必须在组装之前完成。其三，正交性随 $n$ 缓慢退化：$Z^{T}Z$ 对角偏差约 $n\varepsilon$ 量级，$n=10^{4}$ 时达 $10^{-12}$，对超高维问题应改用分块、随机化或迭代精化方案。
+**数值实现考量与误差控制。** 其一，输入必须严格对称：组装循环应显式镜像，或在调用前以 $\max_{ij}|A_{ij}-A_{ji}|$ 断言。其二，本库 `tred2` 以绝对阈值 $10^{-35}$ 判断列向量是否为零向量（scale 判据），对元素量级悬殊（例如混合 a.u. 与 $\mathrm{cm^{-1}}$ 单位后）的矩阵，阈值语义随范数缩放失效——换算单位必须在组装之前完成。其三，正交性随 $n$ 缓慢退化：$Z^{T}Z$ 对角偏差约 $n\varepsilon$ 量级，$n=10^{4}$ 时达 $10^{-12}$，对超高维问题应改用分块、随机化或迭代精化方案。
 
 **GeneralModule 实现映射。** 源码 `src/mod_linear_algebra.f90`：`tred2`（EISPACK TRED2 的现代化移植，含反射累积）、`pythag`（防溢出的 $\sqrt{a^{2}+b^{2}}$ 安全计算）、`diag_symmetric_matrix`（统一入口）。算法源流：B. T. Smith 等, *Matrix Eigensystem Routines — EISPACK Guide*, 2nd ed., Springer, Berlin (1976)；G. H. Golub 与 C. F. Van Loan, *Matrix Computations*, 4th ed., Johns Hopkins University Press, Baltimore (2013)。GitHub 直链：[src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90)。二维码：`qr/src__mod_linear_algebra.f90.png`。
 
@@ -569,7 +576,7 @@ Wilkinson 位移的选择有其确定论依据：位移取尾端 $2\times2$ 子�
 
 **物理含义。** 能级按升序输出直接对应光谱学的基态到激发态排列；简并能级由迭代自动给出正交本征矢；谱的排序稳定性使相邻能级间隔（转动常数、非谐常数）的差分运算可靠。三阶收敛意味着每条能级一般仅需二至三次迭代，$n=10^{4}$ 的全谱对角化在现代单机上为分钟量级。
 
-**数值陷阱。** 其一，错误码检查：`stat`/`ierr` 非零表示某条本征值 60 次迭代未收敛，静默忽略将把未收敛值当作能级使用；本库统一在返回参数中传出，调用方必须显式判别。其二，位移计算中的除法 $p=(d_{l+1}-d_l)/(2e_l)$ 在 $e_l\to0$ 时上溢，须配合 `pythag` 的防溢出缩放。其三，deflation 判据 $\varepsilon\cdot\mathrm{tst1}$ 以全局范数为标尺，对谱跨度悬殊（如同时含深束缚与高激发能级）的哈密顿量，小幅本征值的相对精度可能受限，必要时应分块处理。其四，末端插入排序为 $\mathcal{O}(n^{2})$，超大规模下可替换为归并排序，但须保持本征矢与本征值的同步交换。
+**数值实现考量与误差控制。** 其一，错误码检查：`stat`/`ierr` 非零表示某条本征值 60 次迭代未收敛，静默忽略将把未收敛值当作能级使用；本库统一在返回参数中传出，调用方必须显式判别。其二，位移计算中的除法 $p=(d_{l+1}-d_l)/(2e_l)$ 在 $e_l\to0$ 时上溢，须配合 `pythag` 的防溢出缩放。其三，deflation 判据 $\varepsilon\cdot\mathrm{tst1}$ 以全局范数为标尺，对谱跨度悬殊（如同时含深束缚与高激发能级）的哈密顿量，小幅本征值的相对精度可能受限，必要时应分块处理。其四，末端插入排序为 $\mathcal{O}(n^{2})$，超大规模下可替换为归并排序，但须保持本征矢与本征值的同步交换。
 
 **GeneralModule 实现映射。** 源码 `src/mod_linear_algebra.f90`：`tql2`（QL 隐式位移、Wilkinson 位移、deflation、升序排序），供 `diag_symmetric_matrix` 调用；测试基线见 `tests/test_dvr_grid.f90` 与 `tests/test_propagators.f90`。算法源流：J. H. Wilkinson, *The Algebraic Eigenvalue Problem*, Clarendon Press, Oxford (1965)；Golub 与 Van Loan (2013)。GitHub 直链：[src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90)。二维码：`qr/src__mod_linear_algebra.f90.png`。
 
@@ -599,7 +606,7 @@ $$h^{*}=\left(\frac{3\varepsilon|f|}{|f'''|}\right)^{1/3},\qquad
 **物理含义。** 条件数告诉研究者哪些物理量本质上可精确预测：对称哈密顿的非简并能级（绝对条件数 1，稳健）；而近简并子空间的混合角、共振宽度、谱的高阶导数（条件数大，脆弱）则须以简并微扰论或联合拟合处理。收敛阶则是网格与步长选择的定量依据：从两次计算的误差比可实测收敛阶 $p=\ln(e(h)/e(h/10))/\ln 10$，据此外推至 $h\to0$ 的极限值。
 补充两个定量参照。其一，病态问题的典型标本是 Hilbert 矩阵 $H_{ij}=(i+j-1)^{-1}$：其条件数随维数指数增长，$n=12$ 时已达 $10^{16}$ 量级，双精度求逆完全失真。凡涉及病态最小二乘的计算（如由谱线位置拟合分子常数），应改用奇异值分解或正则化方案，并以残差 $\|A\,x-b\|$ 监控。其二，后向稳定与向前精度是两个概念：`tql2` 保证计算谱是某个邻近矩阵 $A+\delta A$ 的精确谱（后向稳定），但单条能级的向前误差仍受条件数控制；对称问题因绝对条件数为 1 而两者相当，非对称广义问题（复标度哈密顿、含重叠矩阵的广义本征问题）则可能出现后向稳定而向前失真的局面，判别手段是 4.3 节的残差复核。
 
-**数值陷阱。** 其一，病态矩阵求逆：Gauss–Jordan 全主元（本库 `inv_real_matrix`）只在 $\kappa(A)\ll1/\varepsilon$ 时可靠，$\kappa$ 接近 $10^{16}$ 时返回的逆完全失真，且 `stat` 未必报警；对策是以 $\|A A^{-1}-I\|$ 残差复核。其二，差分步长不能想当然取小：$h=10^{-8}$ 处中心差分误差已开始反转上升，最优点在 $10^{-5}\sim10^{-6}$ 量级（见实验）。其三，测得的收敛阶若持续低于设计阶（如二阶格式测得 $p\approx1.6$），优先怀疑边界处理或奇点污染，而非盲目加密网格。其四，简并或近简并谱的本征矢比较须用子空间投影（1.3 节），任何以单本征矢为对象的判据在能隙趋于零时失效。
+**数值实现考量与误差控制。** 其一，病态矩阵求逆：Gauss–Jordan 全主元（本库 `inv_real_matrix`）只在 $\kappa(A)\ll1/\varepsilon$ 时可靠，$\kappa$ 接近 $10^{16}$ 时返回的逆完全失真，且 `stat` 未必报警；对策是以 $\|A A^{-1}-I\|$ 残差复核。其二，差分步长不能想当然取小：$h=10^{-8}$ 处中心差分误差已开始反转上升，最优点在 $10^{-5}\sim10^{-6}$ 量级（见实验）。其三，测得的收敛阶若持续低于设计阶（如二阶格式测得 $p\approx1.6$），优先怀疑边界处理或奇点污染，而非盲目加密网格。其四，简并或近简并谱的本征矢比较须用子空间投影（1.3 节），任何以单本征矢为对象的判据在能隙趋于零时失效。
 
 **GeneralModule 实现映射。** 源码 `src/mod_linear_algebra.f90`：`inv_real_matrix`、`inv_complex_matrix`（全主元 Gauss–Jordan，奇异检测 `stat=-1`）、`pythag`（溢出安全）；`src/mod_interpolation.f90` 提供解析一阶/二阶导数以替代数值差分。理论依据：Golub 与 Van Loan (2013)，第 7 章；Wilkinson (1965)。GitHub 直链：[src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90)。二维码：`qr/src__mod_linear_algebra.f90.png`。
 
@@ -5556,7 +5563,7 @@ MCTDH 全空间精确性与 SPF 收敛）。
 | 观测量 | 能级、速率、分支比、隧穿概率 |
 | 性能 | 时间、内存、强/弱扩展 |
 
-特别注意：TT/MCTDH 的截断误差可能对初态和势能面敏感；不能只用一个参数点验证。
+适用范围与模型边界：TT 与 MCTDH 的张量截断误差强烈依赖初态的纠缠熵增长率以及势能面的非谐耦合强度；验证协议应覆盖弱耦合到强耦合多个参数区域，以确定有效键维与单粒子函数基组的收敛边界。
 
 ### 18.10　参考文献
 
