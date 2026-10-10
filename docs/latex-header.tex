@@ -2,22 +2,71 @@
 \usepackage{booktabs}
 \usepackage{longtable}
 \usepackage{array}
-\usepackage{etoolbox}
 \usepackage{needspace}
 \usepackage{enumitem}
 \usepackage{caption}
 \usepackage{fvextra}
-\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
-\AtBeginEnvironment{longtable}{\small}
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.12}
-\setlength{\emergencystretch}{3em}
-\setlist{topsep=2pt,itemsep=2pt,parsep=0pt}
-\captionsetup{font=small,labelfont=bf}
-\widowpenalty=10000
-\clubpenalty=10000
-\usepackage{sectsty}
-\allsectionsfont{\sffamily}
 \usepackage[htt]{hyphenat}
+
+% 代码高亮环境换行与美化
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
+
+% 表格样式优化
 \AtBeginEnvironment{longtable}{\footnotesize\sloppy}
 \setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+
+% 严禁孤行与寡行 (Widows & Orphans)
+\widowpenalty=10000
+\clubpenalty=10000
+
+% 标题格式与编号控制: 关闭 LaTeX 自动追加的编号前缀，以 Markdown 中原汁原味的手写规范章节号为准
+\ctexset{
+  part/numbering = false,
+  chapter = {
+    numbering = false,
+    format = \raggedright\bfseries\LARGE\sffamily,
+    beforeskip = 16pt plus 4pt minus 2pt,
+    afterskip = 18pt plus 3pt minus 2pt
+  },
+  section = {
+    numbering = false,
+    format = \raggedright\bfseries\Large\sffamily,
+    beforeskip = 22pt plus 5pt minus 3pt,
+    afterskip = 10pt plus 2pt minus 2pt
+  },
+  subsection = {
+    numbering = false,
+    format = \raggedright\bfseries\large\sffamily,
+    beforeskip = 14pt plus 3pt minus 2pt,
+    afterskip = 6pt plus 1pt minus 1pt
+  },
+  subsubsection = {
+    numbering = false,
+    format = \raggedright\bfseries\normalsize\sffamily,
+    beforeskip = 10pt plus 2pt minus 1pt,
+    afterskip = 4pt
+  }
+}
+
+% 保证目录层级完整记录章节和小节
+\setcounter{secnumdepth}{-2}
+\setcounter{tocdepth}{2}
+
+% 节标题智能保护：如果页面底部剩余高度不足 9 行文字（约 3.5cm），强制换至下一页顶部，彻底杜绝孤挂标题
+\let\origsection\section
+\renewcommand{\section}[1]{%
+  \needspace{9\baselineskip}%
+  \origsection{#1}%
+}
+
+\let\origsubsection\subsection
+\renewcommand{\subsection}[1]{%
+  \needspace{6\baselineskip}%
+  \origsubsection{#1}%
+}
+
+% 列表与间距微调
+\setlist{topsep=3pt,itemsep=2pt,parsep=0pt}
+\captionsetup{font=small,labelfont=bf}
+\setlength{\emergencystretch}{3em}

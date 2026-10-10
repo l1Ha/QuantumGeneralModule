@@ -65,7 +65,7 @@ $$
 
 **GeneralModule 实现映射。** 源码 `src/mod_dvr_grid.f90`：派生类型 `dvr_1d_t`（格点坐标 `x`、动能矩阵 `t_mat`）、`dvr_expectation_value`（以 $\sum_i|\psi_i|^{2}\,O(x_i)\,\Delta x$ 计算期望值）、`dvr_matrix_element`（两态跃迁矩阵元）。GitHub 直链：[src/mod_dvr_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_dvr_grid.f90)。二维码：`qr/src__mod_dvr_grid.f90.png`。
 
-![DVR 网格模块二维码](qr/src__mod_dvr_grid.f90.png)
+![](qr/src__mod_dvr_grid.f90.png){width=2.0cm}
 
 **小型数值实验。** 取 Gauss 波包 $\psi(x)=\pi^{-1/4}\exp(-x^{2}/2)$，在区间 $[-10,10]$ 上以 Sinc-DVR 网格（$n=256$）离散并计算 $\sum_i|\psi(x_i)|^{2}\Delta x$，所得值为 $0.999999999997$，偏差 $3\times 10^{-12}$，与 $L^{2}$ 内积的求积误差一致；若省略权重 $\Delta x$，结果变为 $0.0323$，即偏差达两个数量级以上，直观演示度量约定的重要性。
 
@@ -117,7 +117,7 @@ $$A=\int_{\sigma(A)}\lambda\,dE_{\lambda},\qquad \mathbb{1}=\int_{\sigma(A)}dE_{
 
 **GeneralModule 实现映射。** 源码 `src/mod_linear_algebra.f90`：`diag_symmetric_matrix`（三对角化 `tred2` 加 QL 迭代 `tql2` 的统一入口，输出升序本征值 $d$ 与正交本征矢矩阵 $z$）、`inv_real_matrix`/`inv_complex_matrix`（全主元 Gauss–Jordan 求逆，`stat=-1` 指示奇异矩阵）。GitHub 直链：[src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90)。二维码：`qr/src__mod_linear_algebra.f90.png`。
 
-![线性代数模块二维码](qr/src__mod_linear_algebra.f90.png)
+![](qr/src__mod_linear_algebra.f90.png){width=2.0cm}
 
 **小型数值实验。** 取 $n=300$ 的随机实对称矩阵（元素均匀分布于 $[-1,1]$），调用 `diag_symmetric_matrix` 后逐列计算残余 $\|A z_k-\lambda_k z_k\|_{\infty}$ 与正交性偏差 $\max_{ij}|(Z^{T}Z-\mathbb{1})_{ij}|$。实测结果：最大残余 $4.4\times10^{-14}$，最大正交性偏差 $2.2\times10^{-14}$。二者均为 $\mathcal{O}(n\varepsilon\|A\|)$ 量级（$\varepsilon=2.2\times10^{-16}$，$n\varepsilon\approx6.6\times10^{-14}$），符合舍入误差的预期标度，说明算法达到后向稳定。
 
@@ -151,7 +151,7 @@ $$\psi(t)=e^{-i\bar{E}\tau/\hbar}\sum_{n=0}^{N}\left(2-\delta_{n0}\right)(-i)^{n
 
 **GeneralModule 实现映射。** 源码 `src/mod_wavepacket_propagator.f90`：`propagate_split_operator_1d`（坐标半步势能相位、FFT 至动量空间、动能整步相位、逆变换、势能后半步，内部调用 `mod_linear_algebra.f90` 的 `fft_1d`）、`propagate_split_operator_2d`、`rk4_step`、`abm4_step`；`src/mod_chebyshev_propagator.f90` 提供切比雪夫大步长推进器。文献依据：Feit, Fleck 与 Steiger（J. Comput. Phys. 47, 412 (1982), DOI: 10.1016/0021-9991(82)90091-2）、Kosloff（J. Phys. Chem. 92, 2087 (1988), DOI: 10.1021/j100319a003）。GitHub 直链：[src/mod_wavepacket_propagator.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_wavepacket_propagator.f90)。二维码：`qr/src__mod_wavepacket_propagator.f90.png`。
 
-![波包传播模块二维码](qr/src__mod_wavepacket_propagator.f90.png)
+![](qr/src__mod_wavepacket_propagator.f90.png){width=2.0cm}
 
 **小型数值实验。** 一维谐振子（$m=1$，$\omega=0.02\ E_h/\hbar$），网格 $n=1024$、$\Delta x=0.05\ a_0$、$\Delta t=0.5\ a.u.$，以高斯波包为初态连续推进 $20000$ 步（相当于 $10000\ a.u.\approx242\ \mathrm{fs}$）。实测终态范数偏差 $|\ \|\psi\|^{2}-1\ |=8.8\times10^{-12}$，确认了格式的严格幺正性与舍入漂移的 $\mathcal{O}(N_{\mathrm{step}}\varepsilon)$ 标度。
 
@@ -189,7 +189,7 @@ $$Y_{lm}(\theta,\varphi)=(-1)^{m}\sqrt{\frac{2l+1}{4\pi}\,\frac{(l-m)!}{(l+m)!}}
 
 **GeneralModule 实现映射。** 源码 `src/mod_special_functions.f90`：`legendre_poly`（三项递推计算 $P_l(x)$）、`assoc_legendre_poly`（含 Condon–Shortley 相位的 $P_l^m(x)$）；`src/mod_dvr_grid.f90`：`dvr_legendre_init` 以 Newton 迭代求 Gauss–Legendre 节点并构造 $\hat{J}^{2}$ 角向矩阵。GitHub 直链：[src/mod_special_functions.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_special_functions.f90)。二维码：`qr/src__mod_special_functions.f90.png`。
 
-![特殊函数模块二维码](qr/src__mod_special_functions.f90.png)
+![](qr/src__mod_special_functions.f90.png){width=2.0cm}
 
 **小型数值实验。** 以 $n=40$ 的 Gauss–Legendre 节点构造 $\hat{J}^{2}$ 的谱求和表示（见 5.5 节），对角化后与本征值序列 $j(j+1)$，$j=0,\ldots,39$ 比对：最大偏差 $1.8\times10^{-12}$。该实验同时验证了 Legendre DVR 与角动量代数的相容性，是角向网格的必备验收测试。
 
@@ -404,7 +404,7 @@ $$V=Q_1+Q_2+Q_3-\sqrt{\tfrac12\bigl[(J_1-J_2)^{2}+(J_2-J_3)^{2}+(J_3-J_1)^{2}\bi
 
 **GeneralModule 实现映射。** 源码 `src/mod_triatomic_geometry.f90`：`jacobi_to_internuclear` 与 `internuclear_to_jacobi`（双向解析变换，含 $\cos\gamma$ 域截断）、`calc_leps_potential` 与 `init_default_h3_leps`（标准 $\mathrm{H}_3$ LEPS 面参数：$D_e=0.1744\ E_h$，$r_e=1.401\ a_0$，$\beta=1.044\ a_0^{-1}$，Sato 参数 $\Delta=0.10$）、`calc_conical_intersection_adiabats` 与 `calc_berry_phase_around_ci`。文献依据：Truhlar 与 Horowitz（J. Chem. Phys. 68, 2466 (1978), DOI: 10.1063/1.436019）、Sato（J. Chem. Phys. 23, 592 (1955), DOI: 10.1063/1.1742050）、Berry（Proc. R. Soc. Lond. A 392, 45 (1984), DOI: 10.1098/rspa.1984.0023）。GitHub 直链：[src/mod_triatomic_geometry.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_triatomic_geometry.f90)。二维码：`qr/src__mod_triatomic_geometry.f90.png`。
 
-![三原子几何模块二维码](qr/src__mod_triatomic_geometry.f90.png)
+![](qr/src__mod_triatomic_geometry.f90.png){width=2.0cm}
 
 **小型数值实验。** 三项校验：(a) 往返一致性：随机取 $(r,R,\gamma)=(1.4,3.2,1.1)\ (a_0,\ a_0,\ \mathrm{rad})$，经 `jacobi_to_internuclear` 再经 `internuclear_to_jacobi` 返回，三个坐标的恢复误差分别为 $0$、$4.4\times10^{-16}$、$0$，达到机器精度；(b) LEPS 双原子渐近：沿 $r_{23}=r_{31}=8\ a_0$ 扫描 $r_{12}$，极小值位于 $r_{12}=1.4011\ a_0$，深度 $V_{\min}=-0.174359\ E_h$，与输入 Morse 参数 $D_e,r_e$ 精确一致；(c) 共线鞍点：在共线平面 $r_{31}=r_{12}+r_{23}$ 上以二维 Newton 法求解 $\nabla V=0$，得鞍点 $r_{12}=r_{23}=1.775\ a_0$（$r_{31}=3.55\ a_0$），$V^{\ddagger}=-0.15371\ E_h$，相对 $\mathrm{H}_2$ 极小的势垒高度为 $12.96\ \mathrm{kcal/mol}$；文献中 London 面（未加 Sato 修正）的参考值约为 $9.8\ \mathrm{kcal/mol}$，差异来自 Sato 参数 $\Delta$ 的选择，属模型系统的固有性质而非数值误差。
 
@@ -452,7 +452,7 @@ $$
 
 **GeneralModule 实现映射。** 源码 `src/mod_hyperspherical_reactive.f90`：`init_reaction_mass`（$d$、$\mu$、$\beta_{\mathrm{skew}}$ 的自动生成）、`jacobi_to_hyperspherical` 与 `hyperspherical_to_jacobi`（双向变换）、`calc_eckart_transmission`、`calc_cumulative_reaction_probability`、`calc_canonical_rate_constant`、`calc_tst_wigner_rate`。文献依据：B. R. Johnson（J. Chem. Phys. 73, 5051 (1980), DOI: 10.1063/1.440058）、R. T. Pack 与 G. A. Parker（J. Chem. Phys. 87, 3888 (1987), DOI: 10.1063/1.452944）。GitHub 直链：[src/mod_hyperspherical_reactive.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_hyperspherical_reactive.f90)。二维码：`qr/src__mod_hyperspherical_reactive.f90.png`。
 
-![超球反应模块二维码](qr/src__mod_hyperspherical_reactive.f90.png)
+![](qr/src__mod_hyperspherical_reactive.f90.png){width=2.0cm}
 
 **小型数值实验。** (a) 对 $\mathrm{H}+\mathrm{H}_2$（三质量均为 $1.0078\ \mathrm{amu}$）调用 `init_reaction_mass`，得偏角 $60.000000^{\circ}$，与解析值一致；(b) 对 $\mathrm{D}+\mathrm{H}_2$（$m_A=2.0141$，$m_B=m_C=1.0078\ \mathrm{amu}$）得 $54.740638^{\circ}$；若以理想整数质量 $2:1:1$ 计算，则解析极限为 $\arccos(1/\sqrt3)=54.735610^{\circ}$，微差来自同位素质量的非严格整数比，说明偏角对质量比连续敏感；(c) 以返回的 $d$ 作超球往返变换 $(r,R)=(1.4,3.2)\ a_0$，恢复误差 $0$ 与 $4.4\times10^{-16}$。
 
@@ -494,7 +494,7 @@ $$\Delta E_{vJ}^{(2)}=\sum_{v'\ne v}\frac{|\langle v'|\Delta B|v\rangle|^{2}}{E_
 
 **GeneralModule 实现映射。** 源码 `src/mod_rovibrational.f90`：`build_rovibrational_hamiltonian`（零级转振能级组装）、`calc_rotational_constants_bv`（振动平均转动常数 $\langle\chi_v|\hbar^{2}/(2\mu R^{2})|\chi_v\rangle$）、`calc_vibrational_dipole_matrix` 与 `calc_franck_condon_factors`；`src/mod_dvr_grid.f90`：`dvr_sinc_init` 与 `fgh_solve_bound_states`（提供 $\chi_v$）。文献依据：E. B. Wilson, Jr., J. C. Decius 与 P. C. Cross, *Molecular Vibrations*, McGraw-Hill, New York (1955)；J. K. G. Watson, Mol. Phys. 15, 479 (1968)；Bunker 与 Jensen (1998)。GitHub 直链：[src/mod_rovibrational.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_rovibrational.f90)。二维码：`qr/src__mod_rovibrational.f90.png`。
 
-![转振模块二维码](qr/src__mod_rovibrational.f90.png)
+![](qr/src__mod_rovibrational.f90.png){width=2.0cm}
 
 **小型数值实验。** 对 Morse 型 $\mathrm{H}_2$（$D_e=0.1744\ E_h$，$r_e=1.401\ a_0$，$\beta=1.044\ a_0^{-1}$，$\mu=0.5\ \mathrm{amu}$），在 $[0.4,6.0]\ a_0$ 网格（$n=500$）上以 Sinc-DVR FGH 求得振动本征态：基本带间隔 $E_1-E_0=4219.92\ \mathrm{cm^{-1}}$；盒内束缚能级 15 条（半经典估计 17 条，最高两条的外转折点越出盒界，演示盒子误差）。以 $\psi=z/\sqrt{\Delta x}$ 正确归一化后调用 `calc_rotational_constants_bv` 得 $B_0=60.18$、$B_1=57.71$、$B_2=55.12$、$B_3=52.39$、$B_4=49.52\ \mathrm{cm^{-1}}$，呈单调下降，拟合得 $\alpha_e=B_0-B_1=2.46\ \mathrm{cm^{-1}}$（实验 $\mathrm{H}_2$ 为 $3.06\ \mathrm{cm^{-1}}$，差异源于 Morse 参数与真实势能面的偏离）；离心畸变估计 $D_J\approx4B_0^{3}/(E_1-E_0)^{2}=0.04895\ \mathrm{cm^{-1}}$，与实验值 $0.047\ \mathrm{cm^{-1}}$ 偏差约 $4\%$，验证了 Wilson–Decius–Cross 微扰公式的定量可靠性。若跳过 $\sqrt{\Delta x}$ 归一化直接调用，$B_0$ 输出为 $0.6726\ \mathrm{cm^{-1}}$，恰为正确值乘以 $\Delta x=0.011196$，即 1.1 节所述度量陷阱的实例。
 
@@ -534,7 +534,7 @@ $$\bar{a}=\frac{2\pi}{\Gamma(1/4)^{2}}\left(\frac{2\mu C_6}{\hbar^{2}}\right)^{1
 
 **GeneralModule 实现映射。** 源码 `src/mod_constants.f90`：CODATA 基础常数（`C_LIGHT`、`HBAR`、`M_E`、`CHARGE_E`、`EPS0`、`KB`、`AMU2AU`）、数学常数（`PI`、`SQRTPI`、`EYE`）、约二十组双向换算因子（`AU2EV`/`EV2AU`、`AU2CM`/`CM2AU`、`AU2FS`/`FS2AU`、`AU2DEBYE`、`AU2VM`、`AU2W_CM2`、`AU2TESLA` 等）与纯函数 `to_au`、`from_au`。GitHub 直链：[src/mod_constants.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_constants.f90)。二维码：`qr/src__mod_constants.f90.png`。
 
-![常数模块二维码](qr/src__mod_constants.f90.png)
+![](qr/src__mod_constants.f90.png){width=2.0cm}
 
 **小型数值实验。** 两项自洽性检验：(a) 计算 `AU2EV/AU2CM`，得 $1.239842\times10^{-4}\ \mathrm{eV\cdot cm}$，与 CODATA 的 $hc$ 在第八位有效数字一致；(b) 以 `from_au` 将 $4351.6\ \mathrm{cm^{-1}}$ 换算为 a.u. 再以 `to_au` 换回，得 $4351.6000000000004$，往返误差 $4\times10^{-13}\ \mathrm{cm^{-1}}$，纯属双精度舍入。此类零成本检验建议纳入持续集成。
 
