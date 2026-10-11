@@ -64,4 +64,9 @@ docs/tex_media/
 !docs/量子动力学数值计算_GeneralModule_Fortran2008_第三版.pdf
 !docs/量子动力学数值计算_GeneralModule_Fortran2008_第四版.pdf
 !docs/qr/*.png
+!docs/figures/*.png
 !docs/tex_media_deep/media/*.png
+
+# LaTeX build intermediates
+docs/*.aux
+docs/*.toc

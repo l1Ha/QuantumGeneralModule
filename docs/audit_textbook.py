@@ -51,6 +51,12 @@ def check_qr(text: str) -> dict:
     return {"checked": len(refs), "missing": missing}
 
 
+def check_figures(text: str) -> dict:
+    refs = sorted(set(re.findall(r"figures/[^)\s`]+", text)))
+    missing = [p for p in refs if not (ROOT / "docs" / p).exists()]
+    return {"checked": len(refs), "missing": missing}
+
+
 def check_github_links(text: str) -> dict:
     links = sorted(set(re.findall(re.escape(REPO_URL) + r"([^\s)]+)", text)))
     missing = [p for p in links if not (ROOT / p).exists()]
@@ -296,6 +302,7 @@ def main() -> int:
     report = {
         "paths": check_paths(text),
         "qr": check_qr(text),
+        "figures": check_figures(text),
         "github_links": check_github_links(text),
         "cross_references": check_cross_references(text),
         "dois": check_dois(text, args.online),
@@ -329,6 +336,7 @@ def main() -> int:
     failures = (
         report["paths"]["missing"]
         or report["qr"]["missing"]
+        or report["figures"]["missing"]
         or report["github_links"]["missing"]
         or report["cross_references"]["missing"]
         or report["dois"]["syntactically_invalid"]

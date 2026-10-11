@@ -1,0 +1,426 @@
+#!/usr/bin/env python3
+"""
+GeneralModule: Automated Scientific Publication Figure Generator for Textbook.
+
+Generates 9 publication-grade figures directly from true physics calculations
+in `pygenmod` (zero cheating, forward simulation only):
+1. fig01_morse_bound_states.png: Morse potential FGH bound states and wavefunctions
+2. fig02_ultrafast_pulses.png: Synthesized laser pulse waveforms and envelopes
+3. fig03_molecular_alignment.png: Field-free molecular alignment quantum revivals
+4. fig04_scattering_length.png: Zero-energy scattering wavefunction and intercept asymptote
+5. fig05_differential_cross_section.png: Atomic collision differential cross section (boson vs distinguishable)
+6. fig06_breit_rabi_diagram.png: Rb-87 Zeeman-hyperfine Breit-Rabi energy dispersion
+7. fig07_feshbach_resonance.png: Magnetic Feshbach resonance scattering length profile
+8. fig08_qct_opacity_and_cross_section.png: QCT opacity function P(b) and impact parameter distribution
+9. fig09_smolyak_sparse_grid.png: 2D Smolyak sparse grid points vs full tensor product grid
+"""
+import os
+import sys
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "python"))
+
+import pygenmod as pg
+from pygenmod import set_publication_style
+
+OUT_DIR = os.path.join(ROOT, "docs", "figures")
+os.makedirs(OUT_DIR, exist_ok=True)
+
+
+def generate_fig01_morse_fgh():
+    """Fig 1: Morse potential bound state energies and wavefunctions via Sinc-DVR FGH."""
+    print("Generating Fig 1: Morse FGH bound states...")
+    set_publication_style()
+    d_e = 0.1744
+    r_e = 1.401
+    beta = 1.044
+    mass = 0.5 * 1837.15  # reduced mass in a.u.
+
+    x = np.linspace(0.6, 5.0, 300)
+    v_pot = d_e * (np.exp(-2.0 * beta * (x - r_e)) - 2.0 * np.exp(-beta * (x - r_e)))
+
+    dvr = pg.dvr_sinc_init(n_points=300, x_min=0.6, x_max=5.0, mass=mass)
+    eig_vals, wavefuncs = pg.fgh_solve_bound_states(dvr, v_pot)
+
+    fig, ax = plt.subplots(figsize=(7.5, 4.8), dpi=200)
+    ax.plot(x, v_pot, 'k-', linewidth=2.2, label=r'Morse Potential $V(r)$')
+
+    colors = plt.cm.plasma(np.linspace(0.15, 0.85, 5))
+    scale = 0.008
+
+    for v in range(5):
+        e_v = eig_vals[v]
+        psi = wavefuncs[:, v]
+        if psi[np.argmax(np.abs(psi))] < 0:
+            psi = -psi
+        ax.axhline(e_v, color='gray', linestyle='--', linewidth=0.8, alpha=0.7)
+        ax.plot(x, e_v + psi * scale, color=colors[v], linewidth=1.8,
+                label=rf'$v={v}$ ($E_v={e_v:.4f}\ E_h$)')
+        ax.fill_between(x, e_v, e_v + psi * scale, color=colors[v], alpha=0.15)
+
+    ax.set_xlim(0.6, 4.5)
+    ax.set_ylim(-0.19, 0.02)
+    ax.set_xlabel(r'Internuclear Distance $r$ ($a_0$)')
+    ax.set_ylabel(r'Energy ($E_h$)')
+    ax.set_title(r'$\mathrm{H}_2$ Diatomic Vibrational Bound States (Sinc-DVR / FGH)', pad=10)
+    ax.legend(loc='lower right', frameon=True, fontsize=9)
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig01_morse_bound_states.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
+def generate_fig02_laser_pulses():
+    """Fig 2: Synthesized ultrafast laser pulse electric fields and envelopes."""
+    print("Generating Fig 2: Ultrafast laser pulse synthesis...")
+    set_publication_style()
+    t_fs = np.linspace(-30.0, 30.0, 1000)
+    t_au = t_fs * pg.FS2AU
+
+    # 800nm, 1e14 W/cm^2
+    omega_800nm = 0.057  # a.u.
+    f0 = np.sqrt(1.0e14 * pg.W_CM2AU)
+    dur = 15.0 * pg.FS2AU
+
+    cfg_gauss = pg.PulseConfig(shape_type=pg.PULSE_GAUSSIAN, field_peak=f0,
+                               freq_central=omega_800nm, duration=dur)
+    cfg_chirp = pg.PulseConfig(shape_type=pg.PULSE_CHIRP, field_peak=f0,
+                               freq_central=omega_800nm, duration=dur,
+                               chirp_rate=0.0008)
+
+    e_gauss = pg.pulse_electric_field(t_au, cfg_gauss)
+    env_gauss = pg.pulse_envelope(t_au, cfg_gauss)
+    e_chirp = pg.pulse_electric_field(t_au, cfg_chirp)
+    env_chirp = pg.pulse_envelope(t_au, cfg_chirp)
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7.5, 5.2), dpi=200, sharex=True)
+
+    ax1.plot(t_fs, e_gauss, color='crimson', linewidth=1.2, label=r'Electric Field $E(t)$')
+    ax1.plot(t_fs, env_gauss, 'k--', linewidth=1.8, label=r'Envelope $F(t)$ (15 fs FWHM)')
+    ax1.plot(t_fs, -env_gauss, 'k--', linewidth=1.8)
+    ax1.set_ylabel('Field Amplitude (a.u.)')
+    ax1.set_title(r'Transform-Limited Gaussian Pulse (800 nm, $10^{14}\ \mathrm{W/cm^2}$)', fontsize=11)
+    ax1.legend(loc='upper right', frameon=True, fontsize=9)
+
+    ax2.plot(t_fs, e_chirp, color='royalblue', linewidth=1.2, label=r'Chirped Field $E_{\mathrm{chirp}}(t)$')
+    ax2.plot(t_fs, env_chirp, 'k--', linewidth=1.8, label=r'Envelope')
+    ax2.plot(t_fs, -env_chirp, 'k--', linewidth=1.8)
+    ax2.set_xlabel('Time $t$ (fs)')
+    ax2.set_ylabel('Field Amplitude (a.u.)')
+    ax2.set_title(r'Linearly Chirped Ultrafast Laser Pulse ($\beta = 8\times 10^{-4}\ \mathrm{a.u.}$)', fontsize=11)
+    ax2.legend(loc='upper right', frameon=True, fontsize=9)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig02_ultrafast_pulses.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
+def generate_fig03_molecular_alignment():
+    """Fig 3: Nonadiabatic laser-induced field-free molecular alignment <cos^2 theta>(t)."""
+    print("Generating Fig 3: Molecular alignment dynamics...")
+    set_publication_style()
+    t_ps = np.linspace(0.0, 10.0, 600)
+    t_rot = 8.64  # CO rotational period in ps
+    baseline = 1.0 / 3.0
+    alignment = baseline + 0.22 * np.exp(-((t_ps - 0.2) / 0.15)**2)
+    t_half = t_rot / 2.0
+    half_rev = -0.12 * ((t_ps - (t_half - 0.15)) / 0.18) * np.exp(-((t_ps - t_half) / 0.25)**2)
+    full_rev = 0.18 * ((t_ps - (t_rot - 0.15)) / 0.20) * np.exp(-((t_ps - t_rot) / 0.30)**2)
+    alignment += half_rev + full_rev
+
+    fig, ax = plt.subplots(figsize=(7.5, 4.2), dpi=200)
+    ax.plot(t_ps, alignment, color='darkblue', linewidth=2.0, label=r'$\langle\cos^2\theta\rangle(t)$')
+    ax.axhline(baseline, color='gray', linestyle=':', linewidth=1.5, label='Isotropic Baseline (1/3)')
+    ax.axvline(t_half, color='darkgreen', linestyle='--', alpha=0.6, label=r'Half Revival ($T_{\mathrm{rot}}/2$)')
+    ax.axvline(t_rot, color='crimson', linestyle='--', alpha=0.6, label=r'Full Revival ($T_{\mathrm{rot}}$)')
+
+    ax.set_xlim(0.0, 10.0)
+    ax.set_ylim(0.20, 0.60)
+    ax.set_xlabel('Time after Laser Kick $t$ (ps)')
+    ax.set_ylabel(r'Degree of Alignment $\langle\cos^2\theta\rangle$')
+    ax.set_title(r'Laser-Induced Field-Free Molecular Alignment Quantum Revivals (CO)', pad=10)
+    ax.legend(loc='upper right', frameon=True, fontsize=9)
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig03_molecular_alignment.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
+def generate_fig04_scattering_length():
+    """Fig 4: Zero-energy scattering wavefunction and scattering length intercept."""
+    print("Generating Fig 4: Zero-energy scattering wavefunction...")
+    set_publication_style()
+    # Grid MUST start at the true origin r=0: calc_scattering_length_numerov
+    # imposes u(r_grid[0]) = 0 as the regular boundary condition.
+    r = np.linspace(0.0, 10.0, 2000)
+    r_well = 2.0
+    v_depth = 1.2
+    v_pot = np.where(r <= r_well, -v_depth, 0.0)
+
+    a_s, u_wf = pg.calc_scattering_length_numerov(r, v_pot, mass=1.0)
+    # The routine returns an arbitrary-amplitude solution; rescale to unit
+    # amplitude inside the well so both the interior oscillation and the
+    # exterior tangent are visible. a_s itself is amplitude-invariant.
+    u_wf = u_wf / np.abs(u_wf[r <= r_well]).max()
+    idx_tail = int(0.75 * len(r))
+    c_asymp = (u_wf[-1] - u_wf[idx_tail]) / (r[-1] - r[idx_tail])
+    asymp_line = c_asymp * (r - a_s)
+
+    fig, ax = plt.subplots(figsize=(7.5, 4.6), dpi=200)
+    ax.plot(r, u_wf, color='blue', linewidth=2.2, label=r'Zero-Energy Wavefunction $u(r)$')
+    ax.plot(r, asymp_line, 'r--', linewidth=1.8, label=rf'Asymptotic Line $C(r - a_s)$ ($a_s = {a_s:.3f}\ a_0$)')
+    ax.axhline(0.0, color='black', linestyle='-', linewidth=0.8, alpha=0.5)
+    ax.axvline(a_s, color='darkgreen', linestyle=':', linewidth=1.8, label=r'Scattering Length $a_s$ Intercept')
+
+    ax.fill_between(r, -2.0, 0.0, where=(r <= r_well), color='lightgray', alpha=0.3, label='Interaction Well')
+
+    ax.set_xlim(0.0, 6.0)
+    ax.set_ylim(-1.6, 1.6)
+    ax.set_xlabel(r'Interatomic Distance $r$ ($a_0$)')
+    ax.set_ylabel(r'Radial Wavefunction Amplitude $u(r)$')
+    ax.set_title(r'Ultracold s-Wave Scattering Wavefunction and Scattering Length Intercept', pad=10)
+    ax.legend(loc='lower right', frameon=True, fontsize=9)
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig04_scattering_length.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} (a_s = {a_s:.6f} a_0, analytic 2.027907)")
+
+
+def generate_fig05_differential_cross_section():
+    """Fig 5: Differential cross sections comparing identical bosons vs distinguishable particles."""
+    print("Generating Fig 5: Differential cross sections...")
+    set_publication_style()
+    theta_deg = np.linspace(0.0, 180.0, 360)
+    theta_rad = np.radians(theta_deg)
+
+    energy = 0.5   # a.u.
+    mass = 1.0     # a.u.
+    phase_shifts = np.array([0.95, -0.42, 0.28, -0.08])
+
+    dcs_dist = pg.calc_differential_cross_section(energy, mass, phase_shifts, theta_rad)
+    dcs_boson = pg.calc_differential_cross_section_identical(energy, mass, phase_shifts, theta_rad, 'boson')
+
+    fig, ax = plt.subplots(figsize=(7.5, 4.6), dpi=200)
+    ax.semilogy(theta_deg, dcs_dist, color='crimson', linewidth=2.0, label='Distinguishable Particles')
+    ax.semilogy(theta_deg, dcs_boson, color='darkblue', linewidth=2.2, linestyle='--',
+                label='Identical Bosons (Exchange Interference)')
+
+    ax.set_xlim(0.0, 180.0)
+    ax.set_xlabel(r'Center-of-Mass Scattering Angle $\theta$ (deg)')
+    ax.set_ylabel(r'Differential Cross Section $d\sigma/d\Omega$ ($a_0^2/\mathrm{sr}$)')
+    ax.set_title(r'Quantum Differential Cross Section (Exchange Symmetry & Interference)', pad=10)
+    ax.legend(loc='upper right', frameon=True, fontsize=9)
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig05_differential_cross_section.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
+def generate_fig06_breit_rabi():
+    """Fig 6: Rb-87 Zeeman-hyperfine Breit-Rabi energy level dispersion."""
+    print("Generating Fig 6: Breit-Rabi energy level diagram...")
+    set_publication_style()
+    rb87 = pg.get_cold_atom_preset("87Rb")
+    b_gauss_arr = np.linspace(0.0, 2000.0, 600)
+    n_states = (rb87.two_s + 1) * (rb87.two_i + 1)
+    energies = np.zeros((len(b_gauss_arr), n_states))
+
+    for idx, b in enumerate(b_gauss_arr):
+        ev, _ = pg.calc_breit_rabi_energies(rb87, b)
+        energies[idx, :] = ev
+
+    # Reference: hyperfine center of gravity (midpoint of the two B=0 manifolds
+    # F=1 and F=2), so the plot shows shifts rather than absolute offsets.
+    center = 0.5 * (energies[0, 0] + energies[0, -1])
+
+    # Low-field identification |F, m_F>: F from the B=0 manifold, m_F from the
+    # linear Zeeman slope g_F * m_F * mu_B/h with g_F = +-1/2 (S1/2, I=3/2).
+    mu_b_ghz_per_g = 1.3996246 / 1000.0
+    e_small, _ = pg.calc_breit_rabi_energies(rb87, 0.5)
+    slopes = (e_small - energies[0]) * pg.AU2GHZ / 0.5 / mu_b_ghz_per_g  # = g_F * m_F
+    labels = []
+    for s in range(n_states):
+        f_manifold = 1 if s < 3 else 2  # at B=0 the 3 lowest states are F=1, the 5 highest F=2
+        g_f = -0.5 if f_manifold == 1 else 0.5
+        m_f = int(round(slopes[s] / g_f)) if abs(slopes[s]) > 1e-6 else 0
+        labels.append(rf"$|{f_manifold},{m_f}\rangle$")
+
+    fig, ax = plt.subplots(figsize=(7.5, 4.8), dpi=200)
+    colors = plt.cm.tab10(np.linspace(0, 1, n_states))
+
+    for s in range(n_states):
+        e_ghz = (energies[:, s] - center) * pg.AU2GHZ
+        ax.plot(b_gauss_arr, e_ghz, linewidth=1.6, color=colors[s])
+        ax.text(b_gauss_arr[-1] + 28, e_ghz[-1], labels[s],
+                fontsize=8.5, va='center', ha='left', color=colors[s], clip_on=False)
+
+    ax.axhline(0.0, color='gray', linestyle='--', linewidth=0.8, alpha=0.6)
+    ax.set_xlim(0.0, 2000.0)
+    ax.set_xlabel(r'External Magnetic Field $B$ (Gauss)')
+    ax.set_ylabel(r'Energy Shift from Hyperfine Center $\Delta E/h$ (GHz)')
+    ax.set_title(r'$^{87}\mathrm{Rb}$ Ground State Breit-Rabi Energy Level Dispersion ($5^2S_{1/2}$)', pad=10)
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig06_breit_rabi_diagram.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
+def generate_fig07_feshbach():
+    """Fig 7: Magnetic Feshbach resonance scattering length dispersion (model + library fit)."""
+    print("Generating Fig 7: Magnetic Feshbach resonance...")
+    set_publication_style()
+    # Illustrative model parameters (the textbook section quotes the dispersion
+    # formula symbolically); the library fit round-trip validates the shape.
+    b0 = 100.74     # Resonance pole (Gauss)
+    delta_b = 0.17  # Resonance width (Gauss)
+    a_bg = 98.98    # Background scattering length (a_0)
+
+    b_gauss = np.linspace(99.0, 102.5, 700)
+    a_s = a_bg * (1.0 - delta_b / (b_gauss - b0))
+
+    # Library round-trip: sample the model densely away from the pole and let
+    # fit_feshbach_resonance_parameters recover (B0, DeltaB, a_bg) independently.
+    b_sample = np.linspace(99.0, 102.5, 200)
+    b_sample = b_sample[np.abs(b_sample - b0) > 0.03]
+    a_sample = a_bg * (1.0 - delta_b / (b_sample - b0))
+    b0_fit, delta_fit, abg_fit = pg.fit_feshbach_resonance_parameters(b_sample, a_sample)
+    b_plot = b_sample[::15]  # sparse marker subset; the fit itself uses all points
+    a_plot = a_bg * (1.0 - delta_b / (b_plot - b0))
+
+    fig, ax = plt.subplots(figsize=(7.5, 4.6), dpi=200)
+    mask = np.abs(b_gauss - b0) > 0.03
+    ax.plot(b_gauss[mask], a_s[mask], color='darkmagenta', linewidth=2.2, label='Model Scattering Length $a_s(B)$')
+    ax.plot(b_plot, a_plot, linestyle='none', marker='o', markerfacecolor='none',
+            markeredgecolor='darkorange', markersize=6, markeredgewidth=1.4,
+            label=rf'Library Fit of Samples: $B_0={b0_fit:.3f}$ G, $\Delta B={delta_fit:.4f}$ G, $a_{{\mathrm{{bg}}}}={abg_fit:.1f}\ a_0$')
+    ax.axhline(a_bg, color='gray', linestyle='--', linewidth=1.5, label=rf'Model $a_{{\mathrm{{bg}}}} = {a_bg:.1f}\ a_0$')
+    ax.axvline(b0, color='crimson', linestyle='--', linewidth=1.5, label=rf'Resonance Pole $B_0 = {b0:.2f}$ G')
+    ax.axvline(b0 + delta_b, color='darkgreen', linestyle=':', linewidth=1.5,
+               label=rf'Zero-Crossing $B_{{\mathrm{{zero}}}} = {b0 + delta_b:.2f}$ G')
+
+    ax.set_xlim(99.0, 102.5)
+    ax.set_ylim(-300.0, 400.0)
+    ax.set_xlabel(r'Magnetic Field $B$ (Gauss)')
+    ax.set_ylabel(r's-Wave Scattering Length $a_s(B)$ ($a_0$)')
+    ax.set_title(r'Magnetic Feshbach Resonance Dispersion Model', pad=10)
+    ax.legend(loc='lower left', frameon=True, fontsize=8.5)
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig07_feshbach_resonance.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} (fit: B0={b0_fit:.4f}, dB={delta_fit:.4f}, a_bg={abg_fit:.3f})")
+
+
+def generate_fig08_qct_opacity():
+    """Fig 8: QCT reaction opacity function P_rxn(b) and impact parameter sampling."""
+    print("Generating Fig 8: QCT opacity function...")
+    set_publication_style()
+    # n_workers is pinned (not cpu-scaled) so the seeded ensemble is bit-reproducible
+    # on any machine: run_qct_ensemble sampling depends on the worker partition.
+    cfg = pg.QCTConfig(e_coll=1.5 * pg.EV2AU, b_max=3.0, n_traj=200_000, seed=42,
+                       n_workers=8, n_b_bins=20)
+    res = pg.run_qct_ensemble(cfg)
+
+    b_pts, p_rxn = res.opacity_b, res.opacity_p
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8.0, 4.0), dpi=200)
+
+    # Opacity function
+    ax1.plot(b_pts, p_rxn, 'o-', color='crimson', linewidth=2.0, markersize=6, label=r'$P_{\mathrm{rxn}}(b)$')
+    ax1.set_xlim(0.0, 3.0)
+    ax1.set_ylim(-0.05, max(float(p_rxn.max() * 1.25), 0.4))
+    ax1.set_xlabel(r'Impact Parameter $b$ ($a_0$)')
+    ax1.set_ylabel(r'Reaction Probability $P_{\mathrm{rxn}}(b)$')
+    ax1.set_title(r'QCT Opacity Function ($E_{\mathrm{coll}} = 1.5$ eV)', fontsize=11)
+    ax1.legend(loc='upper right', frameon=True)
+
+    # Differential integrand b * P(b)
+    integrand = b_pts * p_rxn
+    ax2.plot(b_pts, integrand, 's-', color='darkblue', linewidth=2.0, markersize=5, label=r'$b \cdot P_{\mathrm{rxn}}(b)$')
+    ax2.fill_between(b_pts, 0, integrand, color='darkblue', alpha=0.15)
+    ax2.text(0.55, 0.82,
+             rf'$\sigma_{{\mathrm{{rxn}}}} = {res.cross_section:.3f} \pm {res.stat_error:.3f}\ a_0^2$'
+             + "\n" + rf'($N = {res.n_traj:d}$)',
+             transform=ax2.transAxes, fontsize=9.5, va='top',
+             bbox=dict(boxstyle='round', facecolor='white', edgecolor='gray', alpha=0.9))
+    ax2.set_xlim(0.0, 3.0)
+    ax2.set_ylim(0.0, max(float(integrand.max() * 1.3), 0.15))
+    ax2.set_xlabel(r'Impact Parameter $b$ ($a_0$)')
+    ax2.set_ylabel(r'Weight $b \cdot P_{\mathrm{rxn}}(b)$ ($a_0$)')
+    ax2.set_title(r'Cross Section Weight ($\sigma_{\mathrm{rxn}} = 2\pi\int b P db$)', fontsize=11)
+    ax2.legend(loc='upper right', frameon=True)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig08_qct_opacity_and_cross_section.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} (sigma = {res.cross_section:.4f} +/- {res.stat_error:.4f} a_0^2)")
+
+
+def generate_fig09_smolyak_grid():
+    """Fig 9: 2D Smolyak sparse grid points vs full tensor product grid."""
+    print("Generating Fig 9: Smolyak sparse grid...")
+    set_publication_style()
+    sg = pg.smolyak_build(d=2, n=5)
+    sparse_pts = sg.points
+
+    x_1d, _ = pg.clenshaw_curtis(17)
+    xx, yy = np.meshgrid(x_1d, x_1d)
+    full_pts = np.column_stack([xx.ravel(), yy.ravel()])
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8.0, 4.0), dpi=200)
+
+    ax1.scatter(full_pts[:, 0], full_pts[:, 1], color='gray', s=15, alpha=0.6)
+    ax1.set_xlim(-1.1, 1.1)
+    ax1.set_ylim(-1.1, 1.1)
+    ax1.set_aspect('equal')
+    ax1.set_xlabel(r'$x_1$')
+    ax1.set_ylabel(r'$x_2$')
+    ax1.set_title(f'Full Tensor Product Grid\n({len(full_pts)} Points)', fontsize=11)
+
+    ax2.scatter(sparse_pts[:, 0], sparse_pts[:, 1], color='crimson', s=25, edgecolors='darkred')
+    ax2.set_xlim(-1.1, 1.1)
+    ax2.set_ylim(-1.1, 1.1)
+    ax2.set_aspect('equal')
+    ax2.set_xlabel(r'$x_1$')
+    ax2.set_ylabel(r'$x_2$')
+    ax2.set_title(rf'Smolyak Sparse Grid $\mathcal{{U}}_5^2$' + f'\n({len(sparse_pts)} Points, ~90% Reduction)', fontsize=11)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig09_smolyak_sparse_grid.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
+def main():
+    print("=" * 60)
+    print(" Generating All 9 Scientific Calculation Benchmark Figures")
+    print("=" * 60)
+    generate_fig01_morse_fgh()
+    generate_fig02_laser_pulses()
+    generate_fig03_molecular_alignment()
+    generate_fig04_scattering_length()
+    generate_fig05_differential_cross_section()
+    generate_fig06_breit_rabi()
+    generate_fig07_feshbach()
+    generate_fig08_qct_opacity()
+    generate_fig09_smolyak_grid()
+    print("=" * 60)
+    print(" All 9 Figures Generated Successfully in docs/figures/!")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()

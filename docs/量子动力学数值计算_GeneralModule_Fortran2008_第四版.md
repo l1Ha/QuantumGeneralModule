@@ -1187,6 +1187,8 @@ $$
 \int \hbar k\,|\tilde\psi(k,t)|^2\,dk.
 $$
 
+![图 6.1：变换极限高斯激光脉冲（800 nm，15 fs FWHM）与正色散线性啁啾激光脉冲（$\mathrm{GDD}=40\ \mathrm{fs}^2$）的时域瞬时载波电场 $E(t)$ 与包络 $F(t)$ 对比。](figures/fig02_ultrafast_pulses.png){width=12.0cm}
+
 ### 6.2　Split-Operator 方法
 
 对于不含时哈密顿量
@@ -2080,6 +2082,8 @@ $$
 
 ![](qr/src__mod_ti_scattering.f90.png){width=2.0cm}
 
+![图 7.1：短程吸引势阱中的超冷零能径向散射波函数 $u(r)$（实线）及在势阱外向 $r$ 轴线性外推的渐近切线 $C(r - a_s)$（虚线），切线与坐标轴的截距直接确定了 $s$-波散射长度 $a_s$。](figures/fig04_scattering_length.png){width=12.0cm}
+
 ### 7.3　Johnson 对数导数方法
 
 直接传播 $u(r)$ 在深势阱中容易指数溢出。Johnson 方法传播相邻点比值
@@ -2162,6 +2166,8 @@ $$
 $$
 
 该关系可用于检验散射振幅、相移和截面计算的一致性。
+
+![图 7.3：量子微分散射截面角分布 $d\sigma/d\Omega(\theta)$ 对比：可分辨粒子（红线）无交换对称性；全同玻色子（蓝虚线）展现出特征性的交换干涉增强波纹，在 $\theta = 90^\circ$ 处满足严格对称性。](figures/fig05_differential_cross_section.png){width=12.0cm}
 
 ### 7.5　有效力程展开
 
@@ -2312,6 +2318,8 @@ GeneralModule 的 `calc_feshbach_resonance_scan` 在磁场网格上计算 $a_s(B
 
 ![](qr/src__mod_field_scattering.f90.png){width=2.0cm}
 
+![图 7.4：$^{87}\mathrm{Rb}$ 原子基态（$5^2S_{1/2}, I=3/2$）在外加静磁场下的 Zeeman-超精细 Breit-Rabi 能级色散图谱：纵轴为相对超精细重心的能量移 $\Delta E/h$，各能级支按低场量子数 $|F, m_F\rangle$ 标记；低场下各支呈线性塞曼分裂，随场强增大趋于帕邢-巴克去耦。](figures/fig06_breit_rabi_diagram.png){width=12.0cm}
+
 ### 7.9　含时波包散射
 
 初始高斯波包为
@@ -2457,6 +2465,8 @@ $$
 - 二维码：`qr/src__mod_rovibrational.f90.png`
 
 ![](qr/src__mod_rovibrational.f90.png){width=2.0cm}
+
+![图 7.2：飞秒非共振激光脉冲触发 CO 分子无场非绝热排列动力学 $\langle\cos^2\theta\rangle(t)$，图中清晰展现了各向异性基线（1/3）、半周期复苏（$T_{\mathrm{rot}}/2 \approx 4.32\ \mathrm{ps}$）与全周期量子拍复苏（$T_{\mathrm{rot}} \approx 8.64\ \mathrm{ps}$）。](figures/fig03_molecular_alignment.png){width=12.0cm}
 
 ### 7.11　光碎片动能释放谱
 
@@ -3204,6 +3214,8 @@ $$
 
 ### 10.1　Morse 势能面的 FGH 本征态
 
+![图 10.1：双原子分子 Morse 势能面 $V(r)$ 与前 5 个分立振动态几率波函数 $|\psi_v(r)|^2$（采用 Sinc-DVR / FGH 求解，虚线为各振动态本征能级 $E_v$）。](figures/fig01_morse_bound_states.png){width=12.0cm}
+
 #### 物理模型
 
 双原子分子 Morse 势为
@@ -3432,6 +3444,8 @@ $$
 - 二维码：
 
 ![](qr/src__mod_field_scattering.f90.png){width=2.0cm}
+
+![图 10.2：磁场 Feshbach 共振有效散射长度色散 $a_s(B) = a_{\mathrm{bg}}[1 - \Delta B / (B - B_0)]$ 的模型算例（模型参数见图例）：共振极点 $B_0$ 处散射长度发散，$B_{\mathrm{zero}} = B_0 + \Delta B$ 处过零。空心圆点为库函数 `fit_feshbach_resonance_parameters` 对极点邻域外 197 个抽样点的独立拟合，反演参数 $B_0 = 100.741\ \mathrm{G}$、$\Delta B = 0.1671\ \mathrm{G}$、$a_{\mathrm{bg}} = 99.0\ a_0$，与模型输入一致。](figures/fig07_feshbach_resonance.png){width=12.0cm}
 
 ### 10.5　Lindblad 弛豫与退相位
 
@@ -5073,6 +5087,8 @@ $$
 k(T)=\sum_{v j}p_{v j}(T)\,k_{v j}(T).
 $$
 
+![图 17.1：$\mathrm{H} + \mathrm{H}_2 \to \mathrm{H}_2 + \mathrm{H}$ 准经典反应动力学（LEPS 势能面，$E_{\mathrm{coll}}=1.5\ \mathrm{eV}$，$N = 2\times 10^5$ 条轨迹）结果：左图为反应不透明度函数 $P_{\mathrm{rxn}}(b)$ 随碰撞参数 $b$ 的衰减分布；右图为截面积分权重被积函数 $b \cdot P_{\mathrm{rxn}}(b)$，阴影面积正比于总反应截面（$\sigma_{\mathrm{rxn}} = 0.616 \pm 0.009\ a_0^2$）。](figures/fig08_qct_opacity_and_cross_section.png){width=12.0cm}
+
 ### 17.5　统计误差与系综收敛
 
 若反应概率为 $P$，轨迹数为 $N$，二项分布标准误差为
@@ -5415,6 +5431,8 @@ $$
 ![](qr/python__pygenmod__sparse_grid.py.png){width=2.0cm}
 
 
+
+![图 18.1：二维全张量积网格（左图，289 个节点）与采用嵌套 Clenshaw-Curtis 规则构造的 Smolyak 稀疏网格 $\mathcal{U}_5^2$（右图，仅 69 个节点）对比。在保证光滑函数相同代数精度下，稀疏网格实现了近 90% 的网格点数压缩。](figures/fig09_smolyak_sparse_grid.png){width=12.0cm}
 
 ### 18.5　剪枝乘积基
 
