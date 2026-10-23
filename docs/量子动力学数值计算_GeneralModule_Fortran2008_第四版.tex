@@ -3725,7 +3725,7 @@ S_l=e^{2i\delta_l}.
 \begin{figure}
 \centering
 \includegraphics[width=12cm,height=\textheight]{figures/fig05_differential_cross_section.png}
-\caption{图 7.3：量子微分散射截面角分布 \(d\sigma/d\Omega(\theta)\)
+\caption{图 7.2：量子微分散射截面角分布 \(d\sigma/d\Omega(\theta)\)
 对比：可分辨粒子（红线）无交换对称性；全同玻色子（蓝虚线）展现出特征性的交换干涉增强波纹，在
 \(\theta = 90^\circ\) 处满足严格对称性。}
 \end{figure}
@@ -3908,7 +3908,7 @@ GeneralModule 的 \texttt{calc\_feshbach\_resonance\_scan}
 \begin{figure}
 \centering
 \includegraphics[width=12cm,height=\textheight]{figures/fig06_breit_rabi_diagram.png}
-\caption{图 7.4：\(^{87}\mathrm{Rb}\)
+\caption{图 7.3：\(^{87}\mathrm{Rb}\)
 原子基态（\(5^2S_{1/2}, I=3/2\)）在外加静磁场下的 Zeeman-超精细
 Breit-Rabi 能级色散图谱：纵轴为相对超精细重心的能量移
 \(\Delta E/h\)，各能级支按低场量子数 \(|F, m_F\rangle\)
@@ -4088,9 +4088,166 @@ F_{v'v''}
 \begin{figure}
 \centering
 \includegraphics[width=12cm,height=\textheight]{figures/fig03_molecular_alignment.png}
-\caption{图 7.2：飞秒非共振激光脉冲触发 CO 分子无场非绝热排列动力学
+\caption{图 7.4：飞秒非共振激光脉冲触发 CO 分子无场非绝热排列动力学
 \(\langle\cos^2\theta\rangle(t)\)，图中清晰展现了各向异性基线（1/3）、半周期复苏（\(T_{\mathrm{rot}}/2 \approx 4.32\ \mathrm{ps}\)）与全周期量子拍复苏（\(T_{\mathrm{rot}} \approx 8.64\ \mathrm{ps}\)）。}
 \end{figure}
+
+\hypertarget{ux53ccux539fux5b50ux6210ux5206ux4e0eux6298ux5408ux8d28ux91cfux77e9ux9635ux56feux8c31}{%
+\subsection{双原子成分与折合质量矩阵图谱}\label{ux53ccux539fux5b50ux6210ux5206ux4e0eux6298ux5408ux8d28ux91cfux77e9ux9635ux56feux8c31}}
+
+在双原子分子转振运动、反应散射与超冷碰撞动力学中，两体相对运动的有效惯性由折合质量（reduced
+mass）决定：
+
+\[
+\mu = \frac{m_1 m_2}{m_1 + m_2} = \left(\frac{1}{m_1} + \frac{1}{m_2}\right)^{-1}.
+\]
+
+折合质量直接决定了量子动力学算符系数与实验观测量的特征能标：
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{振动基频与零点能}：微小振动近似下，谐振频率
+  \(\omega_e = \sqrt{k/\mu} \propto \mu^{-1/2}\)，振动零点能
+  \(\mathrm{ZPE} = \frac{1}{2}\hbar\omega_e\)。极轻体系（如
+  \(\mathrm{H}_2,\ \mu \approx 0.5\ \mathrm{amu}\)）具有极大的能级间隔，而重碱金属二聚体（如
+  \(\mathrm{Cs}_2,\ \mu \approx 66.5\ \mathrm{amu}\)）能级极其密集，对数值离散格距提出了截然不同的截断需求；
+\item
+  \textbf{转动惯量与离心势垒}：刚性转子转动常数
+  \(B_e = \frac{\hbar^2}{2\mu R_e^2} \propto \mu^{-1}\)，控制转动能级阶梯
+  \(B_e J(J+1)\) 与两体碰撞中的有效离心势垒
+  \(V_{\mathrm{cent}}(r) = \frac{\hbar^2 l(l+1)}{2\mu r^2}\)；
+\item
+  \textbf{量子相干拍复苏时间}：超短非共振强激光场诱导的无场分子排列动力学中（见图
+  7.4），分子转动波包的完全量子拍复苏周期为
+  \(T_{\mathrm{rot}} = \frac{\pi}{B_e} = \frac{2\pi \mu R_e^2}{\hbar} \propto \mu\)；
+\item
+  \textbf{超冷低能碰撞力程}：两体范德华长程吸引势 \(V(r) \sim -C_6/r^6\)
+  的特征平均散射长度满足 Gribakin--Flambaum 标度关系
+  \(\bar{a} = \frac{2\pi}{\Gamma(1/4)^2}\left(\frac{2\mu C_6}{\hbar^2}\right)^{1/4} \propto \mu^{1/4}\)。
+\end{enumerate}
+
+\begin{figure}
+\centering
+\includegraphics[width=13cm,height=\textheight]{figures/fig10_diatomic_reduced_mass_matrix.png}
+\caption{图 7.5：双原子不同成分折合质量
+\(\mu = \frac{m_1 m_2}{m_1 + m_2}\) 矩阵热力图与全景周期分布：（a）16
+种代表性同位素成分（包含从超轻同位素 \(^1\mathrm{H}\)、\(D\)
+到常见主族元素与超冷碱金属
+\(^{87}\mathrm{Rb}\)、\(^{133}\mathrm{Cs}\)）的精确数值方阵（单位为
+\(\mathrm{amu}\)，对数色阶）；（b）元素周期表前 36
+号元素（\(Z = 1 \sim 36\)）连续全景等高线图，展现氢化物饱和带（\(\mu \leq 1.0\ \mathrm{amu}\)）与同核双原子对角线极大脊线（\(\mu = m/2\)）。绘图脚本见
+\texttt{docs/plot\_diatomic\_reduced\_mass\_matrix.py}。}
+\end{figure}
+
+图 7.5 揭示了双原子体系折合质量在全元素周期表中的两大全局物理机制：
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{氢化物轻原子饱和带}：由于数学上恒有
+  \(\mu < \min(m_1, m_2)\)，当其中一个组分为轻原子（如
+  \(^1\mathrm{H}\)）时，无论与之结合的另一原子有多重（例如与
+  \(^{133}\mathrm{Cs}\) 结合成 \(\mathrm{CsH}\)），折合质量极限为
+  \(\lim_{m_2 \gg m_1} \mu = m_1 \left(1 - \frac{m_1}{m_2}\right) \approx 1.000\ \mathrm{amu}\)。在矩阵图中，这表现为底部与左侧紧贴坐标轴的一条显著深色平坦条带（\(\mu \le 1.0\ \mathrm{amu}\)）。该机制决定了所有氢化物（HF、HCl、OH、NH
+  等）的相对运动动力学几乎完全受控于质子的质量；
+\item
+  \textbf{同核双原子极大脊线}：在总质量 \(M = m_1 + m_2\) 固定时，当
+  \(m_1 = m_2 = m\) 时 \(\mu = m/2\) 取得严格极大值。在全景图 (b)
+  中，对角线（青色虚线）构成了贯穿整个元素周期的最高势能脊线；从同核向异核偏离时，\(\mu\)
+  呈二次双曲线快速跌落。
+\end{itemize}
+
+\hypertarget{ux52a8ux529bux5b66ux8ba1ux7b97ux9879ux76eeux4e0eux5f00ux6e90ux751fux6001ux62d3ux5c55}{%
+\subsection{动力学计算项目与开源生态拓展}\label{ux52a8ux529bux5b66ux8ba1ux7b97ux9879ux76eeux4e0eux5f00ux6e90ux751fux6001ux62d3ux5c55}}
+
+为帮助读者在掌握 GeneralModule
+核心算法的基础上，进一步了解国际学术界在双原子与多原子量子动力学领域的成熟研究工具，表
+7.1 梳理了与两体及多体折合质量直接绑定的 5
+大核心计算动力学项目及其代表性开源代码：
+
+\begin{longtable}[]{@{}llll@{}}
+\toprule
+\begin{minipage}[b]{0.22\columnwidth}\raggedright
+动力学计算项目\strut
+\end{minipage} & \begin{minipage}[b]{0.22\columnwidth}\raggedright
+核心物理机制与数值方法\strut
+\end{minipage} & \begin{minipage}[b]{0.22\columnwidth}\raggedright
+国际主流开源软件与代码库\strut
+\end{minipage} & \begin{minipage}[b]{0.22\columnwidth}\raggedright
+GeneralModule 对应实现\strut
+\end{minipage}\tabularnewline
+\midrule
+\endhead
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+\textbf{双原子转振能级与高分辨光谱}\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+Sinc-DVR、Numerov
+求解多态强自旋-轨道耦合核运动薛定谔方程，计算分子光谱常数与跃迁偶极矩\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+\textbf{Duo} (ExoMol 组) / \textbf{LEVEL} (Le Roy 经典套件)\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+\texttt{src/mod\_dvr\_grid.f90} / \texttt{python/pygenmod/dvr.py}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+\textbf{超短激光诱导分子取向与对齐}\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+求解极化张量与强电场相互作用下的含时演化，模拟高阶非绝热量子拍复苏\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+\textbf{WavePacket} (柏林自由大学开放平台)\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+\texttt{src/mod\_rovibrational.f90} /
+\texttt{python/pygenmod/rovibrational.py}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+\textbf{超冷多通道两体碰撞与共振}\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+求解静磁场/静电场耦合下的多通道对数导数矩阵，提取相移与 Feshbach
+共振色散\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+\textbf{MOLSCAT / FIELD / BOUND} (Hutson 组, CCP6 资助项目)\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+\texttt{src/mod\_ti\_scattering.f90} /
+\texttt{src/mod\_field\_scattering.f90}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+\textbf{反应散射准经典轨迹动力学}\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+辛积分求解 Jacobi
+坐标下的正则哈密顿方程，蒙特卡洛统计反应几率与微分截面\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+\textbf{VENUS96} (Hase 经典轨迹代码) / \textbf{pyqct}\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+\texttt{src/mod\_qct\_dynamics.f90} /
+\texttt{python/pygenmod/qct.py}\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+\textbf{任意曲线坐标精确动能算符}\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+自动微分构造 Podolsky 动能 \(G\)-度规张量，结合
+MCTDH/张量网络传播高维波包\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+\textbf{ElVibRot / Tnum} (Lauvergnat 组) / \textbf{MCTDH}\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+\texttt{src/mod\_tensor\_train.f90} /
+\texttt{python/pygenmod/mctdh\_core.py}\strut
+\end{minipage}\tabularnewline
+\bottomrule
+\end{longtable}
+
+各开源项目的代码仓库与官方主页（读者可直接跳转或克隆进行扩展研究）： -
+\textbf{Duo (ExoMol)}: \url{https://github.com/exomol/Duo} -
+\textbf{LEVEL (R. J. Le Roy)}: \url{https://github.com/rleroy/LEVEL} -
+\textbf{WavePacket (FU Berlin)}:
+\url{https://github.com/QuantumWavePacket/WavePacket-matlab} -
+\textbf{MOLSCAT / FIELD (J. M. Hutson)}:
+\url{https://github.com/molscat/molscat} - \textbf{VENUS96 (W. L.
+Hase)}: \url{https://github.com/hase-research-group/VENUS96} -
+\textbf{pyqct}: \url{https://github.com/szquser/pyqct} -
+\textbf{ElVibRot / Tnum (D. Lauvergnat)}:
+\url{https://github.com/davidlauvergnat/ElVibRot} - \textbf{Heidelberg
+MCTDH Package}: \url{https://www.pci.uni-heidelberg.de/tc/usr/mctdh/}
 
 \hypertarget{ux5149ux788eux7247ux52a8ux80fdux91caux653eux8c31}{%
 \section{7.11　光碎片动能释放谱}\label{ux5149ux788eux7247ux52a8ux80fdux91caux653eux8c31}}
