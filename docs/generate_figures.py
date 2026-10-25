@@ -2,7 +2,7 @@
 """
 GeneralModule: Automated Scientific Publication Figure Generator for Textbook.
 
-Generates 9 publication-grade figures directly from true physics calculations
+Generates 13 publication-grade figures directly from true physics calculations
 in `pygenmod` (zero cheating, forward simulation only):
 1. fig01_morse_bound_states.png: Morse potential FGH bound states and wavefunctions
 2. fig02_ultrafast_pulses.png: Synthesized laser pulse waveforms and envelopes
@@ -13,6 +13,10 @@ in `pygenmod` (zero cheating, forward simulation only):
 7. fig07_feshbach_resonance.png: Magnetic Feshbach resonance scattering length profile
 8. fig08_qct_opacity_and_cross_section.png: QCT opacity function P(b) and impact parameter distribution
 9. fig09_smolyak_sparse_grid.png: 2D Smolyak sparse grid points vs full tensor product grid
+10. fig10_diatomic_reduced_mass_matrix.png: diatomic reduced mass matrix and periodic landscape
+11. fig11_wavepacket_split_operator.png: 1D Gaussian wavepacket split-operator propagation vs exact solution
+12. fig12_dvr_convergence.png: spectral convergence of Sinc-DVR / FGH energies
+13. fig13_hhg_spectrum.png: high-order harmonic generation spectrum with cutoff law
 """
 import os
 import sys
@@ -523,9 +527,241 @@ def generate_fig10_diatomic_reduced_mass_matrix():
     print(f" -> Saved to {fig_path10} and {fig_path_legacy}")
 
 
+def generate_fig11_wavepacket_split_operator():
+    """Fig 11: 1D Gaussian wavepacket propagation via split-operator, with exact
+    free-particle analytic solution as validation and conservation diagnostics."""
+    print("Generating Fig 11: Wavepacket split-operator propagation...")
+    set_publication_style()
+
+    n_grid, x_min, x_max = 2048, -120.0, 120.0
+    dx = (x_max - x_min) / n_grid
+    x = x_min + dx * np.arange(n_grid)
+    k = 2.0 * np.pi * np.fft.fftfreq(n_grid, d=dx)
+
+    sigma, x0, k0 = 6.0, -40.0, 3.0
+    psi0 = (2.0 * np.pi * sigma**2) ** (-0.25) * np.exp(
+        -(x - x0) ** 2 / (4.0 * sigma**2) + 1j * k0 * x)
+
+    # Free particle (V = 0): split-operator propagator is exactly unitary.
+    dt, n_steps = 0.01, 3000
+    u_kin = np.exp(-0.5j * k**2 * dt)
+    psi = psi0.astype(complex)
+
+    def expect_x(psi):
+        return float(np.real(np.sum(np.conj(psi) * x * psi)) * dx)
+
+    def energy(psi):
+        hk = np.fft.ifft(k**2 / 2.0 * np.fft.fft(psi))  # H psi (V = 0)
+        return float(np.real(np.sum(np.conj(psi) * hk)) * dx)
+
+    snap_times = {0: 0.0, 1: 10.0, 2: 20.0, 3: 30.0}
+    snaps = {0: psi.copy()}
+    t_now, isnap = 0.0, 0
+    x_track, t_track, norm_err, en_err = [], [], [], []
+    e0 = energy(psi)
+    x_track.append(expect_x(psi)); t_track.append(0.0)
+    norm_err.append(0.0); en_err.append(0.0)
+
+    for step in range(1, n_steps + 1):
+        psi = np.fft.ifft(u_kin * np.fft.fft(psi))  # V = 0: single kinetic step
+        t_now = step * dt
+        if (isnap + 1) in snap_times and abs(t_now - snap_times[isnap + 1]) < dt / 2:
+            isnap += 1
+            snaps[isnap] = psi.copy()
+        if step % 10 == 0:
+            x_track.append(expect_x(psi)); t_track.append(t_now)
+            norm_err.append(abs(np.sum(np.abs(psi) ** 2) * dx - 1.0))
+            en_err.append(abs(energy(psi) - e0) / abs(e0))
+
+    def exact_packet(xx, t):
+        w = 1.0 + 0.5j * t / sigma**2
+        u = xx - x0 - k0 * t
+        return (2.0 * np.pi * sigma**2) ** (-0.25) * np.exp(
+            -u ** 2 / (4.0 * sigma**2 * w) + 1j * k0 * u - 0.5j * k0 ** 2 * t) / np.sqrt(w)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4), dpi=200)
+    colors = plt.cm.viridis(np.linspace(0.05, 0.9, 4))
+    for i in sorted(snaps):
+        dens = np.abs(snaps[i]) ** 2
+        mask = dens > 1e-12
+        ax1.plot(x[mask], dens[mask], color=colors[i], linewidth=1.8,
+                 label=rf"$t = {snap_times[i]:.0f}\ a.u.$")
+    dens_exact = np.abs(exact_packet(x, 30.0)) ** 2
+    mask = dens_exact > 1e-12
+    ax1.plot(x[mask], dens_exact[mask], color='black', linestyle='--', linewidth=1.2,
+             alpha=0.8, label=r"Exact analytic ($t=30$)")
+    ax1.set_xlim(-60.0, 110.0)
+    ax1.set_xlabel(r'Position $x$ ($a_0$)')
+    ax1.set_ylabel(r'$|\psi(x,t)|^2$ ($a_0^{-1}$)')
+    ax1.set_title(r'Split-Operator Wavepacket Propagation (Free Gaussian)', fontsize=11)
+    ax1.legend(loc='upper right', frameon=True, fontsize=8.5)
+
+    ax2.semilogy(t_track, np.maximum(norm_err, 1e-18), color='crimson', linewidth=1.8,
+                 label=r'$|\,\|\psi\|^2 - 1\,|$ (norm deviation)')
+    ax2.semilogy(t_track, np.maximum(en_err, 1e-18), color='darkblue', linewidth=1.8,
+                 linestyle='--', label=r'$|\langle H\rangle(t)-\langle H\rangle(0)|\,/\,|\langle H\rangle|$')
+    ax2.set_xlabel(r'Time $t$ (a.u.)')
+    ax2.set_ylabel(r'Conservation Error')
+    ax2.set_ylim(1e-18, 10.0)
+    ax2.set_title(r'Unitary Invariants (Machine Precision)', fontsize=11)
+    ax2.legend(loc='center right', frameon=True, fontsize=8.5)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig11_wavepacket_split_operator.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} (final norm dev {norm_err[-1]:.2e}, "
+          f"energy dev {en_err[-1]:.2e}, <x>={x_track[-1]:.4f} vs theory {x0 + k0 * t_track[-1]:.4f})")
+
+
+def generate_fig12_dvr_convergence():
+    """Fig 12: Spectral convergence of Sinc-DVR / FGH energies for the harmonic
+    oscillator, plus ground-state wavefunction validation against the analytic form."""
+    print("Generating Fig 12: DVR spectral convergence...")
+    set_publication_style()
+
+    x_min, x_max = -12.0, 12.0
+    n_list = [8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256]
+    errors = {n: [] for n in range(4)}  # errors[n] = list over N
+
+    for n_pts in n_list:
+        dvr = pg.dvr_sinc_init(x_min, x_max, n_pts)
+        v_pot = 0.5 * dvr.x ** 2
+        e_num, _ = pg.fgh_solve_bound_states(dvr, v_pot)
+        for n in range(4):
+            errors[n].append(abs(float(e_num[n]) - (n + 0.5)))
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4), dpi=200)
+    colors = plt.cm.plasma(np.linspace(0.1, 0.75, 4))
+    labels = [rf"$v={n}$: $|E_n - (n+\frac{{1}}{{2}})|$" for n in range(4)]
+    for n in range(4):
+        ax1.semilogy(n_list, np.maximum(errors[n], 1e-17), 'o-', color=colors[n],
+                     linewidth=1.8, markersize=4.5, label=labels[n])
+    ax1.set_xlabel(r'Number of DVR Grid Points $N$')
+    ax1.set_ylabel(r'Energy Error $\Delta E$ ($E_h$)')
+    ax1.set_title(r'Spectral Convergence of Sinc-DVR / FGH ($\hbar\omega = 1$)', fontsize=11)
+    ax1.legend(loc='lower left', frameon=True, fontsize=8.5)
+    ax1.annotate(r'exponential convergence $\sim e^{-cN}$',
+                 xy=(150, 1e-13), xytext=(60, 1e-6), fontsize=9,
+                 arrowprops=dict(arrowstyle='->', color='gray'))
+
+    dvr = pg.dvr_sinc_init(x_min, x_max, 64)
+    v_pot = 0.5 * dvr.x ** 2
+    _, wf = pg.fgh_solve_bound_states(dvr, v_pot)
+    exact0 = np.pi ** (-0.25) * np.exp(-dvr.x ** 2 / 2.0)
+    ax2.plot(dvr.x, np.abs(wf[:, 0]) ** 2 if wf.ndim == 2 else np.abs(wf[0]) ** 2,
+             'o-', color='crimson', markersize=2.5, linewidth=1.4, label=r'Sinc-DVR $|\psi_0|^2$ ($N=64$)')
+    xx = np.linspace(x_min, x_max, 400)
+    ax2.plot(xx, np.pi ** (-0.5) * np.exp(-xx ** 2), color='black', linestyle='--',
+             linewidth=1.6, label=r'Exact $\pi^{-1/2}e^{-x^2}$')
+    ax2.set_xlabel(r'Position $x$ ($a_0$)')
+    ax2.set_ylabel(r'$|\psi_0(x)|^2$ ($a_0^{-1}$)')
+    ax2.set_title(r'Ground-State Density vs Analytic Solution', fontsize=11)
+    ax2.legend(loc='upper right', frameon=True, fontsize=8.5)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig12_dvr_convergence.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} (N=256: dE0={errors[0][-1]:.2e}, dE3={errors[3][-1]:.2e})")
+
+
+def generate_fig13_hhg_spectrum():
+    """Fig 13: High-order harmonic generation spectrum from 1D-TDSE split-operator
+    propagation of an electron in a soft-core Coulomb potential under an 800 nm
+    strong laser pulse; cutoff line follows E_cut = Ip + 3.17 Up."""
+    print("Generating Fig 13: HHG spectrum...")
+    set_publication_style()
+
+    omega = 0.057  # 800 nm (a.u.)
+    e0 = 0.08      # ~2.2e14 W/cm^2
+    n_cycles = 8
+    t_total = n_cycles * 2.0 * np.pi / omega
+
+    # Ground-state (Ionization potential) of soft-core Coulomb V = -1/sqrt(x^2+1)
+    dvr_ip = pg.dvr_sinc_init(-60.0, 60.0, 2048)
+    v_soft = -1.0 / np.sqrt(dvr_ip.x ** 2 + 1.0)
+    e_gs, _ = pg.fgh_solve_bound_states(dvr_ip, v_soft)
+    ip = -float(e_gs[0])
+
+    n_grid, x_max = 16384, 250.0
+    dx = 2.0 * x_max / n_grid
+    x = -x_max + dx * np.arange(n_grid)
+    k = 2.0 * np.pi * np.fft.fftfreq(n_grid, d=dx)
+    v_pot = -1.0 / np.sqrt(x ** 2 + 1.0)
+    dv_dx = x / (x ** 2 + 1.0) ** 1.5
+
+    dt = 0.05
+    n_steps = int(round(t_total / dt))
+    t_arr = dt * np.arange(n_steps)
+    envelope = np.sin(np.pi * t_arr / t_total) ** 2
+    e_field = e0 * envelope * np.sin(omega * t_arr)
+
+    u_kin = np.exp(-0.5j * k ** 2 * dt)
+    exp_v_half = np.exp(-0.5j * v_pot * dt)
+
+    # Initial state: ground state of the soft-core potential on the same box,
+    # computed by FGH on a coarser grid and interpolated onto the FFT grid.
+    dvr_main = pg.dvr_sinc_init(-x_max, x_max, 4096)
+    e_m, wf_m = pg.fgh_solve_bound_states(dvr_main, -1.0 / np.sqrt(dvr_main.x ** 2 + 1.0))
+    re_i = np.interp(x, dvr_main.x, np.real(wf_m[:, 0]))
+    im_i = np.interp(x, dvr_main.x, np.imag(wf_m[:, 0]))
+    psi = (re_i + 1j * im_i).astype(complex)
+    psi /= np.sqrt(np.sum(np.abs(psi) ** 2) * dx)
+
+    mask = np.zeros(n_grid)
+    i_edge = int(0.7 * n_grid / 2)
+    taper = 0.5 * (1.0 - np.cos(np.pi * np.arange(i_edge) / i_edge))  # 0 -> 1
+    mask[:i_edge] = taper
+    mask[i_edge:n_grid - i_edge] = 1.0
+    mask[n_grid - i_edge:] = taper[::-1]
+
+    a_t = np.zeros(n_steps)
+    for step in range(n_steps):
+        ef = e_field[step]
+        # Length gauge: H = T + V(x) + x*E(t)  =>  ẍ = -<dV/dx> - E(t)
+        u_field_half = np.exp(-0.5j * x * ef * dt)
+        psi = exp_v_half * u_field_half * psi
+        psi = np.fft.ifft(u_kin * np.fft.fft(psi))
+        psi = exp_v_half * u_field_half * psi
+        psi *= mask
+        # a_lib = -<dV/dx> - E(t)*norm (total acceleration incl. free-electron
+        # quiver). The HHG harmonic comb lives in the bound-electron dipole
+        # acceleration -<dV/dx>, so subtract the driving-field term.
+        nrm = np.sum(np.abs(psi) ** 2) * dx
+        a_t[step] = pg.calculate_dipole_acceleration(dv_dx, dx, psi, ef) + ef * nrm
+
+    freqs, power = pg.hhg_power_spectrum(a_t, dt)
+    harm_order = freqs / omega
+    e_cut = pg.hhg_cutoff_energy(ip, e0, omega)
+    q_cut = e_cut / omega
+    up = pg.ponderomotive_energy(e0, omega)
+
+    sel = (harm_order >= 1.0) & (harm_order <= 60.0)
+    fig, ax = plt.subplots(figsize=(9.0, 4.8), dpi=200)
+    ax.semilogy(harm_order[sel], power[sel], color='darkviolet', linewidth=1.4)
+    ax.axvline(q_cut, color='crimson', linestyle='--', linewidth=1.6,
+               label=rf'Cutoff Law $E_{{\mathrm{{cut}}}} = I_p + 3.17\,U_p \Rightarrow q \approx {q_cut:.0f}$')
+    ax.axvspan(1.0, 3.0, color='gray', alpha=0.15)
+    ax.text(1.9, power[sel].max() * 0.4, 'perturbative\nregion', fontsize=9,
+            ha='center', color='dimgray')
+    ax.text((3.0 + q_cut) / 2, power[sel].max() * 0.4, r'plateau', fontsize=11,
+            ha='center', color='darkviolet', fontweight='bold')
+    ax.set_xlabel(r'Harmonic Order $q = \omega_q/\omega_0$')
+    ax.set_ylabel(r'HHG Power Spectrum $|a(\omega)|^2$ (a.u.)')
+    ax.set_title(r'High-Order Harmonic Generation (800 nm, $E_0 = 0.08$ a.u.,'
+                 rf' $I_p = {ip:.3f}\ E_h$, $U_p = {up:.3f}\ E_h$)', fontsize=11, pad=10)
+    ax.legend(loc='upper right', frameon=True, fontsize=9)
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig13_hhg_spectrum.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} (Ip={ip:.4f}, Up={up:.4f}, E_cut={e_cut:.4f} = q{q_cut:.1f})")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 10 Scientific Calculation Benchmark Figures")
+    print(" Generating All 13 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -537,8 +773,11 @@ def main():
     generate_fig08_qct_opacity()
     generate_fig09_smolyak_grid()
     generate_fig10_diatomic_reduced_mass_matrix()
+    generate_fig11_wavepacket_split_operator()
+    generate_fig12_dvr_convergence()
+    generate_fig13_hhg_spectrum()
     print("=" * 60)
-    print(" All 10 Figures Generated Successfully in docs/figures/!")
+    print(" All 13 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

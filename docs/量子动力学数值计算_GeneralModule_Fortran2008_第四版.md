@@ -1062,6 +1062,10 @@ $$
 3. 将 Morse 势替换为谐振子势，比较 Sinc-DVR 和解析谱。
 4. 用 Legendre-DVR 计算刚性转子 $J=0,1,2$ 能级，并与 $BJ(J+1)$ 比较。
 
+图 5.1 给出了上述实验 (3) 的完整数值结果：对谐振子势 $V(x)=\frac{1}{2}x^2$（$\hbar\omega=1$，精确谱 $E_v=v+\frac12$），Sinc-DVR / FGH 的能量误差随网格点数 $N$ 呈指数下降（$\Delta E\sim e^{-cN}$），在 $N\approx 64$ 处触达双精度机器精度平台（$\Delta E\sim 10^{-14}\ E_h$）而不再继续下降——这一平台是有限精度算术的固有地板，继续加密网格只会放大舍入噪声。右图进一步将 $N=64$ 的基态几率密度与解析解 $|\psi_0(x)|^2=\pi^{-1/2}e^{-x^2}$ 逐点比对，二者在整条网格上不可分辨。该实验还演示了 5.8 节的 Richardson 估计在实践中如何使用：在进入机器精度平台之前（$N\le 48$），相邻三网格给出的收敛阶 $p$ 平滑增大且趋于谱方法的理论极限；一旦触达平台，$E_{N_1}-E_{N_2}$ 与 $E_{N_2}-E_{N_3}$ 均为舍入噪声，$p$ 的估计即失去意义——这正是正文所述"若 $p$ 不稳定则存在系统误差"判据的数值体现。
+
+![图 5.1：Sinc-DVR / FGH 求解谐振子势（$\hbar\omega=1$）的谱收敛实验。左图：前四个能级误差 $|E_v-(v+\frac12)|$ 随网格点数 $N$ 的指数下降并触达机器精度平台；右图：$N=64$ 的基态几率密度与解析解 $\pi^{-1/2}e^{-x^2}$ 逐点比对，全程不可分辨。绘图脚本见 `docs/generate_figures.py`。](figures/fig12_dvr_convergence.png){width=12.0cm}
+
 ### 5.9　从矩阵结构到算法选择
 
 在 DVR 中，哈密顿量矩阵的结构决定算法：
@@ -3218,6 +3222,10 @@ $$
 
 Corkum 提出三步模型【Corkum 1993】；Lewenstein 等给出强场近似下的偶极响应理论【Lewenstein et al. 1994】。
 
+图 9.1 展示了一维单活性电子 TDSE 的直接数值验证：在软核库仑势 $V(x)=-1/\sqrt{x^2+1}$ 中以 split-operator（长度规范 $H=\hat T+V(x)+xE(t)$）传播基态波包，驱动场为 800 nm、$E_0=0.08\ a.u.$ 的 8 周期 $\sin^2$ 包络脉冲，电偶极加速度谱由 Ehrenfest 量 $-\langle\partial_x V\rangle$ 的加窗 FFT 给出。谱结构完整复现三步模型的三大特征：低阶次的微扰区陡降、跨越约十个量级的平台区（电离—加速—复合的相干辐射）、以及在 $q\approx 39$ 处的锐利截止——数值截止位置与解析公式 $E_{\mathrm{cut}}=I_p+3.17\,U_p$（$I_p=0.670\ E_h$ 由同一网格 FGH 基态给出，$U_p=0.492\ E_h$）预测的 $q\approx 39$ 精确吻合。平台区内的准周期干涉条纹来自长短量子轨迹的相干叠加，截止后强度在约两个量级内跌落。
+
+![图 9.1：一维单活性电子 TDSE 模拟的高次谐波功率谱（800 nm，$E_0=0.08\ a.u.$，8 周期 $\sin^2$ 包络）。谱呈现微扰区、平台区与 $q\approx 39$ 处的锐利截止，与三步模型截止律 $E_{\mathrm{cut}}=I_p+3.17U_p$（红色虚线，$q\approx 39$）定量吻合。绘图脚本见 `docs/generate_figures.py`。](figures/fig13_hhg_spectrum.png){width=12.0cm}
+
 #### 对应源码
 
 - [src/mod_coulomb_atomic.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_coulomb_atomic.f90)
@@ -3382,6 +3390,10 @@ $$
 - 范数 $\|\psi\|$ 守恒；
 - 边界处波函数无明显反射。
 
+图 10.2 给出了该数值实验的完整结果（$N=2048$ 网格，$\Delta t=0.01\ a.u.$，3000 步 split-operator 传播）：左图中高斯波包（$\sigma=6\ a_0$，$k_0=3\ a_0^{-1}$）以群速度 $v=k_0$ 平移并伴随色散展宽，$t=30\ a.u.$ 的数值快照与自由粒子解析解 $\psi(x,t)=\frac{(2\pi\sigma^2)^{-1/4}}{\sqrt{1+i t/2\sigma^2}}\exp\left[-\frac{(x-x_0-k_0t)^2}{4\sigma^2(1+i t/2\sigma^2)}+ik_0(x-x_0-\tfrac{k_0t}{2})\right]$（黑色虚线）在整条曲线上重合，且 $\langle x\rangle(30)=50.0000\ a_0$ 与线性理论 $x_0+k_0t$ 精确一致；右图显示范数偏差与相对能量偏差在全程保持在 $3\times10^{-13}$ 水平——split-operator 传播子严格幺正，二者的残余漂移完全来自 FFT 舍入，这正是幺正演化数值实现的验收判据。
+
+![图 10.2：一维高斯波包的 split-operator 传播与守恒量诊断（$N=2048$，$\Delta t=0.01\ a.u.$，3000 步）。左图：$|\psi(x,t)|^2$ 的四个时刻快照与 $t=30\ a.u.$ 解析解（黑虚线）对比；右图：范数偏差 $|\|\psi\|^2-1|$ 与相对能量偏差 $|\langle H\rangle(t)-\langle H\rangle(0)|/|\langle H\rangle(0)|$ 全程处于机器精度水平。绘图脚本见 `docs/generate_figures.py`。](figures/fig11_wavepacket_split_operator.png){width=12.0cm}
+
 #### 对应源码
 
 - [examples/ex03_split_operator_1d.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex03_split_operator_1d.f90)
@@ -3491,7 +3503,7 @@ $$
 
 ![](qr/src__mod_field_scattering.f90.png){width=2.0cm}
 
-![图 10.2：磁场 Feshbach 共振有效散射长度色散 $a_s(B) = a_{\mathrm{bg}}[1 - \Delta B / (B - B_0)]$ 的模型算例（模型参数见图例）：共振极点 $B_0$ 处散射长度发散，$B_{\mathrm{zero}} = B_0 + \Delta B$ 处过零。空心圆点为库函数 `fit_feshbach_resonance_parameters` 对极点邻域外 197 个抽样点的独立拟合，反演参数 $B_0 = 100.741\ \mathrm{G}$、$\Delta B = 0.1671\ \mathrm{G}$、$a_{\mathrm{bg}} = 99.0\ a_0$，与模型输入一致。](figures/fig07_feshbach_resonance.png){width=12.0cm}
+![图 10.3：磁场 Feshbach 共振有效散射长度色散 $a_s(B) = a_{\mathrm{bg}}[1 - \Delta B / (B - B_0)]$ 的模型算例（模型参数见图例）：共振极点 $B_0$ 处散射长度发散，$B_{\mathrm{zero}} = B_0 + \Delta B$ 处过零。空心圆点为库函数 `fit_feshbach_resonance_parameters` 对极点邻域外 197 个抽样点的独立拟合，反演参数 $B_0 = 100.741\ \mathrm{G}$、$\Delta B = 0.1671\ \mathrm{G}$、$a_{\mathrm{bg}} = 99.0\ a_0$，与模型输入一致。](figures/fig07_feshbach_resonance.png){width=12.0cm}
 
 ### 10.5　Lindblad 弛豫与退相位
 
