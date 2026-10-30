@@ -8553,7 +8553,8 @@ k(T)=\sum_{v j}p_{v j}(T)\,k_{v j}(T).
 势能面，\(E_{\mathrm{coll}}=1.5\ \mathrm{eV}\)，\(N = 2\times 10^5\)
 条轨迹）结果：左图为反应不透明度函数 \(P_{\mathrm{rxn}}(b)\) 随碰撞参数
 \(b\) 的衰减分布；右图为截面积分权重被积函数
-\(b \cdot P_{\mathrm{rxn}}(b)\)，阴影面积正比于总反应截面（\(\sigma_{\mathrm{rxn}} = 0.616 \pm 0.009\ a_0^2\)）。}
+\(b \cdot P_{\mathrm{rxn}}(b)\)，阴影面积正比于总反应截面（\(\sigma_{\mathrm{rxn}} = 1.246 \pm 0.013\ a_0^2\)；同一体系下独立
+Fortran 实现给出 \(1.207 \pm 0.040\ a_0^2\)，两套实现交叉吻合）。}
 \end{figure}
 
 \hypertarget{ux7edfux8ba1ux8befux5deeux4e0eux7cfbux7efcux6536ux655b}{%
@@ -8734,7 +8735,12 @@ QCT 反应散射模块。建议新增：
 \texttt{qct\_init\_trajectory}、\texttt{qct\_propagate\_step}、\texttt{qct\_analyze\_final\_state}、
 \texttt{run\_qct\_ensemble}、\texttt{qct\_cross\_section}、\texttt{qct\_thermal\_rate}
 等同名函数； 默认势能面为 H + H\(_2\) 的 LEPS
-面（Karplus--Porter--Sharma），初条件按 17.2 节在不变环面上均匀抽样。
+面（Karplus--Porter--Sharma），初条件按 17.2
+节在不变环面上均匀抽样。Fortran 侧 \texttt{run\_qct\_ensemble}
+的轨迹循环内嵌 OpenMP 并行（系综内共享一次性构建的 EBK
+能量与轨道表），并采用每轨迹独立
+确定性种子流设计：\texttt{seed\_i\ =\ LCG\^{}i(seed\_0)}，任意线程数下结果逐位可复现
+（20 线程实测加速约 13 倍）。
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-fortran-ux539fux751fux5b9eux73b0}{%
 \subsection{对应源码 (Fortran

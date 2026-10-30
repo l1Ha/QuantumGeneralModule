@@ -5147,7 +5147,7 @@ $$
 k(T)=\sum_{v j}p_{v j}(T)\,k_{v j}(T).
 $$
 
-![图 17.1：$\mathrm{H} + \mathrm{H}_2 \to \mathrm{H}_2 + \mathrm{H}$ 准经典反应动力学（LEPS 势能面，$E_{\mathrm{coll}}=1.5\ \mathrm{eV}$，$N = 2\times 10^5$ 条轨迹）结果：左图为反应不透明度函数 $P_{\mathrm{rxn}}(b)$ 随碰撞参数 $b$ 的衰减分布；右图为截面积分权重被积函数 $b \cdot P_{\mathrm{rxn}}(b)$，阴影面积正比于总反应截面（$\sigma_{\mathrm{rxn}} = 0.616 \pm 0.009\ a_0^2$）。](figures/fig08_qct_opacity_and_cross_section.png){width=12.0cm}
+![图 17.1：$\mathrm{H} + \mathrm{H}_2 \to \mathrm{H}_2 + \mathrm{H}$ 准经典反应动力学（LEPS 势能面，$E_{\mathrm{coll}}=1.5\ \mathrm{eV}$，$N = 2\times 10^5$ 条轨迹）结果：左图为反应不透明度函数 $P_{\mathrm{rxn}}(b)$ 随碰撞参数 $b$ 的衰减分布；右图为截面积分权重被积函数 $b \cdot P_{\mathrm{rxn}}(b)$，阴影面积正比于总反应截面（$\sigma_{\mathrm{rxn}} = 1.246 \pm 0.013\ a_0^2$；同一体系下独立 Fortran 实现给出 $1.207 \pm 0.040\ a_0^2$，两套实现交叉吻合）。](figures/fig08_qct_opacity_and_cross_section.png){width=12.0cm}
 
 ### 17.5　统计误差与系综收敛
 
@@ -5281,7 +5281,10 @@ end module mod_qct_dynamics
 并提供 `qct_init_trajectory`、`qct_propagate_step`、`qct_analyze_final_state`、
 `run_qct_ensemble`、`qct_cross_section`、`qct_thermal_rate` 等同名函数；
 默认势能面为 H + H$_2$ 的 LEPS 面（Karplus–Porter–Sharma），初条件按
-17.2 节在不变环面上均匀抽样。
+17.2 节在不变环面上均匀抽样。Fortran 侧 `run_qct_ensemble` 的轨迹循环内嵌
+OpenMP 并行（系综内共享一次性构建的 EBK 能量与轨道表），并采用每轨迹独立
+确定性种子流设计：`seed_i = LCG^i(seed_0)`，任意线程数下结果逐位可复现
+（20 线程实测加速约 13 倍）。
 
 #### 对应源码 (Fortran 原生实现)
 

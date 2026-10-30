@@ -262,12 +262,18 @@ def ebk_internal_energy(v: int, j: int, par: Optional[LEPSParameters] = None,
     return brentq(fun, e_lo, e_hi, xtol=1.0e-12 * par.d_e, rtol=1.0e-13)
 
 
-def _verlet_1d(r, p, dt, n_steps, force_fn):
-    """Scalar Velocity-Verlet for the 1D radial orbit (fast pure-Python path)."""
+def _verlet_1d(r, p, dt, n_steps, force_fn, mass):
+    """Scalar Velocity-Verlet for the 1D radial orbit (fast pure-Python path).
+
+    Physical reduced-mass dynamics: dp/dt = F, dr/dt = p / mass. The mass
+    argument is required so the sampled phase-space points lie on the true
+    invariant torus of the reduced-mass oscillator (a unit-mass integration
+    distorts the r-p correlation and thus the initial vibrational state).
+    """
     a = force_fn(r)
     for _ in range(n_steps):
         p += 0.5 * dt * a
-        r += dt * p
+        r += dt * p / mass
         a = force_fn(r)
         p += 0.5 * dt * a
     return r, p
@@ -291,17 +297,19 @@ def _radial_orbit_table(e_int, j2, par, mu_r, n_table=4096):
                  _effective_potential(r - 1.0e-9, j2, par, mu_r)) / 2.0e-9
 
     # find the period: start at the outer turning point, integrate until the
-    # orbit first returns to r_out with positive radial momentum
+    # orbit first returns to r_out with positive radial momentum. The return
+    # test uses a 1e-6 proximity window because the discrete orbit starts
+    # exactly on the turning point and may never strictly exceed r_out.
     r, p = r_out * (1.0 - 1.0e-9), 0.0
     t = 0.0
     dt_o = t_guess / 20000.0
     left = False
-    while not (left and r >= r_out and p > 0.0):
+    while not (left and p > 0.0 and r > r_out - 1.0e-6):
         if r < r_out - 1.0e-6:
             left = True
-        r, p = _verlet_1d(r, p, dt_o, 1, force)
+        r, p = _verlet_1d(r, p, dt_o, 1, force, mu_r)
         t += dt_o
-        if t > 50.0 * t_guess:
+        if t > 2.0 * t_guess:
             raise RuntimeError("radial orbit did not close")
     n_tab = max(n_table, 64)
     dt_tab = t / n_tab
@@ -311,7 +319,7 @@ def _radial_orbit_table(e_int, j2, par, mu_r, n_table=4096):
     for k in range(n_tab):
         rs[k] = r
         ps[k] = p
-        r, p = _verlet_1d(r, p, dt_tab, 1, force)
+        r, p = _verlet_1d(r, p, dt_tab, 1, force, mu_r)
     return rs, ps
 
 
