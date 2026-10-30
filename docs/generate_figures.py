@@ -2,7 +2,7 @@
 """
 GeneralModule: Automated Scientific Publication Figure Generator for Textbook.
 
-Generates 13 publication-grade figures directly from true physics calculations
+Generates 14 publication-grade figures directly from true physics calculations
 in `pygenmod` (zero cheating, forward simulation only):
 1. fig01_morse_bound_states.png: Morse potential FGH bound states and wavefunctions
 2. fig02_ultrafast_pulses.png: Synthesized laser pulse waveforms and envelopes
@@ -17,6 +17,7 @@ in `pygenmod` (zero cheating, forward simulation only):
 11. fig11_wavepacket_split_operator.png: 1D Gaussian wavepacket split-operator propagation vs exact solution
 12. fig12_dvr_convergence.png: spectral convergence of Sinc-DVR / FGH energies
 13. fig13_hhg_spectrum.png: high-order harmonic generation spectrum with cutoff law
+14. fig14_convergence_calibration.png: finite-difference step-size tradeoff and QR convergence order
 """
 import os
 import sys
@@ -759,9 +760,87 @@ def generate_fig13_hhg_spectrum():
     print(f" -> Saved to {fig_path} (Ip={ip:.4f}, Up={up:.4f}, E_cut={e_cut:.4f} = q{q_cut:.1f})")
 
 
+def generate_fig14_ql_convergence_and_finite_difference():
+    """Fig 14: Numerical error-analysis calibration experiments: (a) central-difference
+    total error vs step size (truncation vs rounding tradeoff), (b) QR iteration
+    convergence trace with Wilkinson shift (cubic) vs frozen shift (linear)."""
+    print("Generating Fig 14: QL convergence and finite-difference calibration...")
+    set_publication_style()
+
+    # ---- Panel (a): central difference f(x) = cos x at x = 1 ----
+    f = np.cos
+    df_exact = -np.sin(1.0)
+    hs = np.logspace(-1, -12, 400)
+    err = np.abs((f(1.0 + hs) - f(1.0 - hs)) / (2.0 * hs) - df_exact)
+    i_min = int(np.argmin(err))
+    h_star, e_min = hs[i_min], err[i_min]
+    trunc_model = np.sin(1.0) * hs**2 / 6.0
+
+    # ---- Panel (b): symmetric tridiagonal QR iteration trace ----
+    rng = np.random.default_rng(2026)
+    n_dim = 40
+    d_diag = 1.0 + rng.normal(0.0, 0.3, n_dim)
+    e_off = 0.1 + 0.4 * rng.random(n_dim - 1)
+    t0 = np.diag(d_diag) + np.diag(e_off, 1) + np.diag(e_off, -1)
+    mu_frozen = float(t0[-1, -1])
+
+    def qr_trace(t_mat, n_iter, mode):
+        t_mat = t_mat.copy()
+        hist = []
+        for _ in range(n_iter):
+            if mode == 'wilkinson':
+                a, b, c = t_mat[-2, -2], t_mat[-2, -1], t_mat[-1, -1]
+                delta = (a - c) / 2.0
+                mu = c - b * b / (delta + np.sign(delta if delta != 0 else 1.0) * np.hypot(delta, b))
+            else:
+                mu = mu_frozen
+            q_mat, r_mat = np.linalg.qr(t_mat - mu * np.eye(len(t_mat)))
+            t_mat = r_mat @ q_mat + mu * np.eye(len(t_mat))
+            hist.append(abs(t_mat[-1, -2]))
+        return np.array(hist)
+
+    trace_w = qr_trace(t0, 6, 'wilkinson')
+    trace_f = qr_trace(t0, 20, 'fixed')
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.5), dpi=200)
+
+    ax1.loglog(hs, np.maximum(err, 1e-17), 'o-', color='crimson', markersize=2.6,
+               linewidth=1.6, label=r'Measured total error')
+    ax1.loglog(hs, trunc_model, '--', color='gray', linewidth=1.4,
+               label=r'Truncation model $\sin(1)\,h^2/6$')
+    ax1.loglog([h_star], [e_min], 'D', color='darkgreen', markersize=7,
+               label=rf'Measured optimum $h^* = {h_star:.1e}$, $E_{{\min}} = {e_min:.1e}$')
+    ax1.axvline(h_star, color='darkgreen', linestyle=':', linewidth=1.0, alpha=0.6)
+    ax1.set_xlabel(r'Step size $h$')
+    ax1.set_ylabel(r'Error $|\delta f^{\prime}|$ (a.u.)')
+    ax1.set_title(r'Central Difference: Truncation vs Rounding ($f=\cos x$, $x=1$)', fontsize=11)
+    ax1.legend(loc='lower left', frameon=True, fontsize=8.0)
+    ax1.text(1.2e-11, 3e-3, 'rounding-dominated\n(noisy floor: correlated\nrounding cancels)',
+             fontsize=8.5, color='dimgray', va='top', ha='left')
+
+    it_w = np.arange(1, len(trace_w) + 1)
+    it_f = np.arange(1, len(trace_f) + 1)
+    ax2.semilogy(it_w, np.maximum(trace_w, 1e-18), 'o-', color='darkblue', linewidth=1.8,
+                 markersize=6, label=r'Wilkinson shift (cubic, $p=3$)')
+    ax2.semilogy(it_f, np.maximum(trace_f, 1e-18), 's--', color='darkorange', linewidth=1.8,
+                 markersize=5, label=r'Frozen shift (linear, ratio $\approx 0.03$)')
+    ax2.set_xlabel(r'QR Iteration $k$')
+    ax2.set_ylabel(r'Trailing Off-Diagonal $|e_{n-1}|$')
+    ax2.set_ylim(1e-18, 1.0)
+    ax2.set_title(r'Symmetric Tridiagonal QR Convergence ($n=40$)', fontsize=11)
+    ax2.legend(loc='lower left', frameon=True, fontsize=8.5)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig14_convergence_calibration.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} (h*={h_star:.2e}, E_min={e_min:.2e}; "
+          f"Wilkinson final |e|={trace_w[-1]:.1e})")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 13 Scientific Calculation Benchmark Figures")
+    print(" Generating All 14 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -776,8 +855,9 @@ def main():
     generate_fig11_wavepacket_split_operator()
     generate_fig12_dvr_convergence()
     generate_fig13_hhg_spectrum()
+    generate_fig14_ql_convergence_and_finite_difference()
     print("=" * 60)
-    print(" All 13 Figures Generated Successfully in docs/figures/!")
+    print(" All 14 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

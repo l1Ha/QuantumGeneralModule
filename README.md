@@ -23,7 +23,7 @@
    - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `surface_lattice_t`, `ion_atom_system_t`, `tully_model_t`, `rotor_molecule_t`, `optical_lattice_t`, `rph_path_t`, `dirac_state_t`, `rixs_system_t`, `penning_system_t` 等），自解释、低耦合、便于大语言模型精确构造与调用。
 4. **全链路双语生态支持**
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
-   - 教科书《量子动力学数值计算》内嵌的 13 幅计算结果图（DVR 谱收敛、split-operator 波包传播、HHG 高次谐波谱、分子排列复苏、散射长度、Breit-Rabi、Feshbach、QCT 不透明度、Smolyak 稀疏网格、折合质量矩阵等）全部由 `docs/generate_figures.py` 一键真实前向模拟生成，零手工修饰。
+   - 教科书《量子动力学数值计算》内嵌的 14 幅计算结果图（DVR 谱收敛、split-operator 波包传播、HHG 高次谐波谱、QR 收敛阶与差分步长标定、分子排列复苏、散射长度、Breit-Rabi、Feshbach、QCT 不透明度、Smolyak 稀疏网格、折合质量矩阵等）全部由 `docs/generate_figures.py` 一键真实前向模拟生成，零手工修饰。
 5. **全自动 CI/CD 持续集成**
    - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 46 大测试套件（393 个单元断言 100% 通过）与 36 大物理应用工程算例。
 6. **服务器级高性能与多核硬件加速 (HPC & Multi-Core Ready)**
