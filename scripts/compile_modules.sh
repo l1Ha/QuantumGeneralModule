@@ -13,6 +13,11 @@
 # ==============================================================================
 set -u
 
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    trap 'rc=$?; echo "::error::compile_modules.sh aborted at line $LINENO (exit $rc)"' ERR
+    echo "::notice::compile_modules.sh start: bash $BASH_VERSION"
+fi
+
 SRC_DIR="${1:?usage: compile_modules.sh <src_dir> [njobs]}"
 if [ "${2:-}" != "" ]; then
     NJOBS="$2"
@@ -56,22 +61,37 @@ while [ "${#pending[@]}" -gt 0 ]; do
             fi' || true
 
     next=()
+    n_next=0
+    n_pending=0
     for f in "${pending[@]}"; do
-        [ -f "$MARK/$(basename "$f").ok" ] || next+=("$f")
+        n_pending=$((n_pending + 1))
+        if [ ! -f "$MARK/$(basename "$f").ok" ]; then
+            next+=("$f")
+            n_next=$((n_next + 1))
+        fi
     done
 
-    if [ "${#next[@]}" -eq "${#pending[@]}" ]; then
+    if [ "$n_next" -eq "$n_pending" ]; then
         # 无进展: 逐文件详细编译, 真实错误直接呈现
         echo "[compile_modules] no progress in wave $wave; compiling remaining files verbosely..." >&2
         for f in "${next[@]}"; do
             compile_one "$f" || {
                 echo "[compile_modules] FAILED: $f" >&2
+                if [ -n "${GITHUB_ACTIONS:-}" ]; then
+                    echo "::error::compile_modules.sh: FAILED to compile $f"
+                fi
                 exit 1
             }
         done
-        next=()
+        n_next=0
     fi
-    pending=("${next[@]}")
+    # 注意: 不用 pending=("${next[@]}"): 空数组值展开在 set -u + bash<4.4
+    # (macOS /bin/bash 3.2) 下报 unbound variable, 曾导致 CI 在最后一波死亡
+    if [ "$n_next" -gt 0 ]; then
+        pending=("${next[@]}")
+    else
+        pending=()
+    fi
 done
 
 echo "[compile_modules] compiled $n_total modules in $wave wave(s) with up to $NJOBS parallel jobs"
