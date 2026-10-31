@@ -134,6 +134,13 @@ for test_name in "${TESTS[@]}"; do
         n_fail=$((n_fail + 1))
         echo "[BUILD/RUN FAILURE] $test_name"
         cat "$LOG_DIR/$test_name.build.log" 2>/dev/null
+        # 在 CI 中把失败详情转发为公开 workflow 注解 (无需登录读日志)
+        if [ -n "${GITHUB_ACTIONS:-}" ]; then
+            detail="$(tail -n 15 "$LOG_DIR/$test_name.log" 2>/dev/null; echo '--- build ---'; tail -n 12 "$LOG_DIR/$test_name.build.log" 2>/dev/null)"
+            detail="${detail//\%/\%25}"
+            detail="${detail//$'\n'/%0A}"
+            echo "::error::SUITE FAILED: $test_name :: ${detail}"
+        fi
     fi
 done
 rm -rf "$LOG_DIR"
