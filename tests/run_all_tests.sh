@@ -87,19 +87,32 @@ echo ">> Compiling and running ${#TESTS[@]} test suites with $NJOBS parallel job
 LOG_DIR="$(mktemp -d)"
 export FFLAGS SRC_DIR DIR LOG_DIR
 
+# 可移植纳秒时间戳: GNU date 支持 %N, BSD/macOS date 不支持 (回退到秒)
+t_stamp() {
+    local s
+    s="$(date +%s%N 2>/dev/null)"
+    case "$s" in
+        ''|*[!0-9]*) date +%s ;;
+        *) echo "$s" ;;
+    esac
+}
+export -f t_stamp
+
 run_one_test() {
     local name="$1"
     local rc=0
     local t0 t1
-    t0="$(date +%s%N 2>/dev/null || date +%s)"
+    t0="$(t_stamp)"
     rm -f "$DIR/$name"
     gfortran $FFLAGS -I"$SRC_DIR" "$DIR/$name.f90" "$SRC_DIR/libgeneral_module.a" -o "$DIR/$name" \
         > "$LOG_DIR/$name.build.log" 2>&1 || rc=1
     if [ "$rc" -eq 0 ]; then
         "$DIR/$name" > "$LOG_DIR/$name.log" 2>&1 || rc=1
     fi
-    t1="$(date +%s%N 2>/dev/null || date +%s)"
-    echo "$(( (t1 - t0) / 1000000 ))" > "$LOG_DIR/$name.ms" 2>/dev/null || true
+    t1="$(t_stamp)"
+    if [ -n "$t0" ] && [ -n "$t1" ] && [ "$t1" -ge "$t0" ] 2>/dev/null; then
+        echo "$(( (t1 - t0) / 1000000 ))" > "$LOG_DIR/$name.ms"
+    fi
     rm -f "$DIR/$name"
     if [ "$rc" -eq 0 ]; then
         echo "PASS" > "$LOG_DIR/$name.status"
