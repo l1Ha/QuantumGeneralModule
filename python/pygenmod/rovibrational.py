@@ -20,6 +20,28 @@ def rot_matrix_cos_theta(j: int, j_prime: int, m: int = 0) -> float:
     j_max = max(j, j_prime)
     return np.sqrt((j_max**2 - m**2) / ((2.0 * j_max - 1.0) * (2.0 * j_max + 1.0)))
 
+def rot_matrix_cos2_theta(j: int, j_prime: int, m: int = 0) -> float:
+    """Compute rigid rotor Raman matrix element <j, m | cos^2(theta) | j_prime, m>.
+
+    Selection rules: Delta j = 0, +/-2 and Delta m = 0 (the angular part of the
+    polarizability interaction in the book, section 2.4). The element is
+    computed exactly through the completeness product
+
+        <j m|cos^2|j' m> = sum_{j''} <j m|cos|j'' m> <j'' m|cos|j' m>,
+
+    where cos(theta) connects only j'' = j +/- 1 and j'' = j' +/- 1, so the
+    sum has at most two terms and reproduces the closed forms exactly
+    (e.g. <2,0|cos^2|2,0> = 4/15 + 9/35 = 0.5238095238, <0,0|cos^2|0,0> = 1/3).
+    """
+    if abs(j - j_prime) not in (0, 2) or abs(m) > min(j, j_prime):
+        return 0.0
+    total = 0.0
+    for j_mid in (j - 1, j + 1):
+        if j_mid < abs(m):
+            continue
+        total += rot_matrix_cos_theta(j, j_mid, m) * rot_matrix_cos_theta(j_prime, j_mid, m)
+    return total
+
 def calc_franck_condon_factors(chi_a: np.ndarray, chi_b: np.ndarray, dx: float) -> np.ndarray:
     """Compute Franck-Condon factor matrix FC(v, v') = |<chi_a,v | chi_b,v'>|^2."""
     n_va = chi_a.shape[1]

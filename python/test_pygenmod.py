@@ -19,7 +19,7 @@ from pygenmod import (
     soft_core_coulomb_potential, adk_ionization_rate,
     landau_zener_probability, calculate_channel_populations,
     rovibrational_state_index, rovibrational_state_unindex,
-    rot_matrix_cos_theta, calc_franck_condon_factors,
+    rot_matrix_cos_theta, rot_matrix_cos2_theta, calc_franck_condon_factors,
     van_der_waals_mean_length, square_well_scattering_length_exact,
     calc_scattering_length_numerov, plot_scattering_length_wavefunction,
     calc_differential_cross_section, calc_differential_cross_section_identical,
@@ -144,6 +144,17 @@ class TestPyGenMod(unittest.TestCase):
         me = rot_matrix_cos_theta(0, 1, 0)
         self.assertAlmostEqual(me, 1.0 / np.sqrt(3.0), places=6)
         self.assertEqual(rot_matrix_cos_theta(0, 2, 0), 0.0)
+
+        # Raman cos^2 selection rule (Delta j = 0, +/-2) and closed forms
+        c2_22 = rot_matrix_cos2_theta(2, 2, 0)
+        self.assertAlmostEqual(c2_22, 4.0 / 15.0 + 9.0 / 35.0, places=12)
+        c2_00 = rot_matrix_cos2_theta(0, 0, 0)
+        self.assertAlmostEqual(c2_00, 1.0 / 3.0, places=12)
+        self.assertAlmostEqual(rot_matrix_cos2_theta(2, 4, 0) ** 2,
+                               rot_matrix_cos2_theta(4, 2, 0) ** 2, places=15)
+        self.assertEqual(rot_matrix_cos2_theta(1, 2, 0), 0.0)
+        # Closed form <1,0|cos^2|1,0> = 1/3 + 4/15 = 3/5 (Y_10 expectation)
+        self.assertAlmostEqual(rot_matrix_cos2_theta(1, 1, 0), 0.6, places=12)
 
         # Franck-Condon factor
         chi = np.zeros((10, 2))

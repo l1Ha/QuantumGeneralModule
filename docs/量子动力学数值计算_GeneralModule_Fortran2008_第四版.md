@@ -322,6 +322,10 @@ $$
 
 **小型数值实验。** 调用 `rot_matrix_cos_theta(1,2,0)` 得 $0.51639778$，与精确值 $2/\sqrt{15}=0.5163977795$ 吻合；调用 `rot_matrix_cos_theta(1,1,0)` 得 $0$，确认 $\Delta J=0$ 偶极禁阻；调用 `rot_matrix_cos2_theta(2,2,0)` 得 $0.52380952$，与解析式 $9/35+4/15=0.5238095238$ 一致。三例共同验证了张量矩阵元实现的选择定则与归一化。
 
+图 2.1 将上述逐点校验推广为完整的选择定则矩阵热图：对 $j, j' \le 12$、$m=0$ 的全部组合计算 $|\langle j'0|\cos\theta|j0\rangle|$ 与 $|\langle j'0|\cos^2\theta|j0\rangle|$。热图清晰地呈现两条选择定则的"带状结构"——偶极跃迁仅 $\Delta j=\pm1$ 非零（图 a 的次对角带），拉曼跃迁仅 $\Delta j=0,\pm2$ 非零（图 b 的主对角与次次对角带）——且带外元素**严格为零**（不是数值小量），这是选择定则在实现中的代数精确性检验。图中还标注了 $\langle2|\cos^2|2\rangle = 4/15+9/35$ 的闭式验证。注意 $\cos^2\theta$ 矩阵元由完备性乘积 $\sum_{j''}\langle j'|\cos\theta|j''\rangle\langle j''|\cos\theta|j\rangle$ 精确构造（$\cos\theta$ 仅连接 $j''=j\pm1$，求和至多两项）。
+
+![图 2.1：角动量选择定则矩阵热图（$m=0$，$j,j'\le 12$，由 `rot_matrix_cos_theta` 与 `rot_matrix_cos2_theta` 计算）。（a）偶极 $\cos\theta$ 矩阵元：仅 $\Delta j=\pm1$ 带非零；（b）拉曼 $\cos^2\theta$ 矩阵元：仅 $\Delta j=0,\pm2$ 带非零，带外元素严格为零，并标注 $\langle2|\cos^2|2\rangle=4/15+9/35$ 的闭式验证。绘图脚本见 `docs/generate_figures.py`。](figures/fig15_selection_rules.png){width=12.0cm}
+
 **练习。** (1) 由 Wigner–Eckart 定理导出 $\langle J m|\cos\theta|J+1,m\rangle$ 的闭式。(2) 证明 $\cos^{2}\theta$ 的矩阵元仅在 $\Delta J=0,\pm2$ 时非零，并给出 $\Delta J=\pm2$ 项的显式表达式。(3) 对电四极跃迁（秩 2 张量）写出选择定则并讨论与拉曼跃迁的异同。
 
 ---
@@ -409,6 +413,10 @@ $$V=Q_1+Q_2+Q_3-\sqrt{\tfrac12\bigl[(J_1-J_2)^{2}+(J_2-J_3)^{2}+(J_3-J_1)^{2}\bi
 **小型数值实验。** 三项校验：(a) 往返一致性：随机取 $(r,R,\gamma)=(1.4,3.2,1.1)\ (a_0,\ a_0,\ \mathrm{rad})$，经 `jacobi_to_internuclear` 再经 `internuclear_to_jacobi` 返回，三个坐标的恢复误差分别为 $0$、$4.4\times10^{-16}$、$0$，达到机器精度；(b) LEPS 双原子渐近：沿 $r_{23}=r_{31}=8\ a_0$ 扫描 $r_{12}$，极小值位于 $r_{12}=1.4011\ a_0$，深度 $V_{\min}=-0.174359\ E_h$，与输入 Morse 参数 $D_e,r_e$ 精确一致；(c) 共线鞍点：在共线平面 $r_{31}=r_{12}+r_{23}$ 上以二维 Newton 法求解 $\nabla V=0$，得鞍点 $r_{12}=r_{23}=1.775\ a_0$（$r_{31}=3.55\ a_0$），$V^{\ddagger}=-0.15371\ E_h$，相对 $\mathrm{H}_2$ 极小的势垒高度为 $12.96\ \mathrm{kcal/mol}$；文献中 London 面（未加 Sato 修正）的参考值约为 $9.8\ \mathrm{kcal/mol}$，差异来自 Sato 参数 $\Delta$ 的选择，属模型系统的固有性质而非数值误差。
 
 **练习。** (1) 完成 Stewart 定理中交叉项消失与 $m_b d_b^{2}+m_c d_c^{2}=d_bd_c(m_b+m_c)$ 的详细代数。(2) 推导 Jacobi 坐标下动能算符的显式形式并指出 $\gamma$ 依赖项。(3) 以本库 LEPS 面扫描 Sato 参数 $\Delta\in[0.05,0.20]$，讨论势垒高度对 $\Delta$ 的单调性。
+
+图 3.1 将上述数值实验可视化：左图为共线构型 $r_{31}=r_{12}+r_{23}$ 下的 $\mathrm{H}_3$ LEPS 势能面等高图（Sato 参数 $\Delta=0.10$），入口谷（$r_{23}\approx r_e$、$r_{12}$ 大）与出口谷（$r_{12}\approx r_e$、$r_{23}$ 大）由对称鞍点相连；紫色曲线为**内禀反应坐标（IRC）**——从鞍点沿 Hessian 负曲率方向做最陡下降得到的反应路径，它精确沿两条谷底行进并经由鞍点交换。右图为沿 IRC 的势垒剖面：$V^{\ddagger}=-0.15370\ E_h$，相对 $\mathrm{H}_2$ 渐近谷 $-D_e$ 的势垒高度 $\Delta V^{\ddagger}=12.96$ kcal/mol，与正文 Newton 搜索结果一致。该剖面也是第 17 章 QCT 计算中"越过鞍点"这一物理图像的定量基础。
+
+![图 3.1：共线 $\mathrm{H}_3$ LEPS 势能面与反应路径（Sato 参数 $\Delta=0.10$，参数 $D_e=0.1744\ E_h$、$r_e=1.401\ a_0$、$\beta=1.044\ a_0^{-1}$）。（a）等高图与 IRC 反应路径（紫色），鞍点 $(1.775, 1.775)$ 以十字标记；（b）沿 IRC 的势垒剖面：$V^{\ddagger}=-0.15370\ E_h$、$\Delta V^{\ddagger}=12.96$ kcal/mol，与正文二维 Newton 结果一致。文献依据：Sato（1955）、Truhlar 与 Horowitz（1978），见本节实现映射。绘图脚本见 `docs/generate_figures.py`。](figures/fig16_leps_pes.png){width=12.0cm}
 
 ### 3.3 Delves 质量标度超球坐标
 
@@ -3543,9 +3551,13 @@ $$
 #### 验证指标
 
 - $\rho_{ee}(t)$ 指数衰减；
-- $|\rho_{eg}(t)|$ 按 $e^{-(\gamma/2+\gamma_\phi)t}$ 衰减；
+- $|\rho_{eg}(t)|$ 按 $e^{-(\gamma/2+2\gamma_\phi)t}$ 衰减：纯退相干超算符 $\gamma_\phi(\sigma_z\rho\sigma_z-\rho)$ 的非对角元方程为 $\dot\rho_{eg}=-2\gamma_\phi\rho_{eg}$（$\sigma_z\rho\sigma_z$ 使非对角元反号），故相干衰减率为 $\gamma/2+2\gamma_\phi$；
 - 迹守恒；
 - 纯度单调下降。
+
+图 10.4 给出该数值实验的完整结果（$\gamma=0.6\ \mathrm{ps}^{-1}$、$\gamma_\phi=0.7\ \mathrm{ps}^{-1}$，RK4、$\Delta t=0.001$ ps）：初态取等幅叠加态 $(|e\rangle+|g\rangle)/\sqrt2$，使 $T_1$ 布居弛豫与 $T_2$ 相干退相位同时非平凡。左图中 $\rho_{ee}(t)=\tfrac12 e^{-\gamma t}$（红）与 $|\rho_{eg}(t)|=\tfrac12 e^{-(\gamma/2+2\gamma_\phi)t}$（蓝）的 RK4 轨迹与解析解（虚线）在全程重合，迹严格守恒；右图的纯度 $P=\operatorname{Tr}\rho^2$ 先降后升——极小值对应"最大混合"时刻，其后系统弛豫回纯基态 $|g\rangle$，$P\to1$。数值与解析纯度之差全程小于 $10^{-9}$，验证了 RK4 传播器对 Lindblad 方程的收敛精度。注意退相干率中的因子 2：$\gamma_\phi(\sigma_z\rho\sigma_z-\rho)$ 形式下超算符对非对角元的作用是 $-2\gamma_\phi\rho_{eg}$，与文献中"纯退相干率 $\gamma_\phi$"的常用约定相差因子 2，跨文献移植参数时必须核对。
+
+![图 10.4：二能级 Lindblad 弛豫与退相位（初态 $(|e\rangle+|g\rangle)/\sqrt2$，$\gamma=0.6$、$\gamma_\phi=0.7\ \mathrm{ps}^{-1}$，RK4 $\Delta t=0.001$ ps）。（a）$\rho_{ee}(t)$（$T_1$ 弛豫）、$|\rho_{eg}(t)|$（$T_2$ 退相位，速率 $\gamma/2+2\gamma_\phi$）与迹守恒：RK4 数值解（点）与解析解（虚线）全程重合；（b）纯度 $P=\operatorname{Tr}\rho^2$ 先降后升（弛豫回纯基态），数值与解析一致。绘图脚本见 `docs/generate_figures.py`；Fortran 对应实现 `src/mod_open_quantum.f90` 的 `propagate_lindblad_rk4` 与 `calc_purity`。](figures/fig17_lindblad.png){width=12.0cm}
 
 #### 对应源码
 

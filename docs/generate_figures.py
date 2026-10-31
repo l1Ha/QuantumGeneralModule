@@ -2,7 +2,7 @@
 """
 GeneralModule: Automated Scientific Publication Figure Generator for Textbook.
 
-Generates 14 publication-grade figures directly from true physics calculations
+Generates 17 publication-grade figures directly from true physics calculations
 in `pygenmod` (zero cheating, forward simulation only):
 1. fig01_morse_bound_states.png: Morse potential FGH bound states and wavefunctions
 2. fig02_ultrafast_pulses.png: Synthesized laser pulse waveforms and envelopes
@@ -18,6 +18,9 @@ in `pygenmod` (zero cheating, forward simulation only):
 12. fig12_dvr_convergence.png: spectral convergence of Sinc-DVR / FGH energies
 13. fig13_hhg_spectrum.png: high-order harmonic generation spectrum with cutoff law
 14. fig14_convergence_calibration.png: finite-difference step-size tradeoff and QR convergence order
+15. fig15_selection_rules.png: angular-momentum selection-rule matrix heatmaps (cos, cos^2)
+16. fig16_leps_pes.png: H3 LEPS potential energy surface with symmetric saddle
+17. fig17_lindblad.png: two-level Lindblad relaxation/dephasing vs analytic solution
 """
 import os
 import sys
@@ -839,9 +842,272 @@ def generate_fig14_ql_convergence_and_finite_difference():
           f"Wilkinson final |e|={trace_w[-1]:.1e})")
 
 
+def generate_fig15_selection_rules():
+    """Fig 15: Angular-momentum selection rules as matrix heatmaps:
+    |<j'0|cos(theta)|j0>| (Delta j = +/-1) vs |<j'0|cos^2(theta)|j0>|
+    (Delta j = 0, +/-2), computed with pygenmod rot_matrix routines."""
+    print("Generating Fig 15: Angular-momentum selection rules...")
+    set_publication_style()
+    j_max = 12
+    j_list = np.arange(0, j_max + 1)
+    n = len(j_list)
+    m_cos = np.zeros((n, n))
+    m_cos2 = np.zeros((n, n))
+    for a, jb in enumerate(j_list):
+        for b, jp in enumerate(j_list):
+            m_cos[b, a] = abs(pg.rot_matrix_cos_theta(jb, jp, 0))
+            m_cos2[b, a] = abs(pg.rot_matrix_cos2_theta(jb, jp, 0))
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.8), dpi=200)
+    ext = [-0.5, j_max + 0.5, -0.5, j_max + 0.5]
+    im1 = ax1.imshow(m_cos, cmap='viridis', origin='lower', extent=ext, vmin=0.0)
+    ax1.set_title(r'(a) Dipole $|\langle j^\prime 0|\cos\theta|j 0\rangle|$: $\Delta j = \pm 1$',
+                  fontsize=11, pad=8)
+    im2 = ax2.imshow(m_cos2, cmap='viridis', origin='lower', extent=ext, vmin=0.0)
+    ax2.set_title(r"(b) Raman $|\langle j^\prime 0|\cos^2\theta|j 0\rangle|$: $\Delta j = 0, \pm 2$",
+                  fontsize=11, pad=8)
+    for ax, im, lab in ((ax1, im1, r'$|\langle\cos\theta\rangle|$ (a.u.)'),
+                        (ax2, im2, r'$|\langle\cos^2\theta\rangle|$ (a.u.)')):
+        ax.set_xticks(range(0, j_max + 1, 2))
+        ax.set_yticks(range(0, j_max + 1, 2))
+        ax.set_xlabel(r'$j$')
+        ax.set_ylabel(r"$j'$")
+        cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        cbar.set_label(lab, fontsize=9)
+    ax2.annotate(r'$\langle 2|\cos^2|2\rangle = \frac{4}{15}+\frac{9}{35} = 0.5238$',
+                 xy=(2, 2), xytext=(5.2, 0.8), fontsize=9, color='white',
+                 arrowprops=dict(arrowstyle='->', color='white'))
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig15_selection_rules.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} "
+          f"(max |cos| off-band: {m_cos[np.abs(j_list[:, None] - j_list[None, :]) != 1].max():.1e}; "
+          f"max |cos2| off-band: {m_cos2[~np.isin(np.abs(j_list[:, None] - j_list[None, :]), [0, 2])].max():.1e})")
+
+
+def _leps_sato_collinear(r12, r23, d_e=0.1744, r_e=1.401, beta=1.044, sato=0.10):
+    """Standard Sato-modified LEPS for collinear H3 (mod_triatomic_geometry form):
+    r31 = r12 + r23; V = sum Q - sqrt(sum (dJ)^2 / 2). Accepts array inputs."""
+    r = np.stack([r12, r23, r12 + r23], axis=0)
+    x = np.exp(-beta * (r - r_e))
+    pref = d_e / (4.0 * (1.0 + sato))
+    q = pref * ((3.0 + sato) * x**2 - (2.0 + 6.0 * sato) * x)
+    j = pref * ((1.0 + 3.0 * sato) * x**2 - (6.0 + 2.0 * sato) * x)
+    diff = (j[0] - j[1], j[1] - j[2], j[2] - j[0])
+    v = q.sum(axis=0) - np.sqrt(0.5 * (diff[0]**2 + diff[1]**2 + diff[2]**2))
+    return v
+
+
+def generate_fig16_leps_pes():
+    """Fig 16: H + H2 LEPS potential energy surface (collinear, Sato Delta=0.10):
+    2D contour map with the symmetric saddle, plus the diagonal cut showing
+    the barrier; matches the book's Sec 3.2/9.5 Newton-search values."""
+    print("Generating Fig 16: LEPS potential energy surface...")
+    set_publication_style()
+    r_grid = np.linspace(0.6, 4.2, 420)
+    r12, r23 = np.meshgrid(r_grid, r_grid)
+    v_pes = _leps_sato_collinear(r12, r23)
+    r12_path = r_grid
+
+    # 鞍点与势垒剖面: 最低能量路径 (固定 r12 取 r23 极小)。
+    # 对称 H3 的共线鞍点位于对角线 r12 = r23 上, 是沿对称伸缩方向的极小,
+    # 因此 MEP 剖面 (对 r23 取极小) 的极大值就是鞍点 —— 与书中 17.2/9.5 节
+    # 的二维 Newton 结果 (1.775, 1.775) 一致。
+    # 数值梯度与 Hessian (共线面内二维)
+    def vfun(r12, r23):
+        return _leps_sato_collinear(r12, r23)
+
+    def numgrad(r, h=1.0e-6):
+        return np.array([(vfun(r[0] + h, r[1]) - vfun(r[0] - h, r[1])) / (2 * h),
+                         (vfun(r[0], r[1] + h) - vfun(r[0], r[1] - h)) / (2 * h)])
+
+    def numhess(r, h=1.0e-5):
+        Hm = np.zeros((2, 2))
+        for i in range(2):
+            for jj in range(2):
+                ei = np.zeros(2); ei[i] = h
+                ej = np.zeros(2); ej[jj] = h
+                Hm[i, jj] = (vfun(*(r + ei + ej)) - vfun(*(r + ei - ej)) -
+                             vfun(*(r - ei + ej)) + vfun(*(r - ei - ej))) / (4 * h * h)
+        return Hm
+
+    # 二维 Newton 求鞍点 (梯度零点; Hessian 一负一正)
+    r_s = np.array([1.775, 1.775])
+    for _ in range(60):
+        g = numgrad(r_s)
+        step = np.linalg.solve(numhess(r_s), -g)
+        r_s = r_s + step
+        if np.linalg.norm(step) < 1.0e-12:
+            break
+    r12_s, r23_s = r_s
+    v_saddle = vfun(r12_s, r23_s)
+    barrier_kcal = (v_saddle + 0.174359) * 627.5095
+
+    # IRC: 从鞍点沿不稳定本征方向 (负曲率 = 反应坐标) 做归一化弧长最陡下降
+    Hs = numhess(r_s)
+    eigval, eigvec = np.linalg.eigh(Hs)
+    u_unstable = eigvec[:, 0]
+    ds, n_irc = 0.004, 500
+
+    def irc_branch(sign):
+        r = r_s.copy() + sign * 1.0e-4 * u_unstable
+        path_r = [r.copy()]
+        v_path = [vfun(r[0], r[1])]
+        s_path = [0.0]
+        s_acc = 0.0
+        for _ in range(n_irc):
+            g = numgrad(r)
+            gn = np.linalg.norm(g)
+            if gn < 1.0e-12:
+                break
+            r = r - sign * ds * (g / gn)
+            s_acc += ds
+            path_r.append(r.copy())
+            v_path.append(vfun(r[0], r[1]))
+            s_path.append(s_acc)
+        return np.array(s_path), np.array(path_r), np.array(v_path)
+
+    s_neg, path_neg, v_neg = irc_branch(-1.0)
+    s_pos, path_pos, v_pos = irc_branch(+1.0)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.7), dpi=200)
+    levels = np.linspace(-0.175, 0.045, 23)
+    cf = ax1.contourf(r12, r23, v_pes, levels=levels, cmap='RdYlBu_r')
+    cl = ax1.contour(r12, r23, v_pes, levels=levels[::2], colors='k',
+                     linewidths=0.4, alpha=0.55)
+    ax1.clabel(cl, inline=True, fontsize=6, fmt='%.3f')
+    ax1.plot(path_neg[:, 0], path_neg[:, 1], color='darkviolet', linewidth=2.2,
+             label='IRC (steepest descent)')
+    ax1.plot(path_pos[:, 0], path_pos[:, 1], color='darkviolet', linewidth=2.2)
+    ax1.plot(r12_s, r23_s, 'X', color='darkviolet', markersize=10,
+             markeredgecolor='white',
+             label=rf'Saddle $({r12_s:.3f}, {r23_s:.3f})$')
+    ax1.set_xlim(0.6, 4.2)
+    ax1.set_ylim(0.6, 4.2)
+    ax1.set_xlabel(r'$r_{12}$ ($a_0$)')
+    ax1.set_ylabel(r'$r_{23}$ ($a_0$)')
+    ax1.set_title(r'(a) Collinear $\mathrm{H}_3$ LEPS Surface (Sato $\Delta=0.10$)', fontsize=11)
+    ax1.legend(loc='upper right', frameon=True, fontsize=8.5)
+    cbar = plt.colorbar(cf, ax=ax1, fraction=0.046, pad=0.04)
+    cbar.set_label(r'$V$ ($E_h$)', fontsize=10)
+
+    s_full = np.concatenate([s_neg[::-1] * -1.0, s_pos])
+    v_full = np.concatenate([v_neg[::-1], v_pos])
+    ax2.plot(s_full, v_full, color='crimson', linewidth=2.2)
+    ax2.plot(0.0, v_saddle, 'X', color='darkviolet', markersize=10,
+             markeredgecolor='white', zorder=5)
+    ax2.axhline(-0.174359, color='gray', linestyle='--', linewidth=1.0,
+                label=r'$\mathrm{H}_2$ well $-D_e = -0.17436\ E_h$')
+    ax2.annotate(r'$V^{\ddagger} = %.5f\ E_h$' % v_saddle,
+                 xy=(0.0, v_saddle), xytext=(-1.7, -0.148),
+                 fontsize=9.5, arrowprops=dict(arrowstyle='->', color='gray'))
+    ax2.annotate(r'$\Delta V^{\ddagger} = %.2f$ kcal/mol' % barrier_kcal,
+                 xy=(0.0, v_saddle), xytext=(-1.7, -0.144),
+                 fontsize=9.5, arrowprops=dict(arrowstyle='->', color='gray'))
+    ax2.text(1.75, -0.169, r'$\mathrm{AB} + \mathrm{C}$', fontsize=10, ha='center')
+    ax2.text(-1.75, -0.169, r'$\mathrm{A} + \mathrm{BC}$', fontsize=10, ha='center')
+    ax2.set_xlabel(r'Reaction coordinate $s$ along the IRC ($a_0$)')
+    ax2.set_ylabel(r'$V$ ($E_h$)')
+    ax2.set_ylim(-0.185, -0.115)
+    ax2.set_title('(b) Barrier Profile along the IRC', fontsize=11)
+    ax2.legend(loc='lower right', frameon=True, fontsize=9)
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig16_leps_pes.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} (saddle=({r12_s:.4f}, {r23_s:.4f}), V={v_saddle:.5f} Eh, "
+          f"barrier={barrier_kcal:.2f} kcal/mol; book: 1.775 / -0.15371 / 12.96)")
+
+
+def generate_fig17_lindblad():
+    """Fig 17: Two-level Lindblad relaxation and dephasing: RK4 propagation of
+    the documented experiment (book Sec 10.5) against the analytic solution;
+    T1 population decay, T2 coherence decay, trace preservation and purity."""
+    print("Generating Fig 17: Lindblad relaxation and dephasing...")
+    set_publication_style()
+    gamma = 0.6      # ps^-1 (T1 relaxation)
+    gamma_phi = 0.7  # ps^-1 (pure dephasing)
+    t_end = 4.0      # ps
+    n_steps = 4000
+    dt = t_end / n_steps
+
+    sm = np.array([[0.0, 1.0], [0.0, 0.0]], dtype=complex)
+    sp = sm.conj().T
+    sz = np.array([[1.0, 0.0], [0.0, -1.0]], dtype=complex)
+
+    def liouvillian(rho):
+        return (gamma * (sm @ rho @ sp - 0.5 * (sp @ sm @ rho + rho @ sp @ sm)) +
+                gamma_phi * (sz @ rho @ sz - rho))
+
+    # 叠加态初条件 (|e> + |g>)/sqrt(2): 同时激发 T1 布居弛豫与 T2 相干退相位
+    rho = 0.5 * np.array([[1.0, 1.0], [1.0, 1.0]], dtype=complex)
+    t_arr = np.zeros(n_steps + 1)
+    pee_arr = np.zeros(n_steps + 1)
+    peg_arr = np.zeros(n_steps + 1)
+    trace_arr = np.zeros(n_steps + 1)
+    purity_arr = np.zeros(n_steps + 1)
+    for k in range(n_steps + 1):
+        t_arr[k] = k * dt
+        pee_arr[k] = rho[1, 1].real
+        peg_arr[k] = abs(rho[0, 1])
+        trace_arr[k] = np.trace(rho).real
+        purity_arr[k] = np.real(np.trace(rho @ rho))
+        if k < n_steps:
+            k1 = liouvillian(rho)
+            k2 = liouvillian(rho + 0.5 * dt * k1)
+            k3 = liouvillian(rho + 0.5 * dt * k2)
+            k4 = liouvillian(rho + dt * k3)
+            rho = rho + (dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+
+    t_fine = np.linspace(0.0, t_end, 500)
+    pee_exact = 0.5 * np.exp(-gamma * t_fine)
+    peg_exact = 0.5 * np.exp(-(0.5 * gamma + 2.0 * gamma_phi) * t_fine)
+    purity_exact = (pee_exact**2 + (1.0 - pee_exact)**2 + 2.0 * peg_exact**2)
+
+    rk4_err = np.max(np.abs(pee_arr - 0.5 * np.exp(-gamma * t_arr)))
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4), dpi=200)
+    ax1.plot(t_arr, pee_arr, 'o', color='crimson', markersize=2.5, markevery=25,
+             label=r'RK4 $\rho_{ee}(t)$')
+    ax1.plot(t_fine, pee_exact, '--', color='darkred', linewidth=1.4,
+             label=r'Analytic $e^{-\gamma t}$ ($T_1 = 1/\gamma$)')
+    ax1.plot(t_arr, peg_arr, 's', color='darkblue', markersize=2.5, markevery=25,
+             label=r'RK4 $|\rho_{eg}(t)|$')
+    ax1.plot(t_fine, peg_exact, '--', color='navy', linewidth=1.4,
+             label=r'Analytic $e^{-(\gamma/2+2\gamma_\phi)t}$ ($T_2$)')
+    ax1.plot(t_arr, trace_arr, '-', color='gray', linewidth=1.0, alpha=0.8,
+             label=r'$\operatorname{Tr}\rho$ (preserved)')
+    ax1.set_xlabel(r'Time $t$ (ps)')
+    ax1.set_ylabel(r'Population / Coherence')
+    ax1.set_ylim(-0.05, 1.15)
+    ax1.set_title(r'Lindblad Relaxation, $|\psi(0)\rangle = (|e\rangle+|g\rangle)/\sqrt{2}$', fontsize=11)
+    ax1.legend(loc='upper right', frameon=True, fontsize=7.8)
+
+    ax2.plot(t_arr, purity_arr, 'o', color='darkgreen', markersize=2.5, markevery=25,
+             label=r'RK4 purity $P = \operatorname{Tr}\rho^2$')
+    ax2.plot(t_fine, purity_exact, '--', color='darkolivegreen', linewidth=1.6,
+             label='Analytic purity')
+    ax2.set_xlabel(r'Time $t$ (ps)')
+    ax2.set_ylabel(r'Purity $P$')
+    ax2.set_ylim(0.3, 1.03)
+    ax2.set_title(r'Purity Decay (monotone)', fontsize=11)
+    ax2.annotate(r'$T_1 = 1/\gamma = %.2f$ ps' % (1.0 / gamma),
+                 xy=(1.55, 0.47), fontsize=9, color='dimgray')
+    ax2.annotate(r'$T_2 = 1/(\gamma/2+2\gamma_\phi) = %.2f$ ps' % (1.0 / (0.5 * gamma + 2.0 * gamma_phi)),
+                 xy=(1.55, 0.40), fontsize=9, color='dimgray')
+    ax2.legend(loc='lower left', frameon=True, fontsize=8.5)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig17_lindblad.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} (max |RK4 - analytic| on rho_ee: {rk4_err:.2e})")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 14 Scientific Calculation Benchmark Figures")
+    print(" Generating All 17 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -857,8 +1123,11 @@ def main():
     generate_fig12_dvr_convergence()
     generate_fig13_hhg_spectrum()
     generate_fig14_ql_convergence_and_finite_difference()
+    generate_fig15_selection_rules()
+    generate_fig16_leps_pes()
+    generate_fig17_lindblad()
     print("=" * 60)
-    print(" All 14 Figures Generated Successfully in docs/figures/!")
+    print(" All 17 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 
