@@ -15,6 +15,11 @@ echo "================================================================"
 echo "          Running GeneralModule Test Suite Suite                "
 echo "================================================================"
 
+# 远程诊断: CI 中通过公开注解标记阶段与失败行号 (无需登录读日志)
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    trap 'rc=$?; echo "::error::run_all_tests.sh aborted at line $LINENO (exit $rc)"' ERR
+fi
+
 # 1. 编译 src 中的模块 (依赖自愈的并行编译; TEST_JOBS 可覆盖并行度)
 # 透传 OPENMP 标志: make OPENMP=1 test 时库与测试均以 -fopenmp 编译
 NJOBS="${TEST_JOBS:-$( (nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null) || echo 1)}"
@@ -26,6 +31,9 @@ fi
 export FFLAGS
 FFLAGS="$FFLAGS" bash "$DIR/../scripts/compile_modules.sh" "$SRC_DIR" "$NJOBS"
 ar rcs "$SRC_DIR"/libgeneral_module.a "$SRC_DIR"/*.o
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    echo "::notice::run_all_tests.sh: module build done (bash $BASH_VERSION, jobs=$NJOBS)"
+fi
 
 cd "$DIR"
 
@@ -124,12 +132,15 @@ run_one_test() {
 export -f run_one_test
 
 printf '%s\n' "${TESTS[@]}" | xargs -P "$NJOBS" -I '{}' bash -c 'run_one_test "{}"' || true
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    echo "::notice::run_all_tests.sh: parallel test phase done"
+fi
 
 n_fail=0
 for test_name in "${TESTS[@]}"; do
     echo ""
     echo ">> $test_name ($(cat "$LOG_DIR/$test_name.ms" 2>/dev/null || echo '?') ms)"
-    cat "$LOG_DIR/$test_name.log" 2>/dev/null
+    cat "$LOG_DIR/$test_name.log" 2>/dev/null || true
     if [ "$(cat "$LOG_DIR/$test_name.status" 2>/dev/null)" != "PASS" ]; then
         n_fail=$((n_fail + 1))
         echo "[BUILD/RUN FAILURE] $test_name"
