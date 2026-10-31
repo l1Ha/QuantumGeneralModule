@@ -4,14 +4,34 @@
 #
 # 用法: compile_modules.sh <src_dir> [njobs]
 #   FC/FFLAGS 环境变量可覆盖编译器与编译选项 (默认 gfortran / -O2 -fPIC)。
-#   通过环境变量 TEST_JOBS / 第二参数控制并行度, 默认取 nproc。
+#   并行度取第二参数, 否则 nproc/sysctl 自动侦测。
 #
 # 原理: 不硬编码模块依赖顺序。每轮并行编译全部未完成文件, 依赖未就绪的
 # 文件会因缺少 .mod 而快速失败, 下一轮重试; 依赖链深度约 5 层, 因此通常
-# 5 个波次内全部完成。若某一轮无任何进展 (存在真实语法错误等), 则对剩余
-# 文件逐一详细编译并如实报错退出, 不会静默吞掉失败。
+# 3-5 个波次内全部完成。若某一轮无任何进展 (存在真实编译错误), 则对剩余
+# 文件逐一详细编译、打印编译器原始错误并退出非零, 不会静默吞掉失败。
+#
+# 可移植性: 并行 worker 通过"脚本自调用"(--compile-one)实现, 不依赖
+# bash 的 export -f 函数导出与 bash -c 语义 (macOS /bin/bash 3.2 上函数
+# 导出行为不可靠, 曾导致全部子进程静默失败)。
 # ==============================================================================
 set -u
+
+FC="${FC:-gfortran}"
+FFLAGS="${FFLAGS:--O2 -fPIC}"
+
+# ---- 单文件 worker 模式 (由 xargs 调用; 必须先于任何其他逻辑) ----------------
+if [ "${1:-}" = "--compile-one" ]; then
+    SRC_DIR_W="${2:?}"; f_W="${3:?}"; mark_W="${4:-}"
+    # shellcheck disable=SC2086
+    if "$FC" $FFLAGS -I"$SRC_DIR_W" -J"$SRC_DIR_W" -c "$f_W" -o "${f_W%.f90}.o"; then
+        if [ -n "$mark_W" ]; then
+            : > "$mark_W/$(basename "$f_W").ok"
+        fi
+        exit 0
+    fi
+    exit 1
+fi
 
 if [ -n "${GITHUB_ACTIONS:-}" ]; then
     trap 'rc=$?; echo "::error::compile_modules.sh aborted at line $LINENO (exit $rc)"' ERR
@@ -24,18 +44,9 @@ if [ "${2:-}" != "" ]; then
 else
     NJOBS="$( (nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null) || echo 1)"
 fi
-FC="${FC:-gfortran}"
-FFLAGS="${FFLAGS:--O2 -fPIC}"
+SELF="$0"
 
-export FC FFLAGS SRC_DIR
-
-compile_one() {
-    # shellcheck disable=SC2086
-    "$FC" $FFLAGS -I"$SRC_DIR" -J"$SRC_DIR" -c "$1" -o "${1%.f90}.o"
-}
-export -f compile_one
-
-# 清理旧产物, 使"文件是否存在 .o"不能误判本轮编译成功
+# 清理旧产物, 健康起点: 成功文件必然在本脚本运行期间生成
 rm -f "$SRC_DIR"/*.o "$SRC_DIR"/*.mod
 
 # 收集全部模块源 (glob 顺序无关, 由重试机制自然收敛到拓扑序)
@@ -52,13 +63,9 @@ wave=0
 while [ "${#pending[@]}" -gt 0 ]; do
     wave=$((wave + 1))
     rm -f "$MARK"/*.ok
-    export MARK
-    # shellcheck disable=SC2016
     printf '%s\n' "${pending[@]}" | \
-        xargs -P "$NJOBS" -I '{}' bash -c '
-            if compile_one "{}" >/dev/null 2>&1; then
-                : > "$MARK/$(basename "{}").ok"
-            fi' || true
+        xargs -P "$NJOBS" -I '{}' bash "$SELF" --compile-one "$SRC_DIR" '{}' "$MARK" \
+        >/dev/null 2>&1 || true
 
     next=()
     n_next=0
@@ -72,16 +79,19 @@ while [ "${#pending[@]}" -gt 0 ]; do
     done
 
     if [ "$n_next" -eq "$n_pending" ]; then
-        # 无进展: 逐文件详细编译, 真实错误直接呈现
+        # 无进展: 逐文件详细编译, 编译器原始错误直接呈现并转发为公开注解
         echo "[compile_modules] no progress in wave $wave; compiling remaining files verbosely..." >&2
         for f in "${next[@]}"; do
-            compile_one "$f" || {
+            if ! cerr="$("$FC" $FFLAGS -I"$SRC_DIR" -J"$SRC_DIR" -c "$f" -o "${f%.f90}.o" 2>&1)"; then
                 echo "[compile_modules] FAILED: $f" >&2
+                echo "$cerr" >&2
                 if [ -n "${GITHUB_ACTIONS:-}" ]; then
-                    echo "::error::compile_modules.sh: FAILED to compile $f"
+                    cerr_esc="${cerr//\%/\%25}"
+                    cerr_esc="${cerr_esc//$'\n'/%0A}"
+                    echo "::error::compile_modules FAILED: $(basename "$f") :: ${cerr_esc}"
                 fi
                 exit 1
-            }
+            fi
         done
         n_next=0
     fi

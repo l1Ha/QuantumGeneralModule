@@ -20,6 +20,61 @@ if [ -n "${GITHUB_ACTIONS:-}" ]; then
     trap 'rc=$?; echo "::error::run_all_tests.sh aborted at line $LINENO (exit $rc)"' ERR
 fi
 
+# ---------------------------------------------------------------------------
+# worker 模式 (必须先于主流程): xargs 通过 `bash "$SELF" --run-one <name>`
+# 自调用执行单个套件。不使用 export -f / bash -c —— macOS /bin/bash 3.2
+# 的函数导出行为不可靠, 曾导致并行子进程整体静默失败。
+# ---------------------------------------------------------------------------
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+SRC_DIR="$DIR/../src"
+
+# worker 自调用所需的脚本绝对路径: 必须在任何 cd 之前、用 $PWD 解析
+# (脚本中的 `cd "$DIR"` 会使相对路径 $0 失效)
+SELF="${BASH_SOURCE[0]}"
+case "$SELF" in
+    /*) ;;
+    *) SELF="$PWD/$SELF" ;;
+esac
+
+# 可移植纳秒时间戳: GNU date 支持 %N, BSD/macOS date 不支持 (回退到秒)
+t_stamp() {
+    local s
+    s="$(date +%s%N 2>/dev/null)"
+    case "$s" in
+        ''|*[!0-9]*) date +%s ;;
+        *) echo "$s" ;;
+    esac
+}
+
+run_one_test() {
+    local name="$1"
+    local rc=0
+    local t0 t1
+    t0="$(t_stamp)"
+    rm -f "$DIR/$name"
+    gfortran $FFLAGS -I"$SRC_DIR" "$DIR/$name.f90" "$SRC_DIR/libgeneral_module.a" -o "$DIR/$name" \
+        > "$LOG_DIR/$name.build.log" 2>&1 || rc=1
+    if [ "$rc" -eq 0 ]; then
+        "$DIR/$name" > "$LOG_DIR/$name.log" 2>&1 || rc=1
+    fi
+    t1="$(t_stamp)"
+    if [ -n "$t0" ] && [ -n "$t1" ] && [ "$t1" -ge "$t0" ] 2>/dev/null; then
+        echo "$(( (t1 - t0) / 1000000 ))" > "$LOG_DIR/$name.ms"
+    fi
+    rm -f "$DIR/$name"
+    if [ "$rc" -eq 0 ]; then
+        echo "PASS" > "$LOG_DIR/$name.status"
+    else
+        echo "FAIL" > "$LOG_DIR/$name.status"
+    fi
+    return 0
+}
+
+if [ "${1:-}" = "--run-one" ]; then
+    run_one_test "$2"
+    exit 0
+fi
+
 # 1. 编译 src 中的模块 (依赖自愈的并行编译; TEST_JOBS 可覆盖并行度)
 # 透传 OPENMP 标志: make OPENMP=1 test 时库与测试均以 -fopenmp 编译
 NJOBS="${TEST_JOBS:-$( (nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null) || echo 1)}"
@@ -95,43 +150,7 @@ echo ">> Compiling and running ${#TESTS[@]} test suites with $NJOBS parallel job
 LOG_DIR="$(mktemp -d)"
 export FFLAGS SRC_DIR DIR LOG_DIR
 
-# 可移植纳秒时间戳: GNU date 支持 %N, BSD/macOS date 不支持 (回退到秒)
-t_stamp() {
-    local s
-    s="$(date +%s%N 2>/dev/null)"
-    case "$s" in
-        ''|*[!0-9]*) date +%s ;;
-        *) echo "$s" ;;
-    esac
-}
-export -f t_stamp
-
-run_one_test() {
-    local name="$1"
-    local rc=0
-    local t0 t1
-    t0="$(t_stamp)"
-    rm -f "$DIR/$name"
-    gfortran $FFLAGS -I"$SRC_DIR" "$DIR/$name.f90" "$SRC_DIR/libgeneral_module.a" -o "$DIR/$name" \
-        > "$LOG_DIR/$name.build.log" 2>&1 || rc=1
-    if [ "$rc" -eq 0 ]; then
-        "$DIR/$name" > "$LOG_DIR/$name.log" 2>&1 || rc=1
-    fi
-    t1="$(t_stamp)"
-    if [ -n "$t0" ] && [ -n "$t1" ] && [ "$t1" -ge "$t0" ] 2>/dev/null; then
-        echo "$(( (t1 - t0) / 1000000 ))" > "$LOG_DIR/$name.ms"
-    fi
-    rm -f "$DIR/$name"
-    if [ "$rc" -eq 0 ]; then
-        echo "PASS" > "$LOG_DIR/$name.status"
-    else
-        echo "FAIL" > "$LOG_DIR/$name.status"
-    fi
-    return 0
-}
-export -f run_one_test
-
-printf '%s\n' "${TESTS[@]}" | xargs -P "$NJOBS" -I '{}' bash -c 'run_one_test "{}"' || true
+printf '%s\n' "${TESTS[@]}" | xargs -P "$NJOBS" -I '{}' bash "$SELF" --run-one '{}' || true
 if [ -n "${GITHUB_ACTIONS:-}" ]; then
     echo "::notice::run_all_tests.sh: parallel test phase done"
 fi
