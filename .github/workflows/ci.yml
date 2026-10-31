@@ -48,7 +48,25 @@ jobs:
         run: |
           cmake -B build -S .
           cmake --build build -j 4
-          ctest --test-dir build --output-on-failure
+          set +e
+          ctest --test-dir build --output-on-failure > ctest_full.log 2>&1
+          rc=$?
+          set -e
+          tail -n 60 ctest_full.log
+          if [ $rc -ne 0 ]; then
+            # 失败测试名与重跑详情转发为 workflow 注解: 运行页公开可见,
+            # 无需登录下载日志即可诊断平台相关失败
+            echo "::error::ctest failed with exit code $rc"
+            grep -A 40 "The following tests FAILED" ctest_full.log | head -n 44 | while IFS= read -r line; do
+              [ -n "$line" ] && echo "::error::$line"
+            done
+            ctest --test-dir build --rerun-failed --output-on-failure > ctest_rerun.log 2>&1 || true
+            echo "::error::--- rerun of failed tests ---"
+            tail -n 120 ctest_rerun.log | while IFS= read -r line; do
+              [ -n "$line" ] && echo "::error::RERUN| $line"
+            done
+          fi
+          exit $rc
 
       - name: Run Direct Fortran Unit Test Suite (46 Test Suites, 393 Assertions)
         run: |

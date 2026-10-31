@@ -19,7 +19,18 @@ echo "================================================================"
 
 cd "$DIR"
 
+# 确保静态库与本次构建标志一致: 避免与 OPENMP=1 构建的库混链
+# (OpenMP 目标文件引用 GOMP_* 符号, 无 -fopenmp 链接会未定义)
+NJOBS="${TEST_JOBS:-$( (nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null) || echo 1)}"
 FFLAGS="-O2 -fPIC -ffree-line-length-none"
+if [ "${OPENMP:-0}" = "1" ]; then
+    FFLAGS="$FFLAGS -fopenmp"
+fi
+export FFLAGS
+echo "[0/1] Rebuilding module archive with consistent flags..."
+FFLAGS="$FFLAGS" bash "$DIR/../scripts/compile_modules.sh" "$SRC_DIR" "$NJOBS"
+ar rcs "$SRC_DIR"/libgeneral_module.a "$SRC_DIR"/*.o
+
 EXAMPLES=(
     "ex01_fgh_diatomic_bound_states"
     "ex02_pulse_synthesis"
