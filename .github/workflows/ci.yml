@@ -54,17 +54,20 @@ jobs:
           set -e
           tail -n 60 ctest_full.log
           if [ $rc -ne 0 ]; then
-            # 失败测试名与重跑详情转发为 workflow 注解: 运行页公开可见,
-            # 无需登录下载日志即可诊断平台相关失败
+            # 失败测试名与断言详情转发为 workflow 注解: 运行页公开可见,
+            # 无需登录下载日志即可诊断平台相关失败。多行内容用 %0A 编码
+            # 打包进少量注解, 规避面板 10 条显示上限的截断。
             echo "::error::ctest failed with exit code $rc"
-            grep -A 40 "The following tests FAILED" ctest_full.log | head -n 44 | while IFS= read -r line; do
-              [ -n "$line" ] && echo "::error::$line"
-            done
+            failed_list="$(grep -aA 40 'The following tests FAILED' ctest_full.log | head -n 25)"
+            failed_list="${failed_list//$'\n'/%0A}"
+            echo "::error::FAILED TESTS: ${failed_list}"
             ctest --test-dir build --rerun-failed --output-on-failure > ctest_rerun.log 2>&1 || true
-            echo "::error::--- rerun of failed tests ---"
-            tail -n 120 ctest_rerun.log | while IFS= read -r line; do
-              [ -n "$line" ] && echo "::error::RERUN| $line"
-            done
+            detail="$(grep -aE '\[FAIL\]|Got:|Expected:|Diff:|Fortran runtime error|Error termination' ctest_rerun.log | head -n 40)"
+            detail="${detail//$'\n'/%0A}"
+            echo "::error::FAILING ASSERTIONS: ${detail}"
+            tailn="$(tail -n 10 ctest_rerun.log)"
+            tailn="${tailn//$'\n'/%0A}"
+            echo "::error::RERUN TAIL: ${tailn}"
           fi
           exit $rc
 
