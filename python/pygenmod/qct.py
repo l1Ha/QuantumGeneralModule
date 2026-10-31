@@ -646,27 +646,34 @@ def qct_analyze_final_state(traj: QCTTrajectory, cfg: QCTConfig,
 # Ensemble driver and cross sections (book sections 17.4-17.5)
 # ---------------------------------------------------------------------------
 
+def _traj_seed(base_seed: int, index: int) -> int:
+    """Deterministic per-trajectory seed derived from the global trajectory index.
+
+    Because every trajectory's random stream depends only on (base_seed, index),
+    any worker partition of the ensemble samples identical initial conditions:
+    ensemble results are bit-reproducible for any n_workers (and match the
+    serial path exactly).
+    """
+    return (base_seed + 10007 * (index + 1)) % 2147483647
+
+
 def _run_qct_worker(args):
-    """Worker task executed in a worker process for parallel ensemble runs."""
-    cfg, par, n_sub, sub_seed = args
-    cfg_sub = QCTConfig(
-        e_coll=cfg.e_coll, b_max=cfg.b_max, r_start=cfg.r_start,
-        r_end=cfg.r_end, dt=cfg.dt, n_traj=n_sub, max_steps=cfg.max_steps,
-        v_initial=cfg.v_initial, j_initial=cfg.j_initial, seed=sub_seed,
-        enforce_zpe=cfg.enforce_zpe, init_mode=cfg.init_mode,
-        n_b_bins=cfg.n_b_bins, mass=cfg.mass, n_workers=1
-    )
-    rng = np.random.default_rng(sub_seed)
-    sampler = InitialSampler.build(cfg_sub, par)
-    trajs = [qct_init_trajectory(cfg_sub, rng, par, sampler) for _ in range(n_sub)]
+    """Worker task executed in a worker process: a contiguous index range of
+    trajectories, each seeded deterministically from its global index."""
+    cfg, par, start_index, n_sub = args
+    sampler = InitialSampler.build(cfg, par)
+    trajs = []
+    for k in range(n_sub):
+        rng = np.random.default_rng(_traj_seed(cfg.seed, start_index + k))
+        trajs.append(qct_init_trajectory(cfg, rng, par, sampler))
     if not trajs:
         return []
     q0 = np.stack([t.q for t in trajs])
     p0 = np.stack([t.p for t in trajs])
-    qf, pf, times, converged = _propagate_ensemble(q0, p0, cfg_sub, par)
+    qf, pf, times, converged = _propagate_ensemble(q0, p0, cfg, par)
     for i, t in enumerate(trajs):
         t.q, t.p, t.time, t.converged = qf[i], pf[i], float(times[i]), bool(converged[i])
-        qct_analyze_final_state(t, cfg_sub, par)
+        qct_analyze_final_state(t, cfg, par)
     return trajs
 
 
@@ -681,8 +688,10 @@ def run_qct_ensemble(cfg: QCTConfig, par: Optional[LEPSParameters] = None,
     Supports multi-core server parallelization via cfg.n_workers:
       * n_workers = 1: vectorized single-core execution (no IPC overhead).
       * n_workers = -1: auto-detect all available physical/logical CPU cores.
-      * n_workers > 1: partitions n_traj across worker processes with independent
-        sub-seeds (seed + worker_id * 10007), concatenating trajectories.
+      * n_workers > 1: partitions n_traj into contiguous index ranges across
+        worker processes. Each trajectory is seeded deterministically from its
+        global index (_traj_seed), so results are identical for any worker
+        count and equal the serial path.
     """
     if par is None:
         par = LEPSParameters()
@@ -692,10 +701,10 @@ def run_qct_ensemble(cfg: QCTConfig, par: Optional[LEPSParameters] = None,
         n_workers = max(1, os.cpu_count() or 1)
 
     if n_workers <= 1 or cfg.n_traj <= 1:
-        rng = np.random.default_rng(cfg.seed)
         sampler = InitialSampler.build(cfg, par)
         trajs = []
-        for _ in range(cfg.n_traj):
+        for k in range(cfg.n_traj):
+            rng = np.random.default_rng(_traj_seed(cfg.seed, k))
             trajs.append(qct_init_trajectory(cfg, rng, par, sampler))
         q0 = np.stack([t.q for t in trajs])
         p0 = np.stack([t.p for t in trajs])
@@ -710,8 +719,13 @@ def run_qct_ensemble(cfg: QCTConfig, par: Optional[LEPSParameters] = None,
         import concurrent.futures
         base, rem = divmod(cfg.n_traj, n_workers)
         chunks = [base + (1 if w < rem else 0) for w in range(n_workers)]
-        chunks = [c for c in chunks if c > 0]
-        tasks = [(cfg, par, c, cfg.seed + w * 10007) for w, c in enumerate(chunks)]
+        tasks = []
+        start = 0
+        for c in chunks:
+            if c <= 0:
+                continue
+            tasks.append((cfg, par, start, c))
+            start += c
         all_trajs = []
         with concurrent.futures.ProcessPoolExecutor(max_workers=len(chunks)) as executor:
             for trajs in executor.map(_run_qct_worker, tasks):

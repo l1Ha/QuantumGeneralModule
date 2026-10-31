@@ -332,10 +332,11 @@ def generate_fig08_qct_opacity():
     """Fig 8: QCT reaction opacity function P_rxn(b) and impact parameter sampling."""
     print("Generating Fig 8: QCT opacity function...")
     set_publication_style()
-    # n_workers is pinned (not cpu-scaled) so the seeded ensemble is bit-reproducible
-    # on any machine: run_qct_ensemble sampling depends on the worker partition.
+    # n_workers=-1 auto-detects all server cores. Results are bit-reproducible
+    # for any worker count because run_qct_ensemble seeds each trajectory
+    # deterministically from its global index (_traj_seed).
     cfg = pg.QCTConfig(e_coll=1.5 * pg.EV2AU, b_max=3.0, n_traj=200_000, seed=42,
-                       n_workers=8, n_b_bins=20)
+                       n_workers=-1, n_b_bins=20)
     res = pg.run_qct_ensemble(cfg)
 
     b_pts, p_rxn = res.opacity_b, res.opacity_p

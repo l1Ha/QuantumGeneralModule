@@ -5147,7 +5147,7 @@ $$
 k(T)=\sum_{v j}p_{v j}(T)\,k_{v j}(T).
 $$
 
-![图 17.1：$\mathrm{H} + \mathrm{H}_2 \to \mathrm{H}_2 + \mathrm{H}$ 准经典反应动力学（LEPS 势能面，$E_{\mathrm{coll}}=1.5\ \mathrm{eV}$，$N = 2\times 10^5$ 条轨迹）结果：左图为反应不透明度函数 $P_{\mathrm{rxn}}(b)$ 随碰撞参数 $b$ 的衰减分布；右图为截面积分权重被积函数 $b \cdot P_{\mathrm{rxn}}(b)$，阴影面积正比于总反应截面（$\sigma_{\mathrm{rxn}} = 1.246 \pm 0.013\ a_0^2$；同一体系下独立 Fortran 实现给出 $1.207 \pm 0.040\ a_0^2$，两套实现交叉吻合）。](figures/fig08_qct_opacity_and_cross_section.png){width=12.0cm}
+![图 17.1：$\mathrm{H} + \mathrm{H}_2 \to \mathrm{H}_2 + \mathrm{H}$ 准经典反应动力学（LEPS 势能面，$E_{\mathrm{coll}}=1.5\ \mathrm{eV}$，$N = 2\times 10^5$ 条轨迹）结果：左图为反应不透明度函数 $P_{\mathrm{rxn}}(b)$ 随碰撞参数 $b$ 的衰减分布；右图为截面积分权重被积函数 $b \cdot P_{\mathrm{rxn}}(b)$，阴影面积正比于总反应截面（$\sigma_{\mathrm{rxn}} = 1.256 \pm 0.013\ a_0^2$；同一体系下独立 Fortran 实现给出 $1.242 \pm 0.018\ a_0^2$，两套实现交叉吻合）。](figures/fig08_qct_opacity_and_cross_section.png){width=12.0cm}
 
 ### 17.5　统计误差与系综收敛
 
