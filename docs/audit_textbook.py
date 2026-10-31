@@ -94,24 +94,48 @@ def check_dois(text: str, online: bool) -> dict:
     resolved: list[str] = []
     unresolved: list[str] = []
     if online:
-        headers = {"User-Agent": "QuantumGeneralModule-textbook-audit/1.0 (mailto:LIH_ao@outlook.com)"}
-        for doi in dois:
-            url = "https://api.crossref.org/works/" + urllib.parse.quote(doi, safe="")
-            req = urllib.request.Request(url, headers=headers)
-            try:
-                with urllib.request.urlopen(req, timeout=20) as response:
-                    if response.status == 200:
-                        resolved.append(doi)
-                    else:
-                        unresolved.append(doi)
-            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError):
-                unresolved.append(doi)
+        resolved, unresolved = _resolve_dois_online(dois)
     return {
         "checked": len(dois),
         "syntactically_invalid": syntactic,
         "resolved": resolved,
         "unresolved": unresolved,
     }
+
+
+def _resolve_dois_online(dois: list[str], n_workers: int = 8) -> tuple[list[str], list[str]]:
+    """Resolve DOIs at Crossref concurrently (network-bound; ~1 s each).
+
+    Results are collected back into the input (sorted) order, so the report is
+    deterministic regardless of completion order or thread count.
+    """
+    import concurrent.futures
+
+    headers = {"User-Agent": "QuantumGeneralModule-textbook-audit/1.0 (mailto:LIH_ao@outlook.com)"}
+
+    def resolve_one(doi: str) -> bool:
+        # Transient Crossref failures (rate limiting, brief network hiccups)
+        # must not produce false 'unresolved' verdicts: retry with backoff.
+        import time as _time
+        url = "https://api.crossref.org/works/" + urllib.parse.quote(doi, safe="")
+        for attempt in range(3):
+            req = urllib.request.Request(url, headers=headers)
+            try:
+                with urllib.request.urlopen(req, timeout=20) as response:
+                    if response.status == 200:
+                        return True
+            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError):
+                pass
+            if attempt < 2:
+                _time.sleep(0.8 * (attempt + 1))
+        return False
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
+        oks = list(executor.map(resolve_one, dois))
+
+    resolved = [d for d, ok in zip(dois, oks) if ok]
+    unresolved = [d for d, ok in zip(dois, oks) if not ok]
+    return resolved, unresolved
 
 
 def numerical_checks() -> dict:
