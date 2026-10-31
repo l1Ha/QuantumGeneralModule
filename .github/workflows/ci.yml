@@ -54,6 +54,10 @@ jobs:
         run: |
           bash tests/run_all_tests.sh
 
+      - name: Run OpenMP Build & Test Suite (parallel path regression)
+        run: |
+          make OPENMP=1 test
+
       - name: Build & Run Frontier Physical Examples (36 Examples)
         run: |
           bash examples/build_examples.sh

@@ -18,6 +18,8 @@ endif
 AR ?= ar
 ARFLAGS ?= rcs
 
+NJOBS ?= $(shell (nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null) || echo 1)
+
 SRC_DIR = src
 TEST_DIR = tests
 EX_DIR = examples
@@ -91,12 +93,9 @@ all: lib
 
 lib: $(STATIC_LIB)
 
-$(STATIC_LIB): $(MODULE_SRCS)
-	@echo "==> Building GeneralModule static library..."
-	@for src in $(MODULE_SRCS); do \
-		echo "    Compiling $$src..."; \
-		$(FC) $(FFLAGS) -I$(SRC_DIR) -J$(SRC_DIR) -c $$src -o $${src%.f90}.o || exit 1; \
-	done
+$(STATIC_LIB): $(MODULE_SRCS) scripts/compile_modules.sh
+	@echo "==> Building GeneralModule static library (parallel, up to $(NJOBS) jobs)..."
+	@FFLAGS="$(FFLAGS)" bash scripts/compile_modules.sh $(SRC_DIR) "$(NJOBS)"
 	@$(AR) $(ARFLAGS) $(STATIC_LIB) $(SRC_DIR)/*.o
 	@echo "==> Library built: $(STATIC_LIB)"
 

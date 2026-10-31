@@ -15,70 +15,17 @@ echo "================================================================"
 echo "          Running GeneralModule Test Suite Suite                "
 echo "================================================================"
 
-# 1. 编译 src 中的模块 (若尚未编译)
-echo "[1/2] Compiling all modules in src/..."
-cd "$SRC_DIR"
-FFLAGS="-O2 -fPIC -ffree-line-length-none"
+# 1. 编译 src 中的模块 (依赖自愈的并行编译; TEST_JOBS 可覆盖并行度)
 # 透传 OPENMP 标志: make OPENMP=1 test 时库与测试均以 -fopenmp 编译
+NJOBS="${TEST_JOBS:-$( (nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null) || echo 1)}"
+echo "[1/2] Compiling all modules in src/ (parallel, up to $NJOBS jobs)..."
+FFLAGS="-O2 -fPIC -ffree-line-length-none"
 if [ "${OPENMP:-0}" = "1" ]; then
     FFLAGS="$FFLAGS -fopenmp"
 fi
-gfortran $FFLAGS -c mod_constants.f90
-gfortran $FFLAGS -c mod_special_functions.f90
-gfortran $FFLAGS -c mod_linear_algebra.f90
-gfortran $FFLAGS -c mod_dvr_grid.f90
-gfortran $FFLAGS -c mod_laser_pulse.f90
-gfortran $FFLAGS -c mod_absorbing_boundary.f90
-gfortran $FFLAGS -c mod_thermal_ensemble.f90
-gfortran $FFLAGS -c mod_wavepacket_propagator.f90
-gfortran $FFLAGS -c mod_coulomb_atomic.f90
-gfortran $FFLAGS -c mod_hhg_spectra.f90
-gfortran $FFLAGS -c mod_chebyshev_propagator.f90
-gfortran $FFLAGS -c mod_multistate_coupling.f90
-gfortran $FFLAGS -c mod_rovibrational.f90
-gfortran $FFLAGS -c mod_io_utils.f90
-gfortran $FFLAGS -c mod_interpolation.f90
-gfortran $FFLAGS -c mod_photofragment_flux.f90
-gfortran $FFLAGS -c mod_open_quantum.f90
-gfortran $FFLAGS -c mod_optimal_control.f90
-gfortran $FFLAGS -c mod_ti_scattering.f90
-gfortran $FFLAGS -c mod_td_scattering.f90
-gfortran $FFLAGS -c mod_field_scattering.f90
-gfortran $FFLAGS -c mod_dipolar_scattering.f90
-gfortran $FFLAGS -c mod_photoassociation.f90
-gfortran $FFLAGS -c mod_three_body_recombination.f90
-gfortran $FFLAGS -c mod_confined_scattering.f90
-gfortran $FFLAGS -c mod_autoionization_fano.f90
-gfortran $FFLAGS -c mod_crossed_field_scattering.f90
-gfortran $FFLAGS -c mod_triatomic_geometry.f90
-gfortran $FFLAGS -c mod_spinor_bec.f90
-gfortran $FFLAGS -c mod_hyperspherical_reactive.f90
-gfortran $FFLAGS -c mod_dipolar_droplets_lhy.f90
-gfortran $FFLAGS -c mod_strong_field_nsdi.f90
-gfortran $FFLAGS -c mod_feshbach_bound_states.f90
-gfortran $FFLAGS -c mod_attosecond_transient_absorption.f90
-gfortran $FFLAGS -c mod_bicircular_pecd.f90
-gfortran $FFLAGS -c mod_ultracold_reaction_shielding.f90
-gfortran $FFLAGS -c mod_rydberg_blockade.f90
-gfortran $FFLAGS -c mod_surface_scattering.f90
-gfortran $FFLAGS -c mod_surface_reaction_er.f90
-gfortran $FFLAGS -c mod_surface_electronic_friction.f90
-gfortran $FFLAGS -c mod_grazing_fast_atom_diffraction.f90
-gfortran $FFLAGS -c mod_ion_atom_scattering.f90
-gfortran $FFLAGS -c mod_surface_hopping_fssh.f90
-gfortran $FFLAGS -c mod_molecular_alignment.f90
-gfortran $FFLAGS -c mod_optical_lattice_hubbard.f90
-gfortran $FFLAGS -c mod_reaction_path_hamiltonian.f90
-gfortran $FFLAGS -c mod_relativistic_atomic.f90
-gfortran $FFLAGS -c mod_resonant_xray_scattering.f90
-gfortran $FFLAGS -c mod_penning_associative_ionization.f90
-gfortran $FFLAGS -c mod_coulomb_threebody.f90
-gfortran $FFLAGS -c mod_qct_dynamics.f90
-gfortran $FFLAGS -c mod_sop_hamiltonian.f90
-gfortran $FFLAGS -c mod_tensor_train.f90
-gfortran $FFLAGS -c mod_sparse_grid.f90
-gfortran $FFLAGS -c general_module.f90
-ar rcs libgeneral_module.a *.o
+export FFLAGS
+FFLAGS="$FFLAGS" bash "$DIR/../scripts/compile_modules.sh" "$SRC_DIR" "$NJOBS"
+ar rcs "$SRC_DIR"/libgeneral_module.a "$SRC_DIR"/*.o
 
 cd "$DIR"
 
@@ -132,13 +79,59 @@ TESTS=(
     "test_sparse_grid"
 )
 
+# 并行执行: 各测试只打印 stdout、无共享文件 I/O, 天然可安全并行。
+# 每套件输出写入独立日志, 全部完成后按固定顺序回放, 保证输出确定性;
+# 失败检测不依赖 xargs 退出码 (避免 set -e 提前中断汇总)。
+echo ""
+echo ">> Compiling and running ${#TESTS[@]} test suites with $NJOBS parallel jobs..."
+LOG_DIR="$(mktemp -d)"
+export FFLAGS SRC_DIR DIR LOG_DIR
+
+run_one_test() {
+    local name="$1"
+    local rc=0
+    local t0 t1
+    t0="$(date +%s%N 2>/dev/null || date +%s)"
+    rm -f "$DIR/$name"
+    gfortran $FFLAGS -I"$SRC_DIR" "$DIR/$name.f90" "$SRC_DIR/libgeneral_module.a" -o "$DIR/$name" \
+        > "$LOG_DIR/$name.build.log" 2>&1 || rc=1
+    if [ "$rc" -eq 0 ]; then
+        "$DIR/$name" > "$LOG_DIR/$name.log" 2>&1 || rc=1
+    fi
+    t1="$(date +%s%N 2>/dev/null || date +%s)"
+    echo "$(( (t1 - t0) / 1000000 ))" > "$LOG_DIR/$name.ms" 2>/dev/null || true
+    rm -f "$DIR/$name"
+    if [ "$rc" -eq 0 ]; then
+        echo "PASS" > "$LOG_DIR/$name.status"
+    else
+        echo "FAIL" > "$LOG_DIR/$name.status"
+    fi
+    return 0
+}
+export -f run_one_test
+
+printf '%s\n' "${TESTS[@]}" | xargs -P "$NJOBS" -I '{}' bash -c 'run_one_test "{}"' || true
+
+n_fail=0
 for test_name in "${TESTS[@]}"; do
     echo ""
-    echo ">> Compiling and running $test_name..."
-    gfortran $FFLAGS -I"$SRC_DIR" "$test_name.f90" "$SRC_DIR"/libgeneral_module.a -o "$test_name"
-    "./$test_name"
-    rm -f "$test_name"
+    echo ">> $test_name ($(cat "$LOG_DIR/$test_name.ms" 2>/dev/null || echo '?') ms)"
+    cat "$LOG_DIR/$test_name.log" 2>/dev/null
+    if [ "$(cat "$LOG_DIR/$test_name.status" 2>/dev/null)" != "PASS" ]; then
+        n_fail=$((n_fail + 1))
+        echo "[BUILD/RUN FAILURE] $test_name"
+        cat "$LOG_DIR/$test_name.build.log" 2>/dev/null
+    fi
 done
+rm -rf "$LOG_DIR"
+
+if [ "$n_fail" -ne 0 ]; then
+    echo ""
+    echo "****************************************************************"
+    echo "   $n_fail TEST SUITE(S) FAILED - see [BUILD/RUN FAILURE] above "
+    echo "****************************************************************"
+    exit 1
+fi
 
 echo ""
 echo "================================================================"

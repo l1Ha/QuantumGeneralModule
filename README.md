@@ -27,6 +27,7 @@
 5. **全自动 CI/CD 持续集成**
    - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 46 大测试套件（393 个单元断言 100% 通过）与 36 大物理应用工程算例。
 6. **服务器级高性能与多核硬件加速 (HPC & Multi-Core Ready)**
+   - 构建与测试流水线全面并行化：模块编译采用依赖自愈的并行编译器（`scripts/compile_modules.sh`，55 个模块约 3.5 秒），测试套件以 `xargs -P` 并行执行（`TEST_JOBS` 可调），全量回归在 20 核服务器上仅需约 7 秒（OPENMP=1 构建）；CI 同时回归串行与 OpenMP 两条构建路径。
    - 核心计算密集模块（2D 分裂算符波包传播、2D FFT、DVR 动能矩阵构造、Penning 碰撞截面、RIXS 2D 强度谱、ATAS 瞬态吸收光谱、两电子库仑三体变分求积、SOP 逐维张量缩并与 TT 稠密还原、QCT 轨迹系综）内嵌标准 OpenMP 哨兵指令，支持零依赖单核运行与 `make OPENMP=1` / `cmake -DENABLE_OPENMP=ON` 服务器多核多线程加速。
    - Python 伴侣包 `pygenmod` 的 QCT 轨迹系综（`run_qct_ensemble`）支持进程级多核并发（`n_workers=-1` 自动侦测并打满服务器核心）；Fortran 侧 `mod_qct_dynamics` 的系综循环同样支持 OpenMP 多线程（10 万条 H+H2 轨迹 20 线程加速约 13 倍）。两侧均采用每轨迹独立确定性种子流设计（种子由全局轨迹索引导出），任意线程/进程数下结果逐位可复现。
 

@@ -4656,7 +4656,9 @@ CMakeLists.txt & 跨平台与 IDE & 对象库、静态库、共享库、CTest &
 \section{8.3　测试体系的验证层次}\label{ux6d4bux8bd5ux4f53ux7cfbux7684ux9a8cux8bc1ux5c42ux6b21}}
 
 GeneralModule 当前包含 46 个 Fortran 测试程序和 36
-个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。
+个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。测试流水线利用服务器多核并行：模块编译由依赖自愈的并行编译器完成（\texttt{scripts/compile\_modules.sh}，逐波并行尝试、未就绪者下轮重试，55
+个模块约 3.5 秒），测试套件间无共享文件 I/O，以 \texttt{xargs\ -P}
+并行执行并按固定顺序回放日志（\texttt{TEST\_JOBS} 可调并行度）。
 
 测试应覆盖以下层次：
 
@@ -4764,7 +4766,8 @@ GitHub Actions 配置位于：
 \item
   静态库和共享库能否生成；
 \item
-  单元测试是否通过；
+  单元测试是否通过（串行与 \texttt{OPENMP=1}
+  并行两条构建路径均需回归）；
 \item
   物理示例是否运行；
 \item
