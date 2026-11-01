@@ -525,11 +525,9 @@ def generate_fig10_diatomic_reduced_mass_matrix():
 
     plt.tight_layout()
     fig_path10 = os.path.join(OUT_DIR, "fig10_diatomic_reduced_mass_matrix.png")
-    fig_path_legacy = os.path.join(OUT_DIR, "fig_diatomic_reduced_mass_matrix.png")
     plt.savefig(fig_path10, bbox_inches='tight')
-    plt.savefig(fig_path_legacy, bbox_inches='tight')
     plt.close()
-    print(f" -> Saved to {fig_path10} and {fig_path_legacy}")
+    print(f" -> Saved to {fig_path10}")
 
 
 def generate_fig11_wavepacket_split_operator():

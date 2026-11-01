@@ -2498,7 +2498,7 @@ $$
 3. **量子相干拍复苏时间**：超短非共振强激光场诱导的无场分子排列动力学中（见图 7.4），分子转动波包的完全量子拍复苏周期为 $T_{\mathrm{rot}} = \frac{\pi}{B_e} = \frac{2\pi \mu R_e^2}{\hbar} \propto \mu$；
 4. **超冷低能碰撞力程**：两体范德华长程吸引势 $V(r) \sim -C_6/r^6$ 的特征平均散射长度满足 Gribakin–Flambaum 标度关系 $\bar{a} = \frac{2\pi}{\Gamma(1/4)^2}\left(\frac{2\mu C_6}{\hbar^2}\right)^{1/4} \propto \mu^{1/4}$。
 
-![图 7.5：双原子不同成分折合质量 $\mu = \frac{m_1 m_2}{m_1 + m_2}$ 矩阵热力图与全景周期分布：（a）16 种代表性同位素成分（包含从超轻同位素 $^1\mathrm{H}$、$D$ 到常见主族元素与超冷碱金属 $^{87}\mathrm{Rb}$、$^{133}\mathrm{Cs}$）的精确数值方阵（单位为 $\mathrm{amu}$，对数色阶）；（b）元素周期表前 36 号元素（$Z = 1 \sim 36$）连续全景等高线图，展现氢化物饱和带（$\mu \leq 1.0\ \mathrm{amu}$）与同核双原子对角线极大脊线（$\mu = m/2$）。绘图脚本见 `docs/plot_diatomic_reduced_mass_matrix.py`。](figures/fig10_diatomic_reduced_mass_matrix.png){width=13.0cm}
+![图 7.5：双原子不同成分折合质量 $\mu = \frac{m_1 m_2}{m_1 + m_2}$ 矩阵热力图与全景周期分布：（a）16 种代表性同位素成分（包含从超轻同位素 $^1\mathrm{H}$、$D$ 到常见主族元素与超冷碱金属 $^{87}\mathrm{Rb}$、$^{133}\mathrm{Cs}$）的精确数值方阵（单位为 $\mathrm{amu}$，对数色阶）；（b）元素周期表前 36 号元素（$Z = 1 \sim 36$）连续全景等高线图，展现氢化物饱和带（$\mu \leq 1.0\ \mathrm{amu}$）与同核双原子对角线极大脊线（$\mu = m/2$）。绘图脚本见 `docs/generate_figures.py`。](figures/fig10_diatomic_reduced_mass_matrix.png){width=13.0cm}
 
 图 7.5 揭示了双原子体系折合质量在全元素周期表中的两大全局物理机制：
 
