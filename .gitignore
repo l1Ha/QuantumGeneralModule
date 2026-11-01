@@ -53,19 +53,10 @@ Thumbs.db
 .marscode/
 tmp/
 
-# Earlier local textbook drafts
-docs/GeneralModule项目教科书.docx
-docs/GeneralModule项目教科书.pdf
-docs/GeneralModule项目教科书.tex
-docs/tex_media/
-
-# Keep the final textbook and its LaTeX assets
-!docs/量子动力学数值计算_GeneralModule_Fortran2008.pdf
-!docs/量子动力学数值计算_GeneralModule_Fortran2008_第三版.pdf
+# Keep the final textbook and its assets
 !docs/量子动力学数值计算_GeneralModule_Fortran2008_第四版.pdf
 !docs/qr/*.png
 !docs/figures/*.png
-!docs/tex_media_deep/media/*.png
 
 # LaTeX build intermediates
 docs/*.aux
