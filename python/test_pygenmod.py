@@ -20,7 +20,7 @@ from pygenmod import (
     landau_zener_probability, calculate_channel_populations,
     rovibrational_state_index, rovibrational_state_unindex,
     rot_matrix_cos_theta, rot_matrix_cos2_theta, calc_franck_condon_factors, \
-    watson_asymmetric_levels,
+    watson_asymmetric_levels, watson_asymmetric_levels_cd,
     van_der_waals_mean_length, square_well_scattering_length_exact,
     calc_scattering_length_numerov, plot_scattering_length_wavefunction,
     calc_differential_cross_section, calc_differential_cross_section_identical,
@@ -166,6 +166,15 @@ class TestPyGenMod(unittest.TestCase):
         lvl = watson_asymmetric_levels(27.42, 14.59, 9.53, 6)
         trace = float(np.sum(lvl))
         self.assertAlmostEqual(trace, 13.0 * 42.0 * (27.42 + 14.59 + 9.53) / 3.0, places=8)
+        # 离心畸变: 球陀螺 + D_J 解析; 迹规则含四次项
+        lvl_cd = watson_asymmetric_levels_cd(10.0, 10.0, 10.0, 2.76e-3, 0.0, 0.0, 3)
+        np.testing.assert_allclose(lvl_cd, (10.0 - 2.76e-3 * 12.0) * 12.0, atol=1e-9)
+        lvl_cd = watson_asymmetric_levels_cd(27.42, 14.59, 9.53, 2.76e-3, 1e-2, 4e-2, 7)
+        jj = 7.0 * 8.0
+        trace_cd = 15.0 * jj * (27.42 + 14.59 + 9.53) / 3.0 \
+            - 2.76e-3 * 15.0 * jj * jj - 1e-2 * 15.0 * jj * jj / 3.0 \
+            - 4e-2 * 15.0 * jj * (3 * 49.0 + 21.0 - 1.0) / 15.0
+        self.assertAlmostEqual(float(np.sum(lvl_cd)), trace_cd, places=7)
 
         # Franck-Condon factor
         chi = np.zeros((10, 2))

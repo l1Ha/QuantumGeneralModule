@@ -3,7 +3,7 @@
 [![CI](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml/badge.svg)](https://github.com/l1Ha/QuantumGeneralModule/actions/workflows/ci.yml)
 [![Fortran 2008](https://img.shields.io/badge/Fortran-2008-734f96.svg)](https://fortran-lang.org/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests: 421/421 Pass](https://img.shields.io/badge/Tests-421%2F421%20Pass%20(100%25)-brightgreen.svg)](tests/)
+[![Tests: 430/430 Pass](https://img.shields.io/badge/Tests-430%2F430%20Pass%20(100%25)-brightgreen.svg)](tests/)
 [![Literature: 42 Topics](https://img.shields.io/badge/Literature-46%20Topics%20(PRL%2FPRA%2FRMP%2FScience%2FNature)-blue.svg)](LITERATURE.md)
 
 `GeneralModule` 是一个面向超快强场物理、分子光物理、前沿量子散射与表面动力学模拟的现代化通用科学计算算法库。该库遵循严格的 **Fortran 2008 规范**，具备高数值精度、零外部动态库强依赖、模块化架构与出色的 AI Agent 友好性。
@@ -25,7 +25,7 @@
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
    - 教科书《量子动力学数值计算》内嵌的 17 幅计算结果图（角动量选择定则热图、H3 LEPS 势能面与 IRC、Lindblad 弛豫、DVR 谱收敛、split-operator 波包传播、HHG 高次谐波谱、QR 收敛阶与差分步长标定、分子排列复苏、散射长度、Breit-Rabi、Feshbach、QCT 不透明度、Smolyak 稀疏网格、折合质量矩阵等）全部由 `docs/generate_figures.py` 一键真实前向模拟生成，零手工修饰。
 5. **全自动 CI/CD 持续集成**
-   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 47 大测试套件（421 个单元断言 100% 通过）与 36 大物理应用工程算例。
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 47 大测试套件（430 个单元断言 100% 通过）与 36 大物理应用工程算例。
 6. **服务器级高性能与多核硬件加速 (HPC & Multi-Core Ready)**
    - 构建与测试流水线全面并行化：模块编译采用依赖自愈的并行编译器（`scripts/compile_modules.sh`，55 个模块约 3.5 秒），测试套件以 `xargs -P` 并行执行（`TEST_JOBS` 可调），全量回归在 20 核服务器上仅需约 7 秒（OPENMP=1 构建）；CI 同时回归串行与 OpenMP 两条构建路径。
    - 核心计算密集模块（2D 分裂算符波包传播、2D FFT、DVR 动能矩阵构造、Penning 碰撞截面、RIXS 2D 强度谱、ATAS 瞬态吸收光谱、两电子库仑三体变分求积、SOP 逐维张量缩并与 TT 稠密还原、QCT 轨迹系综）内嵌标准 OpenMP 哨兵指令，支持零依赖单核运行与 `make OPENMP=1` / `cmake -DENABLE_OPENMP=ON` 服务器多核多线程加速。
@@ -95,7 +95,7 @@ GeneralModule/
 │   ├── mod_resonant_xray_scattering.f90 # 48. 共振非弹性 X 射线散射 (RIXS)、Kramers-Heisenberg 二阶截面、XAS/XES 与 Huang-Rhys 振动级数
 │   ├── mod_penning_associative_ionization.f90 # 49. 亚稳态原子潘宁电离与缔合化学电离动力学、光学势自电离宽度、PIES 电子发射能谱与自旋抑制
 │   └── general_module.f90          # 顶层聚合入口模块 (use general_module, 49 大核心物理模块)
-├── tests/                          # 自动化单元测试套件 (47 个套件，100% 全部通过，421/421 断言)
+├── tests/                          # 自动化单元测试套件 (47 个套件，100% 全部通过，430/430 断言)
 │   ├── test_constants.f90
 │   ├── test_special_functions.f90
 │   ├── test_dvr_grid.f90
@@ -137,7 +137,7 @@ GeneralModule/
 │   ├── test_relativistic_atomic.f90       # 狄拉克氢 1s 基态、2p 精细结构劈裂、Cs 核心极化与相对论 E1 振子强度测试
 │   ├── test_resonant_xray_scattering.f90  # Cu L3 XAS 吸收峰、Kramers-Heisenberg 共振放大、2D RIXS 图谱与 Laguerre 声子级数测试
 │   ├── test_penning_associative_ionization.f90 # 潘宁电离与缔合电离势能面、自电离宽度、低能 AI 俘获主导至高能 PI 转变与 PIES 能谱测试
-│   └── run_all_tests.sh            # 自动化测试运行脚本 (100% Pass, 421/421 断言, 47 测试套件)
+│   └── run_all_tests.sh            # 自动化测试运行脚本 (100% Pass, 430/430 断言, 47 测试套件)
 ├── examples/                       # 典型物理应用算例 (36 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90            # 啁啾、双色、太赫兹脉冲时频生成
@@ -1562,7 +1562,7 @@ chmod +x run_all_tests.sh
 40. Resonant X-ray RIXS Tests:           5 /  5 PASSED
 41. Penning & Associative Ioniz Tests:  5 /  5 PASSED
 ----------------------------------------------------------------
-ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 421/421 断言通过)
+ALL UNIT TESTS PASSED SUCCESSFULLY! (100% Pass, 430/430 断言通过)
 ================================================================
 ```
 

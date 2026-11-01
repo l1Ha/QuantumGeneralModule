@@ -20,6 +20,7 @@ module mod_watson_rotor
     real(dp), parameter, public :: ROT_FACTOR_AMU_A2_CM1 = 16.857631_dp
 
     public :: asymmetric_top_levels
+    public :: asymmetric_top_levels_cd
     public :: inertia_constants_from_geometry
     public :: wang_matrix_element
 
@@ -86,6 +87,56 @@ contains
         call diag_symmetric_matrix(n_dim, h_mat, energies, vecs, ierr)
         stat = merge(0, -2, ierr == 0)
     end subroutine asymmetric_top_levels
+
+    !> \brief 非对称陀螺能级 + 四阶离心畸变 (Watson A reduction 对角项)
+    !> \details 在刚转子 Wang 矩阵上叠加 A reduction 的对角四次项:
+    !>          H_cd = -D_J J^4 - D_JK J^2 Ja^2 - D_K Ja^4
+    !>          (标准光谱学约定: D_J > 0 降低能级, E = B J(J+1) - D_J J^2(J+1)^2;
+    !>           对角贡献: -D_J [J(J+1)]^2 - D_JK J(J+1) K^2 - D_K K^4)。
+    !>          Delta K = +/-2/4 的 d1/d2 项与 A/S reduction 约定强相关
+    !>          ((2K+/-3) 因子与符号), 留作后续增量并需对照 SPFIT 约定验收;
+    !>          d1 = d2 = 0 时本子程序给出完整结果。
+    !>          极限: D_JK = D_K = 0 且 A = B = C 时退化为
+    !>          E = [A - D_J J(J+1)] J(J+1) (球陀螺离心畸变)。
+    subroutine asymmetric_top_levels_cd(a_const, b_const, c_const, &
+                                        d_j, d_jk, d_k, j_qnum, energies, stat)
+        real(dp), intent(in)  :: a_const, b_const, c_const
+        real(dp), intent(in)  :: d_j, d_jk, d_k
+        integer, intent(in)   :: j_qnum
+        real(dp), intent(out), allocatable :: energies(:)
+        integer, intent(out)  :: stat
+
+        integer  :: n_dim, k, kp, ierr
+        real(dp) :: jj, kk
+        real(dp), allocatable :: h_mat(:, :), vecs(:, :)
+
+        if (j_qnum < 0 .or. a_const <= 0.0_dp .or. b_const <= 0.0_dp .or. c_const <= 0.0_dp) then
+            stat = -1
+            allocate(energies(0))
+            return
+        end if
+
+        n_dim = 2 * j_qnum + 1
+        allocate(h_mat(n_dim, n_dim), vecs(n_dim, n_dim), energies(n_dim))
+        jj = real(j_qnum * (j_qnum + 1), dp)
+        h_mat = 0.0_dp
+        do k = -j_qnum, j_qnum
+            kk = real(k * k, dp)
+            h_mat(k + j_qnum + 1, k + j_qnum + 1) = &
+                0.5_dp * (b_const + c_const) * jj &
+                + (a_const - 0.5_dp * (b_const + c_const)) * kk &
+                - d_j * jj * jj - d_jk * jj * kk - d_k * kk * kk
+            do kp = k + 2, j_qnum, 2
+                h_mat(kp + j_qnum + 1, k + j_qnum + 1) = &
+                    wang_matrix_element(a_const, b_const, c_const, j_qnum, k, kp)
+                h_mat(k + j_qnum + 1, kp + j_qnum + 1) = &
+                    h_mat(kp + j_qnum + 1, k + j_qnum + 1)
+            end do
+        end do
+
+        call diag_symmetric_matrix(n_dim, h_mat, energies, vecs, ierr)
+        stat = merge(0, -2, ierr == 0)
+    end subroutine asymmetric_top_levels_cd
 
     !> \brief 由核坐标与质量计算主惯量与转动常数 (多原子第一步: 几何 -> A,B,C)
     !> \details 以质心为原点的惯量张量 I_ab = sum_i m_i (|r_i|^2 delta_ab - r_a r_b),

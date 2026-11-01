@@ -128,7 +128,7 @@ clean:
 help:
 	@echo "Available targets in GeneralModule Makefile:"
 	@echo "  make all      - Build the core static library (libgeneral_module.a)"
-	@echo "  make test     - Run all 47 unit test suites (421 assertions)"
+	@echo "  make test     - Run all 47 unit test suites (430 assertions)"
 	@echo "  make examples - Build and execute all 35 physics examples"
 	@echo "  make check    - Run Fortran tests and Python pygenmod test suite"
 	@echo "  make clean    - Remove all compiled objects, modules, and data outputs"

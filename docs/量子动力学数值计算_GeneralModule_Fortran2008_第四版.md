@@ -521,13 +521,15 @@ $$
 
 **小型数值实验（水分子）。** 由实验几何（$r_{\mathrm{OH}}=0.9572$ Å，$\angle=104.52^\circ$）经 `inertia_constants_from_geometry` 计算主惯量与转动常数：得 $A=27.43$、$B=14.60$、$C=9.53\ \mathrm{cm^{-1}}$，与实验基态值 $27.33/14.57/9.49\ \mathrm{cm^{-1}}$ 在 $0.4\%$ 内一致（差异来自刚转子与振动平均的固有区别）；平面分子垂直轴定理 $I_c=I_a+I_b$ 以 $10^{-10}$ amu Å² 精度自洽。图 3.2 展示 $J=0\ldots5$ 的能级图：非对称陀螺能级（红）恰落在长对称极限（灰虚线）与扁对称极限（蓝点线）之间，直观呈现"非对称性使 $\pm K$ 简并按 $K_a/K_c$ 标记分裂"的物理。
 
-![图 3.2：H$_2$O 型非对称陀螺转动能级图（$J=0\ldots5$，刚转子 Watson 极限）。红色为非对称陀螺能级（$A=27.43$、$B=14.60$、$C=9.53\ \mathrm{cm^{-1}}$，由 `inertia_constants_from_geometry` 从实验几何计算），灰虚线与蓝点线分别为长对称（$B=C$）与扁对称（$A=B$）极限参照——非对称陀螺能级在两套极限之间连续插值。绘图脚本见 `docs/generate_figures.py`。](figures/fig18_watson_levels.png){width=12.0cm}
+![图 3.2：H$_2$O 型非对称陀螺转动能级与离心畸变（Watson 刚转子 + A reduction 对角四次项）。（a）$J=0\ldots5$ 能级图：红为非对称陀螺能级（$A=27.43$、$B=14.60$、$C=9.53\ \mathrm{cm^{-1}}$，由 `inertia_constants_from_geometry` 从实验几何计算），灰虚线与蓝点线为长对称（$B=C$）与扁对称（$A=B$）极限参照；（b）离心畸变的影响：灰为刚转子能级（第一步），红为含四次畸变项 $-D_JJ^4-D_{JK}J^2J_a^2-D_KJ_a^4$（$D_J=2.76\times10^{-3}\ \mathrm{cm^{-1}}$ 等，水分子量级示例参数）的能级——下移量随 $J^2(J+1)^2$ 增长。绘图脚本见 `docs/generate_figures.py`。](figures/fig18_watson_levels.png){width=13.0cm}
+
+**多原子拓展第二步：离心畸变进入矩阵。** 刚转子之上叠加 Watson A reduction 的对角四次项 $H_{\mathrm{cd}}=-D_J\hat{J}^4-D_{JK}\hat{J}^2\hat{J}_a^2-D_K\hat{J}_a^4$（$D_J>0$ 降低能级，标准光谱学约定 $E=B J(J+1)-D_JJ^2(J+1)^2$），对角贡献为 $-D_J[J(J+1)]^2-D_{JK}J(J+1)K^2-D_KK^4$。三重验证：畸变全零与刚转子逐位一致；球陀螺加 $D_J$ 时 $E=[A-D_JJ(J+1)]J(J+1)$ 解析可验；**扩展迹规则** $\sum E=(2J+1)J(J+1)\{(A+B+C)/3-D_JJ(J+1)-D_{JK}J(J+1)/3\}-D_K(2J+1)J(J+1)(3J^2+3J-1)/15$ 精确成立（$\Delta K=\pm2/\pm4$ 的 $d_1/d_2$ 项迹为零，以非零 $d_1,d_2$ 加入时迹不变亦获验证）。$\Delta K=\pm2/\pm4$ 的非对角 $d_1/d_2$ 项与 A/S reduction 约定强相关（$2K\pm3$ 因子与符号），留作后续增量并需对照 SPFIT 约定验收。
 
 #### 对应源码（多原子拓展）
 
 - [src/mod_watson_rotor.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_watson_rotor.f90)：`wang_matrix_element`（Wang 矩阵元）、`asymmetric_top_levels`（给定 $J$ 的 $2J+1$ 条能级，库内 QL 求解器对角化）、`inertia_constants_from_geometry`（核坐标/质量 → 主惯量 → $A,B,C$，复用 `diag_symmetric_matrix`）。
-- Python 参照：`python/pygenmod/rovibrational.py` 的 `watson_asymmetric_levels` 与 `inertia_constants_from_geometry`。
-- 验证：`tests/test_watson_rotor.f90`（三极限解析谱、迹规则、垂直轴定理、H₂O 实验值 1% 对照，共 28 项断言）。多原子振动的完整 Watson 处理（Coriolis 与离心畸变精细结构）见 §12.2 路线图。
+- Python 参照：`python/pygenmod/rovibrational.py` 的 `watson_asymmetric_levels`、`watson_asymmetric_levels_cd` 与 `inertia_constants_from_geometry`。
+- 验证：`tests/test_watson_rotor.f90`（三极限解析谱、迹规则、垂直轴定理、H₂O 实验值 1% 对照、离心畸变回归/解析/迹规则，共 37 项断言）。多原子振动的完整 Watson 处理（Coriolis 与 $d_1/d_2$ 畸变项）见 §12.2 路线图。
 
 ---
 
@@ -5029,7 +5031,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 47 个测试程序、421 项断言全部通过。
+- 全库 47 个测试程序、430 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

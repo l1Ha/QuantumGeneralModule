@@ -20,6 +20,7 @@ program test_watson_rotor
     call test_spherical_limit()
     call test_trace_rule()
     call test_water_constants()
+    call test_centrifugal_distortion()
 
     print *, ""
     print *, "================================================================"
@@ -202,5 +203,67 @@ contains
             jj = 0
         end block
     end subroutine test_water_constants
+
+    !> 离心畸变 (A reduction 对角四次项): (a) 刚体回归; (b) 球陀螺 D_J 解析;
+    !> (c) 含四次项的迹规则 (d1 = d2 = 0); (d) 长对称陀螺 K=0 槽位的 H2 WDC 对照
+    subroutine test_centrifugal_distortion()
+        real(dp), parameter :: a_c = 27.42_dp, b_c = 14.59_dp, c_c = 9.53_dp
+        real(dp), parameter :: d_j = 2.76e-3_dp, d_jk = 1.0e-2_dp, d_k = 4.0e-2_dp
+        real(dp), allocatable :: e_rig(:), e_cd(:)
+        integer :: stat, j_qnum
+        real(dp) :: s_cd, s_rig, s4_trace, target4
+
+        print *, ""
+        print *, "--- 6. Centrifugal distortion (A reduction diagonal quartics) ---"
+
+        ! (a) 刚体回归: 全零畸变 -> 与 rigid 例程逐位一致
+        do j_qnum = 0, 5
+            call asymmetric_top_levels(a_c, b_c, c_c, j_qnum, e_rig, stat)
+            call asymmetric_top_levels_cd(a_c, b_c, c_c, 0.0_dp, 0.0_dp, 0.0_dp, j_qnum, e_cd, stat)
+            call assert_true(size(e_cd) == size(e_rig) .and. &
+                             maxval(abs(e_cd - e_rig)) < 1.0e-12_dp, &
+                             "CD zero-regression vs rigid, J")
+            write(*, '(A, I2, A, L1)') "  J =", j_qnum, "  zero-distortion regression: ", &
+                  size(e_cd) == size(e_rig) .and. maxval(abs(e_cd - e_rig)) < 1.0e-12_dp
+        end do
+
+        ! (b) 球陀螺 + D_J: E = [A - D_J J(J+1)] J(J+1) (解析)
+        j_qnum = 6
+        call asymmetric_top_levels_cd(a_c, a_c, a_c, d_j, 0.0_dp, 0.0_dp, j_qnum, e_cd, stat)
+        block
+            real(dp) :: jj
+            jj = real(j_qnum * (j_qnum + 1), dp)
+            call assert_near(e_cd(1), (a_c - d_j * jj) * jj, 1.0e-9_dp, &
+                             "Spherical top + D_J analytic (J=6 lowest)")
+        end block
+
+        ! (c) 迹规则扩展: sum E = (2J+1)J(J+1)(A+B+C)/3 + D_J (2J+1)[J(J+1)]^2
+        !     + D_JK (2J+1)[J(J+1)]^2/3 + D_K (2J+1) J(J+1)(3J^2+3J-1)/15
+        j_qnum = 7
+        call asymmetric_top_levels_cd(a_c, b_c, c_c, d_j, d_jk, d_k, j_qnum, e_cd, stat)
+        block
+            real(dp) :: jj, s_sum, t_trace
+            jj = real(j_qnum * (j_qnum + 1), dp)
+            s_sum = sum(e_cd)
+            t_trace = real(2 * j_qnum + 1, dp) * jj * (a_c + b_c + c_c) / 3.0_dp &
+                      - d_j * real(2 * j_qnum + 1, dp) * jj * jj &
+                      - d_jk * real(2 * j_qnum + 1, dp) * jj * jj / 3.0_dp &
+                      - d_k * real(2 * j_qnum + 1, dp) * jj &
+                        * (3.0_dp * real(j_qnum * j_qnum, dp) + 3.0_dp * real(j_qnum, dp) - 1.0_dp) / 15.0_dp
+            call assert_near(s_sum, t_trace, 1.0e-8_dp, "Trace rule with quartics, J")
+        end block
+
+        ! (d) 长对称陀螺 (B=C) 的 K=0 槽位: B J(J+1) - D_J [J(J+1)]^2
+        !     以书中 H2 数值 (B0 = 60.18 cm^-1, D_J = 4B0^3/w0^2 = 0.04895 cm^-1) 对照
+        block
+            real(dp), parameter :: b_h2 = 60.18_dp, d_h2 = 4.895e-2_dp
+            real(dp) :: jj
+            j_qnum = 5
+            call asymmetric_top_levels_cd(b_h2, b_h2, b_h2, d_h2, 0.0_dp, 0.0_dp, j_qnum, e_cd, stat)
+            jj = real(j_qnum * (j_qnum + 1), dp)
+            call assert_near(e_cd(1), b_h2 * jj - d_h2 * jj * jj, 1.0e-8_dp, &
+                             "H2 WDC diatomic limit (K=0 slot, J=5)")
+        end block
+    end subroutine test_centrifugal_distortion
 
 end program test_watson_rotor

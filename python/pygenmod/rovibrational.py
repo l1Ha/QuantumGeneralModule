@@ -74,6 +74,37 @@ def watson_asymmetric_levels(a_const: float, b_const: float, c_const: float,
     return np.linalg.eigvalsh(h_mat)
 
 
+def watson_asymmetric_levels_cd(a_const: float, b_const: float, c_const: float,
+                                d_j: float, d_jk: float, d_k: float,
+                                j_qnum: int) -> np.ndarray:
+    """Asymmetric-top levels including A-reduced quartic centrifugal distortion.
+
+    Adds the diagonal quartic terms (Watson A reduction, d1 = d2 = 0)
+        H_cd = -D_J J^4 - D_JK J^2 Ja^2 - D_K Ja^4
+    to the rigid Wang matrix (watson_asymmetric_levels); D > 0 lowers the
+    levels per the standard convention E = B J(J+1) - D_J J^2 (J+1)^2.
+    The Delta K = +/-2/4 d1/d2 terms are convention-sensitive (A vs S
+    reduction) and are not included.
+    """
+    n_dim = 2 * j_qnum + 1
+    jj = float(j_qnum * (j_qnum + 1))
+    h_mat = np.zeros((n_dim, n_dim))
+    for k1 in range(-j_qnum, j_qnum + 1):
+        i1 = k1 + j_qnum
+        h_mat[i1, i1] = 0.5 * (b_const + c_const) * jj \
+            + (a_const - 0.5 * (b_const + c_const)) * float(k1 * k1) \
+            - d_j * jj * jj - d_jk * jj * float(k1 * k1) - d_k * float(k1 * k1) ** 2
+        if k1 + 2 <= j_qnum:
+            k2 = k1 + 2
+            i2 = k2 + j_qnum
+            t1 = jj - float(k1 * (k1 + 1))
+            t2 = jj - float((k1 + 1) * (k1 + 2))
+            h_val = 0.25 * (b_const - c_const) * np.sqrt(max(t1 * t2, 0.0))
+            h_mat[i2, i1] = h_val
+            h_mat[i1, i2] = h_val
+    return np.linalg.eigvalsh(h_mat)
+
+
 def inertia_constants_from_geometry(positions: np.ndarray, masses: np.ndarray
                                     ) -> tuple[float, float, float, np.ndarray, np.ndarray]:
     """Principal moments and rotational constants A, B, C (cm^-1) from nuclear

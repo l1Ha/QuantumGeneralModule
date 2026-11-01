@@ -1120,7 +1120,7 @@ def generate_fig18_watson_levels():
     a_c, b_c, c_c, moments, com = _pg.inertia_constants_from_geometry(pos, masses)
 
     j_max_plot = 5
-    fig, ax = plt.subplots(figsize=(9.0, 5.6), dpi=200)
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(12.6, 5.4), dpi=200)
     offsets = np.linspace(-0.15, 0.15, 7)
     for j_qnum in range(j_max_plot + 1):
         e_asy = _pg.watson_asymmetric_levels(a_c, b_c, c_c, j_qnum)
@@ -1147,10 +1147,39 @@ def generate_fig18_watson_levels():
     ax.set_ylim(-80.0, 780.0)
     ax.set_xlabel(r'$J$')
     ax.set_ylabel(r'Rotational energy (cm$^{-1}$)')
-    ax.set_title(r'Asymmetric-Top Rotational Levels ($\mathrm{H}_2\mathrm{O}$-like: '
+    ax.set_title(r'(a) Asymmetric-Top Levels ($\mathrm{H}_2\mathrm{O}$-like: '
                  + rf'$A={a_c:.2f}$, $B={b_c:.2f}$, $C={c_c:.2f}\ \mathrm{{cm}}^{{-1}}$)',
                  fontsize=11, pad=10)
     ax.legend(loc='upper left', frameon=True, fontsize=9)
+
+    # 面板 (b): 离心畸变 (A reduction 对角四次项) 对 J 阈结构的影响
+    d_j, d_jk, d_k = 2.76e-3, 1.0e-2, 4.0e-2   # 水分子量级示例参数
+    for j_qnum in range(j_max_plot + 1):
+        x_center = j_qnum * 1.8
+        e_rig = _pg.watson_asymmetric_levels(a_c, b_c, c_c, j_qnum)
+        e_cd = _pg.watson_asymmetric_levels_cd(a_c, b_c, c_c, d_j, d_jk, d_k, j_qnum)
+        ax2.hlines(e_rig, np.full_like(e_rig, x_center - 0.20),
+                   np.full_like(e_rig, x_center + 0.20),
+                   color='gray', linewidth=1.8)
+        ax2.hlines(e_cd, np.full_like(e_cd, x_center - 0.34),
+                   np.full_like(e_cd, x_center + 0.34),
+                   color='crimson', linewidth=2.4)
+        if j_qnum >= 2:
+            shift = e_rig.min() - e_cd.min()
+            ax2.annotate("", xy=(x_center, e_cd.min()), xytext=(x_center, e_rig.min()),
+                         arrowprops=dict(arrowstyle='<->', color='darkgreen', lw=1.0))
+            ax2.text(x_center + 0.30, (e_rig.min() + e_cd.min()) / 2,
+                     rf"$-{shift:.0f}$", fontsize=7.5, color='darkgreen', va='center')
+    ax2.plot([], [], color='gray', linewidth=1.8, label='Rigid (Step 1)')
+    ax2.plot([], [], color='crimson', linewidth=2.4, label='With quartic CD')
+    ax2.set_xlim(-1.0, 10.0)
+    ax2.set_ylim(-80.0, 780.0)
+    ax2.set_xlabel(r'$J$')
+    ax2.set_ylabel(r'Rotational energy (cm$^{-1}$)')
+    ax2.set_title(r'(b) Quartic Centrifugal Distortion ($D_J\!=\!%.0f\times10^{-3}$ cm$^{-1}$)'
+                  % (d_j * 1e3), fontsize=11)
+    ax2.legend(loc='upper left', frameon=True, fontsize=9)
+
     plt.tight_layout()
     fig_path = os.path.join(OUT_DIR, "fig18_watson_levels.png")
     plt.savefig(fig_path)
