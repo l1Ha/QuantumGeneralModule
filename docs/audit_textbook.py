@@ -51,6 +51,34 @@ def check_qr(text: str) -> dict:
     return {"checked": len(refs), "missing": missing}
 
 
+# 书中以路线图/设计草案语境提及、尚未实现的规划标识符 (见 12 章/15 章):
+# 这些名字不参与"必须存在于源码"的检查
+ROADMAP_IDENTIFIERS = {
+    "diag_hermitian_matrix", "eig_sparse_symmetric", "svd_real_matrix",
+    "svd_complex_matrix", "sinc_grid_t", "legendre_grid_t", "hermite_grid_t",
+    "laguerre_grid_t", "fourier_grid_t", "grid_t", "mod_pes_surface",
+    "mod_pes_machine_learning",
+}
+
+
+def check_identifiers(text: str) -> dict:
+    """理论-代码对照的机器验证: 书中反引号引用的例程/类型名必须真实
+   存在于 Fortran 源码或 pygenmod 中 (路线图标识符见 ROADMAP_IDENTIFIERS)。"""
+    ids = sorted(set(re.findall(r"`([a-z][a-z0-9_]{5,40})`", text)))
+    src = ""
+    for f in sorted((ROOT / "src").glob("*.f90")):
+        src += f.read_text()
+    for f in sorted((ROOT / "python" / "pygenmod").glob("*.py")):
+        src += f.read_text()
+    src += (ROOT / "python" / "test_pygenmod.py").read_text()
+    src += "\n".join(f.name for f in sorted((ROOT / "tests").glob("*.f90")))
+    src += "\n".join(f.name for f in sorted((ROOT / "examples").glob("*.f90")))
+    missing = [i for i in ids
+               if i not in ROADMAP_IDENTIFIERS
+               and not re.search(rf"\b{re.escape(i)}\b", src)]
+    return {"checked": len(ids), "missing": missing}
+
+
 def check_figures(text: str) -> dict:
     refs = sorted(set(re.findall(r"figures/[^)\s`]+", text)))
     missing = [p for p in refs if not (ROOT / "docs" / p).exists()]
@@ -327,6 +355,7 @@ def main() -> int:
         "paths": check_paths(text),
         "qr": check_qr(text),
         "figures": check_figures(text),
+        "identifiers": check_identifiers(text),
         "github_links": check_github_links(text),
         "cross_references": check_cross_references(text),
         "dois": check_dois(text, args.online),
@@ -361,6 +390,7 @@ def main() -> int:
         report["paths"]["missing"]
         or report["qr"]["missing"]
         or report["figures"]["missing"]
+        or report["identifiers"]["missing"]
         or report["github_links"]["missing"]
         or report["cross_references"]["missing"]
         or report["dois"]["syntactically_invalid"]

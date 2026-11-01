@@ -718,6 +718,13 @@ $$
 
 数值上要避免直接求 $S^{-1}$，因为当基组近线性相关时，$S$ 的最小本征值接近零，$\kappa(S)$ 会急剧增大。
 
+#### 对应源码
+
+- [src/mod_dvr_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_dvr_grid.f90)：`dvr_1d_t` 抽象基元、`dvr_expectation_value` 与 `dvr_matrix_element`（算符期望与矩阵元）
+- [src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90)：`diag_symmetric_matrix`（基组哈密顿量对角化）
+- Python 参照：[python/pygenmod/dvr.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/dvr.py)
+- 验证：`tests/test_dvr_grid.f90`；结果图 10.1。
+
 ### 5.2　DVR 的基本结构
 
 离散变量表象不是一种具体算法，而是一类满足以下条件的表示：
@@ -752,6 +759,11 @@ V_{ij}=V(x_i)\delta_{ij}.
 $$
 
 这是 DVR 的核心优势。它把高维问题中的势能矩阵由稠密矩阵变成对角矩阵，使矩阵存储从 $O(N^2)$ 降至 $O(N)$。
+
+#### 对应源码
+
+- [src/mod_dvr_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_dvr_grid.f90)：`dvr_1d_t` 具体类型（`weights` 组件、动能矩阵与 `dvr_expectation_value`/`dvr_matrix_element` 过程）即本节结构的直接实现。
+- Python 参照：[python/pygenmod/dvr.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/dvr.py) 的 `SincDVR` 数据类。
 
 ### 5.3　Fourier 网格与 FGH
 
@@ -810,6 +822,12 @@ $$
 $$
 
 在数值实验中，最直接的检验是把 $N$ 增加一倍，观察本征值和期望值是否稳定。
+
+#### 对应源码
+
+- [src/mod_dvr_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_dvr_grid.f90)：`fgh_solve_bound_states`（正弦格点 + FFT 动能装配，返回本征值与本征矢）。
+- Python 参照：[python/pygenmod/dvr.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/dvr.py) 同名函数。
+- 验证：`tests/test_dvr_grid.f90`（谐振子谱与解析对照）；结果图 10.1。
 
 ### 5.4　Sinc-DVR 的推导与误差结构
 
@@ -879,6 +897,11 @@ E_N-E\sim CN^{-p}.
 $$
 
 因此，不能仅凭两次计算结果接近判断收敛，应至少使用三个网格密度做 Richardson 外推。
+
+#### 对应源码
+
+- [src/mod_dvr_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_dvr_grid.f90)：`dvr_sinc_init` 按 Colbert–Miller 解析式装配 Sinc-DVR 动能矩阵（本节推导的逐行实现）。
+- Python 参照：[python/pygenmod/dvr.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/dvr.py) 同名函数；图 5.1 给出其谱收敛的数值验证。
 
 ### 5.5　Legendre-DVR 与角向表示
 
@@ -985,6 +1008,10 @@ DVR 不是单一算法。不同 DVR 的差异在于权重、动能矩阵和边�
 
 因此，将 DVR 等同于 Sinc-DVR 是不完整的。GeneralModule 提供 Sinc-DVR 与 Gauss-Legendre DVR，并可通过同一框架扩展到其他正交多项式网格。
 
+#### 对应源码
+
+- 表中各行的两个代表实现：FGH 入口 `src/mod_dvr_grid.f90` 的 `fgh_solve_bound_states`（5.3 节）、Legendre-DVR 入口 `dvr_legendre_init`（5.5 节）；适用性结论由 `tests/test_dvr_grid.f90` 的网格收敛断言支撑。
+
 ### 5.7　多维张量积 DVR
 
 若体系有 $d$ 个自由度，则张量积网格为
@@ -1039,6 +1066,11 @@ $$
 
 因此，直接对角化只适用于低维或截断后的小问题。高维问题需要稀疏矩阵、Krylov 方法、Chebyshev 传播、张量分解或缩减基方法。
 
+#### 对应源码
+
+- 一维基元：`src/mod_dvr_grid.f90`；多维张量积组合由 Python [python/pygenmod/dvr.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/dvr.py) 合成网格后交 `fgh_solve_bound_states` 求解。
+- 高维维数灾难的替代路线（Smolyak 稀疏网格）：`src/mod_sparse_grid.f90` 与 `python/pygenmod/sparse_grid.py`，见第 18 章。
+
 ### 5.8　收敛性与 Richardson 外推
 
 设精确本征值为 $E$，数值本征值为 $E_N$。若误差服从
@@ -1076,6 +1108,10 @@ $$
 
 ![图 5.1：Sinc-DVR / FGH 求解谐振子势（$\hbar\omega=1$）的谱收敛实验。左图：前四个能级误差 $|E_v-(v+\frac12)|$ 随网格点数 $N$ 的指数下降并触达机器精度平台；右图：$N=64$ 的基态几率密度与解析解 $\pi^{-1/2}e^{-x^2}$ 逐点比对，全程不可分辨。绘图脚本见 `docs/generate_figures.py`。](figures/fig12_dvr_convergence.png){width=12.0cm}
 
+#### 对应源码
+
+- 收敛实验入口：`src/mod_dvr_grid.f90::fgh_solve_bound_states` 对逐网格执行（图 5.1 与图 12 的数据源）；断言在 [tests/test_dvr_grid.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/tests/test_dvr_grid.f90)。
+
 ### 5.9　从矩阵结构到算法选择
 
 在 DVR 中，哈密顿量矩阵的结构决定算法：
@@ -1089,6 +1125,10 @@ $$
 | 高维张量结构 | Tensor train / MCTDH | 问题相关 |
 
 GeneralModule 的 `mod_linear_algebra` 提供自包含稠密对称本征求解和 FFT；`mod_dvr_grid` 提供网格构造；`mod_wavepacket_propagator` 和 `mod_chebyshev_propagator` 提供时间演化。三者构成一个完整的谱方法教学与验证链路。
+
+#### 对应源码
+
+- 表中四行分别对应：`src/mod_linear_algebra.f90`（Householder 三对角化 + QL）、`src/mod_wavepacket_propagator.f90`（`propagate_split_operator_1d/2d`）、`src/mod_chebyshev_propagator.f90`（`chebyshev_propagate_step`）、`src/mod_tensor_train.f90` 与 `python/pygenmod/sparse_grid.py`（TT/MCTDH/Smolyak）。
 
 ### 5.10　Python 交叉验证
 
@@ -1202,6 +1242,11 @@ $$
 $$
 
 ![图 6.1：变换极限高斯激光脉冲（800 nm，15 fs FWHM）与正色散线性啁啾激光脉冲（$\mathrm{GDD}=40\ \mathrm{fs}^2$）的时域瞬时载波电场 $E(t)$ 与包络 $F(t)$ 对比。](figures/fig02_ultrafast_pulses.png){width=12.0cm}
+
+#### 对应源码
+
+- [src/mod_wavepacket_propagator.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_wavepacket_propagator.f90)：`propagate_split_operator_1d`（严格幺正的 Strang 分裂）与 `rk4_step`；范数/能量守恒断言在 `tests/test_propagators.f90`。
+- 脚本级 Python 前向复现（含守恒诊断）：`docs/generate_figures.py`；结果图 10.2 与图 11。
 
 ### 6.2　Split-Operator 方法
 
@@ -1400,6 +1445,11 @@ $$
 $$
 
 在数值实验中应通过逐步减小 $\Delta x$ 检查可观测量是否收敛。
+
+#### 对应源码
+
+- [src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90)：`fft_1d` 与 `fft_2d`（自包含 Cooley–Tukey，2D 版本内嵌 OpenMP）。
+- 混叠与谱精度检查包含在 `tests/test_propagators.f90` 的传播断言中，并与 Python `numpy.fft` 交叉验证（§5.10）。
 
 ### 6.4　Runge–Kutta 与多步方法
 
@@ -1955,6 +2005,10 @@ $$
 
 ![](qr/tests__test_propagators.f90.png){width=2.0cm}
 
+#### 对应源码
+
+- 汇总入口：`tests/test_propagators.f90`（split-operator 与 RK4/ABM4 守恒断言）、`tests/test_dvr_grid.f90`（DVR 收敛）、`tests/test_propagators.f90`（FFT 与传播精度）；图 10.2 与图 11 为其可视化。
+
 ### 6.11　参考文献
 
 1. M. D. Feit, J. A. Fleck, Jr., and A. Steiger, “Solution of the Schrödinger equation by a spectral method”, *J. Comput. Phys.* **47**, 412 (1982). DOI: 10.1016/0021-9991(82)90091-2.
@@ -2043,6 +2097,12 @@ $$
 =
 \sum_l\sigma_l.
 $$
+
+#### 对应源码
+
+- [src/mod_ti_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_ti_scattering.f90)：`calc_phase_shift_single_l`（相移）、`calc_partial_wave_cross_sections`（分波截面）、`optical_theorem_cross_section`（光学定理）。
+- Python 参照：[python/pygenmod/scattering.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/scattering.py)。
+- 验证：`tests/test_ti_scattering.f90`；结果图 7.1/7.2。
 
 ### 7.2　Numerov 方法与散射长度
 
@@ -2143,6 +2203,11 @@ $$
 
 得到。Johnson 方法在深势阱和长程势中数值稳定性更好。
 
+#### 对应源码
+
+- [src/mod_ti_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_ti_scattering.f90)：`calc_scattering_length_logder`（Johnson 对数导数传播与散射长度提取）。
+- 验证：`tests/test_ti_scattering.f90`；与 Numerov 路径的对照见图 7.1。
+
 ### 7.4　相移与光学定理
 
 散射波函数可展开为
@@ -2182,6 +2247,10 @@ $$
 该关系可用于检验散射振幅、相移和截面计算的一致性。
 
 ![图 7.2：量子微分散射截面角分布 $d\sigma/d\Omega(\theta)$ 对比：可分辨粒子（红线）无交换对称性；全同玻色子（蓝虚线）展现出特征性的交换干涉增强波纹，在 $\theta = 90^\circ$ 处满足严格对称性。](figures/fig05_differential_cross_section.png){width=12.0cm}
+
+#### 对应源码
+
+- [src/mod_ti_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_ti_scattering.f90)：`calc_phase_shift_single_l` 与 `optical_theorem_cross_section` 的自洽断言在 `tests/test_ti_scattering.f90`。
 
 ### 7.5　有效力程展开
 
@@ -2286,6 +2355,12 @@ $$
 $$
 P_{i\rightarrow j}=|S_{ij}|^2.
 $$
+
+#### 对应源码
+
+- [src/mod_ti_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_ti_scattering.f90)：`multichannel_result_t`（多通道结果）与 `mod_td_scattering.f90::calculate_td_smatrix_element`（S 矩阵元）。
+- Python 参照：[python/pygenmod/scattering.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/scattering.py) 的 `calc_multichannel_close_coupling`。
+- 验证：`tests/test_td_scattering.f90`；多基组幺正性见图 7.3。
 
 ### 7.7　分段网格与局部扇区
 
@@ -2640,6 +2715,11 @@ $$
 - 二维码：
 
 ![](qr/src__mod_surface_hopping_fssh.f90.png){width=2.0cm}
+
+#### 对应源码
+
+- [src/mod_surface_hopping_fssh.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_surface_hopping_fssh.f90)：`init_tully_model`（Tully 模型 1/2/3）、`calc_adiabatic_surface_and_nacv`（绝热面与非绝热耦合）、`propagate_fssh_step` 与 `run_fssh_ensemble`（系综）。
+- 验证：`tests/test_surface_hopping_fssh.f90`；分支比统计见 §14.7。
 
 ### 7.13　高级专题的统一研究框架
 
@@ -3557,7 +3637,7 @@ $$
 
 图 10.4 给出该数值实验的完整结果（$\gamma=0.6\ \mathrm{ps}^{-1}$、$\gamma_\phi=0.7\ \mathrm{ps}^{-1}$，RK4、$\Delta t=0.001$ ps）：初态取等幅叠加态 $(|e\rangle+|g\rangle)/\sqrt2$，使 $T_1$ 布居弛豫与 $T_2$ 相干退相位同时非平凡。左图中 $\rho_{ee}(t)=\tfrac12 e^{-\gamma t}$（红）与 $|\rho_{eg}(t)|=\tfrac12 e^{-(\gamma/2+2\gamma_\phi)t}$（蓝）的 RK4 轨迹与解析解（虚线）在全程重合，迹严格守恒；右图的纯度 $P=\operatorname{Tr}\rho^2$ 先降后升——极小值对应"最大混合"时刻，其后系统弛豫回纯基态 $|g\rangle$，$P\to1$。数值与解析纯度之差全程小于 $10^{-9}$，验证了 RK4 传播器对 Lindblad 方程的收敛精度。注意退相干率中的因子 2：$\gamma_\phi(\sigma_z\rho\sigma_z-\rho)$ 形式下超算符对非对角元的作用是 $-2\gamma_\phi\rho_{eg}$，与文献中"纯退相干率 $\gamma_\phi$"的常用约定相差因子 2，跨文献移植参数时必须核对。
 
-![图 10.4：二能级 Lindblad 弛豫与退相位（初态 $(|e\rangle+|g\rangle)/\sqrt2$，$\gamma=0.6$、$\gamma_\phi=0.7\ \mathrm{ps}^{-1}$，RK4 $\Delta t=0.001$ ps）。（a）$\rho_{ee}(t)$（$T_1$ 弛豫）、$|\rho_{eg}(t)|$（$T_2$ 退相位，速率 $\gamma/2+2\gamma_\phi$）与迹守恒：RK4 数值解（点）与解析解（虚线）全程重合；（b）纯度 $P=\operatorname{Tr}\rho^2$ 先降后升（弛豫回纯基态），数值与解析一致。绘图脚本见 `docs/generate_figures.py`；Fortran 对应实现 `src/mod_open_quantum.f90` 的 `propagate_lindblad_rk4` 与 `calc_purity`。](figures/fig17_lindblad.png){width=12.0cm}
+![图 10.4：二能级 Lindblad 弛豫与退相位（初态 $(|e\rangle+|g\rangle)/\sqrt2$，$\gamma=0.6$、$\gamma_\phi=0.7\ \mathrm{ps}^{-1}$，RK4 $\Delta t=0.001$ ps）。（a）$\rho_{ee}(t)$（$T_1$ 弛豫）、$|\rho_{eg}(t)|$（$T_2$ 退相位，速率 $\gamma/2+2\gamma_\phi$）与迹守恒：RK4 数值解（点）与解析解（虚线）全程重合；（b）纯度 $P=\operatorname{Tr}\rho^2$ 先降后升（弛豫回纯基态），数值与解析一致。绘图脚本见 `docs/generate_figures.py`；Fortran 对应实现 `src/mod_open_quantum.f90` 的 `rk4_lindblad_step` 与 `calculate_quantum_purity`。](figures/fig17_lindblad.png){width=12.0cm}
 
 #### 对应源码
 
@@ -3932,6 +4012,37 @@ GitHub Actions 配置位于：
 
 以下二维码均指向 GeneralModule 仓库中的对应文件。二维码图像保存在 `qr/`，文件名规则是把源码路径中的 `/` 替换为 `__`。
 
+### 13.0　理论—代码—验证总对照表
+
+全书"理论推导 → 数学对象 → 实现 → 验证 → 结果图"的对应关系汇总如下（例程名均经
+`docs/audit_textbook.py` 的标识符一致性检查核实；矩阵残差类容差的平台差异见 16.2 节）：
+
+| 书中章节 | 理论/数学对象 | Fortran 实现 | pygenmod 参照 | 验证 | 结果图 |
+|---|---|---|---|---|---|
+| 1.4 / 10.2 | 幺正演化 $U=e^{-iHt}$ | `mod_wavepacket_propagator::propagate_split_operator_1d` | —（脚本级复现） | `test_propagators` | 图 10.2、11 |
+| 2.4 | 选择定则 $\langle j'|\cos\theta|j\rangle$ | `mod_special_functions::rot_matrix_cos_theta` | `rovibrational.rot_matrix_cos_theta/cos2_theta` | `test_special_functions` | 图 2.1 |
+| 3.2 | Jacobi 坐标、LEPS 面 | `mod_triatomic_geometry::calc_leps_potential` | `qct.leps_energy_gradient` | `test_triatomic_geometry` | 图 3.1 |
+| 4.3 | Wilkinson 位移 QL 迭代 | `mod_linear_algebra::tql2` | — | `test_dvr_grid`/`test_propagators` | 图 4.1 |
+| 5.3–5.5 | DVR/FGH 谱方法 | `mod_dvr_grid::dvr_sinc_init`、`fgh_solve_bound_states` | `dvr.dvr_sinc_init`、`fgh_solve_bound_states` | `test_dvr_grid` | 图 5.1、10.1 |
+| 6.2 / 14.2 | Split-Operator 分裂 | `mod_wavepacket_propagator::propagate_split_operator_1d/2d` | — | `test_propagators` | 图 10.2、11 |
+| 6.5 | 二能级 Bloch 方程 | `mod_wavepacket_propagator::solve_bloch_two_level` | — | `test_propagators` | — |
+| 6.8 / 10.5 / 14.8 | Lindblad 超算符 | `mod_open_quantum::lindblad_dissipator`、`rk4_lindblad_step`、`calculate_quantum_purity` | — | `test_open_quantum_opt` | 图 10.4（17） |
+| 6.9 | Krotov 最优控制 | `mod_optimal_control::oct_optimize_pulse` | — | `test_laser_rovibrational_control` | — |
+| 7.2 / 7.5 | Numerov、有效力程 | `mod_ti_scattering::calc_scattering_length_numerov`、`fit_effective_range_expansion` | `scattering.calc_scattering_length_numerov` | `test_ti_scattering` | 图 7.1 |
+| 7.3 / 7.6 | Johnson 对数导数（多通道） | `mod_ti_scattering::calc_scattering_length_logder`、`multichannel_result_t` | `scattering.calc_multichannel_close_coupling` | `test_ti_scattering`/`test_td_scattering` | 图 7.1 |
+| 7.4 | 光学定理 | `mod_ti_scattering::optical_theorem_cross_section` | — | `test_ti_scattering` | — |
+| 7.8 / 10.4 | Breit-Rabi、Feshbach | `mod_field_scattering::calc_breit_rabi_energies`、`fit_feshbach_resonance_parameters` | `field_scattering` 同名 | `test_field_scattering` | 图 7.3、10.3 |
+| 7.10 | 转振哈密顿量 | `mod_rovibrational::build_rovibrational_hamiltonian` | `rovibrational.build_rovibrational_hamiltonian` | `test_molecular_alignment` | 图 7.4 |
+| 7.12 / 14.7 | FSSH 表面跳跃 | `mod_surface_hopping_fssh::run_fssh_ensemble` | — | `test_surface_hopping_fssh` | — |
+| 9.10 / 10.x | HHG 三步模型 | `mod_hhg_spectra::hhg_power_spectrum`、`lewenstein_sfa_dipole` | `hhg.hhg_power_spectrum` | `test_atomic_hhg` | 图 9.1 |
+| 17.1–17.5 | QCT 反应散射 | `mod_qct_dynamics::run_qct_ensemble`（OpenMP） | `qct.run_qct_ensemble` | `test_qct_dynamics` | 图 17.1 |
+| 18.1 / 14.4 | SOP 与 TT | `mod_sop_hamiltonian::sop_apply`、`mod_tensor_train::tt_round` | `sop_hamiltonian`、`tensor_train` | `test_sop_hamiltonian`/`test_tensor_train` | — |
+| 18.4 | Smolyak 稀疏网格 | `mod_sparse_grid::smolyak_build` | `sparse_grid.smolyak_build` | `test_sparse_grid` | 图 18.1 |
+| 15.4 | 差分与收敛标定 | — | — | `docs/generate_figures.py` | 图 4.1 |
+
+表中"—"表示该层尚无独立 Python 参照或结果图（详见 §15 能力清单与 §12 路线图）。
+
+
 | 内容 | 路径 | 二维码 |
 |---|---|---|
 | 仓库主页 | <https://github.com/l1Ha/QuantumGeneralModule> | `qr/repo_root.png` |
@@ -4052,6 +4163,10 @@ $$
 
 Lanczos 方法适合求极端本征值和时间演化，但对重复本征值和近简并子空间需要块方法或重启策略。
 
+#### 对应源码
+
+- 路线图项：本库尚未内置 Krylov 传播器（§15.10 与 §12.1 已列为缺口）；现行大步长传播由 `src/mod_chebyshev_propagator.f90` 的 `chebyshev_propagate_step` 承担（§6.7）。
+
 ### 14.2　高阶分裂算符
 
 二阶 Strang 分裂为
@@ -4084,6 +4199,10 @@ $$
 
 更高阶方法虽然每步代价增加，但对长时间积分和严格要求幺正性的问题更有效。
 
+#### 对应源码
+
+- 现行实现为二阶 Strang 分裂：`src/mod_wavepacket_propagator.f90` 的 `propagate_split_operator_1d/2d`；四阶 Suzuki 分裂与高阶系数属 §12.1 路线图（§15.10 已列）。
+
 ### 14.3　稀疏矩阵与存储策略
 
 在 DVR 中，若只保留非零矩阵元，可显著降低存储需求。设平均每行非零元数为 $z$，则稀疏存储需求为
@@ -4112,6 +4231,10 @@ $$
 - 近邻耦合动能矩阵；
 - 分块对角角动量矩阵；
 - 单电子耦合算符。
+
+#### 对应源码
+
+- 路线图项：稀疏存储未具备（§15.10 已列）；现行稠密路径为 `src/mod_linear_algebra.f90::diag_symmetric_matrix`，FFT 可分离动能走 `propagate_split_operator_2d` 的 $O(N\log N)$ 路径。
 
 ### 14.4　张量分解与高维问题
 
@@ -4151,6 +4274,12 @@ G_d(i_d).
 $$
 
 若张量秩较低，存储和计算代价可从指数级降低到多项式级。
+
+#### 对应源码
+
+- [src/mod_tensor_train.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_tensor_train.f90)：`tt_from_dense`（TT-SVD）、`tt_round`（舍入）、`tt_apply`/`tt_dot`。
+- Python 参照：[python/pygenmod/tensor_train.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/tensor_train.py)。
+- 验证：`tests/test_tensor_train.f90`；图 18.1。
 
 ### 14.5　多通道散射的匹配与渐近展开
 
@@ -4193,6 +4322,11 @@ $$
 (\mathbf I+i\mathbf K)(\mathbf I-i\mathbf K)^{-1}.
 $$
 
+#### 对应源码
+
+- 渐近匹配与 S 矩阵元：`src/mod_td_scattering.f90::calculate_td_smatrix_element`；多基组渐近哈密顿量：`src/mod_field_scattering.f90::build_asymptotic_hamiltonian`。
+- 验证：`tests/test_td_scattering.f90` 与 `tests/test_field_scattering.f90`。
+
 ### 14.6　分段网格的误差控制
 
 分段网格将径向域划分为若干扇区：
@@ -4229,6 +4363,11 @@ $$
 
 这样在强变化区域使用细网格，在平滑区域使用粗网格。
 
+#### 对应源码
+
+- [src/mod_ti_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_ti_scattering.f90)：`segmented_grid_t`（三区步长分层网格）；收敛与守恒断言在 `tests/test_ti_scattering.f90`。
+- 应用实例：[examples/ex08_ultracold_feshbach_segmented.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/examples/ex08_ultracold_feshbach_segmented.f90)。
+
 ### 14.7　FSSH 的统计误差
 
 FSSH 是随机轨迹方法。若透射概率为 $p$，轨迹数为 $N$，则标准误差为
@@ -4259,6 +4398,10 @@ $$
 其中 $z$ 是正态分位数。对 95% 置信区间，$z\approx1.96$。
 
 增加轨迹数时，统计误差按 $N^{-1/2}$ 下降。
+
+#### 对应源码
+
+- 系综统计由 `src/mod_surface_hopping_fssh.f90::run_fssh_ensemble` 给出；分支比收敛与随机种子敏感性断言在 `tests/test_surface_hopping_fssh.f90`。
 
 ### 14.8　开放系统的谱方法
 
@@ -4298,6 +4441,11 @@ $$
 
 实部为负的本征值对应衰减模式，纯虚本征值对应相干振荡。
 
+#### 对应源码
+
+- [src/mod_open_quantum.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_open_quantum.f90)：`lindblad_dissipator`、`rk4_lindblad_step`、`calculate_quantum_purity`。
+- 验证：`tests/test_open_quantum_opt.f90`；结果图 10.4（图 17）。
+
 ### 14.9　量子控制中的约束
 
 最优控制不仅要最大化保真度，还要满足物理约束：
@@ -4319,6 +4467,11 @@ J_\epsilon
 $$
 
 若使用硬约束，则可采用投影或罚函数方法。
+
+#### 对应源码
+
+- [src/mod_optimal_control.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_optimal_control.f90)：`oct_optimize_pulse`（Krotov 迭代）与 `oct_shape_function`（平滑窗约束）。
+- 验证：`tests/test_laser_rovibrational_control.f90`。
 
 ### 14.10　数值实验建议
 
@@ -4943,6 +5096,12 @@ $$
 
 若势能面只依赖夹角 $\gamma$ 而不显式依赖绝对取向，则总角动量及其空间固定分量守恒。
 
+#### 对应源码
+
+- [src/mod_qct_dynamics.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_qct_dynamics.f90)：`eval_leps_energy_gradient`（LEPS 解析梯度）与 `qct_propagate_step`（Velocity-Verlet 辛积分）。
+- Python 参照：[python/pygenmod/qct.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/qct.py) 的 `leps_energy_gradient`。
+- 验证：`tests/test_qct_dynamics.f90`（能量/角动量守恒）。
+
 ### 17.2　初始条件与量子态指认
 
 QCT 的“准经典”体现在初态和末态都对应量子态。对初始振转态 $(v,j)$，常用两种近似：
@@ -4987,6 +5146,11 @@ $$
 $$
 
 严格做法是在给定作用量 $(I_r,\mathbf j)$ 的不变环面上均匀抽样，而不是随机给出 $r$ 和 $p_r$ 后再强行缩放。
+
+#### 对应源码
+
+- [src/mod_qct_dynamics.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_qct_dynamics.f90)：`qct_sampler_build` 与 `qct_sample_trajectory`（EBK 指认 + 不变环面均匀时间抽样，见 17.2 节公式）。
+- Python 参照：`python/pygenmod/qct.py::InitialSampler`。
 
 ### 17.3　轨迹积分
 
@@ -5161,6 +5325,11 @@ $$
 
 ![图 17.1：$\mathrm{H} + \mathrm{H}_2 \to \mathrm{H}_2 + \mathrm{H}$ 准经典反应动力学（LEPS 势能面，$E_{\mathrm{coll}}=1.5\ \mathrm{eV}$，$N = 2\times 10^5$ 条轨迹）结果：左图为反应不透明度函数 $P_{\mathrm{rxn}}(b)$ 随碰撞参数 $b$ 的衰减分布；右图为截面积分权重被积函数 $b \cdot P_{\mathrm{rxn}}(b)$，阴影面积正比于总反应截面（$\sigma_{\mathrm{rxn}} = 1.256 \pm 0.013\ a_0^2$；同一体系下独立 Fortran 实现给出 $1.242 \pm 0.018\ a_0^2$，两套实现交叉吻合）。](figures/fig08_qct_opacity_and_cross_section.png){width=12.0cm}
 
+#### 对应源码
+
+- [src/mod_qct_dynamics.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_qct_dynamics.f90)：`qct_analyze_final_state`（ Jacobi 产物配对与内能指认）与 `qct_cross_section`（MC 截面与二项误差）。
+- Python 参照：`python/pygenmod/qct.py::qct_analyze_final_state`；结果图 17.1。
+
 ### 17.5　统计误差与系综收敛
 
 若反应概率为 $P$，轨迹数为 $N$，二项分布标准误差为
@@ -5182,6 +5351,11 @@ $$
 6. 随机数种子敏感性；
 7. 总能量、总角动量守恒。
 
+#### 对应源码
+
+- [src/mod_qct_dynamics.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_qct_dynamics.f90)：`run_qct_ensemble`（OpenMP 并行 + 每轨迹确定性种子流）。
+- Python 参照：`python/pygenmod/qct.py::run_qct_ensemble`（`wilson_interval` 置信区间）；结果图 17.1。
+
 ### 17.6　零点能泄漏与修正
 
 经典轨迹没有量子零点能约束，振动能可能泄漏到转动或平动能，导致产物内能低于量子零点能。这称为零点能泄漏。常见处理方式包括：
@@ -5195,6 +5369,10 @@ $$
 | 量子修正势 | 在经典势中加入 ZPE 修正项 | 可减少泄漏 | 势能面依赖，非普适 |
 
 无论采用哪种修正，都应在文档中明确说明；不同修正会得到不同的态到态分支比。
+
+#### 对应源码
+
+- 被动 ZPE 约束：Python `python/pygenmod/qct.py::QCTConfig.enforce_zpe`（终态内能低于振动零点能的轨迹从态分辨统计中剔除）；Fortran 侧主动 ZPE 修正是 §12.2 路线图项（§15.10 已列）。
 
 ### 17.7　QCT 与表面跳跃的关系
 
@@ -5210,6 +5388,10 @@ FSSH 可以看作“经典核 + 量子电子振幅”的混合方法；QCT 则�
 | 适用 | 高温反应、大体系 | 非绝热光化学、电荷转移 |
 
 对非绝热反应，也可把 QCT 推广为“准经典非绝热轨迹”：核仍用经典轨迹，电子态用 FSSH 或 Ehrenfest 演化；此时需要同时记录电子态、核轨迹和内态作用量。
+
+#### 对应源码
+
+- 表面跳跃对照实现：[src/mod_surface_hopping_fssh.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_surface_hopping_fssh.f90) 的 `run_fssh_ensemble`（§7.12/14.7）；`tests/test_surface_hopping_fssh.f90`。
 
 ### 17.8　推荐模块接口
 
@@ -5541,6 +5723,10 @@ $$
 
 剪枝基的优点是易与现有 DVR/FGH 框架兼容；缺点是基组不再有全张量结构，矩阵—向量乘法需要自定义稀疏索引。
 
+#### 对应源码
+
+- 路线图项（§12.1/12.2，尚未实现）；当前低维情形由 Smolyak 稀疏网格承担：`src/mod_sparse_grid.f90` 与 `python/pygenmod/sparse_grid.py`（图 18.1）。
+
 ### 18.6　高维势能面
 
 高维量子方法的瓶颈常不在传播，而在势能面：
@@ -5556,6 +5742,10 @@ $$
 
 对高维势能面，应同时提供能量、梯度和 Hessians 的检验，特别是对称性、渐近行为和梯度守恒。
 
+#### 对应源码
+
+- 路线图项（§12.2，尚未实现）：`mod_pes_surface`（解析多维）与 `mod_pes_machine_learning`（机器学习）；现行解析面由 `src/mod_triatomic_geometry.f90::calc_leps_potential` 与 `src/mod_qct_dynamics.f90::eval_leps_energy_gradient` 提供。
+
 ### 18.7　方法选择
 
 | 维度 | 推荐方法 |
@@ -5566,6 +5756,10 @@ $$
 | 更高维 | TT/MPS、TDVP、TEBD |
 | 量子效应弱 | QCT / 表面跳跃 |
 | 需要干涉与隧穿 | 全量子方法 |
+
+#### 对应源码
+
+- 决策表各行对应的模块入口见第 13 章索引与 §5.9/§15 的能力清单；图 18.1 的稀疏网格实现为 `src/mod_sparse_grid.f90`。
 
 ### 18.8　GeneralModule 的高维扩展路线
 
@@ -5657,6 +5851,10 @@ MCTDH 全空间精确性与 SPF 收敛）。
 | 性能 | 时间、内存、强/弱扩展 |
 
 适用范围与模型边界：TT 与 MCTDH 的张量截断误差强烈依赖初态的纠缠熵增长率以及势能面的非谐耦合强度；验证协议应覆盖弱耦合到强耦合多个参数区域，以确定有效键维与单粒子函数基组的收敛边界。
+
+#### 对应源码
+
+- 各层次的落地：`tests/test_sop_hamiltonian.f90`、`tests/test_tensor_train.f90`、`tests/test_sparse_grid.f90`（代数与表示）、Python 交叉验证 `python/test_pygenmod.py`、以及 `docs/audit_textbook.py`（文献与路径一致性在线审计）。
 
 ### 18.10　参考文献
 

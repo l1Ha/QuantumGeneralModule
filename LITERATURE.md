@@ -311,7 +311,7 @@
   $$\frac{d\hat{\rho}}{dt} = -\frac{i}{\hbar}[\hat{H}, \hat{\rho}] + \sum_k \gamma_k \left( \hat{L}_k \hat{\rho} \hat{L}_k^\dagger - \frac{1}{2} \{\hat{L}_k^\dagger \hat{L}_k, \hat{\rho}\} \right)$$
 - **代码映射**:
   - `src/mod_open_quantum.f90`:
-    - `propagate_lindblad_rk4`: RK4 积分开放系统主方程；
+    - `rk4_lindblad_step`: RK4 积分开放系统主方程；
     - `calculate_purity`: 态纯度 $\text{Tr}(\rho^2)$；
     - `calculate_von_neumann_entropy`: 冯·诺依曼熵 $S = -\text{Tr}(\rho \ln\rho)$。
 
@@ -1662,7 +1662,7 @@
 | 14 | **科学计算 I/O 与矩阵序列化** | `src/mod_io_utils.f90` | HDF5 Group, NetCDF | `save_matrix_binary`, `load_matrix_binary`, `compute_checksum` |
 | 15 | **三次样条插值与 PES 插值** | `src/mod_interpolation.f90` | de Boor (1978), Stoer & Bulirsch (2002) | `spline_init`, `spline_eval`, `spline_eval_deriv`, `interpolate_pes_to_grid` |
 | 16 | **分子光解离与光碎片 KER 谱** | `src/mod_photofragment_flux.f90` | Heller (1981), Schinke (1993), Zare (1988) | `calc_autocorrelation_function`, `calc_heller_absorption_spectrum`, `calc_ker_spectrum_from_flux` |
-| 17 | **开放量子系统 Lindblad 耗散主方程**| `src/mod_open_quantum.f90` | Lindblad (1976), Gorini (1976), Breuer (2002) | `propagate_lindblad_rk4`, `calculate_von_neumann_entropy`, `calc_purity` |
+| 17 | **开放量子系统 Lindblad 耗散主方程**| `src/mod_open_quantum.f90` | Lindblad (1976), Gorini (1976), Breuer (2002) | `rk4_lindblad_step`, `calculate_quantum_purity`, `calculate_von_neumann_entropy` |
 | 18 | **Krotov 量子最优控制泛函** | `src/mod_optimal_control.f90` | Somlói & Tannor (1993), Krotov (1996), Reich (2012) | `optimize_pulse_krotov`, `calc_control_fidelity` |
 | 19 | **非含时散射、分波法与 Log-Der** | `src/mod_ti_scattering.f90` | Wigner (1948), Johnson (1973), Manolopoulos (1986) | `calc_scattering_length_numerov`, `calc_multichannel_close_coupling_logder` |
 | 20 | **含时波包散射动力学与 Möller 投影**| `src/mod_td_scattering.f90` | Feit & Fleck (1982), Möller (1945), Tannor (2007) | `init_gaussian_wavepacket`, `calculate_td_transmission`, `project_wavepacket_to_smatrix` |
