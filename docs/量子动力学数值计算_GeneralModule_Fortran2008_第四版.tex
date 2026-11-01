@@ -1500,6 +1500,68 @@ Coriolis 项消失。(3) 以本库 \(B_v\) 序列拟合
 \(B_v=B_e-\alpha_e(v+\frac12)+\gamma_e(v+\frac12)^{2}\)，报告
 \(B_e,\alpha_e,\gamma_e\) 并讨论三参数拟合的残差结构。
 
+\hypertarget{ux591aux539fux5b50ux62d3ux5c55ux7b2cux4e00ux6b65ux975eux5bf9ux79f0ux9640ux87baux521aux8f6cux5b50mod_watson_rotor}{%
+\subsection{\texorpdfstring{多原子拓展第一步：非对称陀螺刚转子（\texttt{mod\_watson\_rotor}）}{多原子拓展第一步：非对称陀螺刚转子（mod\_watson\_rotor）}}\label{ux591aux539fux5b50ux62d3ux5c55ux7b2cux4e00ux6b65ux975eux5bf9ux79f0ux9640ux87baux521aux8f6cux5b50mod_watson_rotor}}
+
+Watson 哈密顿量的可解核心是刚性极限
+\(H=A\hat{J}_a^{2}+B\hat{J}_b^{2}+C\hat{J}_c^{2}\)（\(A\ge B\ge C\)，主轴按惯量矩升序编号）。在对称陀螺基
+\(|J K M\rangle\)（\(K\) 为 \(a\) 轴投影）中，它化为 Wang 矩阵
+
+\[
+H=\frac{B+C}{2}\hat{J}^{2}+\Bigl(A-\frac{B+C}{2}\Bigr)\hat{J}_a^{2}
++\frac{B-C}{4}\bigl(\hat{J}_{+}^{2}+\hat{J}_{-}^{2}\bigr),
+\]
+
+矩阵元为对角 \((B+C)J(J+1)/2+(A-(B+C)/2)K^{2}\) 与非对角
+\((B-C)\sqrt{[J(J+1)-K(K+1)][J(J+1)-(K+1)(K+2)]}/4\)（\(\Delta K=\pm2\)）。三个极限提供解析验收：\(B=C\)
+长对称陀螺 \(E=B J(J+1)+(A-B)K^{2}\)；\(A=B\) 扁对称陀螺
+\(E=A J(J+1)-(A-C)K_c^{2}\)；\(A=B=C\) 球陀螺 \((2J+1)\) 重简并
+\(E=A J(J+1)\)。此外三轴迹相等给出与表象无关的精确规则
+\(\sum_{M,K}E=(2J+1)J(J+1)(A+B+C)/3\)。
+
+\textbf{小型数值实验（水分子）。} 由实验几何（\(r_{\mathrm{OH}}=0.9572\)
+Å，\(\angle=104.52^\circ\)）经
+\texttt{inertia\_constants\_from\_geometry} 计算主惯量与转动常数：得
+\(A=27.43\)、\(B=14.60\)、\(C=9.53\ \mathrm{cm^{-1}}\)，与实验基态值
+\(27.33/14.57/9.49\ \mathrm{cm^{-1}}\) 在 \(0.4\%\)
+内一致（差异来自刚转子与振动平均的固有区别）；平面分子垂直轴定理
+\(I_c=I_a+I_b\) 以 \(10^{-10}\) amu Å² 精度自洽。图 3.2 展示
+\(J=0\ldots5\)
+的能级图：非对称陀螺能级（红）恰落在长对称极限（灰虚线）与扁对称极限（蓝点线）之间，直观呈现``非对称性使
+\(\pm K\) 简并按 \(K_a/K_c\) 标记分裂''的物理。
+
+\begin{figure}
+\centering
+\includegraphics[width=12cm,height=\textheight]{figures/fig18_watson_levels.png}
+\caption{图 3.2：H\(_2\)O 型非对称陀螺转动能级图（\(J=0\ldots5\)，刚转子
+Watson
+极限）。红色为非对称陀螺能级（\(A=27.43\)、\(B=14.60\)、\(C=9.53\ \mathrm{cm^{-1}}\)，由
+\texttt{inertia\_constants\_from\_geometry}
+从实验几何计算），灰虚线与蓝点线分别为长对称（\(B=C\)）与扁对称（\(A=B\)）极限参照------非对称陀螺能级在两套极限之间连续插值。绘图脚本见
+\texttt{docs/generate\_figures.py}。}
+\end{figure}
+
+\hypertarget{ux5bf9ux5e94ux6e90ux7801ux591aux539fux5b50ux62d3ux5c55}{%
+\subsection{对应源码（多原子拓展）}\label{ux5bf9ux5e94ux6e90ux7801ux591aux539fux5b50ux62d3ux5c55}}
+
+\begin{itemize}
+\tightlist
+\item
+  \href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_watson_rotor.f90}{src/mod\_watson\_rotor.f90}：\texttt{wang\_matrix\_element}（Wang
+  矩阵元）、\texttt{asymmetric\_top\_levels}（给定 \(J\) 的 \(2J+1\)
+  条能级，库内 QL
+  求解器对角化）、\texttt{inertia\_constants\_from\_geometry}（核坐标/质量
+  → 主惯量 → \(A,B,C\)，复用 \texttt{diag\_symmetric\_matrix}）。
+\item
+  Python 参照：\texttt{python/pygenmod/rovibrational.py} 的
+  \texttt{watson\_asymmetric\_levels} 与
+  \texttt{inertia\_constants\_from\_geometry}。
+\item
+  验证：\texttt{tests/test\_watson\_rotor.f90}（三极限解析谱、迹规则、垂直轴定理、H₂O
+  实验值 1\% 对照，共 28 项断言）。多原子振动的完整 Watson
+  处理（Coriolis 与离心畸变精细结构）见 §12.2 路线图。
+\end{itemize}
+
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{ux7b2c4ux7ae0-ux5355ux4f4dux5236ux4e0eux672cux5f81ux6c42ux89e3ux7684ux6570ux503cux5206ux6790}{%
@@ -4874,7 +4936,7 @@ CMakeLists.txt & 跨平台与 IDE & 对象库、静态库、共享库、CTest &
 \end{longtable}
 
 \texttt{Makefile} 使用显式模块顺序编译，保证 \texttt{.mod}
-文件依赖正确。\texttt{fpm.toml} 显式列出 46 个测试和 36
+文件依赖正确。\texttt{fpm.toml} 显式列出 47 个测试和 36
 个示例，避免隐式自动发现。\texttt{CMakeLists.txt}
 使用对象库组织源码，并生成静态库、共享库和可执行文件。
 
@@ -4929,8 +4991,8 @@ CMakeLists.txt & 跨平台与 IDE & 对象库、静态库、共享库、CTest &
 \hypertarget{ux6d4bux8bd5ux4f53ux7cfbux7684ux9a8cux8bc1ux5c42ux6b21}{%
 \section{8.3　测试体系的验证层次}\label{ux6d4bux8bd5ux4f53ux7cfbux7684ux9a8cux8bc1ux5c42ux6b21}}
 
-GeneralModule 当前包含 46 个 Fortran 测试程序和 36
-个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。测试流水线利用服务器多核并行：模块编译由依赖自愈的并行编译器完成（\texttt{scripts/compile\_modules.sh}，逐波并行尝试、未就绪者下轮重试，55
+GeneralModule 当前包含 47 个 Fortran 测试程序和 36
+个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。测试流水线利用服务器多核并行：模块编译由依赖自愈的并行编译器完成（\texttt{scripts/compile\_modules.sh}，逐波并行尝试、未就绪者下轮重试，56
 个模块约 3.5 秒），测试套件间无共享文件 I/O，以 \texttt{xargs\ -P}
 并行执行并按固定顺序回放日志（\texttt{TEST\_JOBS} 可调并行度）。
 
@@ -8596,7 +8658,7 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \begin{itemize}
 \tightlist
 \item
-  46 个 Fortran 测试程序；
+  47 个 Fortran 测试程序；
 \item
   36 个物理示例；
 \item
@@ -8880,7 +8942,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 46 个测试程序、393 项断言全部通过。
+  全库 47 个测试程序、421 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的
@@ -8914,7 +8976,7 @@ Morse/谐振子极限求和结果\strut
 两章的算法已同步落地为 Python 参考实现（\texttt{python/pygenmod} 的
 \texttt{qct}、
 \texttt{sop\_hamiltonian}、\texttt{tensor\_train}、\texttt{mctdh\_core}、\texttt{sparse\_grid}
-五个模块）， 并有 28 项单元测试与 Fortran 原生 393
+五个模块）， 并有 29 项单元测试与 Fortran 原生 421
 项断言覆盖下列不变量：
 
 \begin{itemize}

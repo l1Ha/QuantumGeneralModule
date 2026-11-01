@@ -140,6 +140,7 @@ TESTS=(
     "test_sop_hamiltonian"
     "test_tensor_train"
     "test_sparse_grid"
+    "test_watson_rotor"
 )
 
 # 并行执行: 各测试只打印 stdout、无共享文件 I/O, 天然可安全并行。

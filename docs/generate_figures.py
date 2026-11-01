@@ -2,7 +2,7 @@
 """
 GeneralModule: Automated Scientific Publication Figure Generator for Textbook.
 
-Generates 17 publication-grade figures directly from true physics calculations
+Generates 18 publication-grade figures directly from true physics calculations
 in `pygenmod` (zero cheating, forward simulation only):
 1. fig01_morse_bound_states.png: Morse potential FGH bound states and wavefunctions
 2. fig02_ultrafast_pulses.png: Synthesized laser pulse waveforms and envelopes
@@ -21,6 +21,7 @@ in `pygenmod` (zero cheating, forward simulation only):
 15. fig15_selection_rules.png: angular-momentum selection-rule matrix heatmaps (cos, cos^2)
 16. fig16_leps_pes.png: H3 LEPS potential energy surface with symmetric saddle
 17. fig17_lindblad.png: two-level Lindblad relaxation/dephasing vs analytic solution
+18. fig18_watson_levels.png: asymmetric-top rotational levels (H2O-like, Watson limit)
 """
 import os
 import sys
@@ -1103,6 +1104,60 @@ def generate_fig17_lindblad():
     print(f" -> Saved to {fig_path} (max |RK4 - analytic| on rho_ee: {rk4_err:.2e})")
 
 
+def generate_fig18_watson_levels():
+    """Fig 18: Asymmetric-top rotational levels of an H2O-like top (Watson rigid
+    limit, book Sec 3.4 polyatomic step 1): level diagram J = 0..5 with the
+    prolate/oblate symmetric-top limits as references; constants from
+    pygenmod.inertia_constants_from_geometry (H2O geometry)."""
+    print("Generating Fig 18: Watson asymmetric-top levels...")
+    set_publication_style()
+    import pygenmod as _pg
+    # H2O geometry (angstrom, C2 axis = y bisector); positions (3, N) 列为原子
+    r_oh, half_ang = 0.9572, 0.5 * 104.52 * np.pi / 180.0
+    x_h, y_h = r_oh * np.sin(half_ang), r_oh * np.cos(half_ang)
+    pos = np.array([[0.0, x_h, -x_h], [0.0, y_h, y_h], [0.0, 0.0, 0.0]])
+    masses = np.array([15.9949, 1.00783, 1.00783])
+    a_c, b_c, c_c, moments, com = _pg.inertia_constants_from_geometry(pos, masses)
+
+    j_max_plot = 5
+    fig, ax = plt.subplots(figsize=(9.0, 5.6), dpi=200)
+    offsets = np.linspace(-0.15, 0.15, 7)
+    for j_qnum in range(j_max_plot + 1):
+        e_asy = _pg.watson_asymmetric_levels(a_c, b_c, c_c, j_qnum)
+        x_center = j_qnum * 1.8
+        ax.hlines(e_asy, np.full_like(e_asy, x_center - 0.34),
+                  np.full_like(e_asy, x_center + 0.34),
+                  color='crimson', linewidth=2.4)
+        k_list = np.arange(0, j_qnum + 1)
+        # 长对称陀螺极限参照 (B=C): E = B J(J+1) + (A-B) K^2 (左侧灰虚线刻度)
+        e_pro = b_c * j_qnum * (j_qnum + 1) + (a_c - b_c) * k_list**2
+        ax.hlines(e_pro, x_center - 0.34 + offsets[: len(k_list)] * 0.6,
+                  x_center - 0.34 + offsets[: len(k_list)] * 0.6 + 0.12,
+                  color='gray', linewidth=1.0, linestyle='--')
+        # 扁对称陀螺极限参照 (A=B): E = A J(J+1) - (A-C) K_c^2 (右侧蓝点线刻度)
+        e_obl = a_c * j_qnum * (j_qnum + 1) - (a_c - c_c) * k_list**2
+        ax.hlines(e_obl, x_center + 0.34 - offsets[: len(k_list)] * 0.6 - 0.12,
+                  x_center + 0.34 - offsets[: len(k_list)] * 0.6,
+                  color='darkblue', linewidth=1.0, linestyle=':')
+        ax.text(x_center, -60.0, rf"$J={j_qnum}$", ha='center', fontsize=10)
+    ax.plot([], [], color='crimson', linewidth=2.4, label='Asymmetric top (H2O-like)')
+    ax.plot([], [], color='gray', linewidth=1.0, linestyle='--', label='Prolate limit ($B=C$)')
+    ax.plot([], [], color='darkblue', linewidth=1.0, linestyle=':', label='Oblate limit ($A=B$)')
+    ax.set_xlim(-1.0, 10.0)
+    ax.set_ylim(-80.0, 780.0)
+    ax.set_xlabel(r'$J$')
+    ax.set_ylabel(r'Rotational energy (cm$^{-1}$)')
+    ax.set_title(r'Asymmetric-Top Rotational Levels ($\mathrm{H}_2\mathrm{O}$-like: '
+                 + rf'$A={a_c:.2f}$, $B={b_c:.2f}$, $C={c_c:.2f}\ \mathrm{{cm}}^{{-1}}$)',
+                 fontsize=11, pad=10)
+    ax.legend(loc='upper left', frameon=True, fontsize=9)
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig18_watson_levels.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} (A={a_c:.3f}, B={b_c:.3f}, C={c_c:.3f} cm^-1)")
+
+
 def main():
     print("=" * 60)
     print(" Generating All 17 Scientific Calculation Benchmark Figures")
@@ -1124,8 +1179,9 @@ def main():
     generate_fig15_selection_rules()
     generate_fig16_leps_pes()
     generate_fig17_lindblad()
+    generate_fig18_watson_levels()
     print("=" * 60)
-    print(" All 17 Figures Generated Successfully in docs/figures/!")
+    print(" All 18 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

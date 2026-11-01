@@ -508,6 +508,27 @@ $$\Delta E_{vJ}^{(2)}=\sum_{v'\ne v}\frac{|\langle v'|\Delta B|v\rangle|^{2}}{E_
 
 **练习。** (1) 对 Morse 振子推导 $D_v=4B_v^{3}/\omega_v^{2}$ 并指出二级微扰的适用条件。(2) 证明 Eckart 条件使动能中 $\omega\cdot\sum_i m_i\mathbf{r}_{i,e}\times\mathbf{a}_i$ 型线性 Coriolis 项消失。(3) 以本库 $B_v$ 序列拟合 $B_v=B_e-\alpha_e(v+\frac12)+\gamma_e(v+\frac12)^{2}$，报告 $B_e,\alpha_e,\gamma_e$ 并讨论三参数拟合的残差结构。
 
+#### 多原子拓展第一步：非对称陀螺刚转子（`mod_watson_rotor`）
+
+Watson 哈密顿量的可解核心是刚性极限 $H=A\hat{J}_a^{2}+B\hat{J}_b^{2}+C\hat{J}_c^{2}$（$A\ge B\ge C$，主轴按惯量矩升序编号）。在对称陀螺基 $|J K M\rangle$（$K$ 为 $a$ 轴投影）中，它化为 Wang 矩阵
+
+$$
+H=\frac{B+C}{2}\hat{J}^{2}+\Bigl(A-\frac{B+C}{2}\Bigr)\hat{J}_a^{2}
++\frac{B-C}{4}\bigl(\hat{J}_{+}^{2}+\hat{J}_{-}^{2}\bigr),
+$$
+
+矩阵元为对角 $(B+C)J(J+1)/2+(A-(B+C)/2)K^{2}$ 与非对角 $(B-C)\sqrt{[J(J+1)-K(K+1)][J(J+1)-(K+1)(K+2)]}/4$（$\Delta K=\pm2$）。三个极限提供解析验收：$B=C$ 长对称陀螺 $E=B J(J+1)+(A-B)K^{2}$；$A=B$ 扁对称陀螺 $E=A J(J+1)-(A-C)K_c^{2}$；$A=B=C$ 球陀螺 $(2J+1)$ 重简并 $E=A J(J+1)$。此外三轴迹相等给出与表象无关的精确规则 $\sum_{M,K}E=(2J+1)J(J+1)(A+B+C)/3$。
+
+**小型数值实验（水分子）。** 由实验几何（$r_{\mathrm{OH}}=0.9572$ Å，$\angle=104.52^\circ$）经 `inertia_constants_from_geometry` 计算主惯量与转动常数：得 $A=27.43$、$B=14.60$、$C=9.53\ \mathrm{cm^{-1}}$，与实验基态值 $27.33/14.57/9.49\ \mathrm{cm^{-1}}$ 在 $0.4\%$ 内一致（差异来自刚转子与振动平均的固有区别）；平面分子垂直轴定理 $I_c=I_a+I_b$ 以 $10^{-10}$ amu Å² 精度自洽。图 3.2 展示 $J=0\ldots5$ 的能级图：非对称陀螺能级（红）恰落在长对称极限（灰虚线）与扁对称极限（蓝点线）之间，直观呈现"非对称性使 $\pm K$ 简并按 $K_a/K_c$ 标记分裂"的物理。
+
+![图 3.2：H$_2$O 型非对称陀螺转动能级图（$J=0\ldots5$，刚转子 Watson 极限）。红色为非对称陀螺能级（$A=27.43$、$B=14.60$、$C=9.53\ \mathrm{cm^{-1}}$，由 `inertia_constants_from_geometry` 从实验几何计算），灰虚线与蓝点线分别为长对称（$B=C$）与扁对称（$A=B$）极限参照——非对称陀螺能级在两套极限之间连续插值。绘图脚本见 `docs/generate_figures.py`。](figures/fig18_watson_levels.png){width=12.0cm}
+
+#### 对应源码（多原子拓展）
+
+- [src/mod_watson_rotor.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_watson_rotor.f90)：`wang_matrix_element`（Wang 矩阵元）、`asymmetric_top_levels`（给定 $J$ 的 $2J+1$ 条能级，库内 QL 求解器对角化）、`inertia_constants_from_geometry`（核坐标/质量 → 主惯量 → $A,B,C$，复用 `diag_symmetric_matrix`）。
+- Python 参照：`python/pygenmod/rovibrational.py` 的 `watson_asymmetric_levels` 与 `inertia_constants_from_geometry`。
+- 验证：`tests/test_watson_rotor.f90`（三极限解析谱、迹规则、垂直轴定理、H₂O 实验值 1% 对照，共 28 项断言）。多原子振动的完整 Watson 处理（Coriolis 与离心畸变精细结构）见 §12.2 路线图。
+
 ---
 
 ## 第4章　单位制与本征求解的数值分析
@@ -2800,7 +2821,7 @@ GeneralModule 同时提供 `Makefile`、`fpm.toml` 和 `CMakeLists.txt`。三者
 | fpm.toml | Fortran 包管理 | 标准化、依赖清晰 | 自动发现关闭 |
 | CMakeLists.txt | 跨平台与 IDE | 对象库、静态库、共享库、CTest | 配置复杂 |
 
-`Makefile` 使用显式模块顺序编译，保证 `.mod` 文件依赖正确。`fpm.toml` 显式列出 46 个测试和 36 个示例，避免隐式自动发现。`CMakeLists.txt` 使用对象库组织源码，并生成静态库、共享库和可执行文件。
+`Makefile` 使用显式模块顺序编译，保证 `.mod` 文件依赖正确。`fpm.toml` 显式列出 47 个测试和 36 个示例，避免隐式自动发现。`CMakeLists.txt` 使用对象库组织源码，并生成静态库、共享库和可执行文件。
 
 - Makefile：
 
@@ -2828,7 +2849,7 @@ GeneralModule 同时提供 `Makefile`、`fpm.toml` 和 `CMakeLists.txt`。三者
 
 ### 8.3　测试体系的验证层次
 
-GeneralModule 当前包含 46 个 Fortran 测试程序和 36 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。测试流水线利用服务器多核并行：模块编译由依赖自愈的并行编译器完成（`scripts/compile_modules.sh`，逐波并行尝试、未就绪者下轮重试，55 个模块约 3.5 秒），测试套件间无共享文件 I/O，以 `xargs -P` 并行执行并按固定顺序回放日志（`TEST_JOBS` 可调并行度）。
+GeneralModule 当前包含 47 个 Fortran 测试程序和 36 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。测试流水线利用服务器多核并行：模块编译由依赖自愈的并行编译器完成（`scripts/compile_modules.sh`，逐波并行尝试、未就绪者下轮重试，56 个模块约 3.5 秒），测试套件间无共享文件 I/O，以 `xargs -P` 并行执行并按固定顺序回放日志（`TEST_JOBS` 可调并行度）。
 
 测试应覆盖以下层次：
 
@@ -4882,7 +4903,7 @@ end type experiment_record_t
 
 #### 已有能力
 
-- 46 个 Fortran 测试程序；
+- 47 个 Fortran 测试程序；
 - 36 个物理示例；
 - `Makefile`、`fpm.toml`、`CMakeLists.txt`；
 - GitHub Actions CI；
@@ -5008,7 +5029,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 46 个测试程序、393 项断言全部通过。
+- 全库 47 个测试程序、421 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 
@@ -5026,7 +5047,7 @@ end subroutine expect_close
 
 两章的算法已同步落地为 Python 参考实现（`python/pygenmod` 的 `qct`、
 `sop_hamiltonian`、`tensor_train`、`mctdh_core`、`sparse_grid` 五个模块），
-并有 28 项单元测试与 Fortran 原生 393 项断言覆盖下列不变量：
+并有 29 项单元测试与 Fortran 原生 421 项断言覆盖下列不变量：
 
 - EBK 作用量量子化对 Morse 振子精确（偏差 $<10^{-9}D_e$）；
 - QCT 轨迹的总能量漂移低于 $10^{-4}$ Hartree，总角动量守恒到 $10^{-10}$；

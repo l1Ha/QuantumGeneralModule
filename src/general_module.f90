@@ -57,6 +57,7 @@ module general_module
     use mod_sop_hamiltonian
     use mod_tensor_train
     use mod_sparse_grid
+    use mod_watson_rotor
     implicit none
 
     public :: dp, int32, int64

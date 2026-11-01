@@ -19,7 +19,8 @@ from pygenmod import (
     soft_core_coulomb_potential, adk_ionization_rate,
     landau_zener_probability, calculate_channel_populations,
     rovibrational_state_index, rovibrational_state_unindex,
-    rot_matrix_cos_theta, rot_matrix_cos2_theta, calc_franck_condon_factors,
+    rot_matrix_cos_theta, rot_matrix_cos2_theta, calc_franck_condon_factors, \
+    watson_asymmetric_levels,
     van_der_waals_mean_length, square_well_scattering_length_exact,
     calc_scattering_length_numerov, plot_scattering_length_wavefunction,
     calc_differential_cross_section, calc_differential_cross_section_identical,
@@ -155,6 +156,16 @@ class TestPyGenMod(unittest.TestCase):
         self.assertEqual(rot_matrix_cos2_theta(1, 2, 0), 0.0)
         # Closed form <1,0|cos^2|1,0> = 1/3 + 4/15 = 3/5 (Y_10 expectation)
         self.assertAlmostEqual(rot_matrix_cos2_theta(1, 1, 0), 0.6, places=12)
+
+        # Watson asymmetric rotor: prolate/oblate/spherical limits + trace rule
+        lvl = watson_asymmetric_levels(27.42, 14.59, 14.59, 3)
+        e_exp = sorted(14.59 * 12.0 + (27.42 - 14.59) * k * k for k in (0, 1, 1, 2, 2, 3, 3))
+        np.testing.assert_allclose(np.sort(lvl), e_exp, atol=1e-10)
+        lvl = watson_asymmetric_levels(10.0, 10.0, 10.0, 3)
+        np.testing.assert_allclose(lvl, 10.0 * 12.0, atol=1e-9)
+        lvl = watson_asymmetric_levels(27.42, 14.59, 9.53, 6)
+        trace = float(np.sum(lvl))
+        self.assertAlmostEqual(trace, 13.0 * 42.0 * (27.42 + 14.59 + 9.53) / 3.0, places=8)
 
         # Franck-Condon factor
         chi = np.zeros((10, 2))

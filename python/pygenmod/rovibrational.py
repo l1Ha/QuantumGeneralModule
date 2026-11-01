@@ -42,6 +42,61 @@ def rot_matrix_cos2_theta(j: int, j_prime: int, m: int = 0) -> float:
         total += rot_matrix_cos_theta(j, j_mid, m) * rot_matrix_cos_theta(j_prime, j_mid, m)
     return total
 
+ROT_FACTOR_AMU_A2_CM1 = 16.857631  # hbar^2/(2*amu*angstrom^2*hc) in cm^-1
+
+
+def watson_asymmetric_levels(a_const: float, b_const: float, c_const: float,
+                             j_qnum: int) -> np.ndarray:
+    """Asymmetric-top rigid rotational levels (Watson limit, book Sec 3.4).
+
+    H = A Ja^2 + B Jb^2 + C Jc^2 in the symmetric-top basis |J K M> (Wang
+    matrix): diagonal (B+C)/2*J(J+1) + (A-(B+C)/2)*K^2, off-diagonal
+    (B-C)/4*sqrt([J(J+1)-K(K+1)][J(J+1)-(K+1)(K+2)]) for Delta K = +2.
+    Returns the 2J+1 ascending levels (same units as the input constants).
+    Limits: B=C -> prolate B J(J+1) + (A-B)K^2; A=B -> oblate
+    A J(J+1) - (A-C)K_c^2; A=B=C -> (2J+1)-fold degenerate A J(J+1).
+    """
+    n_dim = 2 * j_qnum + 1
+    jj = float(j_qnum * (j_qnum + 1))
+    h_mat = np.zeros((n_dim, n_dim))
+    for k1 in range(-j_qnum, j_qnum + 1):
+        i1 = k1 + j_qnum
+        h_mat[i1, i1] = 0.5 * (b_const + c_const) * jj \
+            + (a_const - 0.5 * (b_const + c_const)) * float(k1 * k1)
+        if k1 + 2 <= j_qnum:
+            k2 = k1 + 2
+            i2 = k2 + j_qnum
+            t1 = jj - float(k1 * (k1 + 1))
+            t2 = jj - float((k1 + 1) * (k1 + 2))
+            h_val = 0.25 * (b_const - c_const) * np.sqrt(max(t1 * t2, 0.0))
+            h_mat[i2, i1] = h_val
+            h_mat[i1, i2] = h_val
+    return np.linalg.eigvalsh(h_mat)
+
+
+def inertia_constants_from_geometry(positions: np.ndarray, masses: np.ndarray
+                                    ) -> tuple[float, float, float, np.ndarray, np.ndarray]:
+    """Principal moments and rotational constants A, B, C (cm^-1) from nuclear
+    geometry (multi-atomic step 1, book Sec 3.4). Planar molecules satisfy the
+    perpendicular-axis theorem I_c = I_a + I_b (usable as a self-check)."""
+    positions = np.asarray(positions, dtype=float)
+    masses = np.asarray(masses, dtype=float)
+    if positions.shape != (3, len(masses)):
+        raise ValueError("positions must have shape (3, N) with N = len(masses)")
+    com = (masses[None, :] * positions).sum(axis=1) / masses.sum()
+    r_com = positions - com[:, None]
+    inertia = np.zeros((3, 3))
+    for i in range(len(masses)):
+        r2 = float(r_com[:, i] @ r_com[:, i])
+        inertia += masses[i] * (r2 * np.eye(3) - np.outer(r_com[:, i], r_com[:, i]))
+    moments = np.linalg.eigvalsh(inertia)
+    if np.any(moments <= 0.0):
+        raise ValueError("non-positive principal moment: degenerate or collinear geometry")
+    constants = ROT_FACTOR_AMU_A2_CM1 / moments
+    return float(constants[0]), float(constants[1]), float(constants[2]), \
+        moments, com
+
+
 def calc_franck_condon_factors(chi_a: np.ndarray, chi_b: np.ndarray, dx: float) -> np.ndarray:
     """Compute Franck-Condon factor matrix FC(v, v') = |<chi_a,v | chi_b,v'>|^2."""
     n_va = chi_a.shape[1]
