@@ -92,7 +92,7 @@ fi
 
 cd "$DIR"
 
-# 2. 编译并运行各项测试 (共 46 大完整测试套件)
+# 2. 编译并运行各项测试 (共 48 大完整测试套件)
 TESTS=(
     "test_constants"
     "test_special_functions"
@@ -141,6 +141,7 @@ TESTS=(
     "test_tensor_train"
     "test_sparse_grid"
     "test_watson_rotor"
+    "test_polyatomic_vib"
 )
 
 # 并行执行: 各测试只打印 stdout、无共享文件 I/O, 天然可安全并行。

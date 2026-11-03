@@ -427,3 +427,13 @@ main = "ex36_penning_associative_ionization.f90"
 
 
 
+
+[[test]]
+name = "test_watson_rotor"
+source-dir = "tests"
+main = "test_watson_rotor.f90"
+
+[[test]]
+name = "test_polyatomic_vib"
+source-dir = "tests"
+main = "test_polyatomic_vib.f90"

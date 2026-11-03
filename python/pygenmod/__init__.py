@@ -71,6 +71,10 @@ from .rovibrational import (
     build_rovibrational_dipole_matrix
 )
 
+from .polyatomic_vib import (
+    coupled2_normal_freqs, poly_vib_product_levels,
+)
+
 from .scattering import (
     van_der_waals_mean_length, gribakin_flambaum_length,
     square_well_scattering_length_exact, calc_scattering_length_numerov,
@@ -139,7 +143,7 @@ __all__ = [
     "rovibrational_state_index", "rovibrational_state_unindex",
     "rot_matrix_cos_theta", "rot_matrix_cos2_theta", "calc_franck_condon_factors",
     "watson_asymmetric_levels", "watson_asymmetric_levels_cd",
-    "inertia_constants_from_geometry",
+    "inertia_constants_from_geometry", "coupled2_normal_freqs", "poly_vib_product_levels",
     "calc_rotational_constants_bv", "build_rovibrational_hamiltonian",
     "build_rovibrational_dipole_matrix",
     "van_der_waals_mean_length", "gribakin_flambaum_length",

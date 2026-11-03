@@ -44,7 +44,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install numpy scipy matplotlib
 
-      - name: Build and Test via CMake (47 Test Suites, 36 Examples)
+      - name: Build and Test via CMake (48 Test Suites, 36 Examples)
         run: |
           cmake -B build -S .
           cmake --build build -j 4
@@ -71,7 +71,7 @@ jobs:
           fi
           exit $rc
 
-      - name: Run Direct Fortran Unit Test Suite (47 Test Suites, 430 Assertions)
+      - name: Run Direct Fortran Unit Test Suite (48 Test Suites, 442 Assertions)
         run: |
           bash tests/run_all_tests.sh
 
@@ -83,7 +83,7 @@ jobs:
         run: |
           bash examples/build_examples.sh
 
-      - name: Run Python Package Unit Tests (pygenmod, 28 Tests)
+      - name: Run Python Package Unit Tests (pygenmod, 29 Tests)
         run: |
           python3 python/test_pygenmod.py
 

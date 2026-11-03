@@ -58,6 +58,7 @@ module general_module
     use mod_tensor_train
     use mod_sparse_grid
     use mod_watson_rotor
+    use mod_polyatomic_vib
     implicit none
 
     public :: dp, int32, int64

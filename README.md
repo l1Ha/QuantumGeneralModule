@@ -25,7 +25,7 @@
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
    - 教科书《量子动力学数值计算》内嵌的 17 幅计算结果图（角动量选择定则热图、H3 LEPS 势能面与 IRC、Lindblad 弛豫、DVR 谱收敛、split-operator 波包传播、HHG 高次谐波谱、QR 收敛阶与差分步长标定、分子排列复苏、散射长度、Breit-Rabi、Feshbach、QCT 不透明度、Smolyak 稀疏网格、折合质量矩阵等）全部由 `docs/generate_figures.py` 一键真实前向模拟生成，零手工修饰。
 5. **全自动 CI/CD 持续集成**
-   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 47 大测试套件（430 个单元断言 100% 通过）与 36 大物理应用工程算例。
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 48 大测试套件（442 个单元断言 100% 通过）与 36 大物理应用工程算例。
 6. **服务器级高性能与多核硬件加速 (HPC & Multi-Core Ready)**
    - 构建与测试流水线全面并行化：模块编译采用依赖自愈的并行编译器（`scripts/compile_modules.sh`，55 个模块约 3.5 秒），测试套件以 `xargs -P` 并行执行（`TEST_JOBS` 可调），全量回归在 20 核服务器上仅需约 7 秒（OPENMP=1 构建）；CI 同时回归串行与 OpenMP 两条构建路径。
    - 核心计算密集模块（2D 分裂算符波包传播、2D FFT、DVR 动能矩阵构造、Penning 碰撞截面、RIXS 2D 强度谱、ATAS 瞬态吸收光谱、两电子库仑三体变分求积、SOP 逐维张量缩并与 TT 稠密还原、QCT 轨迹系综）内嵌标准 OpenMP 哨兵指令，支持零依赖单核运行与 `make OPENMP=1` / `cmake -DENABLE_OPENMP=ON` 服务器多核多线程加速。
@@ -179,7 +179,7 @@ GeneralModule/
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
     ├── README.md                  # pygenmod 子包独立说明与快速上手
-    ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 12/12 测试)
+    ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 29/29 测试)
     ├── plot_rovibrational_dynamics.py # 出版级分子转振受控动力学一键绘图管道
     ├── examples/                  # Python 算例 (TI vs TD 散射波函数对比；QCT 与高维方法演示)
     └── pygenmod/
@@ -1660,7 +1660,7 @@ chmod +x build_examples.sh
 
 ```bash
 cd GeneralModule/python
-python3 test_pygenmod.py   # 运行 28 项单元测试 (100% Pass)
+python3 test_pygenmod.py   # 运行 29 项单元测试 (100% Pass)
 pip install ./python       # 或按标准 Python 包安装 (pygenmod 1.5.0)
 ```
 

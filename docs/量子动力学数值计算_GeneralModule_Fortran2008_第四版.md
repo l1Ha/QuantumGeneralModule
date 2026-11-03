@@ -525,11 +525,42 @@ $$
 
 **多原子拓展第二步：离心畸变进入矩阵。** 刚转子之上叠加 Watson A reduction 的对角四次项 $H_{\mathrm{cd}}=-D_J\hat{J}^4-D_{JK}\hat{J}^2\hat{J}_a^2-D_K\hat{J}_a^4$（$D_J>0$ 降低能级，标准光谱学约定 $E=B J(J+1)-D_JJ^2(J+1)^2$），对角贡献为 $-D_J[J(J+1)]^2-D_{JK}J(J+1)K^2-D_KK^4$。三重验证：畸变全零与刚转子逐位一致；球陀螺加 $D_J$ 时 $E=[A-D_JJ(J+1)]J(J+1)$ 解析可验；**扩展迹规则** $\sum E=(2J+1)J(J+1)\{(A+B+C)/3-D_JJ(J+1)-D_{JK}J(J+1)/3\}-D_K(2J+1)J(J+1)(3J^2+3J-1)/15$ 精确成立（$\Delta K=\pm2/\pm4$ 的 $d_1/d_2$ 项迹为零，以非零 $d_1,d_2$ 加入时迹不变亦获验证）。$\Delta K=\pm2/\pm4$ 的非对角 $d_1/d_2$ 项与 A/S reduction 约定强相关（$2K\pm3$ 因子与符号），留作后续增量并需对照 SPFIT 约定验收。
 
+#### 多原子拓展第三步：N 模简正振动与乘积 DVR（`mod_polyatomic_vib`）
+
+转动之外，多原子振动的零级模型是质量权重简正坐标下的 N 模谐振子加双线性力常数耦合。由 3.1 节的 Eckart 条件与 Hessian 对角化，振动哈密顿量为
+
+$$\hat{H}_{\mathrm{vib}}=\sum_{k=1}^{N}\Bigl[-\frac{1}{2}\frac{\partial^{2}}{\partial Q_k^{2}}+\frac{1}{2}\omega_k^{2}Q_k^{2}\Bigr]
++\sum_{k<l}\lambda_{kl}\,Q_kQ_l,$$
+
+其中 $Q_k$ 为质量权重简正坐标（动能部分已无量纲因子），$\omega_k$ 为谐振频率，$\lambda_{kl}$ 为双线性力常数（三阶及以上非谐项留作后续增量）。**推导（乘积基变分）。** 取各模 Sinc-DVR 格点基的乘积 $|i_1 i_2 \cdots i_N\rangle=|i_1\rangle_1\otimes\cdots\otimes|i_N\rangle_N$，总基维数为 $n^{N}$。动能算符是各模动能与单位算符的 **Kronecker 和**（注意不是 Kronecker 积）：
+
+$$\hat{T}=\sum_{k=1}^{N}\underbrace{I\otimes\cdots\otimes T_k\otimes\cdots\otimes I}_{T_k\ \text{位于第}\ k\ \text{个因子}},$$
+
+编程实现时以 $\hat{T}\leftarrow\sum_k I_{\mathrm{slow}}\otimes T_k\otimes I_{\mathrm{fast}}$ 逐项累加（模 0 为最快指标）；势能与双线性耦合在乘积格点上是对角的，直接加到矩阵元 $H_{\mathbf{i}\mathbf{i}}=\frac12\sum_k\omega_k^{2}x_{i_k}^{2}+\sum_{k<l}\lambda_{kl}x_{i_k}x_{i_l}$。全矩阵稠密对角化限制 $n^{N}\lesssim3400$（库内 QL 求解器 $O(n^{6})$ 复杂度与内存的折中）；更大体系应转向 SOP/张量列车表示（第 14、15 章）。
+
+**解析验收基准（双模耦合）。** 双模双线性耦合的动力学矩阵 $K=\begin{pmatrix}\omega_1^{2}&\lambda\\ \lambda&\omega_2^{2}\end{pmatrix}$ 可严格对角化，简正频率为
+
+$$\Omega_{\mp}^{2}=\frac{\omega_1^{2}+\omega_2^{2}}{2}\mp\frac{1}{2}\sqrt{(\omega_1^{2}-\omega_2^{2})^{2}+4\lambda^{2}},$$
+
+这就是 `coupled2_normal_freqs` 的闭式解（$\lambda=0$ 时退化为 $\Omega=\omega_1,\omega_2$）。它为变分结果提供机器精度的验收：耦合 ZPE 必须等于 $(\Omega_-+\Omega_+)/2$，第一激发能等于 $\Omega_-$（低频简正模的一个量子）。**简并旋转不变性**是又一重解析检验：$\omega_1=\omega_2$ 时动力学矩阵的本征矢可旋转任意角度，耦合后的简正频率只依赖 $\lambda$ 的正交不变量，即 $\Omega_{\mp}=\sqrt{\omega^{2}\mp\lambda}$，分裂 $=\sqrt{\omega^{2}+\lambda}-\sqrt{\omega^{2}-\lambda}$ 与"旋转简正坐标不改变物理"一致。
+
+**小型数值实验（图 3.3）。** 取双模体系 $\omega_1=0.28$、$\omega_2=0.19\ E_h$，$\lambda=0.045\ E_h$（格点半宽 $x_{1/2}=10,13\ a_0$，每模 $n=20$ 个 Sinc 点，总基 $400$）：解析简正频率 $\Omega_-=0.08676$、$\Omega_+=0.32707\ E_h$；DVR 变分得 ZPE $=0.20691\ E_h$，与解析值 $(\Omega_-+\Omega_+)/2=0.20691$ 在 $10^{-6}$ 内一致，第一激发 $E_1-E_0=0.08676=\Omega_-$。图 3.3(a) 展示耦合势能面 $V(Q_1,Q_2)$ 的等高图：双线性项使椭圆主轴相对坐标轴旋转，紫实线与绿虚线标出的正是动力学矩阵本征矢方向（简正坐标 $Q_\mp$）——"对角化动力学矩阵 = 旋转到简正坐标"的几何直观。图 3.3(b) 对比能级：无耦合时（灰）$\omega_1,\omega_2$ 两模的能级为 $E=0.235,0.425(\pm$ 简并$),0.515\ldots$；耦合后（红）简并解除、逐级重排（$0.207,0.294,0.380,0.467,0.534,0.554\ E_h$），ZPE 下移 $0.028\ E_h$——双线性耦合对基态的稳定化。三模体系（$n=10$，总基 $1000$）验证 $N=3$ 的 Kronecker 和组装：分离极限 ZPE 与 $\frac12\sum_k\omega_k$ 一致，且能级按**全谱升序**排列（第一激发是最低频模的一个量子，而非"模 1 的一个量子"——排序陷阱在测试中显式断言）。网格收敛（$n=14\to20$，耦合 ZPE 漂移 $<10^{-6}\ E_h$）与简并旋转检验共同构成 12 项断言的自动化验证。
+
+![图 3.3：双模双线性耦合振子（`mod_polyatomic_vib` / `polyatomic_vib.py`）。（a）耦合势能面 $V=\frac12\omega_1^{2}Q_1^{2}+\frac12\omega_2^{2}Q_2^{2}+\lambda Q_1Q_2$（$\omega_1=0.28$、$\omega_2=0.19$、$\lambda=0.045\ E_h$）等高图：紫实线/绿虚线为动力学矩阵本征矢方向，即简正坐标 $Q_\mp$ 轴——耦合使椭圆主轴旋转；（b）能级对比：灰为无耦合能级 $E=\omega_1(v_1+\frac12)+\omega_2(v_2+\frac12)$，红为耦合后能级——简并解除、ZPE 下移；解析简正频率 $\Omega_\mp$（`coupled2_normal_freqs`）给出机器精度的验收基准。绘图脚本见 `docs/generate_figures.py`。](figures/fig19_coupled_modes.png){width=13.0cm}
+
 #### 对应源码（多原子拓展）
 
 - [src/mod_watson_rotor.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_watson_rotor.f90)：`wang_matrix_element`（Wang 矩阵元）、`asymmetric_top_levels`（给定 $J$ 的 $2J+1$ 条能级，库内 QL 求解器对角化）、`inertia_constants_from_geometry`（核坐标/质量 → 主惯量 → $A,B,C$，复用 `diag_symmetric_matrix`）。
-- Python 参照：`python/pygenmod/rovibrational.py` 的 `watson_asymmetric_levels`、`watson_asymmetric_levels_cd` 与 `inertia_constants_from_geometry`。
-- 验证：`tests/test_watson_rotor.f90`（三极限解析谱、迹规则、垂直轴定理、H₂O 实验值 1% 对照、离心畸变回归/解析/迹规则，共 37 项断言）。多原子振动的完整 Watson 处理（Coriolis 与 $d_1/d_2$ 畸变项）见 §12.2 路线图。
+- [src/mod_polyatomic_vib.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_polyatomic_vib.f90)：`coupled2_normal_freqs`（双模耦合解析简正频率，动力学矩阵本征值开方）、`poly_vib_product_levels`（N 模乘积 DVR 变分：Kronecker 和动能 + 对角势/双线性耦合，稠密 QL 对角化）、`basis_idx`（乘积基线性索引，模 0 最快）。
+- Python 参照：`python/pygenmod/rovibrational.py` 的 `watson_asymmetric_levels`、`watson_asymmetric_levels_cd` 与 `inertia_constants_from_geometry`；`python/pygenmod/polyatomic_vib.py` 的 `coupled2_normal_freqs` 与 `poly_vib_product_levels`（numpy Kronecker 和组装，与 Fortran 同一索引约定）。
+- 验证：`tests/test_watson_rotor.f90`（三极限解析谱、迹规则、垂直轴定理、H₂O 实验值 1% 对照、离心畸变回归/解析/迹规则，共 37 项断言）；`tests/test_polyatomic_vib.f90`（分离谐振解析谱、双模耦合对 $\Omega_\mp$ 的机器精度验收、简并旋转不变性、网格收敛，共 12 项断言）。多原子振动的完整 Watson 处理（Coriolis 与 $d_1/d_2$ 畸变项）与 Morse 型非谐力场见 §12.2 路线图。
+- 文献依据：Wilson, Decius 与 Cross, *Molecular Vibrations* (1955)，第 3 章（简正坐标）；H. W. Kroto, *Molecular Rotation Spectra*, Dover (1975)，第 4 章（非对称陀螺）。GitHub 直链与二维码见各源码文件的仓库路径 `qr/src__mod_polyatomic_vib.f90.png`、`qr/python__pygenmod__polyatomic_vib.py.png`。
+
+![](qr/src__mod_watson_rotor.f90.png){width=2.0cm}
+
+![](qr/src__mod_polyatomic_vib.f90.png){width=2.0cm}
+
+![](qr/python__pygenmod__polyatomic_vib.py.png){width=2.0cm}
 
 ---
 
@@ -2823,7 +2854,7 @@ GeneralModule 同时提供 `Makefile`、`fpm.toml` 和 `CMakeLists.txt`。三者
 | fpm.toml | Fortran 包管理 | 标准化、依赖清晰 | 自动发现关闭 |
 | CMakeLists.txt | 跨平台与 IDE | 对象库、静态库、共享库、CTest | 配置复杂 |
 
-`Makefile` 使用显式模块顺序编译，保证 `.mod` 文件依赖正确。`fpm.toml` 显式列出 47 个测试和 36 个示例，避免隐式自动发现。`CMakeLists.txt` 使用对象库组织源码，并生成静态库、共享库和可执行文件。
+`Makefile` 使用显式模块顺序编译，保证 `.mod` 文件依赖正确。`fpm.toml` 显式列出 48 个测试和 36 个示例，避免隐式自动发现。`CMakeLists.txt` 使用对象库组织源码，并生成静态库、共享库和可执行文件。
 
 - Makefile：
 
@@ -2851,7 +2882,7 @@ GeneralModule 同时提供 `Makefile`、`fpm.toml` 和 `CMakeLists.txt`。三者
 
 ### 8.3　测试体系的验证层次
 
-GeneralModule 当前包含 47 个 Fortran 测试程序和 36 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。测试流水线利用服务器多核并行：模块编译由依赖自愈的并行编译器完成（`scripts/compile_modules.sh`，逐波并行尝试、未就绪者下轮重试，56 个模块约 3.5 秒），测试套件间无共享文件 I/O，以 `xargs -P` 并行执行并按固定顺序回放日志（`TEST_JOBS` 可调并行度）。
+GeneralModule 当前包含 48 个 Fortran 测试程序和 36 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。测试流水线利用服务器多核并行：模块编译由依赖自愈的并行编译器完成（`scripts/compile_modules.sh`，逐波并行尝试、未就绪者下轮重试，56 个模块约 3.5 秒），测试套件间无共享文件 I/O，以 `xargs -P` 并行执行并按固定顺序回放日志（`TEST_JOBS` 可调并行度）。
 
 测试应覆盖以下层次：
 
@@ -4045,6 +4076,8 @@ GitHub Actions 配置位于：
 | 1.4 / 10.2 | 幺正演化 $U=e^{-iHt}$ | `mod_wavepacket_propagator::propagate_split_operator_1d` | —（脚本级复现） | `test_propagators` | 图 10.2、11 |
 | 2.4 | 选择定则 $\langle j'|\cos\theta|j\rangle$ | `mod_special_functions::rot_matrix_cos_theta` | `rovibrational.rot_matrix_cos_theta/cos2_theta` | `test_special_functions` | 图 2.1 |
 | 3.2 | Jacobi 坐标、LEPS 面 | `mod_triatomic_geometry::calc_leps_potential` | `qct.leps_energy_gradient` | `test_triatomic_geometry` | 图 3.1 |
+| 3.4 | Watson 非对称陀螺 + 四次离心畸变（A reduction） | `mod_watson_rotor::asymmetric_top_levels_cd`、`inertia_constants_from_geometry` | `rovibrational.watson_asymmetric_levels_cd`、`inertia_constants_from_geometry` | `test_watson_rotor` | 图 3.2 |
+| 3.4 | N 模简正振动 + 双线性耦合（乘积 DVR） | `mod_polyatomic_vib::poly_vib_product_levels`、`coupled2_normal_freqs` | `polyatomic_vib.poly_vib_product_levels`、`coupled2_normal_freqs` | `test_polyatomic_vib` | 图 3.3 |
 | 4.3 | Wilkinson 位移 QL 迭代 | `mod_linear_algebra::tql2` | — | `test_dvr_grid`/`test_propagators` | 图 4.1 |
 | 5.3–5.5 | DVR/FGH 谱方法 | `mod_dvr_grid::dvr_sinc_init`、`fgh_solve_bound_states` | `dvr.dvr_sinc_init`、`fgh_solve_bound_states` | `test_dvr_grid` | 图 5.1、10.1 |
 | 6.2 / 14.2 | Split-Operator 分裂 | `mod_wavepacket_propagator::propagate_split_operator_1d/2d` | — | `test_propagators` | 图 10.2、11 |
@@ -4905,7 +4938,7 @@ end type experiment_record_t
 
 #### 已有能力
 
-- 47 个 Fortran 测试程序；
+- 48 个 Fortran 测试程序；
 - 36 个物理示例；
 - `Makefile`、`fpm.toml`、`CMakeLists.txt`；
 - GitHub Actions CI；
@@ -5031,7 +5064,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 47 个测试程序、430 项断言全部通过。
+- 全库 48 个测试程序、442 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

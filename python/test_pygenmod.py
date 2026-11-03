@@ -134,6 +134,31 @@ class TestPyGenMod(unittest.TestCase):
         self.assertAlmostEqual(pop2, 0.0, places=6)
         self.assertAlmostEqual(ratio, 0.0, places=6)
 
+    def test_polyatomic_vib(self):
+        from pygenmod.polyatomic_vib import (coupled2_normal_freqs,
+                                             poly_vib_product_levels)
+        # 分离谐振极限 (lam = 0): ZPE = sum w/2, 能级按升序排列
+        om = [0.30, 0.20, 0.12]
+        e = poly_vib_product_levels(om, np.zeros((3, 3)),
+                                    [9.0, 11.0, 14.0], 10)
+        self.assertTrue(e[0] > 0.0)
+        self.assertAlmostEqual(e[0], 0.5 * sum(om), delta=1e-4)
+        self.assertAlmostEqual(e[1] - e[0], min(om), delta=1e-4)
+        # 双模双线性耦合: ZPE 与解析简正频率
+        e2 = poly_vib_product_levels([0.28, 0.19],
+                                     [[0.0, 0.045], [0.045, 0.0]],
+                                     [10.0, 13.0], 20)
+        om_lo, om_hi = coupled2_normal_freqs(0.28, 0.19, 0.045)
+        self.assertAlmostEqual(e2[0], 0.5 * (om_lo + om_hi), delta=1e-6)
+        self.assertTrue(any(abs((e2[k] - e2[0]) - om_lo) < 1e-4
+                            for k in range(1, len(e2))))
+        # 简并旋转不变性: w1 = w2, 分裂 = sqrt(w^2+lam) - sqrt(w^2-lam)
+        e3 = poly_vib_product_levels([0.22, 0.22],
+                                     [[0.0, 0.03], [0.03, 0.0]],
+                                     [12.0, 12.0], 18)
+        om_lo2, om_hi2 = coupled2_normal_freqs(0.22, 0.22, 0.03)
+        self.assertAlmostEqual(e3[0], 0.5 * (om_lo2 + om_hi2), delta=1e-6)
+
     def test_rovibrational(self):
         # Index roundtrip
         idx = rovibrational_state_index(v=2, j=3, j_max=5)

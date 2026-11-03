@@ -1187,9 +1187,79 @@ def generate_fig18_watson_levels():
     print(f" -> Saved to {fig_path} (A={a_c:.3f}, B={b_c:.3f}, C={c_c:.3f} cm^-1)")
 
 
+def generate_fig19_coupled_modes():
+    """Fig 19: Two-mode bilinearly coupled harmonic vibrations (book Sec 3.4
+    polyatomic step 3): (a) potential contour in (Q1, Q2) with rotated normal
+    modes; (b) level diagram uncoupled vs coupled."""
+    print("Generating Fig 19: Coupled two-mode vibrations...")
+    set_publication_style()
+    import pygenmod as _pg
+    from pygenmod.polyatomic_vib import poly_vib_product_levels
+
+    w1, w2, lam = 0.28, 0.19, 0.045
+    x_half = (10.0, 13.0)
+    n_pts = 20
+    om_lo, om_hi = _pg.coupled2_normal_freqs(w1, w2, lam)
+
+    q_max = 14.0
+    q = np.linspace(-q_max, q_max, 300)
+    q1, q2 = np.meshgrid(q, q)
+    v_pot = 0.5 * w1**2 * q1**2 + 0.5 * w2**2 * q2**2 + lam * q1 * q2
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.8), dpi=200)
+    levels = np.linspace(0.0, 0.32, 17)
+    cf = ax1.contourf(q1, q2, v_pot, levels=levels, cmap='RdYlBu_r')
+    cl = ax1.contour(q1, q2, v_pot, levels=levels[::2], colors='k',
+                     linewidths=0.4, alpha=0.5)
+    ax1.clabel(cl, inline=True, fontsize=6, fmt='%.2f')
+    theta = 0.5 * np.arctan2(2.0 * lam, w1**2 - w2**2)
+    L = q_max * 0.85
+    ax1.plot([-L * np.cos(theta), L * np.cos(theta)],
+             [-L * np.sin(theta), L * np.sin(theta)],
+             color='darkviolet', linewidth=2.0, label=r'Normal mode $Q_-$')
+    ax1.plot([-L * np.sin(theta), L * np.sin(theta)],
+             [L * np.cos(theta), -L * np.cos(theta)],
+             color='darkgreen', linewidth=2.0, linestyle='--', label=r'Normal mode $Q_+$')
+    ax1.set_xlim(-q_max, q_max)
+    ax1.set_ylim(-q_max, q_max)
+    ax1.set_xlabel(r'$Q_1$ (a.u.)')
+    ax1.set_ylabel(r'$Q_2$ (a.u.)')
+    ax1.set_title(r'(a) Coupled Potential ($\lambda = %.3f$ a.u.)' % lam, fontsize=11)
+    ax1.legend(loc='upper left', frameon=True, fontsize=8.5)
+    cbar = plt.colorbar(cf, ax=ax1, fraction=0.046, pad=0.04)
+    cbar.set_label(r'$V$ ($E_h$)', fontsize=10)
+
+    e_unc = poly_vib_product_levels([w1, w2], np.zeros((2, 2)), x_half, n_pts)
+    e_cpl = poly_vib_product_levels([w1, w2], np.array([[0.0, lam], [lam, 0.0]]),
+                                    x_half, n_pts)
+    n_show = 6
+    for k in range(n_show):
+        ax2.hlines(e_unc[k], -0.30, -0.06, color='gray', linewidth=2.2,
+                   label='Uncoupled' if k == 0 else None)
+        ax2.hlines(e_cpl[k], 0.06, 0.30, color='crimson', linewidth=2.4,
+                   label='Coupled' if k == 0 else None)
+        ax2.annotate(rf'{e_unc[k]:.3f}', xy=(-0.18, e_unc[k]),
+                     xytext=(0.0, 6.0), textcoords='offset points',
+                     fontsize=6.8, ha='center', color='dimgray')
+        ax2.annotate(rf'{e_cpl[k]:.3f}', xy=(0.18, e_cpl[k]),
+                     xytext=(0.0, 6.0), textcoords='offset points',
+                     fontsize=6.8, ha='center', color='crimson')
+    ax2.set_xlim(-0.30, 0.30)
+    ax2.set_ylim(e_cpl[0] - 0.012, e_cpl[n_show - 1] + 0.02)
+    ax2.set_xticks([])
+    ax2.set_ylabel(r'Energy (a.u.)')
+    ax2.set_title('(b) Levels: Uncoupled vs Coupled', fontsize=11)
+    ax2.legend(loc='center', frameon=True, fontsize=8.5, framealpha=0.95)
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig19_coupled_modes.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} (Om_lo={om_lo:.5f}, Om_hi={om_hi:.5f} a.u.)")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 17 Scientific Calculation Benchmark Figures")
+    print(" Generating All 19 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -1209,8 +1279,9 @@ def main():
     generate_fig16_leps_pes()
     generate_fig17_lindblad()
     generate_fig18_watson_levels()
+    generate_fig19_coupled_modes()
     print("=" * 60)
-    print(" All 18 Figures Generated Successfully in docs/figures/!")
+    print(" All 19 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 
