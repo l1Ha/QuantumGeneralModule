@@ -51,25 +51,30 @@ class LEPSParameters:
     d_e   : Morse well depth of one diatomic pair (Hartree)
     beta  : Morse range parameter (bohr^-1)
     r_e   : Morse equilibrium distance (bohr)
+    sato  : Sato empirical parameter Delta; 0 recovers the London form
+            (default), the book's H3 surface uses Delta = 0.10.
     """
     d_e: float = 4.746 * EV2AU
     beta: float = 1.942 * 0.529177  # 1.942 A^-1 in bohr^-1
     r_e: float = 0.7416 / 0.529177  # 0.7416 A in bohr
+    sato: float = 0.0
 
     def q_and_j(self, r):
         """Coulomb integral Q(r) and exchange integral J(r) of the LEPS form."""
-        x = r - self.r_e
-        em = np.exp(-self.beta * x)
-        q = 0.5 * self.d_e * (1.5 * em * em - em)
-        j = 0.25 * self.d_e * (em * em - 6.0 * em)
+        x = np.exp(-self.beta * (np.asarray(r, dtype=float) - self.r_e))
+        c = 0.25 * self.d_e / (1.0 + self.sato)
+        s = self.sato
+        q = c * ((3.0 + s) * x * x - (2.0 + 6.0 * s) * x)
+        j = c * ((1.0 + 3.0 * s) * x * x - (6.0 + 2.0 * s) * x)
         return q, j
 
     def dq_and_dj(self, r):
-        """Derivatives dQ/dr and dJ/dr."""
-        x = r - self.r_e
-        em = np.exp(-self.beta * x)
-        dq = 0.5 * self.d_e * self.beta * (em - 3.0 * em * em)
-        dj = 0.25 * self.d_e * self.beta * (6.0 * em - 2.0 * em * em)
+        """Derivatives dQ/dr and dJ/dr (dx/dr = -b x with x = exp(-b(r-r_e)))."""
+        x = np.exp(-self.beta * (np.asarray(r, dtype=float) - self.r_e))
+        c = 0.25 * self.d_e / (1.0 + self.sato)
+        b, s = self.beta, self.sato
+        dq = c * b * ((2.0 + 6.0 * s) * x - 2.0 * (3.0 + s) * x * x)
+        dj = c * b * ((6.0 + 2.0 * s) * x - 2.0 * (1.0 + 3.0 * s) * x * x)
         return dq, dj
 
 
@@ -125,6 +130,156 @@ def leps_energy_gradient(q: np.ndarray, par: Optional[LEPSParameters] = None
         force[..., a, :] -= g * unit[..., a, b, :]
         force[..., b, :] += g * unit[..., a, b, :]
     return v, force
+
+
+def leps_collinear_gradient(r12, r23, par: Optional[LEPSParameters] = None
+                            ) -> Tuple[float, float, float]:
+    """LEPS energy and collinear gradient at bond coordinates (r12, r23).
+
+    Collinear A1-A2-A3 constraint r31 = r12 + r23; chain rule with
+    dr31/dr12 = dr31/dr23 = 1 gives
+        dV/dr12 = dV/dr1 + dV/dr3,  dV/dr23 = dV/dr2 + dV/dr3.
+
+    Returns (V, dV/dr12, dV/dr23), energies in Hartree, lengths in bohr.
+    """
+    if par is None:
+        par = LEPSParameters()
+    r = np.array([r12, r23, r12 + r23], dtype=float)
+    q, j = par.q_and_j(r)
+    dq, dj = par.dq_and_dj(r)
+    delta = 0.5 * ((j[0] - j[1]) ** 2 + (j[1] - j[2]) ** 2 + (j[2] - j[0]) ** 2)
+    sq = math.sqrt(max(delta, 1.0e-300))
+    v = float(np.sum(q) - sq)
+    coef = (3.0 * j - j.sum()) / (2.0 * sq)          # d(-sqrt(Delta))/dJ_k * (-1)
+    dv_pair = dq - coef * dj                          # dV/dr_k, k = 12, 23, 31
+    return v, float(dv_pair[0] + dv_pair[2]), float(dv_pair[1] + dv_pair[2])
+
+
+def intrinsic_reaction_coordinate(par: Optional[LEPSParameters] = None,
+                                  masses=(1.0, 1.0, 1.0),
+                                  r_start=(1.9, 1.6),
+                                  n_max: int = 20000, ds: float = 0.02,
+                                  grad_tol: float = 1.0e-7,
+                                  r_min: float = 0.05, r_max: float = 50.0):
+    """Intrinsic reaction coordinate (Fukui) for a collinear triatomic.
+
+    Mass-weighted steepest descent in the Wilson G-matrix metric. In bond
+    coordinates (r12, r23) the velocity-space metric of the collinear
+    A1-A2-A3 chain is T = 1/2 v^T G_vel v with
+        G_vel = 1/M [[m1(m2+m3), m1 m3], [m1 m3, m3(m1+m2)]],
+    whose inverse is exactly the Wilson G-matrix
+        G = [[1/m1+1/m2, -1/m2], [-1/m2, 1/m2+1/m3]].
+    The unit-speed ODE  dr/ds = -G g / sqrt(g^T G g)  gives
+    dV/ds = -sqrt(g^T G g) <= 0: energy decreases monotonically and the path
+    terminates at a valley floor where the mass-weighted gradient norm
+    sqrt(g^T G g) vanishes (or when leaving [r_min, r_max]). Each step uses
+    the Gonzalez-Schlegel (1990) constrained second-order construction
+    (pivot + metric-orthogonal bisector root solve); plain unit-speed Euler
+    steps are only conditionally stable (ds < 2 sqrt(g^T G g)/k_t with the
+    transverse curvature k_t) and zigzag on the flat valley floor.
+
+    Parameters
+    ----------
+    par      : LEPS parameters (use ``sato=0.10`` for the book H3 surface).
+    masses   : (m1, m2, m3); only ratios affect the path, s scales as sqrt(m).
+    r_start  : saddle point displaced by a small step along the unstable
+               (imaginary-frequency) mass-weighted normal mode.
+    ds       : arc-length step (amu^0.5 bohr if masses are amu).
+    grad_tol : convergence threshold on sqrt(g^T G g).
+
+    Returns
+    -------
+    dict with arrays s, r12, r23, v and an integer stop_reason
+    (0 n_max reached, 1 gradient converged, 2 left domain, 3 ascent detected,
+    -1 invalid input). Python mirror of `irc_steepest_descent`
+    (src/mod_triatomic_geometry.f90).
+    """
+    m1, m2, m3 = (float(m) for m in masses)
+    if min(m1, m2, m3) <= 0.0 or n_max < 2 or ds <= 0.0 or grad_tol <= 0.0:
+        return {"s": np.zeros(0), "r12": np.zeros(0), "r23": np.zeros(0),
+                "v": np.zeros(0), "stop_reason": -1}
+    if not (r_min < r_start[0] < r_max and r_min < r_start[1] < r_max):
+        return {"s": np.zeros(0), "r12": np.zeros(0), "r23": np.zeros(0),
+                "v": np.zeros(0), "stop_reason": -1}
+
+    m_tot = m1 + m2 + m3
+    gmat = np.array([[1.0 / m1 + 1.0 / m2, -1.0 / m2],
+                     [-1.0 / m2, 1.0 / m2 + 1.0 / m3]])       # Wilson G
+    gvel = np.array([[m1 * (m2 + m3), m1 * m3],
+                     [m1 * m3, m3 * (m1 + m2)]]) / m_tot       # velocity metric
+
+    r = np.array(r_start, dtype=float)
+    v_val = leps_collinear_gradient(r[0], r[1], par)[0]
+    s_list = [0.0]
+    r1_list = [float(r[0])]
+    r2_list = [float(r[1])]
+    v_list = [v_val]
+    s_acc, stop_reason = 0.0, 0
+
+    def _grad(rr):
+        _, g12v, g23v = leps_collinear_gradient(rr[0], rr[1], par)
+        return np.array([g12v, g23v])
+
+    def _psi(rp, xi, t_vec, v_n, r_prev):
+        """sin of the angle between G g(r_p + xi t) and the chord; GS root cond."""
+        r_try = rp + xi * t_vec
+        gg = gmat @ _grad(r_try)
+        chord = r_try - r_prev
+        nrm = math.sqrt(max(gg @ gg, 1.0e-300)) * math.sqrt(max(chord @ chord, 1.0e-300))
+        return (gg[0] * chord[1] - gg[1] * chord[0]) / nrm, r_try
+
+    for _ in range(n_max):
+        g = _grad(r)
+        gnrm = math.sqrt(max(g @ gmat @ g, 0.0))
+        if gnrm < grad_tol:
+            stop_reason = 1
+            break
+        v_n = -(gmat @ g) / gnrm          # unit metric speed (|G g|_G = sqrt(g^T G g))
+
+        # Gonzalez-Schlegel constrained step: pivot + bisector root solve
+        r_p = r + ds * v_n
+        u_vec = gvel @ v_n
+        t_vec = np.array([-u_vec[1], u_vec[0]])
+        t_vec = t_vec / math.sqrt(max(t_vec @ gvel @ t_vec, 1.0e-300))
+        psi_m, _ = _psi(r_p, -ds, t_vec, v_n, r)
+        psi_p, _ = _psi(r_p, +ds, t_vec, v_n, r)
+        if psi_m == 0.0:
+            xi = -ds
+        elif psi_p == 0.0:
+            xi = +ds
+        elif psi_m * psi_p <= 0.0:
+            xl, fl_, xr, fr_ = -ds, psi_m, +ds, psi_p
+            xi = 0.5 * (xl + xr)
+            for _it in range(60):
+                xi = 0.5 * (xl + xr)
+                fm, r_try = _psi(r_p, xi, t_vec, v_n, r)
+                if abs(fm) < 1.0e-14 or 0.5 * (xr - xl) < 1.0e-13:
+                    break
+                if fl_ * fm <= 0.0:
+                    xr, fr_ = xi, fm
+                else:
+                    xl, fl_ = xi, fm
+        else:
+            xi = 0.0                       # fallback: unit-speed Euler step
+        r_new = r_p + xi * t_vec
+
+        if not (r_min < r_new[0] < r_max and r_min < r_new[1] < r_max):
+            stop_reason = 2
+            break
+        v_new = leps_collinear_gradient(r_new[0], r_new[1], par)[0]
+        if v_new > v_list[-1] + 1.0e-9:
+            stop_reason = 3
+            break
+        s_acc += ds
+        s_list.append(s_acc)
+        r1_list.append(float(r_new[0]))
+        r2_list.append(float(r_new[1]))
+        v_list.append(v_new)
+        r = r_new
+
+    return {"s": np.array(s_list), "r12": np.array(r1_list),
+            "r23": np.array(r2_list), "v": np.array(v_list),
+            "stop_reason": stop_reason}
 
 
 def morse_vibrational_energy(v: float, par: Optional[LEPSParameters] = None,

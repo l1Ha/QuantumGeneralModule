@@ -1210,11 +1210,17 @@ Legendre 或超球谐函数表达。其三，核置换对称性：同核体系�
 域截断）、\texttt{calc\_leps\_potential} 与
 \texttt{init\_default\_h3\_leps}（标准 \(\mathrm{H}_3\) LEPS
 面参数：\(D_e=0.1744\ E_h\)，\(r_e=1.401\ a_0\)，\(\beta=1.044\ a_0^{-1}\)，Sato
-参数 \(\Delta=0.10\)）、\texttt{calc\_conical\_intersection\_adiabats}
-与 \texttt{calc\_berry\_phase\_around\_ci}。文献依据：Truhlar 与
+参数 \(\Delta=0.10\)）、\texttt{calc\_leps\_gradient}（LEPS 解析梯度
+\(\partial V/\partial r_k\)，有限差分验收至
+\(10^{-9}\)）、\texttt{intrinsic\_reaction\_coordinate}（质量加权 Wilson
+\(\mathbf{G}\) 度规 + Gonzalez--Schlegel 约束步
+IRC，见下文推导）、\texttt{calc\_conical\_intersection\_adiabats} 与
+\texttt{calc\_berry\_phase\_around\_ci}。文献依据：Truhlar 与
 Horowitz（J. Chem. Phys. 68, 2466 (1978), DOI:
 10.1063/1.436019）、Sato（J. Chem. Phys. 23, 592 (1955), DOI:
-10.1063/1.1742050）、Berry（Proc. R. Soc. Lond. A 392, 45 (1984), DOI:
+10.1063/1.1742050）、Fukui（J. Phys. Chem. 74, 4161 (1970), DOI:
+10.1021/j100717a029）、Gonzalez 与 Schlegel（J. Chem. Phys. 90, 2154
+(1989)）、Berry（Proc. R. Soc. Lond. A 392, 45 (1984), DOI:
 10.1098/rspa.1984.0023）。GitHub
 直链：\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_triatomic_geometry.f90}{src/mod\_triatomic\_geometry.f90}。二维码：\texttt{qr/src\_\_mod\_triatomic\_geometry.f90.png}。
 
@@ -1240,28 +1246,112 @@ London 面（未加 Sato 修正）的参考值约为
 坐标下动能算符的显式形式并指出 \(\gamma\) 依赖项。(3) 以本库 LEPS 面扫描
 Sato 参数 \(\Delta\in[0.05,0.20]\)，讨论势垒高度对 \(\Delta\) 的单调性。
 
-图 3.1 将上述数值实验可视化：左图为共线构型 \(r_{31}=r_{12}+r_{23}\)
-下的 \(\mathrm{H}_3\) LEPS 势能面等高图（Sato 参数
+\hypertarget{ux5185ux7980ux53cdux5e94ux5750ux6807ux8d28ux91cfux52a0ux6743ux6700ux9661ux4e0bux964dux7684ux63a8ux5bfcux4e0eux6570ux503cux5b9eux73b0}{%
+\subsection{内禀反应坐标：质量加权最陡下降的推导与数值实现}\label{ux5185ux7980ux53cdux5e94ux5750ux6807ux8d28ux91cfux52a0ux6743ux6700ux9661ux4e0bux964dux7684ux63a8ux5bfcux4e0eux6570ux503cux5b9eux73b0}}
+
+\textbf{定义与推导。} 内禀反应坐标（IRC，Fukui
+1970）定义为\textbf{质量加权坐标}中从鞍点出发的最陡下降路径：以质权坐标
+\(\mathbf{x}=\mathbf{M}^{1/2}(\mathbf{R}-\mathbf{R}_{\ddagger})\)（\(\mathbf{M}\)
+为原子质量对角阵）表达势能面 \(V(\mathbf{x})\)，IRC
+是如下单位弧长常微分方程的解
+
+\[\frac{d\mathbf{x}}{ds}=-\frac{\nabla_{x}V}{\lVert\nabla_{x}V\rVert},\qquad \mathbf{x}(0)=\varepsilon\,\mathbf{u}_{\ddagger},\]
+
+其中 \(\mathbf{u}_{\ddagger}\)
+为鞍点的虚频（不稳定）简正模方向，\(\varepsilon\to0^{+}\)
+把路径与鞍点本身（梯度的平衡点）区分开。该定义有三条立即可证的性质：其一，沿路径的能量变化率
+\(dV/ds=\nabla V\cdot d\mathbf{x}/ds=-\lVert\nabla V\rVert\le0\)，能量严格单调下降；其二，路径在每一点与等势面正交（度规意义下），与``沿谷底走''的直觉一致；其三，路径的终点是反应物或产物谷底------那里
+\(\lVert\nabla V\rVert\to0\)，IRC 与 3.4 节的简正模分析在谷底衔接。
+
+\textbf{共线三原子的度规。} 对共线
+\(\mathrm{A}_1\mathrm{A}_2\mathrm{A}_3\) 链，取键长坐标
+\(\mathbf{r}=(r_{12},r_{23})\)，质心系消去平动后动能是速度的二次型
+\(T=\tfrac12\dot{\mathbf{r}}^{\,T}\mathbf{G}_{\mathrm{vel}}\dot{\mathbf{r}}\)。以
+\(x_1=c-\tfrac{m_2r_{12}+m_3(r_{12}+r_{23})}{M}\)
+型质心约束解出各原子速度并代入 \(T=\tfrac12\sum_i m_i\dot{x}_i^2\)，得
+
+\[\mathbf{G}_{\mathrm{vel}}=\frac{1}{M}\begin{pmatrix}m_1(m_2+m_3) & m_1m_3\\ m_1m_3 & m_3(m_1+m_2)\end{pmatrix},\qquad
+\mathbf{G}=\mathbf{G}_{\mathrm{vel}}^{-1}=\begin{pmatrix}\dfrac{1}{m_1}+\dfrac{1}{m_2} & -\dfrac{1}{m_2}\\[4pt] -\dfrac{1}{m_2} & \dfrac{1}{m_2}+\dfrac{1}{m_3}\end{pmatrix},\]
+
+其逆恰是 Wilson--Decius--Cross 的 \(\mathbf{G}\)
+矩阵（\(G_{ij}=\sum_l B_{li}B_{lj}/m_l\)，对共线伸缩坐标
+\(G_{12}=-1/m_2\)，两独立推导互为验证；等质量 \(H_3\) 时
+\(\mathbf{G}_{\mathrm{vel}}\propto\begin{pmatrix}2&1\\1&2\end{pmatrix}\)，其本征向量为对称/反对称伸缩）。质量加权
+ODE 在键坐标中化为
+\(\dot{\mathbf{r}}=-\mathbf{G}\mathbf{g}/\sqrt{\mathbf{g}^{T}\mathbf{G}\mathbf{g}}\)（\(\mathbf{g}=\nabla_r V\)），能量变化率
+\(dV/ds=-\sqrt{\mathbf{g}^{T}\mathbf{G}\mathbf{g}}\le0\)，收敛判据即质权梯度范数
+\(\sqrt{\mathbf{g}^{T}\mathbf{G}\mathbf{g}}\to0\)。质量只以比值进入路径形状，\(s\)
+的单位为 \(\mathrm{amu}^{1/2}a_0\)。
+
+\textbf{数值方法：为何需要约束步。} 最朴素的单位弧长 Euler 步
+\(\mathbf{r}_{n+1}=\mathbf{r}_n+ds\,\hat{\mathbf{v}}_n\)（\(\hat{\mathbf{v}}_n=-\mathbf{G}\mathbf{g}_n/\lVert\mathbf{G}\mathbf{g}_n\rVert_{G}\)）只有条件稳定：横向（跨谷方向）的
+Morse 曲率 \(k_t\) 使误差以每步因子
+\((1-ds\,k_t/\lVert\mathbf{g}\rVert_G)\) 衰减，稳定窗口为
+\(ds<2\lVert\mathbf{g}\rVert_G/k_t\)------在平坦谷底
+\(\lVert\mathbf{g}\rVert_G\) 指数衰减，窗口必然关闭。实测
+\(\mathrm{H}_3\) LEPS 入口谷（\(ds=0.01\)）：当
+\(\lVert\mathbf{g}\rVert_G\approx1.5\times10^{-3}\) 时横向分量开始以每步
+\(\times3.5\)
+交替发散，路径在谷底两侧之字反弹，且两分支的镜像对称（\(\mathrm{H}_3\)
+的精确对称性）在噪声敏感的反弹位相中破缺至 \(10^{-3}\)
+量级。\textbf{Gonzalez--Schlegel
+约束步}根治此失稳：试探点（支点）\(\mathbf{r}_p=\mathbf{r}_n+ds\,\hat{\mathbf{v}}_n\)，再在度规正交平分线
+\(\mathbf{r}=\mathbf{r}_p+\xi\mathbf{t}\)（\(\mathbf{t}\perp_G\hat{\mathbf{v}}_n\)）上求解标量平行性方程
+
+\[\sin\angle\bigl(\mathbf{G}\mathbf{g}(\mathbf{r}_p+\xi\mathbf{t}),\ \mathbf{r}_{n+1}-\mathbf{r}_n\bigr)=0,\]
+
+即要求新点的梯度与弦平行------这是``梯度流弧长增量两端方向一致''的二阶约束，每步约
+10 次解析梯度求值的围线二分/割线求根。它不含
+\(1/\lVert\mathbf{g}\rVert\) 型除法，平坦底部不失稳：修正后
+\(\mathrm{H}_3\) 两分支单调下降至 \(\mathrm{H}_2\) 渐近谷（\(V\) 终点与
+\(-D_e\) 差 \(<10^{-7}\ E_h\)）、镜像对称保持到 \(8\times10^{-17}\)，且
+Fortran 与 Python 实现逐位一致（偏差 \(3\times10^{-17}\ E_h\)）。
+
+\textbf{两个工程警示（图 3.1(c)）。}
+其一，\textbf{符号错误把下降变上升}：分支选择符若被误乘进步长（\(\mathbf{r}\leftarrow\mathbf{r}-\sigma\,ds\,\hat{\mathbf{v}}\)，\(\sigma=\pm1\)
+为分支号），\(\sigma=-1\)
+分支即变成最陡\textbf{上升}------路径从鞍点爬上排斥墙，\(V\) 从
+\(-0.154\)
+一路升至正值、越出势能面着色范围，且``沿谷底行进''的验收叙述与图形直接矛盾。教训：分支号只应作用于初始位移
+\(\pm\varepsilon\mathbf{u}_{\ddagger}\)，绝不应进入下降方向。其二，\textbf{质量加权不是可忽略的细节}：在
+\(\mathrm{H}_3\)
+入口谷中段，质量加权路径与未加权坐标最陡下降的空间偏差可达
+\(0.6\ a_0\)、同弧长处能量差最高 \(3.8\ \mathrm{mE_h}\)------因为度规
+\(\mathbf{G}\) 的非对角元把两个键坐标的梯度混合旋转。IRC
+的定义（Fukui）、二阶约束步（Gonzalez--Schlegel）与早期数值实现（Ishida--Morokuma--Komornicki）见文献依据；本库实现为
+\texttt{intrinsic\_reaction\_coordinate}（配合解析梯度
+\texttt{calc\_leps\_gradient}）。
+
+图 3.1 将上述数值实验可视化：(a) 共线构型 \(r_{31}=r_{12}+r_{23}\) 下的
+\(\mathrm{H}_3\) LEPS 势能面等高图（Sato 参数
 \(\Delta=0.10\)），入口谷（\(r_{23}\approx r_e\)、\(r_{12}\)
 大）与出口谷（\(r_{12}\approx r_e\)、\(r_{23}\)
-大）由对称鞍点相连；紫色曲线为\textbf{内禀反应坐标（IRC）}------从鞍点沿
-Hessian
-负曲率方向做最陡下降得到的反应路径，它精确沿两条谷底行进并经由鞍点交换。右图为沿
-IRC 的势垒剖面：\(V^{\ddagger}=-0.15370\ E_h\)，相对 \(\mathrm{H}_2\)
+大）由对称鞍点相连；紫色曲线为\textbf{内禀反应坐标（IRC）}两分支（\texttt{intrinsic\_reaction\_coordinate}，质量加权
+GS
+步），精确沿两条谷底行进并经由鞍点交换，灰色虚线为未加权坐标最陡下降的对照；(b)
+沿 IRC 的势垒剖面：\(V^{\ddagger}=-0.15370\ E_h\)，相对 \(\mathrm{H}_2\)
 渐近谷 \(-D_e\) 的势垒高度 \(\Delta V^{\ddagger}=12.96\)
-kcal/mol，与正文 Newton 搜索结果一致。该剖面也是第 17 章 QCT
-计算中``越过鞍点''这一物理图像的定量基础。
+kcal/mol，与正文二维 Newton 搜索结果一致，两分支剖面在
+\(s\approx9.5\ \mathrm{amu}^{1/2}a_0\) 处渐近抵达
+\(-D_e\)（质权梯度范数收敛判据）；(c) 修正前后对比：符号错误使
+\(\sigma=-1\)
+分支变成最陡上升、爬出势能面着色范围（浅红虚线），修正后沿谷底单调下降（深红实线）。该剖面也是第
+17 章 QCT 计算中``越过鞍点''这一物理图像的定量基础。
 
 \begin{figure}
 \centering
-\includegraphics[width=12cm,height=\textheight]{figures/fig16_leps_pes.png}
-\caption{图 3.1：共线 \(\mathrm{H}_3\) LEPS 势能面与反应路径（Sato 参数
-\(\Delta=0.10\)，参数
+\includegraphics[width=15.5cm,height=\textheight]{figures/fig16_leps_pes.png}
+\caption{图 3.1：共线 \(\mathrm{H}_3\) LEPS
+势能面、内禀反应坐标与符号错误警示（Sato 参数 \(\Delta=0.10\)，参数
 \(D_e=0.1744\ E_h\)、\(r_e=1.401\ a_0\)、\(\beta=1.044\ a_0^{-1}\)）。（a）等高图与
-IRC 反应路径（紫色），鞍点 \((1.775, 1.775)\) 以十字标记；（b）沿 IRC
+IRC 两分支（紫实线，质量加权 Gonzalez--Schlegel
+步；灰虚线为未加权坐标最陡下降对照），鞍点 \((1.775, 1.775)\)
+以十字标记；（b）沿 IRC
 的势垒剖面：\(V^{\ddagger}=-0.15370\ E_h\)、\(\Delta V^{\ddagger}=12.96\)
-kcal/mol，与正文二维 Newton 结果一致。文献依据：Sato（1955）、Truhlar 与
-Horowitz（1978），见本节实现映射。绘图脚本见
+kcal/mol，剖面于 \(s\approx9.5\ \mathrm{amu}^{1/2}a_0\) 渐近抵达
+\(\mathrm{H}_2\) 谷
+\(-D_e=-0.17436\ E_h\)；（c）工程警示：分支符号误乘步长使最陡下降变为最陡上升，路径爬上排斥墙越出着色范围（浅红虚线），修正后单调下降（深红实线）。文献依据：Sato（1955）、Fukui（1970）、Gonzalez
+与 Schlegel（1989），见本节实现映射。绘图脚本见
 \texttt{docs/generate\_figures.py}。}
 \end{figure}
 
@@ -2923,8 +3013,13 @@ i\hbar\frac{\partial}{\partial t}|\psi(t)\rangle
 \centering
 \includegraphics[width=12cm,height=\textheight]{figures/fig02_ultrafast_pulses.png}
 \caption{图 6.1：变换极限高斯激光脉冲（800 nm，15 fs
-FWHM）与正色散线性啁啾激光脉冲（\(\mathrm{GDD}=40\ \mathrm{fs}^2\)）的时域瞬时载波电场
-\(E(t)\) 与包络 \(F(t)\) 对比。}
+FWHM，\(10^{14}\ \mathrm{W/cm^2}\)，\(E_0=0.0534\) a.u.）与 GDD
+啁啾激光脉冲的时域电场与包络对比。上：变换极限脉冲，\texttt{pulse\_electric\_field}
+生成，包络按场幅 \(E_0\) 标度（与电场同用原子单位）；下：对同一脉冲施加
+\(\mathrm{GDD}=40\ \mathrm{fs}^2\) 谱相位
+\(\exp[i\frac{\phi''}{2}(\omega-\omega_0)^2]\)
+后逆变换得到的啁啾场------脉冲拉宽至 21 fs（场
+FWHM），瞬时载频单调扫掠但始终远离零频，包络与场幅一致。}
 \end{figure}
 
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-10}{%
@@ -4565,8 +4660,16 @@ F_{v'v''}
 \begin{figure}
 \centering
 \includegraphics[width=12cm,height=\textheight]{figures/fig03_molecular_alignment.png}
-\caption{图 7.4：飞秒非共振激光脉冲触发 CO 分子无场非绝热排列动力学
-\(\langle\cos^2\theta\rangle(t)\)，图中清晰展现了各向异性基线（1/3）、半周期复苏（\(T_{\mathrm{rot}}/2 \approx 4.32\ \mathrm{ps}\)）与全周期量子拍复苏（\(T_{\mathrm{rot}} \approx 8.64\ \mathrm{ps}\)）。}
+\caption{图 7.4：飞秒非共振脉冲触发 CO 分子无场排列动力学
+\(\langle\cos^{2}\theta\rangle(t)\) 的正向量子计算（\(\delta\)-kick
+模型）：各向同性基态获得相位
+\(e^{iP\cos^{2}\theta}\)（\(P=5\)），在刚转子基组
+\(E_J=BJ(J+1)\)（\(B=1.9312\ \mathrm{cm^{-1}}\)）下用库内 Raman 矩阵元
+\texttt{rot\_matrix\_cos2\_theta}
+传播。曲线展现各向异性基线（\(1/3\)）、排列振荡列、半周期强取向峰（\(T_{\mathrm{rot}}/2\approx4.32\ \mathrm{ps}\)
+处
+\(\langle\cos^{2}\theta\rangle=0.91\)）与全周期复苏（\(T_{\mathrm{rot}}\approx8.64\ \mathrm{ps}\)，动力学精确重复）；\(\langle\cos^{2}\theta\rangle\in[0.08,0.92]\subset[0,1]\)
+物理有界。绘图脚本见 \texttt{docs/generate\_figures.py}。}
 \end{figure}
 
 \hypertarget{ux53ccux539fux5b50ux6210ux5206ux4e0eux6298ux5408ux8d28ux91cfux77e9ux9635ux56feux8c31}{%
@@ -6992,11 +7095,11 @@ pygenmod 参照\strut
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
 3.2\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-Jacobi 坐标、LEPS 面\strut
+Jacobi 坐标、LEPS 面、IRC\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-\texttt{mod\_triatomic\_geometry::calc\_leps\_potential}\strut
+\texttt{mod\_triatomic\_geometry::calc\_leps\_potential}、\texttt{calc\_leps\_gradient}、\texttt{intrinsic\_reaction\_coordinate}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-\texttt{qct.leps\_energy\_gradient}\strut
+\texttt{qct.leps\_energy\_gradient}、\texttt{qct.leps\_collinear\_gradient}、\texttt{qct.intrinsic\_reaction\_coordinate}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 \texttt{test\_triatomic\_geometry}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
@@ -9066,7 +9169,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 48 个测试程序、442 项断言全部通过。
+  全库 48 个测试程序、449 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的

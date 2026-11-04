@@ -86,10 +86,20 @@ def generate_fig01_morse_fgh():
 
 
 def generate_fig02_laser_pulses():
-    """Fig 2: Synthesized ultrafast laser pulse electric fields and envelopes."""
+    """Fig 2 (book Fig 6.1): transform-limited Gaussian pulse vs a GDD-chirped
+    pulse. Panel (a): 800 nm, 1e14 W/cm^2 TL pulse from the library
+    (pulse_electric_field); the envelope is drawn scaled by E0 so field and
+    envelope share a.u. units (the un-scaled display was inconsistent by the
+    factor 1/E0 = 18.7). Panel (b): the same TL pulse passed through GDD =
+    40 fs^2 spectral phase (half the squared detuning), inverse-transformed to
+    the time domain - the honest realization of the book's caption: the pulse
+    stretches (15 -> ~17 fs FWHM) and the instantaneous frequency sweeps
+    monotonically without ever approaching zero (the previous time-domain
+    beta = 8e-4 a.u. quadratic phase overshot this by >10x and swept the
+    carrier through zero frequency, a non-physical artefact)."""
     print("Generating Fig 2: Ultrafast laser pulse synthesis...")
     set_publication_style()
-    t_fs = np.linspace(-30.0, 30.0, 1000)
+    t_fs = np.linspace(-30.0, 30.0, 1201)
     t_au = t_fs * pg.FS2AU
 
     # 800nm, 1e14 W/cm^2
@@ -99,64 +109,128 @@ def generate_fig02_laser_pulses():
 
     cfg_gauss = pg.PulseConfig(shape_type=pg.PULSE_GAUSSIAN, field_peak=f0,
                                freq_central=omega_800nm, duration=dur)
-    cfg_chirp = pg.PulseConfig(shape_type=pg.PULSE_CHIRP, field_peak=f0,
-                               freq_central=omega_800nm, duration=dur,
-                               chirp_rate=0.0008)
-
     e_gauss = pg.pulse_electric_field(t_au, cfg_gauss)
-    env_gauss = pg.pulse_envelope(t_au, cfg_gauss)
-    e_chirp = pg.pulse_electric_field(t_au, cfg_chirp)
-    env_chirp = pg.pulse_envelope(t_au, cfg_chirp)
+    env_gauss = pg.pulse_envelope(t_au, cfg_gauss) * f0     # envelope in field units
+
+    # ---- GDD = 40 fs^2 spectral-phase construction on a fine a.u. grid ------
+    gdd_fs2 = 40.0
+    gdd_au = gdd_fs2 * pg.FS2AU**2                 # 1 fs^2 = FS2AU^2 a.u.^2
+    n_fft = 1 << 16
+    t_fine_au = (np.arange(n_fft) - n_fft // 2) * 0.5          # dt = 0.5 a.u.
+    cfg_tl = pg.PulseConfig(shape_type=pg.PULSE_GAUSSIAN, field_peak=f0,
+                            freq_central=omega_800nm, duration=dur)
+    e_tl = pg.pulse_electric_field(t_fine_au, cfg_tl)
+    spec = np.fft.rfft(e_tl)
+    freqs_au = 2.0 * np.pi * np.fft.rfftfreq(n_fft, d=0.5)     # angular freq, a.u.
+    phase = 0.5 * gdd_au * (freqs_au - omega_800nm)**2
+    e_chirp = np.fft.irfft(spec * np.exp(1j * phase), n=n_fft)
+    # analytic signal -> envelope (zero out negative frequencies)
+    spec_full = np.fft.fft(e_chirp)
+    spec_full[n_fft // 2:] = 0.0
+    env_chirp = np.abs(np.fft.ifft(spec_full * 2.0)) * f0 * 0.0 + np.abs(
+        np.fft.ifft(np.where(np.arange(n_fft) > n_fft // 2, 0.0,
+                             np.fft.fft(e_chirp) * 2.0)))
+    env_chirp = np.abs(np.fft.ifft(np.where(np.arange(n_fft) <= n_fft // 2,
+                                            np.fft.fft(e_chirp) * 2.0, 0.0)))
+    # panel window
+    lo = np.searchsorted(t_fine_au, t_au[0])
+    hi = np.searchsorted(t_fine_au, t_au[-1])
+    t_plot_fs = t_fine_au[lo:hi] / pg.FS2AU
+    e_chirp_p = e_chirp[lo:hi]
+    env_chirp_p = env_chirp[lo:hi]
+    # stretched FWHM for the annotation
+    above = env_chirp >= 0.5 * env_chirp.max()
+    idx = np.where(above)[0]
+    fwhm_chirp_fs = (t_fine_au[idx[-1]] - t_fine_au[idx[0]]) / pg.FS2AU
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7.5, 5.2), dpi=200, sharex=True)
 
     ax1.plot(t_fs, e_gauss, color='crimson', linewidth=1.2, label=r'Electric Field $E(t)$')
-    ax1.plot(t_fs, env_gauss, 'k--', linewidth=1.8, label=r'Envelope $F(t)$ (15 fs FWHM)')
+    ax1.plot(t_fs, env_gauss, 'k--', linewidth=1.8, label=r'Envelope $E_0 F(t)$ (15 fs FWHM)')
     ax1.plot(t_fs, -env_gauss, 'k--', linewidth=1.8)
     ax1.set_ylabel('Field Amplitude (a.u.)')
-    ax1.set_title(r'Transform-Limited Gaussian Pulse (800 nm, $10^{14}\ \mathrm{W/cm^2}$)', fontsize=11)
+    ax1.set_ylim(-0.075, 0.075)
+    ax1.set_title(r'Transform-Limited Gaussian Pulse (800 nm, $10^{14}\ \mathrm{W/cm^2}$,'
+                  r' $E_0 = %.3f$ a.u.)' % f0, fontsize=11)
     ax1.legend(loc='upper right', frameon=True, fontsize=9)
 
-    ax2.plot(t_fs, e_chirp, color='royalblue', linewidth=1.2, label=r'Chirped Field $E_{\mathrm{chirp}}(t)$')
-    ax2.plot(t_fs, env_chirp, 'k--', linewidth=1.8, label=r'Envelope')
-    ax2.plot(t_fs, -env_chirp, 'k--', linewidth=1.8)
+    ax2.plot(t_plot_fs, e_chirp_p, color='royalblue', linewidth=1.2,
+             label=r'Chirped Field $E_{\mathrm{chirp}}(t)$')
+    ax2.plot(t_plot_fs, env_chirp_p, 'k--', linewidth=1.8, label='Envelope')
+    ax2.plot(t_plot_fs, -env_chirp_p, 'k--', linewidth=1.8)
     ax2.set_xlabel('Time $t$ (fs)')
     ax2.set_ylabel('Field Amplitude (a.u.)')
-    ax2.set_title(r'Linearly Chirped Ultrafast Laser Pulse ($\beta = 8\times 10^{-4}\ \mathrm{a.u.}$)', fontsize=11)
+    ax2.set_ylim(-0.075, 0.075)
+    ax2.set_title(r'GDD-Chirped Pulse ($\mathrm{GDD} = 40\ \mathrm{fs}^2$ via spectral phase,'
+                  r' stretched to $%.0f$ fs FWHM)' % fwhm_chirp_fs, fontsize=11)
     ax2.legend(loc='upper right', frameon=True, fontsize=9)
 
     plt.tight_layout()
     fig_path = os.path.join(OUT_DIR, "fig02_ultrafast_pulses.png")
     plt.savefig(fig_path)
     plt.close()
-    print(f" -> Saved to {fig_path}")
+    print(f" -> Saved to {fig_path} (E0 = {f0:.4f} a.u., chirped FWHM = {fwhm_chirp_fs:.1f} fs)")
 
 
 def generate_fig03_molecular_alignment():
-    """Fig 3: Nonadiabatic laser-induced field-free molecular alignment <cos^2 theta>(t)."""
-    print("Generating Fig 3: Molecular alignment dynamics...")
+    """Fig 3 (book Fig 7.4): GENUINE quantum revivals of field-free molecular
+    alignment for CO after a short nonresonant pulse, modeled as a Raman
+    delta kick: the isotropic ground state (m=0 sector) acquires the phase
+    exp(i P cos^2 theta), is expanded in the rigid-rotor J basis, and
+    <cos^2 theta>(t) = sum_{JJ'} c_J^* c_J' <J|cos^2|J'> e^{i(E_J - E_J') t}
+    is propagated with E_J = B J(J+1) and the library Raman matrix elements
+    rot_matrix_cos2_theta. Forward-computed (replaces an earlier hand-drawn
+    Gaussian illustration): alignment peak at T_rot/4, anti-alignment at
+    T_rot/2, full revival at T_rot, baseline 1/3."""
+    print("Generating Fig 3: Molecular alignment quantum revivals (CO, delta kick)...")
     set_publication_style()
-    t_ps = np.linspace(0.0, 10.0, 600)
-    t_rot = 8.64  # CO rotational period in ps
-    baseline = 1.0 / 3.0
-    alignment = baseline + 0.22 * np.exp(-((t_ps - 0.2) / 0.15)**2)
-    t_half = t_rot / 2.0
-    half_rev = -0.12 * ((t_ps - (t_half - 0.15)) / 0.18) * np.exp(-((t_ps - t_half) / 0.25)**2)
-    full_rev = 0.18 * ((t_ps - (t_rot - 0.15)) / 0.20) * np.exp(-((t_ps - t_rot) / 0.30)**2)
-    alignment += half_rev + full_rev
+    from numpy.polynomial.legendre import legval
+
+    b_co_cm = 1.9312                       # CO rotational constant (cm^-1)
+    b_au = b_co_cm / pg.AU2CM              # Hartree
+    j_max = 80
+    J = np.arange(j_max + 1)
+    E = b_au * J * (J + 1)
+
+    # delta kick: psi0(theta) = exp(i P cos^2 theta) / sqrt(4 pi), isotropic
+    p_kick = 5.0
+    n_th = 6001
+    theta = np.linspace(0.0, np.pi, n_th)
+    ct = np.cos(theta)
+    psi0 = np.exp(1j * p_kick * ct**2) / np.sqrt(4.0 * np.pi)
+    c = np.zeros(j_max + 1, dtype=complex)
+    for j in J:
+        yj = np.sqrt((2.0 * j + 1.0) / (4.0 * np.pi)) * legval(ct, [0.0] * j + [1.0])
+        c[j] = 2.0 * np.pi * np.trapezoid(np.conj(yj) * psi0 * np.sin(theta), theta)
+    norm = np.sum(np.abs(c)**2)
+    print(f"   kick P = {p_kick}, sum |c_J|^2 = {norm:.10f} (target 1)")
+
+    m2 = np.array([[pg.rot_matrix_cos2_theta(int(a), int(b), 0)
+                    for b in J] for a in J])
+    t_ps = np.linspace(0.0, 10.0, 4000)
+    t_au = t_ps * pg.PS2AU
+    u_t = np.exp(-1j * np.outer(t_au, E))
+    psi_t = u_t * c[None, :]
+    align = np.real(np.einsum("tj,jk,tk->t", np.conj(psi_t), m2, psi_t))
+
+    t_rot = np.pi / b_au / pg.PS2AU        # full revival period (ps)
+    print(f"   T_rot = {t_rot:.3f} ps, <cos^2>(0) = {align[0]:.4f}, "
+          f"peak = {align.max():.4f} at t = {t_ps[np.argmax(align)]:.2f} ps")
 
     fig, ax = plt.subplots(figsize=(7.5, 4.2), dpi=200)
-    ax.plot(t_ps, alignment, color='darkblue', linewidth=2.0, label=r'$\langle\cos^2\theta\rangle(t)$')
-    ax.axhline(baseline, color='gray', linestyle=':', linewidth=1.5, label='Isotropic Baseline (1/3)')
-    ax.axvline(t_half, color='darkgreen', linestyle='--', alpha=0.6, label=r'Half Revival ($T_{\mathrm{rot}}/2$)')
-    ax.axvline(t_rot, color='crimson', linestyle='--', alpha=0.6, label=r'Full Revival ($T_{\mathrm{rot}}$)')
-
-    ax.set_xlim(0.0, 10.0)
-    ax.set_ylim(0.20, 0.60)
+    ax.plot(t_ps, align, color='navy', linewidth=1.8, label=r'$\langle\cos^2\theta\rangle(t)$')
+    ax.axhline(1.0 / 3.0, color='gray', linewidth=1.0, linestyle=':',
+               label=r'Isotropic Baseline ($1/3$)')
+    ax.axvline(t_rot / 2.0, color='seagreen', linewidth=1.6, linestyle='--',
+               label=rf'Half Revival ($T_{{\mathrm{{rot}}}}/2 = {t_rot/2.0:.2f}$ ps)')
+    ax.axvline(t_rot, color='crimson', linewidth=1.6, linestyle='--',
+               label=rf'Full Revival ($T_{{\mathrm{{rot}}}} = {t_rot:.2f}$ ps)')
     ax.set_xlabel('Time after Laser Kick $t$ (ps)')
     ax.set_ylabel(r'Degree of Alignment $\langle\cos^2\theta\rangle$')
-    ax.set_title(r'Laser-Induced Field-Free Molecular Alignment Quantum Revivals (CO)', pad=10)
-    ax.legend(loc='upper right', frameon=True, fontsize=9)
+    ax.set_title('Laser-Induced Field-Free Molecular Alignment Revivals (CO, $\\delta$-kick)',
+                 fontsize=11)
+    ax.set_xlim(0.0, 10.0)
+    ax.legend(loc='upper right', frameon=True, fontsize=8.5)
     plt.tight_layout()
     fig_path = os.path.join(OUT_DIR, "fig03_molecular_alignment.png")
     plt.savefig(fig_path)
@@ -899,86 +973,145 @@ def _leps_sato_collinear(r12, r23, d_e=0.1744, r_e=1.401, beta=1.044, sato=0.10)
 
 
 def generate_fig16_leps_pes():
-    """Fig 16: H + H2 LEPS potential energy surface (collinear, Sato Delta=0.10):
-    2D contour map with the symmetric saddle, plus the diagonal cut showing
-    the barrier; matches the book's Sec 3.2/9.5 Newton-search values."""
-    print("Generating Fig 16: LEPS potential energy surface...")
+    """Fig 16 (book Fig 3.1): H + H2 LEPS surface (collinear, Sato Delta=0.10)
+    with the intrinsic reaction coordinate. Three panels:
+    (a) contour + corrected mass-weighted IRC (both branches descend the
+        valleys) vs unweighted-metric steepest descent (dashed);
+    (b) barrier profile along the mass-weighted IRC vs unweighted;
+    (c) before/after comparison of the sign bug that turned one branch into
+        steepest ASCENT (the pre-fix path climbs the repulsive wall past the
+        evaluated colormap range - the non-physical artefact reported 2026-11).
+    Uses the pygenmod library surface/gradient/IRC (LEPSParameters with
+    sato=0.10, leps_collinear_gradient, intrinsic_reaction_coordinate)."""
+    print("Generating Fig 16: LEPS potential energy surface + corrected IRC...")
     set_publication_style()
+    from pygenmod.qct import (LEPSParameters, leps_collinear_gradient,
+                              intrinsic_reaction_coordinate)
+
+    par = LEPSParameters(d_e=0.1744, r_e=1.401, beta=1.044, sato=0.10)
+    d_e = par.d_e
+
+    def vfun_scalar(r12, r23):
+        r = np.array([r12, r23, r12 + r23])
+        q, j = par.q_and_j(r)
+        delta = 0.5 * ((j[0] - j[1])**2 + (j[1] - j[2])**2 + (j[2] - j[0])**2)
+        return float(q.sum() - np.sqrt(delta))
+
+    # ---- surface grid -------------------------------------------------------
     r_grid = np.linspace(0.6, 4.2, 420)
-    r12, r23 = np.meshgrid(r_grid, r_grid)
-    v_pes = _leps_sato_collinear(r12, r23)
-    r12_path = r_grid
+    r12g, r23g = np.meshgrid(r_grid, r_grid)
+    rr = np.stack([r12g, r23g, r12g + r23g], axis=0)
+    qg, jg = par.q_and_j(rr)
+    dg = 0.5 * ((jg[0] - jg[1])**2 + (jg[1] - jg[2])**2 + (jg[2] - jg[0])**2)
+    v_pes = qg.sum(axis=0) - np.sqrt(dg)
 
-    # 鞍点与势垒剖面: 最低能量路径 (固定 r12 取 r23 极小)。
-    # 对称 H3 的共线鞍点位于对角线 r12 = r23 上, 是沿对称伸缩方向的极小,
-    # 因此 MEP 剖面 (对 r23 取极小) 的极大值就是鞍点 —— 与书中 17.2/9.5 节
-    # 的二维 Newton 结果 (1.775, 1.775) 一致。
-    # 数值梯度与 Hessian (共线面内二维)
-    def vfun(r12, r23):
-        return _leps_sato_collinear(r12, r23)
+    # ---- saddle: Newton with the analytic gradient, numeric Hessian ---------
+    h = 1.0e-5
+    def grad_at(r12, r23):
+        return np.array(leps_collinear_gradient(r12, r23, par)[1:])
 
-    def numgrad(r, h=1.0e-6):
-        return np.array([(vfun(r[0] + h, r[1]) - vfun(r[0] - h, r[1])) / (2 * h),
-                         (vfun(r[0], r[1] + h) - vfun(r[0], r[1] - h)) / (2 * h)])
-
-    def numhess(r, h=1.0e-5):
-        Hm = np.zeros((2, 2))
+    def hess_at(r12, r23):
+        hm = np.zeros((2, 2))
         for i in range(2):
             for jj in range(2):
-                ei = np.zeros(2); ei[i] = h
-                ej = np.zeros(2); ej[jj] = h
-                Hm[i, jj] = (vfun(*(r + ei + ej)) - vfun(*(r + ei - ej)) -
-                             vfun(*(r - ei + ej)) + vfun(*(r - ei - ej))) / (4 * h * h)
-        return Hm
+                e_i = np.zeros(2); e_i[i] = h
+                e_j = np.zeros(2); e_j[jj] = h
+                f = lambda r12_, r23_: vfun_scalar(r12_, r23_)
+                hm[i, jj] = (f(*(np.array([r12, r23]) + e_i + e_j))
+                             - f(*(np.array([r12, r23]) + e_i - e_j))
+                             - f(*(np.array([r12, r23]) - e_i + e_j))
+                             + f(*(np.array([r12, r23]) - e_i - e_j))) / (4 * h * h)
+        return hm
 
-    # 二维 Newton 求鞍点 (梯度零点; Hessian 一负一正)
     r_s = np.array([1.775, 1.775])
-    for _ in range(60):
-        g = numgrad(r_s)
-        step = np.linalg.solve(numhess(r_s), -g)
+    for _ in range(80):
+        hm = hess_at(*r_s)
+        step = np.linalg.solve(hm, -grad_at(*r_s))
         r_s = r_s + step
-        if np.linalg.norm(step) < 1.0e-12:
+        if np.linalg.norm(step) < 1.0e-13:
             break
     r12_s, r23_s = r_s
-    v_saddle = vfun(r12_s, r23_s)
+    v_saddle = vfun_scalar(r12_s, r23_s)
     barrier_kcal = (v_saddle + 0.174359) * 627.5095
 
-    # IRC: 从鞍点沿不稳定本征方向 (负曲率 = 反应坐标) 做归一化弧长最陡下降
-    Hs = numhess(r_s)
-    eigval, eigvec = np.linalg.eigh(Hs)
-    u_unstable = eigvec[:, 0]
-    ds, n_irc = 0.004, 500
+    # ---- unstable mode in MASS-WEIGHTED coordinates -------------------------
+    # x = G_vel^{1/2} r  =>  H_x = G_vel^{-1/2} H_r G_vel^{-1/2}
+    masses = (1.0, 1.0, 1.0)                     # H3; only ratios enter the path
+    m1, m2, m3 = masses
+    m_tot = m1 + m2 + m3
+    g_vel = np.array([[m1 * (m2 + m3), m1 * m3],
+                      [m1 * m3, m3 * (m1 + m2)]]) / m_tot
+    ginv_half = np.linalg.inv(np.linalg.cholesky(g_vel))  # G_vel^{-1/2} (G_vel = L L^T)
+    h_x = ginv_half.T @ hess_at(*r_s) @ ginv_half
+    evals, evecs = np.linalg.eigh(h_x)
+    u_x = evecs[:, 0]                            # imaginary-frequency direction
+    eps0 = 1.0e-3
+    dr0 = ginv_half @ u_x * eps0                 # displacement back in r-space
 
-    def irc_branch(sign):
-        r = r_s.copy() + sign * 1.0e-4 * u_unstable
-        path_r = [r.copy()]
-        v_path = [vfun(r[0], r[1])]
-        s_path = [0.0]
-        s_acc = 0.0
-        for _ in range(n_irc):
-            g = numgrad(r)
+    # ---- corrected IRC branches (mass-weighted, library routine) ------------
+    irc_kw = dict(par=par, masses=masses, n_max=4000, ds=0.01,
+                  grad_tol=1.0e-7, r_min=0.05, r_max=50.0)
+    irc_a = intrinsic_reaction_coordinate(r_start=tuple(r_s + dr0), **irc_kw)
+    irc_b = intrinsic_reaction_coordinate(r_start=tuple(r_s - dr0), **irc_kw)
+    print(f"   IRC branch A: n={len(irc_a['s'])}, reason={irc_a['stop_reason']}, "
+          f"V_end={irc_a['v'][-1]:.5f}, end=({irc_a['r12'][-1]:.3f}, {irc_a['r23'][-1]:.3f})")
+    print(f"   IRC branch B: n={len(irc_b['s'])}, reason={irc_b['stop_reason']}, "
+          f"V_end={irc_b['v'][-1]:.5f}, end=({irc_b['r12'][-1]:.3f}, {irc_b['r23'][-1]:.3f})")
+
+    # ---- unweighted-metric steepest descent (comparison, one branch) --------
+    def irc_unweighted(sign):
+        r = r_s + sign * dr0 / np.linalg.norm(dr0) * eps0
+        ss, rr_, vv = [0.0], [r.copy()], [vfun_scalar(*r)]
+        for _ in range(4000):
+            g = grad_at(*r)
+            gn = np.linalg.norm(g)
+            if gn < 1.0e-7:
+                break
+            r = r - 0.01 * g / gn
+            if not np.all((r > 0.05) & (r < 50.0)):
+                break
+            v_new = vfun_scalar(*r)
+            if v_new > vv[-1] + 1.0e-8:
+                break
+            ss.append(ss[-1] + 0.01)
+            rr_.append(r.copy())
+            vv.append(v_new)
+        return np.array(ss), np.array(rr_), np.array(vv)
+
+    s_uw, r_uw, v_uw = irc_unweighted(+1.0)
+
+    # ---- pre-fix BUGGY branch (steepest ascent, sign bug) for panel (c) -----
+    def irc_buggy(sign):
+        r = r_s + sign * 1.0e-4 * u_raw
+        ss, rr_, vv = [0.0], [r.copy()], [vfun_scalar(*r)]
+        for _ in range(500):
+            g = grad_at(*r)
             gn = np.linalg.norm(g)
             if gn < 1.0e-12:
                 break
-            r = r - sign * ds * (g / gn)
-            s_acc += ds
-            path_r.append(r.copy())
-            v_path.append(vfun(r[0], r[1]))
-            s_path.append(s_acc)
-        return np.array(s_path), np.array(path_r), np.array(v_path)
+            r = r + 0.004 * g / gn          # <- the sign bug: +grad instead of -
+            ss.append(ss[-1] + 0.004)
+            rr_.append(r.copy())
+            vv.append(vfun_scalar(*r))
+        return np.array(ss), np.array(rr_), np.array(vv)
 
-    s_neg, path_neg, v_neg = irc_branch(-1.0)
-    s_pos, path_pos, v_pos = irc_branch(+1.0)
+    h_raw = hess_at(*r_s)
+    evals_raw, evecs_raw = np.linalg.eigh(h_raw)
+    u_raw = evecs_raw[:, 0]                  # (1,-1)/sqrt(2) for symmetric H3
+    s_bug, r_bug, v_bug = irc_buggy(-1.0)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.7), dpi=200)
+    # ---- figure -------------------------------------------------------------
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(14.6, 4.5), dpi=200)
     levels = np.linspace(-0.175, 0.045, 23)
-    cf = ax1.contourf(r12, r23, v_pes, levels=levels, cmap='RdYlBu_r')
-    cl = ax1.contour(r12, r23, v_pes, levels=levels[::2], colors='k',
+    cf = ax1.contourf(r12g, r23g, v_pes, levels=levels, cmap='RdYlBu_r')
+    cl = ax1.contour(r12g, r23g, v_pes, levels=levels[::2], colors='k',
                      linewidths=0.4, alpha=0.55)
     ax1.clabel(cl, inline=True, fontsize=6, fmt='%.3f')
-    ax1.plot(path_neg[:, 0], path_neg[:, 1], color='darkviolet', linewidth=2.2,
-             label='IRC (steepest descent)')
-    ax1.plot(path_pos[:, 0], path_pos[:, 1], color='darkviolet', linewidth=2.2)
+    ax1.plot(irc_a['r12'], irc_a['r23'], color='darkviolet', linewidth=2.2,
+             label='IRC (mass-weighted)')
+    ax1.plot(irc_b['r12'], irc_b['r23'], color='darkviolet', linewidth=2.2)
+    ax1.plot(r_uw[:, 0], r_uw[:, 1], color='dimgray', linewidth=1.6,
+             linestyle='--', label='unweighted descent')
     ax1.plot(r12_s, r23_s, 'X', color='darkviolet', markersize=10,
              markeredgecolor='white',
              label=rf'Saddle $({r12_s:.3f}, {r23_s:.3f})$')
@@ -986,31 +1119,52 @@ def generate_fig16_leps_pes():
     ax1.set_ylim(0.6, 4.2)
     ax1.set_xlabel(r'$r_{12}$ ($a_0$)')
     ax1.set_ylabel(r'$r_{23}$ ($a_0$)')
-    ax1.set_title(r'(a) Collinear $\mathrm{H}_3$ LEPS Surface (Sato $\Delta=0.10$)', fontsize=11)
-    ax1.legend(loc='upper right', frameon=True, fontsize=8.5)
+    ax1.set_title(r'(a) LEPS Surface + IRC (Sato $\Delta=0.10$)', fontsize=10.5)
+    ax1.legend(loc='upper right', frameon=True, fontsize=7.6)
     cbar = plt.colorbar(cf, ax=ax1, fraction=0.046, pad=0.04)
     cbar.set_label(r'$V$ ($E_h$)', fontsize=10)
 
-    s_full = np.concatenate([s_neg[::-1] * -1.0, s_pos])
-    v_full = np.concatenate([v_neg[::-1], v_pos])
-    ax2.plot(s_full, v_full, color='crimson', linewidth=2.2)
+    ax2.plot(irc_a['s'], irc_a['v'], color='crimson', linewidth=2.2,
+             label='IRC (mass-weighted)')
+    ax2.plot(irc_b['s'], irc_b['v'], color='crimson', linewidth=2.2,
+             linestyle=':', alpha=0.85)
+    ax2.plot(s_uw, v_uw, color='dimgray', linewidth=1.6, linestyle='--',
+             label='unweighted descent')
     ax2.plot(0.0, v_saddle, 'X', color='darkviolet', markersize=10,
              markeredgecolor='white', zorder=5)
     ax2.axhline(-0.174359, color='gray', linestyle='--', linewidth=1.0,
                 label=r'$\mathrm{H}_2$ well $-D_e = -0.17436\ E_h$')
     ax2.annotate(r'$V^{\ddagger} = %.5f\ E_h$' % v_saddle,
-                 xy=(0.0, v_saddle), xytext=(-1.7, -0.148),
-                 fontsize=9.5, arrowprops=dict(arrowstyle='->', color='gray'))
+                 xy=(0.0, v_saddle), xytext=(0.6, -0.148),
+                 fontsize=9, arrowprops=dict(arrowstyle='->', color='gray'))
     ax2.annotate(r'$\Delta V^{\ddagger} = %.2f$ kcal/mol' % barrier_kcal,
-                 xy=(0.0, v_saddle), xytext=(-1.7, -0.144),
-                 fontsize=9.5, arrowprops=dict(arrowstyle='->', color='gray'))
-    ax2.text(1.75, -0.169, r'$\mathrm{AB} + \mathrm{C}$', fontsize=10, ha='center')
-    ax2.text(-1.75, -0.169, r'$\mathrm{A} + \mathrm{BC}$', fontsize=10, ha='center')
-    ax2.set_xlabel(r'Reaction coordinate $s$ along the IRC ($a_0$)')
+                 xy=(0.0, v_saddle), xytext=(0.6, -0.144),
+                 fontsize=9, arrowprops=dict(arrowstyle='->', color='gray'))
+    ax2.text(6.2, -0.171, 'valley floor', fontsize=8.5, ha='center', color='dimgray')
+    ax2.set_xlabel(r'Reaction coordinate $s$ ($a_0\,\mathrm{amu}^{1/2}$)')
     ax2.set_ylabel(r'$V$ ($E_h$)')
     ax2.set_ylim(-0.185, -0.115)
-    ax2.set_title('(b) Barrier Profile along the IRC', fontsize=11)
-    ax2.legend(loc='lower right', frameon=True, fontsize=9)
+    ax2.set_title('(b) Barrier Profile along the IRC', fontsize=10.5)
+    ax2.legend(loc='upper right', frameon=True, fontsize=7.6)
+
+    ax3.plot(s_bug, v_bug, color='lightcoral', linewidth=2.0, linestyle='--',
+             label='pre-fix bug: ascent $r\\leftarrow r+ds\\,\\hat g$')
+    ax3.plot(irc_a['s'], irc_a['v'], color='crimson', linewidth=2.2,
+             label='corrected: descent $r\\leftarrow r-ds\\,\\hat g$')
+    ax3.axhline(v_saddle, color='gray', linewidth=0.8, linestyle=':')
+    ax3.annotate('climbs the repulsive wall\n(past the colormap range)',
+                 xy=(s_bug[len(s_bug) // 2], v_bug[len(v_bug) // 2]),
+                 xytext=(3.2, 1.30), fontsize=8, color='firebrick',
+                 arrowprops=dict(arrowstyle='->', color='firebrick'))
+    ax3.annotate('monotone descent to the valley floor',
+                 xy=(irc_a['s'][len(irc_a['s']) // 2], irc_a['v'][len(irc_a['s']) // 2]),
+                 xytext=(2.6, -0.10), fontsize=8, color='crimson',
+                 arrowprops=dict(arrowstyle='->', color='crimson'))
+    ax3.set_xlabel(r'Path length ($a_0$)')
+    ax3.set_ylabel(r'$V$ ($E_h$)')
+    ax3.set_title('(c) Sign Bug: Descent Becomes Ascent', fontsize=10.5)
+    ax3.legend(loc='center right', frameon=True, fontsize=7.6)
+
     plt.tight_layout()
     fig_path = os.path.join(OUT_DIR, "fig16_leps_pes.png")
     plt.savefig(fig_path)
@@ -1090,7 +1244,7 @@ def generate_fig17_lindblad():
     ax2.set_xlabel(r'Time $t$ (ps)')
     ax2.set_ylabel(r'Purity $P$')
     ax2.set_ylim(0.3, 1.03)
-    ax2.set_title(r'Purity Decay (monotone)', fontsize=11)
+    ax2.set_title(r'Purity: Dephasing Dip then $T_1$ Repurification', fontsize=11)
     ax2.annotate(r'$T_1 = 1/\gamma = %.2f$ ps' % (1.0 / gamma),
                  xy=(1.55, 0.47), fontsize=9, color='dimgray')
     ax2.annotate(r'$T_2 = 1/(\gamma/2+2\gamma_\phi) = %.2f$ ps' % (1.0 / (0.5 * gamma + 2.0 * gamma_phi)),

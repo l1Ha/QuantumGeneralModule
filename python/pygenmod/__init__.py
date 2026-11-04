@@ -109,6 +109,7 @@ from .qct import (
     state_resolved_cross_sections, differential_cross_section,
     qct_thermal_rate, thermal_population, wilson_interval,
     morse_vibrational_energy, ebk_internal_energy,
+    leps_collinear_gradient, intrinsic_reaction_coordinate,
 )
 
 from .sop_hamiltonian import (
@@ -169,6 +170,7 @@ __all__ = [
     "state_resolved_cross_sections", "differential_cross_section",
     "qct_thermal_rate", "thermal_population", "wilson_interval",
     "morse_vibrational_energy", "ebk_internal_energy",
+    "leps_collinear_gradient", "intrinsic_reaction_coordinate",
     "SOPTerm", "SOPHamiltonian", "sop_apply", "sop_to_dense", "sop_from_potfit",
     "TTTensor", "tt_from_dense", "tt_to_dense", "tt_round", "tt_dot", "tt_norm",
     "tt_to_sop", "sop_to_tt_operator", "tt_operator_apply", "tt_operator_to_dense",

@@ -9,13 +9,18 @@
 !   - S. Sato, J. Chem. Phys. 23, 592 (1955) [London-Eyring-Polanyi-Sato potential]
 !   - C. A. Mead & D. G. Truhlar, J. Chem. Phys. 70, 2284 (1979) [Conical intersections]
 !   - M. V. Berry, Proc. R. Soc. Lond. A 392, 45 (1984) [Geometric phase]
+!   - K. Fukui, J. Phys. Chem. 74, 4161 (1970) [intrinsic reaction coordinate]
+!   - K. Ishida, K. Morokuma, A. Komornicki, J. Chem. Phys. 66, 2153 (1977) [IRC numerics]
 !
 ! Key Capabilities:
 !   1. Transformation between internuclear distances (r12, r23, r31) and Jacobi (r, R, gamma)
 !   2. Analytical London-Eyring-Polanyi-Sato (LEPS) reactive potential energy surface
+!      with analytic gradient dV/dr_k
 !   3. Linear E x e / C2v conical intersection model with diabatic coupling
 !   4. Berry geometric phase line integral around conical intersection singularity (Phi = pi)
 !   5. Minimum energy reaction path (MEP) gradient and transition state barrier
+!   6. Intrinsic reaction coordinate (IRC): mass-weighted steepest descent in
+!      the Wilson G-matrix metric with Gonzalez-Schlegel constrained steps
 !
 ! Standard: Fortran 2008
 ! ==============================================================================
@@ -32,6 +37,8 @@ module mod_triatomic_geometry
     public :: jacobi_to_internuclear
     public :: internuclear_to_jacobi
     public :: calc_leps_potential
+    public :: calc_leps_gradient
+    public :: intrinsic_reaction_coordinate
     public :: init_default_h3_leps
     public :: calc_conical_intersection_adiabats
     public :: calc_berry_phase_around_ci
@@ -200,6 +207,297 @@ contains
             leps%sato_delta(k) = 0.10_dp   ! Standard Sato parameter
         end do
     end subroutine init_default_h3_leps
+
+    ! ==========================================================================
+    ! calc_leps_gradient:
+    ! Analytic gradient of the LEPS surface with respect to the three
+    ! internuclear distances, treated as independent: grad(k) = dV/dr_k for
+    ! k = 1,2,3 mapping to (r12, r23, r31). With x_k = exp(-b_k (r_k - re_k)),
+    ! dx_k/dr_k = -b_k x_k and c_k = de_k / (4 (1 + s_k)):
+    !   Q_k = c_k[(3+s_k) x^2 - (2+6 s_k) x],  Q'_k = c_k b_k[(2+6 s_k) x - 2(3+s_k) x^2]
+    !   J_k = c_k[(1+3 s_k) x^2 - (6+2 s_k) x], J'_k = c_k b_k[(6+2 s_k) x - 2(1+3 s_k) x^2]
+    !   V = sum_k Q_k - sqrt(Delta),  Delta = 1/2 sum (J_i - J_j)^2
+    !   dV/dr_k = Q'_k - (3 J_k - J_sum) J'_k / (2 sqrt(Delta)),  J_sum = J1+J2+J3
+    ! (d Delta/d J_k = 2 J_k - J_j - J_j' = 3 J_k - J_sum.)
+    ! Collinear constraint r31 = r12 + r23: chain rule gives
+    !   dV/dr12|collinear = grad(1) + grad(3),  dV/dr23|collinear = grad(2) + grad(3).
+    ! ==========================================================================
+    pure function calc_leps_gradient(dist, leps) result(grad)
+        type(internuclear_dist_t), intent(in) :: dist
+        type(leps_param_t), intent(in)        :: leps
+        real(dp) :: grad(3)
+
+        real(dp) :: r(3), x, b, s, c, de
+        real(dp) :: q_p(3), j(3), j_p(3), j_sum, sq
+        integer  :: k
+
+        r(1) = dist%r12
+        r(2) = dist%r23
+        r(3) = dist%r31
+
+        do k = 1, 3
+            de = leps%d_e(k)
+            b  = leps%beta(k)
+            s  = leps%sato_delta(k)
+            c  = de / (4.0_dp * (1.0_dp + s))
+            x  = exp(-b * (r(k) - leps%r_e(k)))
+            q_p(k) = c * b * ((2.0_dp + 6.0_dp * s) * x - 2.0_dp * (3.0_dp + s) * x**2)
+            j(k)   = c * ((1.0_dp + 3.0_dp * s) * x**2 - (6.0_dp + 2.0_dp * s) * x)
+            j_p(k) = c * b * ((6.0_dp + 2.0_dp * s) * x - 2.0_dp * (1.0_dp + 3.0_dp * s) * x**2)
+        end do
+
+        j_sum = j(1) + j(2) + j(3)
+        sq = sqrt(max(0.5_dp * ((j(1) - j(2))**2 + (j(2) - j(3))**2 &
+                                + (j(3) - j(1))**2), 1.0e-300_dp))
+        do k = 1, 3
+            grad(k) = q_p(k) - (3.0_dp * j(k) - j_sum) * j_p(k) / (2.0_dp * sq)
+        end do
+    end function calc_leps_gradient
+
+    ! ==========================================================================
+    ! intrinsic_reaction_coordinate:
+    ! Intrinsic reaction coordinate (Fukui 1970) for a COLLINEAR triatomic,
+    ! integrated in the mass-weighted metric with Gonzalez-Schlegel (1990)
+    ! constrained second-order steps. In bond coordinates (r12, r23) the
+    ! velocity-space kinetic metric of the collinear A1-A2-A3 chain is
+    !   T = 1/2 v^T G_vel v,
+    !   G_vel = 1/M [[ m1(m2+m3),  m1 m3 ],  M = m1+m2+m3,
+    !                [ m1 m3,  m3(m1+m2) ]]
+    ! whose inverse is exactly the Wilson G-matrix
+    !   G = [[ 1/m1+1/m2,   -1/m2  ],
+    !        [  -1/m2,   1/m2+1/m3 ]].
+    ! The IRC obeys the unit-speed gradient ODE (mass-weighted arc length s):
+    !   d r/ds = -G g / sqrt(g^T G g),  so dV/ds = -sqrt(g^T G g) <= 0:
+    ! the energy decreases monotonically and the path ends at a valley floor
+    ! (reactant/product asymptote), where sqrt(g^T G g) vanishes.
+    ! Each step uses the GS construction: pivot r_p = r_n + ds*v_n with the
+    ! unit-speed direction v_n = -G g_n / sqrt(g_n^T G g_n); the new point is
+    ! searched on the metric-orthogonal bisector r = r_p + xi*t through the
+    ! scalar parallelism equation  sin(angle( G g(r), r_{n+1} - r_n )) = 0
+    ! (bracketed bisection + secant, ~10 gradient evaluations). Plain
+    ! unit-speed Euler steps r_{n+1} = r_n + ds*v_n are only conditionally
+    ! stable: with transverse valley curvature k_t the stability window is
+    ! ds < 2 sqrt(g^T G g)/k_t, which collapses on the flat valley floor and
+    ! produces a growing transverse zigzag (observed at |g| ~ 1.5e-3 for the
+    ! H3 LEPS valley, ds = 0.01). The GS constrained step has no such
+    ! instability and keeps mirror symmetry to roundoff.
+    ! The caller supplies r_start = r_saddle +/- eps * u_react, with u_react
+    ! the unstable (imaginary-frequency) normal mode in mass-weighted
+    ! coordinates (for symmetric H3: u = (1,-1)/sqrt(2)).
+    ! stop_reason: 0 = n_max steps, 1 = gradient converged (valley floor),
+    !              2 = left the domain [r_min, r_max], 3 = energy ascent
+    !              detected (numerical; decrease ds_step), -1 = invalid input.
+    ! ==========================================================================
+    subroutine intrinsic_reaction_coordinate(leps, masses, r_start, n_max, ds_step, grad_tol, &
+                                             r_min, r_max, s_path, r12_path, r23_path, v_path, &
+                                             n_out, stop_reason)
+        type(leps_param_t), intent(in) :: leps
+        real(dp), intent(in)  :: masses(3)
+        real(dp), intent(in)  :: r_start(2)
+        integer, intent(in)   :: n_max
+        real(dp), intent(in)  :: ds_step, grad_tol, r_min, r_max
+        real(dp), intent(out), allocatable :: s_path(:), r12_path(:), r23_path(:), v_path(:)
+        integer, intent(out)  :: n_out, stop_reason
+
+        type(internuclear_dist_t) :: dist
+        real(dp) :: m1, m2, m3, m_tot
+        real(dp) :: g11, g12, g22                 ! Wilson G (inverse velocity metric)
+        real(dp) :: h11, h12, h22                 ! velocity metric G_vel
+        real(dp) :: r(2), g(2), gg(2), w(2), v_n(2), t_vec(2), u_vec(2)
+        real(dp) :: r_p(2), r_new(2), r_eul(2)
+        real(dp) :: chord(2), gnrm, gwnrm, xi, xl, xr, fl, fr, fm, tmp
+        real(dp) :: s_acc, v_old, v_new, v_eul
+        real(dp) :: g3(3)
+        real(dp), allocatable :: s_tmp(:), r1_tmp(:), r2_tmp(:), v_tmp(:)
+        integer  :: istep, ibis, ibrack
+
+        stop_reason = -1
+        n_out = 0
+        m1 = masses(1); m2 = masses(2); m3 = masses(3)
+        if (min(m1, m2, m3) <= 0.0_dp) return
+        if (n_max < 2 .or. ds_step <= 0.0_dp .or. grad_tol <= 0.0_dp) return
+        if (r_start(1) <= r_min .or. r_start(1) >= r_max) return
+        if (r_start(2) <= r_min .or. r_start(2) >= r_max) return
+
+        m_tot = m1 + m2 + m3
+        ! Wilson G-matrix (inverse of the velocity metric), collinear bond coords
+        g11 = 1.0_dp / m1 + 1.0_dp / m2
+        g12 = -1.0_dp / m2
+        g22 = 1.0_dp / m2 + 1.0_dp / m3
+        ! velocity metric G_vel (for the unit-speed normalization)
+        h11 = m1 * (m2 + m3) / m_tot
+        h12 = m1 * m3 / m_tot
+        h22 = m3 * (m1 + m2) / m_tot
+
+        allocate(s_tmp(n_max + 1), r1_tmp(n_max + 1), r2_tmp(n_max + 1), v_tmp(n_max + 1))
+
+        r = r_start
+        dist%r12 = r(1); dist%r23 = r(2); dist%r31 = r(1) + r(2)
+        v_old = calc_leps_potential(dist, leps)
+        n_out = 1
+        s_tmp(1) = 0.0_dp
+        r1_tmp(1) = r(1)
+        r2_tmp(1) = r(2)
+        v_tmp(1) = v_old
+        s_acc = 0.0_dp
+        stop_reason = 0
+
+        do istep = 1, n_max
+            ! --- gradient and unit-speed direction at the current point --------
+            dist%r12 = r(1); dist%r23 = r(2); dist%r31 = r(1) + r(2)
+            g3 = calc_leps_gradient(dist, leps)
+            ! collinear chain rule: dV/dr12 = grad(1)+grad(3), dV/dr23 = grad(2)+grad(3)
+            g(1) = g3(1) + g3(3)
+            g(2) = g3(2) + g3(3)
+
+            ! mass-weighted gradient norm sqrt(g^T G g): convergence at valley floor
+            gnrm = sqrt(max(g(1)**2 * g11 + 2.0_dp * g(1) * g(2) * g12 &
+                            + g(2)**2 * g22, 0.0_dp))
+            if (gnrm < grad_tol) then
+                stop_reason = 1
+                exit
+            end if
+
+            ! v_n = -G g / sqrt(g^T G g): unit metric speed since |G g|_G = sqrt(g^T G g)
+            w(1) = -(g11 * g(1) + g12 * g(2))
+            w(2) = -(g12 * g(1) + g22 * g(2))
+            v_n(1) = w(1) / gnrm
+            v_n(2) = w(2) / gnrm
+
+            ! --- Gonzalez-Schlegel constrained step -----------------------------
+            r_p(1) = r(1) + ds_step * v_n(1)
+            r_p(2) = r(2) + ds_step * v_n(2)
+            ! metric-orthogonal unit tangent t: t^T G_vel v_n = 0, |t|_G = 1
+            u_vec(1) = h11 * v_n(1) + h12 * v_n(2)
+            u_vec(2) = h12 * v_n(1) + h22 * v_n(2)
+            t_vec(1) = -u_vec(2)
+            t_vec(2) = u_vec(1)
+            tmp = sqrt(max(t_vec(1)**2 * h11 + 2.0_dp * t_vec(1) * t_vec(2) * h12 &
+                           + t_vec(2)**2 * h22, 1.0e-300_dp))
+            t_vec = t_vec / tmp
+
+            ! psi(xi) = sin(angle( G g(r_p + xi t), chord )) on the bisector,
+            ! chord = ds*v_n + xi*t; root => gradient parallel to the chord.
+            ! Bracket the root on [-ds, +ds] (fallback: unit-speed Euler step,
+            ! which is stable away from the flat floor).
+            ibrack = 0
+            xl = 0.0_dp; xr = 0.0_dp
+            fl = 0.0_dp; fr = 0.0_dp
+            do ibis = -1, 1, 2
+                xi = real(ibis, dp) * ds_step
+                r_new(1) = r_p(1) + xi * t_vec(1)
+                r_new(2) = r_p(2) + xi * t_vec(2)
+                if (r_new(1) <= r_min .or. r_new(1) >= r_max .or. &
+                    r_new(2) <= r_min .or. r_new(2) >= r_max) cycle
+                chord(1) = r_new(1) - r(1)
+                chord(2) = r_new(2) - r(2)
+                dist%r12 = r_new(1); dist%r23 = r_new(2); dist%r31 = r_new(1) + r_new(2)
+                g3 = calc_leps_gradient(dist, leps)
+                gg(1) = g3(1) + g3(3)
+                gg(2) = g3(2) + g3(3)
+                w(1) = g11 * gg(1) + g12 * gg(2)
+                w(2) = g12 * gg(1) + g22 * gg(2)
+                fm = (w(1) * chord(2) - w(2) * chord(1)) &
+                     / max(sqrt(w(1)**2 + w(2)**2) * sqrt(chord(1)**2 + chord(2)**2), 1.0e-300_dp)
+                if (abs(fm) <= 1.0e-14_dp) then
+                    xl = xi
+                    fl = 0.0_dp
+                    ibrack = 1
+                    exit
+                end if
+                if (ibis == -1) then
+                    xl = xi; fl = fm
+                else
+                    xr = xi; fr = fm
+                    if (fl * fr <= 0.0_dp) ibrack = 1
+                end if
+            end do
+
+            if (ibrack == 1 .and. fl /= 0.0_dp) then
+                ! bisection + secant on [xl, xr]
+                do ibis = 1, 40
+                    xi = 0.5_dp * (xl + xr)
+                    r_new(1) = r_p(1) + xi * t_vec(1)
+                    r_new(2) = r_p(2) + xi * t_vec(2)
+                    chord(1) = r_new(1) - r(1)
+                    chord(2) = r_new(2) - r(2)
+                    dist%r12 = r_new(1); dist%r23 = r_new(2); dist%r31 = r_new(1) + r_new(2)
+                    g3 = calc_leps_gradient(dist, leps)
+                    gg(1) = g3(1) + g3(3)
+                    gg(2) = g3(2) + g3(3)
+                    w(1) = g11 * gg(1) + g12 * gg(2)
+                    w(2) = g12 * gg(1) + g22 * gg(2)
+                    fm = (w(1) * chord(2) - w(2) * chord(1)) &
+                         / max(sqrt(w(1)**2 + w(2)**2) * sqrt(chord(1)**2 + chord(2)**2), 1.0e-300_dp)
+                    if (abs(fm) < 1.0e-14_dp .or. 0.5_dp * (xr - xl) < 1.0e-13_dp) exit
+                    if (fl * fm <= 0.0_dp) then
+                        xr = xi; fr = fm
+                    else
+                        xl = xi; fl = fm
+                    end if
+                    ! secant acceleration inside the bracket
+                    if (abs(fr - fl) > 1.0e-300_dp) then
+                        xi = xl - fl * (xr - xl) / (fr - fl)
+                        if (xi > min(xl, xr) .and. xi < max(xl, xr)) then
+                            r_new(1) = r_p(1) + xi * t_vec(1)
+                            r_new(2) = r_p(2) + xi * t_vec(2)
+                            chord(1) = r_new(1) - r(1)
+                            chord(2) = r_new(2) - r(2)
+                            dist%r12 = r_new(1); dist%r23 = r_new(2); dist%r31 = r_new(1) + r_new(2)
+                            g3 = calc_leps_gradient(dist, leps)
+                            gg(1) = g3(1) + g3(3)
+                            gg(2) = g3(2) + g3(3)
+                            w(1) = g11 * gg(1) + g12 * gg(2)
+                            w(2) = g12 * gg(1) + g22 * gg(2)
+                            fm = (w(1) * chord(2) - w(2) * chord(1)) &
+                                 / max(sqrt(w(1)**2 + w(2)**2) * sqrt(chord(1)**2 + chord(2)**2), 1.0e-300_dp)
+                            if (fl * fm <= 0.0_dp) then
+                                xr = xi; fr = fm
+                            else
+                                xl = xi; fl = fm
+                            end if
+                        end if
+                    end if
+                end do
+                xi = 0.5_dp * (xl + xr)
+                r_new(1) = r_p(1) + xi * t_vec(1)
+                r_new(2) = r_p(2) + xi * t_vec(2)
+            else
+                ! fallback: unit-speed Euler step (stable far from the flat floor)
+                r_eul(1) = r(1) + ds_step * v_n(1)
+                r_eul(2) = r(2) + ds_step * v_n(2)
+                r_new = r_eul
+            end if
+
+            if (r_new(1) <= r_min .or. r_new(1) >= r_max .or. &
+                r_new(2) <= r_min .or. r_new(2) >= r_max) then
+                stop_reason = 2
+                exit
+            end if
+
+            dist%r12 = r_new(1); dist%r23 = r_new(2); dist%r31 = r_new(1) + r_new(2)
+            v_new = calc_leps_potential(dist, leps)
+            if (v_new > v_old + 1.0e-9_dp) then
+                stop_reason = 3     ! ascent: ds too large or non-descent direction
+                exit
+            end if
+
+            s_acc = s_acc + ds_step
+            n_out = n_out + 1
+            s_tmp(n_out) = s_acc
+            r1_tmp(n_out) = r_new(1)
+            r2_tmp(n_out) = r_new(2)
+            v_tmp(n_out) = v_new
+            v_old = v_new
+            r = r_new
+        end do
+
+        s_path = s_tmp(1:n_out)
+        r12_path = r1_tmp(1:n_out)
+        r23_path = r2_tmp(1:n_out)
+        v_path = v_tmp(1:n_out)
+        deallocate(s_tmp, r1_tmp, r2_tmp, v_tmp)
+    end subroutine intrinsic_reaction_coordinate
 
     ! ==========================================================================
     ! calc_conical_intersection_adiabats:

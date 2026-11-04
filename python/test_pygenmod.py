@@ -159,6 +159,47 @@ class TestPyGenMod(unittest.TestCase):
         om_lo2, om_hi2 = coupled2_normal_freqs(0.22, 0.22, 0.03)
         self.assertAlmostEqual(e3[0], 0.5 * (om_lo2 + om_hi2), delta=1e-6)
 
+    def test_irc_reaction_path(self):
+        """IRC (book Sec 3.2): analytic gradient, mass-weighted Gonzalez-Schlegel
+        path. Mirrors the Fortran tests of test_triatomic_geometry (steps 6-7)."""
+        from pygenmod.qct import (LEPSParameters, leps_collinear_gradient,
+                                  intrinsic_reaction_coordinate)
+        par = LEPSParameters(d_e=0.1744, r_e=1.401, beta=1.044, sato=0.10)
+
+        # (1) analytic gradient vs central finite differences
+        def vsurf(a, b):
+            q, j = par.q_and_j(np.array([a, b, a + b]))
+            return float(q.sum() - np.sqrt(
+                0.5 * ((j[0] - j[1])**2 + (j[1] - j[2])**2 + (j[2] - j[0])**2)))
+        for (a, b) in [(2.5, 1.5), (1.9, 1.65), (3.2, 1.401)]:
+            v, g1, g2 = leps_collinear_gradient(a, b, par)
+            h = 1e-6
+            self.assertAlmostEqual(v, vsurf(a, b), delta=1e-12)
+            self.assertAlmostEqual(g1, (vsurf(a + h, b) - vsurf(a - h, b)) / (2 * h),
+                                   delta=1e-8)
+            self.assertAlmostEqual(g2, (vsurf(a, b + h) - vsurf(a, b - h)) / (2 * h),
+                                   delta=1e-8)
+
+        # (2) IRC branches: monotone descent to the H2 asymptote, mirror symmetry
+        u = np.array([1.0, -1.0]) / np.sqrt(2.0)
+        kw = dict(par=par, masses=(1.0, 1.0, 1.0), n_max=4000, ds=0.01,
+                  grad_tol=1e-7, r_min=0.05, r_max=50.0)
+        bra = intrinsic_reaction_coordinate(
+            r_start=tuple(np.array([1.774963, 1.774963]) + 1e-3 * u), **kw)
+        brb = intrinsic_reaction_coordinate(
+            r_start=tuple(np.array([1.774963, 1.774963]) - 1e-3 * u), **kw)
+        self.assertEqual(bra["stop_reason"], 1)     # converged at the valley floor
+        self.assertGreater(len(bra["s"]), 100)
+        self.assertAlmostEqual(bra["v"][-1], -0.1744, delta=5e-4)   # H2 well -De
+        rises = np.diff(bra["v"])
+        self.assertLess(float(rises.max()), 1e-9)   # monotone descent
+        nc = min(len(bra["v"]), len(brb["v"]))
+        self.assertLess(float(np.max(np.abs(bra["v"][:nc] - brb["v"][:nc]))),
+                        1e-10)                      # mirror symmetry (H3)
+        # branch endpoints mirror each other
+        self.assertAlmostEqual(bra["r12"][-1], brb["r23"][-1], delta=1e-6)
+        self.assertAlmostEqual(bra["r23"][-1], brb["r12"][-1], delta=1e-6)
+
     def test_rovibrational(self):
         # Index roundtrip
         idx = rovibrational_state_index(v=2, j=3, j_max=5)

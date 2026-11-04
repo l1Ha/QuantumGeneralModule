@@ -142,6 +142,141 @@ program test_triatomic_geometry
         print *, " [FAIL] Berry phase mismatch: ", berry_phi, " vs ", PI
     end if
 
+    ! --------------------------------------------------------------------------
+    ! Test 6: Analytic LEPS gradient vs central finite differences
+    ! --------------------------------------------------------------------------
+    block
+        real(dp) :: g(3), g_col(2), fd(2), hh, v0, vp, vm
+        real(dp) :: pts(3, 2), pt(2)
+        integer :: k, i
+        pts(1, :) = (/ 2.5_dp, 1.5_dp /)
+        pts(2, :) = (/ 1.9_dp, 1.65_dp /)
+        pts(3, :) = (/ 3.2_dp, 1.401_dp /)
+        do k = 1, 3
+            pt = pts(k, :)
+            dist%r12 = pt(1); dist%r23 = pt(2); dist%r31 = pt(1) + pt(2)
+            g = calc_leps_gradient(dist, leps_h3)
+            g_col(1) = g(1) + g(3)     ! collinear chain rule (r31 = r12 + r23)
+            g_col(2) = g(2) + g(3)
+            hh = 1.0e-6_dp
+            do i = 1, 2
+                v0 = 0.0_dp; vp = 0.0_dp; vm = 0.0_dp
+                dist%r12 = pt(1); dist%r23 = pt(2); dist%r31 = pt(1) + pt(2)
+                if (i == 1) then
+                    dist%r12 = pt(1) + hh; dist%r31 = dist%r12 + dist%r23
+                    vp = calc_leps_potential(dist, leps_h3)
+                    dist%r12 = pt(1) - hh; dist%r31 = dist%r12 + dist%r23
+                    vm = calc_leps_potential(dist, leps_h3)
+                else
+                    dist%r23 = pt(2) + hh; dist%r31 = dist%r12 + dist%r23
+                    vp = calc_leps_potential(dist, leps_h3)
+                    dist%r23 = pt(2) - hh; dist%r31 = dist%r12 + dist%r23
+                    vm = calc_leps_potential(dist, leps_h3)
+                end if
+                fd(i) = (vp - vm) / (2.0_dp * hh)
+            end do
+            n_total = n_total + 1
+            if (abs(g_col(1) - fd(1)) < 1.0e-9_dp .and. abs(g_col(2) - fd(2)) < 1.0e-9_dp) then
+                print *, " [PASS] LEPS analytic gradient vs FD at point ", k
+                n_pass = n_pass + 1
+            else
+                print *, " [FAIL] LEPS gradient mismatch at point ", k, &
+                         ": analytic", g_col, " FD", fd
+            end if
+        end do
+    end block
+
+    ! --------------------------------------------------------------------------
+    ! Test 7: Intrinsic reaction coordinate (mass-weighted steepest descent)
+    !   (a) both branches descend monotonically and reach the H2 asymptote;
+    !   (b) the two branches are mirror images (symmetric H3);
+    !   (c) the Wilson G-metric path deviates substantially from the
+    !       unweighted-coordinate descent (the metric is not cosmetic).
+    ! --------------------------------------------------------------------------
+    block
+        real(dp), allocatable :: s_a(:), r12_a(:), r23_a(:), v_a(:)
+        real(dp), allocatable :: s_b(:), r12_b(:), r23_b(:), v_b(:)
+        real(dp) :: masses(3), r_start(2), u(2), r_uw(2), g3(3), gcol(2), gn, du
+        real(dp), allocatable :: r_uw_path(:, :)
+        integer :: n_out, reason, i, n_uw, n_cmn
+        real(dp) :: max_asc, dev_max
+
+        masses = 1.0_dp
+        u = (/ 1.0_dp, -1.0_dp /) / sqrt(2.0_dp)   ! antisymmetric stretch (H3 symmetry)
+        r_start = (/ 1.774963_dp, 1.774963_dp /) + 1.0e-3_dp * u
+        call intrinsic_reaction_coordinate(leps_h3, masses, r_start, 20000, 1.0e-2_dp, &
+                                  1.0e-7_dp, 0.05_dp, 50.0_dp, &
+                                  s_a, r12_a, r23_a, v_a, n_out, reason)
+
+        n_total = n_total + 1
+        if (reason > 0 .and. n_out > 100 .and. abs(v_a(n_out) + 0.1744_dp) < 5.0e-4_dp) then
+            print *, " [PASS] IRC branch reaches the H2 asymptote: V_end = ", v_a(n_out), &
+                     " after s = ", s_a(n_out)
+            n_pass = n_pass + 1
+        else
+            print *, " [FAIL] IRC branch endpoint: reason =", reason, " V_end =", v_a(n_out)
+        end if
+
+        max_asc = 0.0_dp
+        do i = 2, n_out
+            max_asc = max(max_asc, v_a(i) - v_a(i - 1))
+        end do
+        n_total = n_total + 1
+        if (max_asc < 1.0e-9_dp) then
+            print *, " [PASS] IRC energy decreases monotonically (max step rise = ", max_asc, ")"
+            n_pass = n_pass + 1
+        else
+            print *, " [FAIL] IRC ascends along the path: max rise = ", max_asc
+        end if
+
+        r_start = (/ 1.774963_dp, 1.774963_dp /) - 1.0e-3_dp * u
+        call intrinsic_reaction_coordinate(leps_h3, masses, r_start, 20000, 1.0e-2_dp, &
+                                  1.0e-7_dp, 0.05_dp, 50.0_dp, &
+                                  s_b, r12_b, r23_b, v_b, n_out, reason)
+        n_cmn = min(size(v_a), size(v_b))
+        n_total = n_total + 1
+        if (maxval(abs(v_a(1:n_cmn) - v_b(1:n_cmn))) < 1.0e-6_dp) then
+            print *, " [PASS] IRC branches are mirror images (symmetric H3)"
+            n_pass = n_pass + 1
+        else
+            print *, " [FAIL] Branch asymmetry: ", maxval(abs(v_a(1:n_cmn) - v_b(1:n_cmn)))
+        end if
+
+        ! (c) unweighted-coordinate descent deviates from the G-metric path
+        r_uw = (/ 1.774963_dp, 1.774963_dp /) + 1.0e-3_dp * u
+        allocate(r_uw_path(2, 20000))
+        r_uw_path(:, 1) = r_uw
+        n_uw = 1
+        do i = 2, 20000
+            dist%r12 = r_uw(1); dist%r23 = r_uw(2); dist%r31 = r_uw(1) + r_uw(2)
+            g3 = calc_leps_gradient(dist, leps_h3)
+            gcol(1) = g3(1) + g3(3)
+            gcol(2) = g3(2) + g3(3)
+            gn = sqrt(gcol(1)**2 + gcol(2)**2)
+            if (gn < 1.0e-7_dp) exit
+            r_uw = r_uw - 1.0e-2_dp * gcol / gn
+            if (r_uw(1) <= 0.05_dp .or. r_uw(1) >= 50.0_dp .or. &
+                r_uw(2) <= 0.05_dp .or. r_uw(2) >= 50.0_dp) exit
+            n_uw = n_uw + 1
+            r_uw_path(:, n_uw) = r_uw
+        end do
+        du = 0.0_dp
+        n_cmn = min(size(s_a), n_uw)
+        do i = 1, n_cmn
+            du = max(du, sqrt((r12_a(i) - r_uw_path(1, i))**2 + (r23_a(i) - r_uw_path(2, i))**2))
+        end do
+        n_total = n_total + 1
+        if (du > 0.1_dp) then
+            print *, " [PASS] G-metric vs unweighted paths deviate: max = ", du, " a0"
+            n_pass = n_pass + 1
+        else
+            print *, " [FAIL] Metric deviation too small: ", du
+        end if
+        deallocate(r_uw_path)
+        if (allocated(s_a)) deallocate(s_a, r12_a, r23_a, v_a)
+        if (allocated(s_b)) deallocate(s_b, r12_b, r23_b, v_b)
+    end block
+
     print *, "--------------------------------------------------"
     print *, "Triatomic & PES Tests: ", n_pass, " / ", n_total, " PASSED."
     if (n_pass == n_total) then
