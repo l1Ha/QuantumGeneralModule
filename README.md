@@ -25,7 +25,7 @@
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
    - 教科书《量子动力学数值计算》内嵌的 17 幅计算结果图（角动量选择定则热图、H3 LEPS 势能面与 IRC、Lindblad 弛豫、DVR 谱收敛、split-operator 波包传播、HHG 高次谐波谱、QR 收敛阶与差分步长标定、分子排列复苏、散射长度、Breit-Rabi、Feshbach、QCT 不透明度、Smolyak 稀疏网格、折合质量矩阵等）全部由 `docs/generate_figures.py` 一键真实前向模拟生成，零手工修饰。
 5. **全自动 CI/CD 持续集成**
-   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 48 大测试套件（449 个单元断言 100% 通过）与 36 大物理应用工程算例。
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 48 大测试套件（460 个单元断言 100% 通过）与 36 大物理应用工程算例。
 6. **服务器级高性能与多核硬件加速 (HPC & Multi-Core Ready)**
    - 构建与测试流水线全面并行化：模块编译采用依赖自愈的并行编译器（`scripts/compile_modules.sh`，55 个模块约 3.5 秒），测试套件以 `xargs -P` 并行执行（`TEST_JOBS` 可调），全量回归在 20 核服务器上仅需约 7 秒（OPENMP=1 构建）；CI 同时回归串行与 OpenMP 两条构建路径。
    - 核心计算密集模块（2D 分裂算符波包传播、2D FFT、DVR 动能矩阵构造、Penning 碰撞截面、RIXS 2D 强度谱、ATAS 瞬态吸收光谱、两电子库仑三体变分求积、SOP 逐维张量缩并与 TT 稠密还原、QCT 轨迹系综）内嵌标准 OpenMP 哨兵指令，支持零依赖单核运行与 `make OPENMP=1` / `cmake -DENABLE_OPENMP=ON` 服务器多核多线程加速。
@@ -72,7 +72,7 @@ GeneralModule/
 │   ├── mod_confined_scattering.f90 # 25. 低维光晶格受限量子散射与约束诱导共振 CIR、有效 1D 相互作用与 Tonks 气体
 │   ├── mod_autoionization_fano.f90 # 26. 自电离体系、Fano 组态相互作用线型与复坐标旋转法 CCR 共振寿命
 │   ├── mod_crossed_field_scattering.f90 # 27. 交叉静电磁场 E x B 转振-自旋动力学、宇称破缺与倾角扫描
-│   ├── mod_triatomic_geometry.f90 # 28. 三原子反应散射 Jacobi 坐标、LEPS 反应势能面与锥形交叉 Berry 几何相位
+│   ├── mod_triatomic_geometry.f90 # 28. 三原子反应散射 Jacobi 坐标、LEPS 面与解析梯度、GS-IRC 反应路径、锥形交叉 Berry 相位
 │   ├── mod_spinor_bec.f90         # 29. 超冷旋量玻色爱因斯坦凝聚 F=1 多体自旋动力学、铁磁/极性相与相干自旋混合
 │   ├── mod_hyperspherical_reactive.f90 # 30. 三原子超球面反应动力学、Delves 质量标度、反应偏角、Eckart 隧穿与反应速率 k(T)
 │   ├── mod_dipolar_droplets_lhy.f90    # 31. 超冷偶极量子液滴、Pelster-Lima 涨落积分 Q5、自束缚平衡密度 n0 与 eGPE 能量密度

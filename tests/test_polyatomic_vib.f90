@@ -20,6 +20,7 @@ program test_polyatomic_vib
     call test_coupled2_analytic()
     call test_degenerate_rotation()
     call test_grid_convergence()
+    call test_morse_anharmonic()
 
     print *, ""
     print *, "================================================================"
@@ -174,5 +175,68 @@ contains
         call poly_vib_product_levels(2, om, lam, x_half, 20, e2, stat)
         call assert_near(e2(1), e1(1), 1.0e-6_dp, "Coupled ZPE grid-converged")
     end subroutine test_grid_convergence
+
+    !> Morse 非谐 (多原子拓展第四步): 单模精确谱对照 (分层容差: 顶部 Morse
+    !> 能级尾部衰减率 kappa = sqrt(2(D-E)) 饱和, 盒截断误差只随盒宽收敛,
+    !> 不随格点数收敛), 束缚能级计数, 非谐红移与间距收缩, 多模可分离谱。
+    subroutine test_morse_anharmonic()
+        real(dp) :: lam(3, 3), d_e(2), a_m(2), xh1(1), xh2(2)
+        real(dp), allocatable :: e(:), e2(:)
+        integer :: stat, i, n_bound_dvr
+        real(dp) :: w0_1
+
+        print *, ""
+        print *, "--- 5. Morse anharmonic force field (exact spectrum) ---"
+        lam = 0.0_dp
+
+        ! (a) 单模: D = 0.1744, a = 0.2 -> w0 = 0.1181, 3 个束缚态
+        xh1 = (/ 28.0_dp /)
+        call poly_vib_morse_levels(1, (/ 0.1744_dp /), (/ 0.2_dp /), lam, xh1, 60, e, stat)
+        w0_1 = 0.2_dp * sqrt(2.0_dp * 0.1744_dp)
+        call assert_true(stat == 0, "1-mode Morse DVR solve succeeded")
+        call assert_near(e(1), morse_bound_energy(0.0_dp, 0.1744_dp, 0.2_dp), 1.0e-10_dp, &
+                         "Morse G(0) vs exact spectrum")
+        call assert_near(e(2), morse_bound_energy(1.0_dp, 0.1744_dp, 0.2_dp), 1.0e-5_dp, &
+                         "Morse G(1) vs exact spectrum")
+        ! 顶部能级接近解离: 尾巴长 (见子程序 docstring), 容差按物理放宽
+        call assert_near(e(3), morse_bound_energy(2.0_dp, 0.1744_dp, 0.2_dp), 5.0e-3_dp, &
+                         "Morse G(2) vs exact (near-dissociation tail)")
+
+        ! (b) 束缚能级计数: E < D_e 的 DVR 能级数 = morse_bound_count = 3
+        n_bound_dvr = 0
+        do i = 1, size(e)
+            if (e(i) < 0.1744_dp) n_bound_dvr = n_bound_dvr + 1
+        end do
+        call assert_true(n_bound_dvr == morse_bound_count(0.1744_dp, 0.2_dp), &
+                         "bound-level count = morse_bound_count")
+
+        ! (c) 非谐红移 + 间距收缩: E1-E0 < w0 且 E2-E1 < E1-E0
+        call assert_true(e(2) - e(1) < w0_1, "anharmonic red shift (E1-E0 < w0)")
+        call assert_true(e(3) - e(2) < e(2) - e(1), "spacing contraction (E2-E1 < E1-E0)")
+
+        ! (d) 双模可分离 (lam = 0): E(v1,v2) = G1(v1) + G2(v2) 精确。
+        !     模 2 取深阱 (D=0.4) 使其 v=1 远离解离、第一激发由模 1 承担
+        !     (模 1 的 v=1 尾巴在盒内的截断误差 ~2e-7, 决定该断言容差)。
+        d_e = (/ 0.1744_dp, 0.4000_dp /)
+        a_m = (/ 0.2_dp, 0.24_dp /)
+        xh2 = (/ 28.0_dp, 20.0_dp /)
+        call poly_vib_morse_levels(2, d_e, a_m, lam, xh2, 40, e, stat)
+        call assert_near(e(1), morse_bound_energy(0.0_dp, d_e(1), a_m(1)) &
+                             + morse_bound_energy(0.0_dp, d_e(2), a_m(2)), 1.0e-10_dp, &
+                         "2-mode separable Morse ZPE = G1(0)+G2(0)")
+        ! 第一激发 = 全谱排序后最低单量子 (排序陷阱的可分离 Morse 版)
+        block
+            real(dp) :: d1q, d2q
+            d1q = morse_bound_energy(1.0_dp, d_e(1), a_m(1)) - morse_bound_energy(0.0_dp, d_e(1), a_m(1))
+            d2q = morse_bound_energy(1.0_dp, d_e(2), a_m(2)) - morse_bound_energy(0.0_dp, d_e(2), a_m(2))
+            call assert_near(e(2) - e(1), min(d1q, d2q), 5.0e-6_dp, &
+                             "first excited = softest single quantum (sorted)")
+            call assert_true(d2q > d1q, "mode-2 quantum above mode-1 (deep well)")
+        end block
+
+        ! (e) 可分离 ZPE 网格收敛 (盒误差对 n 不敏感, 见 docstring)
+        call poly_vib_morse_levels(2, d_e, a_m, lam, xh2, 48, e2, stat)
+        call assert_near(e2(1), e(1), 1.0e-10_dp, "separable Morse ZPE grid-converged")
+    end subroutine test_morse_anharmonic
 
 end program test_polyatomic_vib

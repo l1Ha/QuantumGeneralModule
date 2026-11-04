@@ -555,7 +555,7 @@ $$
 $$\hat{H}_{\mathrm{vib}}=\sum_{k=1}^{N}\Bigl[-\frac{1}{2}\frac{\partial^{2}}{\partial Q_k^{2}}+\frac{1}{2}\omega_k^{2}Q_k^{2}\Bigr]
 +\sum_{k<l}\lambda_{kl}\,Q_kQ_l,$$
 
-其中 $Q_k$ 为质量权重简正坐标（动能部分已无量纲因子），$\omega_k$ 为谐振频率，$\lambda_{kl}$ 为双线性力常数（三阶及以上非谐项留作后续增量）。**推导（乘积基变分）。** 取各模 Sinc-DVR 格点基的乘积 $|i_1 i_2 \cdots i_N\rangle=|i_1\rangle_1\otimes\cdots\otimes|i_N\rangle_N$，总基维数为 $n^{N}$。动能算符是各模动能与单位算符的 **Kronecker 和**（注意不是 Kronecker 积）：
+其中 $Q_k$ 为质量权重简正坐标（动能部分已无量纲因子），$\omega_k$ 为谐振频率，$\lambda_{kl}$ 为双线性力常数（Morse 型非谐见下方第四步；一般力常数张量属后续增量）。**推导（乘积基变分）。** 取各模 Sinc-DVR 格点基的乘积 $|i_1 i_2 \cdots i_N\rangle=|i_1\rangle_1\otimes\cdots\otimes|i_N\rangle_N$，总基维数为 $n^{N}$。动能算符是各模动能与单位算符的 **Kronecker 和**（注意不是 Kronecker 积）：
 
 $$\hat{T}=\sum_{k=1}^{N}\underbrace{I\otimes\cdots\otimes T_k\otimes\cdots\otimes I}_{T_k\ \text{位于第}\ k\ \text{个因子}},$$
 
@@ -571,12 +571,28 @@ $$\Omega_{\mp}^{2}=\frac{\omega_1^{2}+\omega_2^{2}}{2}\mp\frac{1}{2}\sqrt{(\omeg
 
 ![图 3.3：双模双线性耦合振子（`mod_polyatomic_vib` / `polyatomic_vib.py`）。（a）耦合势能面 $V=\frac12\omega_1^{2}Q_1^{2}+\frac12\omega_2^{2}Q_2^{2}+\lambda Q_1Q_2$（$\omega_1=0.28$、$\omega_2=0.19$、$\lambda=0.045\ E_h$）等高图：紫实线/绿虚线为动力学矩阵本征矢方向，即简正坐标 $Q_\mp$ 轴——耦合使椭圆主轴旋转；（b）能级对比：灰为无耦合能级 $E=\omega_1(v_1+\frac12)+\omega_2(v_2+\frac12)$，红为耦合后能级——简并解除、ZPE 下移；解析简正频率 $\Omega_\mp$（`coupled2_normal_freqs`）给出机器精度的验收基准。绘图脚本见 `docs/generate_figures.py`。](figures/fig19_coupled_modes.png){width=13.0cm}
 
+#### 多原子拓展第四步：Morse 型非谐力场（`poly_vib_morse_levels`）
+
+谐振模型在能量升高时系统性失效：真实分子会解离，而 $\tfrac12\omega^2Q^2$ 无上界。第四步把各模的对角势换成 **Morse 振子** $V(Q)=D_e(1-e^{-aQ})^2$（阱底为 $0$、解离极限 $D_e$；$a$ 为范围参数），乘积 DVR 的 Kronecker 和动能完全复用，只需替换对角势。
+
+**推导（精确谱，因式分解法）。** 质量权重坐标下 $\hat H=-\frac12\frac{d^2}{dQ^2}+D_e(1-e^{-aQ})^2$ 作换元 $y=\lambda e^{-aQ}$、$\lambda=\sqrt{2D_e}/a$，薛定谔方程化为关联 Lagrange（Pöschl–Teller 型）方程，其解为 $\psi_v\propto e^{-y/2}y^{s}L_v^{(2s+1)}(y)$（$L_v^{(\alpha)}$ 为广义 Laguerre 多项式）；波函数在 $y\to\infty$（$Q\to-\infty$ 的陡墙）收敛要求 $s>0$、在 $y\to0$（$Q\to+\infty$）收敛要求 $s$ 为非负整数，即 $s=\lambda-v-\tfrac12\ge0$——**正规化条件直接量子化能级**：
+
+$$G(v)=\omega_0\Bigl(v+\tfrac12\Bigr)-\frac{\omega_0^{2}\bigl(v+\tfrac12\bigr)^{2}}{4D_e},\qquad \omega_0=a\sqrt{2D_e},$$
+
+其中 $G(v)$ 从阱底计。三条立即可读的推论：其一，能级间隔线性收缩 $\Delta E_v=G(v+1)-G(v)=\omega_0-\omega_0^{2}(v+1)/(2D_e)$，二次系数 $\omega_e x_e=\omega_0^{2}/(4D_e)$ 正是 7.10 节微扰推导的 Dunham 常数——微扰级数在 Morse 势处**严格截断于二次项**；其二，束缚态数目由正规化条件给出 $v_{\max}=\lfloor\lambda-\tfrac12\rfloor$（`morse_bound_count`），顶位能级恒贴近解离极限；其三，非谐红移 $E_1-E_0<\omega_0$。
+
+**实现与验收。** `poly_vib_morse_levels` 与第三步共享 `add_mode_kinetic`（Kronecker 和动能），对角势换成 Morse 项。$\lambda=0$ 时多模谱**严格可分离** $E(v_1,\ldots,v_N)=\sum_k G_k(v_k)$，为 $N$ 模组装提供解析验收；单模 $D_e=0.1744\ E_h$、$a=0.2\ a_0^{-1}$（$\omega_0=0.1181\ E_h$，3 个束缚态）的 DVR 结果：$G(0)$ 误差 $3.6\times10^{-11}\ E_h$、$G(1)$ 误差 $1.9\times10^{-6}\ E_h$，双模可分离 ZPE 误差 $3.6\times10^{-12}\ E_h$。图 3.4 展示 Morse 与谐振的对比：谐振 $v=2$ 能级已越过真实解离极限，而 Morse 能级向 $D_e$ 收拢。
+
+**两条物理边界（进入测试容差与文档）。** 其一，**双线性耦合与饱和 Morse 墙不相容**：沿 $Q_k=-Q_l$ 方向两堵 Morse 墙各自饱和于 $D_k+D_l$，而 $\lambda Q_kQ_l$ 无界增长，面沿该方向**无下界**——$\lambda\ne0$ 仅适用于阱底附近的局域态与小盒（大振幅耦合非谐需完整四阶力场，见 §12.2 路线图）。其二，**接近解离的 Morse 态尾部衰减率 $\kappa=\sqrt{2(D-E)}$ 饱和于小值**（顶部态 $\kappa\approx0.09\ a_0^{-1}$），盒截断误差**只随盒宽收敛、不随格点数收敛**——测试对 $G(0)$、$G(1)$、$G(2)$ 采用 $10^{-10}$、$10^{-5}$、$5\times10^{-3}$ 的分层容差正是这一物理的直接体现。
+
+![图 3.4：Morse 非谐力场 vs 谐振参考（`poly_vib_morse_levels`，质量权重单模 $D_e=0.1744\ E_h$、$a=0.2\ a_0^{-1}$，$\omega_0=a\sqrt{2D_e}=0.1181\ E_h$，3 个束缚态）。（a）Morse 势（黑）与阱底谐振展开（蓝虚线）的能级对比：红实线为 DVR 束缚能级 $G(v)$（`morse_bound_energy` 精确谱，$G(0)$ 达 $10^{-11}\ E_h$），蓝虚线为等间距谐振能级——谐振 $v=2$ 已越过真实解离极限 $D_e$（点线）；（b）能级间距收缩：Morse $\Delta E_v=\omega_0-\omega_0^{2}(v+1)/(2D_e)$ 线性递减（紫叉为 DVR 计算值），谐振保持常数 $\omega_0$；Dunham 常数 $\omega_e x_e=\omega_0^{2}/(4D_e)=0.0200\ E_h$。绘图脚本见 `docs/generate_figures.py`。](figures/fig20_morse_anharmonic.png){width=13.0cm}
+
 #### 对应源码（多原子拓展）
 
 - [src/mod_watson_rotor.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_watson_rotor.f90)：`wang_matrix_element`（Wang 矩阵元）、`asymmetric_top_levels`（给定 $J$ 的 $2J+1$ 条能级，库内 QL 求解器对角化）、`inertia_constants_from_geometry`（核坐标/质量 → 主惯量 → $A,B,C$，复用 `diag_symmetric_matrix`）。
-- [src/mod_polyatomic_vib.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_polyatomic_vib.f90)：`coupled2_normal_freqs`（双模耦合解析简正频率，动力学矩阵本征值开方）、`poly_vib_product_levels`（N 模乘积 DVR 变分：Kronecker 和动能 + 对角势/双线性耦合，稠密 QL 对角化）、`basis_idx`（乘积基线性索引，模 0 最快）。
-- Python 参照：`python/pygenmod/rovibrational.py` 的 `watson_asymmetric_levels`、`watson_asymmetric_levels_cd` 与 `inertia_constants_from_geometry`；`python/pygenmod/polyatomic_vib.py` 的 `coupled2_normal_freqs` 与 `poly_vib_product_levels`（numpy Kronecker 和组装，与 Fortran 同一索引约定）。
-- 验证：`tests/test_watson_rotor.f90`（三极限解析谱、迹规则、垂直轴定理、H₂O 实验值 1% 对照、离心畸变回归/解析/迹规则，共 37 项断言）；`tests/test_polyatomic_vib.f90`（分离谐振解析谱、双模耦合对 $\Omega_\mp$ 的机器精度验收、简并旋转不变性、网格收敛，共 12 项断言）。多原子振动的完整 Watson 处理（Coriolis 与 $d_1/d_2$ 畸变项）与 Morse 型非谐力场见 §12.2 路线图。
+- [src/mod_polyatomic_vib.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_polyatomic_vib.f90)：`coupled2_normal_freqs`（双模耦合解析简正频率，动力学矩阵本征值开方）、`poly_vib_product_levels`（N 模乘积 DVR 变分：Kronecker 和动能 + 对角势/双线性耦合，稠密 QL 对角化）、`poly_vib_morse_levels`（第四步：Morse 非谐对角势，与谐振版共用 `add_mode_kinetic`）、`morse_bound_energy`/`morse_bound_count`（Morse 精确谱与束缚态计数）、`basis_idx`（乘积基线性索引，模 0 最快）。
+- Python 参照：`python/pygenmod/rovibrational.py` 的 `watson_asymmetric_levels`、`watson_asymmetric_levels_cd` 与 `inertia_constants_from_geometry`；`python/pygenmod/polyatomic_vib.py` 的 `coupled2_normal_freqs`、`poly_vib_product_levels`、`poly_vib_morse_levels`、`morse_bound_energy`、`morse_bound_count`（numpy Kronecker 和组装，与 Fortran 同一索引约定）。
+- 验证：`tests/test_watson_rotor.f90`（三极限解析谱、迹规则、垂直轴定理、H₂O 实验值 1% 对照、离心畸变回归/解析/迹规则，共 37 项断言）；`tests/test_polyatomic_vib.f90`（分离谐振解析谱、双模耦合对 $\Omega_\mp$ 的机器精度验收、简并旋转不变性、网格收敛、Morse 精确谱分层容差/束缚态计数/非谐红移/可分离多模，共 23 项断言）。多原子振动的完整 Watson 处理（Coriolis 与 $d_1/d_2$ 畸变项）与 Morse 型非谐力场见 §12.2 路线图。
 - 文献依据：Wilson, Decius 与 Cross, *Molecular Vibrations* (1955)，第 3 章（简正坐标）；H. W. Kroto, *Molecular Rotation Spectra*, Dover (1975)，第 4 章（非对称陀螺）。GitHub 直链与二维码见各源码文件的仓库路径 `qr/src__mod_polyatomic_vib.f90.png`、`qr/python__pygenmod__polyatomic_vib.py.png`。
 
 ![](qr/src__mod_watson_rotor.f90.png){width=2.0cm}
@@ -4101,6 +4117,7 @@ GitHub Actions 配置位于：
 | 3.2 | Jacobi 坐标、LEPS 面、IRC | `mod_triatomic_geometry::calc_leps_potential`、`calc_leps_gradient`、`intrinsic_reaction_coordinate` | `qct.leps_energy_gradient`、`qct.leps_collinear_gradient`、`qct.intrinsic_reaction_coordinate` | `test_triatomic_geometry` | 图 3.1 |
 | 3.4 | Watson 非对称陀螺 + 四次离心畸变（A reduction） | `mod_watson_rotor::asymmetric_top_levels_cd`、`inertia_constants_from_geometry` | `rovibrational.watson_asymmetric_levels_cd`、`inertia_constants_from_geometry` | `test_watson_rotor` | 图 3.2 |
 | 3.4 | N 模简正振动 + 双线性耦合（乘积 DVR） | `mod_polyatomic_vib::poly_vib_product_levels`、`coupled2_normal_freqs` | `polyatomic_vib.poly_vib_product_levels`、`coupled2_normal_freqs` | `test_polyatomic_vib` | 图 3.3 |
+| 3.4 | Morse 非谐力场（精确谱验收） | `mod_polyatomic_vib::poly_vib_morse_levels`、`morse_bound_energy` | `polyatomic_vib.poly_vib_morse_levels`、`morse_bound_energy` | `test_polyatomic_vib` | 图 3.4 |
 | 4.3 | Wilkinson 位移 QL 迭代 | `mod_linear_algebra::tql2` | — | `test_dvr_grid`/`test_propagators` | 图 4.1 |
 | 5.3–5.5 | DVR/FGH 谱方法 | `mod_dvr_grid::dvr_sinc_init`、`fgh_solve_bound_states` | `dvr.dvr_sinc_init`、`fgh_solve_bound_states` | `test_dvr_grid` | 图 5.1、10.1 |
 | 6.2 / 14.2 | Split-Operator 分裂 | `mod_wavepacket_propagator::propagate_split_operator_1d/2d` | — | `test_propagators` | 图 10.2、11 |
@@ -5087,7 +5104,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 48 个测试程序、449 项断言全部通过。
+- 全库 48 个测试程序、460 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

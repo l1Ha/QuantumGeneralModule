@@ -1647,8 +1647,8 @@ DVR（\texttt{mod\_polyatomic\_vib}）}{多原子拓展第三步：N 模简正�
 +\sum_{k<l}\lambda_{kl}\,Q_kQ_l,\]
 
 其中 \(Q_k\) 为质量权重简正坐标（动能部分已无量纲因子），\(\omega_k\)
-为谐振频率，\(\lambda_{kl}\)
-为双线性力常数（三阶及以上非谐项留作后续增量）。\textbf{推导（乘积基变分）。}
+为谐振频率，\(\lambda_{kl}\) 为双线性力常数（Morse
+型非谐见下方第四步；一般力常数张量属后续增量）。\textbf{推导（乘积基变分）。}
 取各模 Sinc-DVR 格点基的乘积
 \(|i_1 i_2 \cdots i_N\rangle=|i_1\rangle_1\otimes\cdots\otimes|i_N\rangle_N\)，总基维数为
 \(n^{N}\)。动能算符是各模动能与单位算符的 \textbf{Kronecker
@@ -1715,6 +1715,75 @@ ZPE 漂移 \(<10^{-6}\ E_h\)）与简并旋转检验共同构成 12
 \texttt{docs/generate\_figures.py}。}
 \end{figure}
 
+\hypertarget{ux591aux539fux5b50ux62d3ux5c55ux7b2cux56dbux6b65morse-ux578bux975eux8c10ux529bux573apoly_vib_morse_levels}{%
+\subsection{\texorpdfstring{多原子拓展第四步：Morse
+型非谐力场（\texttt{poly\_vib\_morse\_levels}）}{多原子拓展第四步：Morse 型非谐力场（poly\_vib\_morse\_levels）}}\label{ux591aux539fux5b50ux62d3ux5c55ux7b2cux56dbux6b65morse-ux578bux975eux8c10ux529bux573apoly_vib_morse_levels}}
+
+谐振模型在能量升高时系统性失效：真实分子会解离，而
+\(\tfrac12\omega^2Q^2\) 无上界。第四步把各模的对角势换成 \textbf{Morse
+振子} \(V(Q)=D_e(1-e^{-aQ})^2\)（阱底为 \(0\)、解离极限 \(D_e\)；\(a\)
+为范围参数），乘积 DVR 的 Kronecker 和动能完全复用，只需替换对角势。
+
+\textbf{推导（精确谱，因式分解法）。} 质量权重坐标下
+\(\hat H=-\frac12\frac{d^2}{dQ^2}+D_e(1-e^{-aQ})^2\) 作换元
+\(y=\lambda e^{-aQ}\)、\(\lambda=\sqrt{2D_e}/a\)，薛定谔方程化为关联
+Lagrange（Pöschl--Teller 型）方程，其解为
+\(\psi_v\propto e^{-y/2}y^{s}L_v^{(2s+1)}(y)\)（\(L_v^{(\alpha)}\)
+为广义 Laguerre 多项式）；波函数在 \(y\to\infty\)（\(Q\to-\infty\)
+的陡墙）收敛要求 \(s>0\)、在 \(y\to0\)（\(Q\to+\infty\)）收敛要求 \(s\)
+为非负整数，即
+\(s=\lambda-v-\tfrac12\ge0\)------\textbf{正规化条件直接量子化能级}：
+
+\[G(v)=\omega_0\Bigl(v+\tfrac12\Bigr)-\frac{\omega_0^{2}\bigl(v+\tfrac12\bigr)^{2}}{4D_e},\qquad \omega_0=a\sqrt{2D_e},\]
+
+其中 \(G(v)\) 从阱底计。三条立即可读的推论：其一，能级间隔线性收缩
+\(\Delta E_v=G(v+1)-G(v)=\omega_0-\omega_0^{2}(v+1)/(2D_e)\)，二次系数
+\(\omega_e x_e=\omega_0^{2}/(4D_e)\) 正是 7.10 节微扰推导的 Dunham
+常数------微扰级数在 Morse
+势处\textbf{严格截断于二次项}；其二，束缚态数目由正规化条件给出
+\(v_{\max}=\lfloor\lambda-\tfrac12\rfloor\)（\texttt{morse\_bound\_count}），顶位能级恒贴近解离极限；其三，非谐红移
+\(E_1-E_0<\omega_0\)。
+
+\textbf{实现与验收。} \texttt{poly\_vib\_morse\_levels} 与第三步共享
+\texttt{add\_mode\_kinetic}（Kronecker 和动能），对角势换成 Morse
+项。\(\lambda=0\) 时多模谱\textbf{严格可分离}
+\(E(v_1,\ldots,v_N)=\sum_k G_k(v_k)\)，为 \(N\) 模组装提供解析验收；单模
+\(D_e=0.1744\ E_h\)、\(a=0.2\ a_0^{-1}\)（\(\omega_0=0.1181\ E_h\)，3
+个束缚态）的 DVR 结果：\(G(0)\) 误差
+\(3.6\times10^{-11}\ E_h\)、\(G(1)\) 误差
+\(1.9\times10^{-6}\ E_h\)，双模可分离 ZPE 误差
+\(3.6\times10^{-12}\ E_h\)。图 3.4 展示 Morse 与谐振的对比：谐振 \(v=2\)
+能级已越过真实解离极限，而 Morse 能级向 \(D_e\) 收拢。
+
+\textbf{两条物理边界（进入测试容差与文档）。}
+其一，\textbf{双线性耦合与饱和 Morse 墙不相容}：沿 \(Q_k=-Q_l\) 方向两堵
+Morse 墙各自饱和于 \(D_k+D_l\)，而 \(\lambda Q_kQ_l\)
+无界增长，面沿该方向\textbf{无下界}------\(\lambda\ne0\)
+仅适用于阱底附近的局域态与小盒（大振幅耦合非谐需完整四阶力场，见 §12.2
+路线图）。其二，\textbf{接近解离的 Morse 态尾部衰减率
+\(\kappa=\sqrt{2(D-E)}\) 饱和于小值}（顶部态
+\(\kappa\approx0.09\ a_0^{-1}\)），盒截断误差\textbf{只随盒宽收敛、不随格点数收敛}------测试对
+\(G(0)\)、\(G(1)\)、\(G(2)\) 采用
+\(10^{-10}\)、\(10^{-5}\)、\(5\times10^{-3}\)
+的分层容差正是这一物理的直接体现。
+
+\begin{figure}
+\centering
+\includegraphics[width=13cm,height=\textheight]{figures/fig20_morse_anharmonic.png}
+\caption{图 3.4：Morse 非谐力场 vs
+谐振参考（\texttt{poly\_vib\_morse\_levels}，质量权重单模
+\(D_e=0.1744\ E_h\)、\(a=0.2\ a_0^{-1}\)，\(\omega_0=a\sqrt{2D_e}=0.1181\ E_h\)，3
+个束缚态）。（a）Morse
+势（黑）与阱底谐振展开（蓝虚线）的能级对比：红实线为 DVR 束缚能级
+\(G(v)\)（\texttt{morse\_bound\_energy} 精确谱，\(G(0)\) 达
+\(10^{-11}\ E_h\)），蓝虚线为等间距谐振能级------谐振 \(v=2\)
+已越过真实解离极限 \(D_e\)（点线）；（b）能级间距收缩：Morse
+\(\Delta E_v=\omega_0-\omega_0^{2}(v+1)/(2D_e)\) 线性递减（紫叉为 DVR
+计算值），谐振保持常数 \(\omega_0\)；Dunham 常数
+\(\omega_e x_e=\omega_0^{2}/(4D_e)=0.0200\ E_h\)。绘图脚本见
+\texttt{docs/generate\_figures.py}。}
+\end{figure}
+
 \hypertarget{ux5bf9ux5e94ux6e90ux7801ux591aux539fux5b50ux62d3ux5c55}{%
 \subsection{对应源码（多原子拓展）}\label{ux5bf9ux5e94ux6e90ux7801ux591aux539fux5b50ux62d3ux5c55}}
 
@@ -1729,20 +1798,25 @@ ZPE 漂移 \(<10^{-6}\ E_h\)）与简并旋转检验共同构成 12
 \item
   \href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_polyatomic_vib.f90}{src/mod\_polyatomic\_vib.f90}：\texttt{coupled2\_normal\_freqs}（双模耦合解析简正频率，动力学矩阵本征值开方）、\texttt{poly\_vib\_product\_levels}（N
   模乘积 DVR 变分：Kronecker 和动能 + 对角势/双线性耦合，稠密 QL
-  对角化）、\texttt{basis\_idx}（乘积基线性索引，模 0 最快）。
+  对角化）、\texttt{poly\_vib\_morse\_levels}（第四步：Morse
+  非谐对角势，与谐振版共用
+  \texttt{add\_mode\_kinetic}）、\texttt{morse\_bound\_energy}/\texttt{morse\_bound\_count}（Morse
+  精确谱与束缚态计数）、\texttt{basis\_idx}（乘积基线性索引，模 0
+  最快）。
 \item
   Python 参照：\texttt{python/pygenmod/rovibrational.py} 的
   \texttt{watson\_asymmetric\_levels}、\texttt{watson\_asymmetric\_levels\_cd}
   与
   \texttt{inertia\_constants\_from\_geometry}；\texttt{python/pygenmod/polyatomic\_vib.py}
-  的 \texttt{coupled2\_normal\_freqs} 与
-  \texttt{poly\_vib\_product\_levels}（numpy Kronecker 和组装，与
-  Fortran 同一索引约定）。
+  的
+  \texttt{coupled2\_normal\_freqs}、\texttt{poly\_vib\_product\_levels}、\texttt{poly\_vib\_morse\_levels}、\texttt{morse\_bound\_energy}、\texttt{morse\_bound\_count}（numpy
+  Kronecker 和组装，与 Fortran 同一索引约定）。
 \item
   验证：\texttt{tests/test\_watson\_rotor.f90}（三极限解析谱、迹规则、垂直轴定理、H₂O
   实验值 1\% 对照、离心畸变回归/解析/迹规则，共 37
   项断言）；\texttt{tests/test\_polyatomic\_vib.f90}（分离谐振解析谱、双模耦合对
-  \(\Omega_\mp\) 的机器精度验收、简并旋转不变性、网格收敛，共 12
+  \(\Omega_\mp\) 的机器精度验收、简并旋转不变性、网格收敛、Morse
+  精确谱分层容差/束缚态计数/非谐红移/可分离多模，共 23
   项断言）。多原子振动的完整 Watson 处理（Coriolis 与 \(d_1/d_2\)
   畸变项）与 Morse 型非谐力场见 §12.2 路线图。
 \item
@@ -7132,6 +7206,19 @@ N 模简正振动 + 双线性耦合（乘积 DVR）\strut
 图 3.3\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
+3.4\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+Morse 非谐力场（精确谱验收）\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{mod\_polyatomic\_vib::poly\_vib\_morse\_levels}、\texttt{morse\_bound\_energy}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{polyatomic\_vib.poly\_vib\_morse\_levels}、\texttt{morse\_bound\_energy}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{test\_polyatomic\_vib}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+图 3.4\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.14\columnwidth}\raggedright
 4.3\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 Wilkinson 位移 QL 迭代\strut
@@ -9169,7 +9256,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 48 个测试程序、449 项断言全部通过。
+  全库 48 个测试程序、460 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的

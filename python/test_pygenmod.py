@@ -159,6 +159,30 @@ class TestPyGenMod(unittest.TestCase):
         om_lo2, om_hi2 = coupled2_normal_freqs(0.22, 0.22, 0.03)
         self.assertAlmostEqual(e3[0], 0.5 * (om_lo2 + om_hi2), delta=1e-6)
 
+        # 多原子第四步: Morse 非谐 (与 Fortran 测试组 5 对应)
+        from pygenmod.polyatomic_vib import (morse_bound_count,
+                                             morse_bound_energy,
+                                             poly_vib_morse_levels)
+        lam_z = np.zeros((3, 3))
+        # 单模精确谱: 分层容差 (顶部能级尾部衰减率饱和, 盒截断误差只随盒宽收敛)
+        e_m = poly_vib_morse_levels([0.1744], [0.2], lam_z, [28.0], 60)
+        self.assertEqual(morse_bound_count(0.1744, 0.2), 3)
+        self.assertAlmostEqual(e_m[0], morse_bound_energy(0, 0.1744, 0.2), delta=1e-10)
+        self.assertAlmostEqual(e_m[1], morse_bound_energy(1, 0.1744, 0.2), delta=1e-5)
+        self.assertAlmostEqual(e_m[2], morse_bound_energy(2, 0.1744, 0.2), delta=5e-3)
+        # 非谐红移与间距收缩
+        self.assertLess(e_m[1] - e_m[0], 0.2 * np.sqrt(2 * 0.1744))
+        self.assertLess(e_m[2] - e_m[1], e_m[1] - e_m[0])
+        # 双模可分离 (lam = 0): E = G1+G2 精确, 第一激发 = 最软模单量子
+        e_2m = poly_vib_morse_levels([0.1744, 0.4], [0.2, 0.24], lam_z,
+                                     [28.0, 20.0], 40)
+        zpe_exact = (morse_bound_energy(0, 0.1744, 0.2)
+                     + morse_bound_energy(0, 0.4, 0.24))
+        self.assertAlmostEqual(e_2m[0], zpe_exact, delta=1e-10)
+        dq1 = (morse_bound_energy(1, 0.1744, 0.2)
+               - morse_bound_energy(0, 0.1744, 0.2))
+        self.assertAlmostEqual(e_2m[1] - e_2m[0], dq1, delta=5e-6)
+
     def test_irc_reaction_path(self):
         """IRC (book Sec 3.2): analytic gradient, mass-weighted Gonzalez-Schlegel
         path. Mirrors the Fortran tests of test_triatomic_geometry (steps 6-7)."""

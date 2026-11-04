@@ -959,19 +959,6 @@ def generate_fig15_selection_rules():
           f"max |cos2| off-band: {m_cos2[~np.isin(np.abs(j_list[:, None] - j_list[None, :]), [0, 2])].max():.1e})")
 
 
-def _leps_sato_collinear(r12, r23, d_e=0.1744, r_e=1.401, beta=1.044, sato=0.10):
-    """Standard Sato-modified LEPS for collinear H3 (mod_triatomic_geometry form):
-    r31 = r12 + r23; V = sum Q - sqrt(sum (dJ)^2 / 2). Accepts array inputs."""
-    r = np.stack([r12, r23, r12 + r23], axis=0)
-    x = np.exp(-beta * (r - r_e))
-    pref = d_e / (4.0 * (1.0 + sato))
-    q = pref * ((3.0 + sato) * x**2 - (2.0 + 6.0 * sato) * x)
-    j = pref * ((1.0 + 3.0 * sato) * x**2 - (6.0 + 2.0 * sato) * x)
-    diff = (j[0] - j[1], j[1] - j[2], j[2] - j[0])
-    v = q.sum(axis=0) - np.sqrt(0.5 * (diff[0]**2 + diff[1]**2 + diff[2]**2))
-    return v
-
-
 def generate_fig16_leps_pes():
     """Fig 16 (book Fig 3.1): H + H2 LEPS surface (collinear, Sato Delta=0.10)
     with the intrinsic reaction coordinate. Three panels:
@@ -1411,9 +1398,89 @@ def generate_fig19_coupled_modes():
     print(f" -> Saved to {fig_path} (Om_lo={om_lo:.5f}, Om_hi={om_hi:.5f} a.u.)")
 
 
+def generate_fig20_morse_anharmonic():
+    """Fig 20 (book Fig 3.4, multi-atomic step 4): Morse anharmonic force
+    field vs the harmonic reference for a single mass-weighted mode
+    (D = 0.1744 Eh, a = 0.2 -> w0 = a sqrt(2D) = 0.1181 Eh, 3 bound levels).
+    (a) Morse potential with the DVR bound levels (poly_vib_morse_levels,
+    exact spectrum G(v) overlay) and the harmonic expansion about the well
+    bottom with its evenly spaced levels - the harmonic v=2 exceeds the true
+    dissociation limit; (b) level spacing contraction Delta E_v =
+    w0 - w0^2 (v+1)/(2D) toward the Dunham constant w_e x_e = w0^2/(4D)."""
+    print("Generating Fig 20: Morse anharmonic force field...")
+    set_publication_style()
+    from pygenmod.polyatomic_vib import (morse_bound_count,
+                                         morse_bound_energy,
+                                         poly_vib_morse_levels)
+
+    d_e, a_m = 0.1744, 0.2
+    w0 = a_m * np.sqrt(2.0 * d_e)
+    lam0 = np.zeros((3, 3))
+    e_dvr = poly_vib_morse_levels([d_e], [a_m], lam0, [28.0], 60)
+    n_bound = morse_bound_count(d_e, a_m)
+    print(f"   bound levels: {n_bound}, G(0) = {e_dvr[0]:.9f} "
+          f"(exact {morse_bound_energy(0, d_e, a_m):.9f})")
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4), dpi=200)
+    q = np.linspace(-8.0, 34.0, 1200)
+    v_morse = d_e * (1.0 - np.exp(-a_m * q))**2
+    v_harm = 0.5 * w0**2 * q**2
+    ax1.plot(q, v_morse, color='black', linewidth=2.0, label='Morse $V = D_e(1-e^{-aQ})^2$')
+    ax1.plot(q, v_harm, color='royalblue', linewidth=1.6, linestyle='--',
+             label=r'Harmonic $\frac{1}{2}\omega_0^2 Q^2$')
+    ax1.axhline(d_e, color='dimgray', linewidth=1.0, linestyle=':',
+                label=r'Dissociation $D_e$')
+    for v in range(n_bound):
+        gv = morse_bound_energy(v, d_e, a_m)
+        ax1.hlines(gv, -3.4, 30.0, color='crimson', linewidth=2.0)
+        ax1.annotate(rf'$G({v})$', xy=(30.4, gv), fontsize=8, color='crimson',
+                     va='center')
+        gh = w0 * (v + 0.5)
+        if gh < 0.30:
+            ax1.hlines(gh, -3.4, 30.0, color='royalblue', linewidth=1.4,
+                       linestyle='--')
+    ax1.set_xlim(-8.0, 34.0)
+    ax1.set_ylim(-0.02, 0.30)
+    ax1.set_xlabel(r'$Q$ ($a_0$)')
+    ax1.set_ylabel(r'$V$ ($E_h$)')
+    ax1.set_title('(a) Morse vs Harmonic Levels (red: Morse, blue: harmonic)',
+                  fontsize=10.5)
+    ax1.legend(loc='upper right', frameon=True, fontsize=8.5)
+
+    v_grid = np.arange(0, 6)
+    d_morse_exact = np.array([morse_bound_energy(v + 1, d_e, a_m)
+                              - morse_bound_energy(v, d_e, a_m)
+                              for v in v_grid])
+    d_harm = np.full_like(v_grid, w0, dtype=float)
+    ax2.plot(v_grid, d_harm, color='royalblue', linewidth=1.8, linestyle='--',
+             marker='s', markersize=5, label=r'Harmonic $\omega_0$ (constant)')
+    ax2.plot(v_grid, d_morse_exact, color='crimson', linewidth=1.8,
+             marker='o', markersize=5,
+             label=r'Morse $\Delta E_v = \omega_0 - \omega_0^2(v+1)/(2D_e)$')
+    d_dvr = np.array([e_dvr[v + 1] - e_dvr[v] for v in range(n_bound - 1)])
+    ax2.plot(np.arange(n_bound - 1), d_dvr, linestyle='none', marker='x',
+             markersize=9, markeredgewidth=2.2, color='darkviolet',
+             label='DVR computed')
+    ax2.axhline(0.0, color='dimgray', linewidth=0.8, linestyle=':')
+    ax2.annotate(r'$\omega_e x_e = \omega_0^2/(4D_e) = %.4f\ E_h$'
+                 % (w0**2 / (4.0 * d_e)),
+                 xy=(2.0, w0**2 / (4.0 * d_e) * 0.55), fontsize=9, color='dimgray')
+    ax2.set_xlabel(r'$v$')
+    ax2.set_ylabel(r'Level spacing $\Delta E_v$ ($E_h$)')
+    ax2.set_title('(b) Anharmonic Spacing Contraction', fontsize=10.5)
+    ax2.legend(loc='upper right', frameon=True, fontsize=8.5)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig20_morse_anharmonic.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} (n_bound = {n_bound}, "
+          f"w0 = {w0:.4f}, w_e x_e = {w0**2 / (4.0 * d_e):.4f})")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 19 Scientific Calculation Benchmark Figures")
+    print(" Generating All 20 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -1434,8 +1501,9 @@ def main():
     generate_fig17_lindblad()
     generate_fig18_watson_levels()
     generate_fig19_coupled_modes()
+    generate_fig20_morse_anharmonic()
     print("=" * 60)
-    print(" All 19 Figures Generated Successfully in docs/figures/!")
+    print(" All 20 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 
