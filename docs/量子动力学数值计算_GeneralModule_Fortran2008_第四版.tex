@@ -1843,6 +1843,55 @@ Sinc 点/模）。（a）扇形图：精确线 \(E(v,l;g)=\omega(v+1)-gl\) 与 D
 按线性规律分离。绘图脚本见 \texttt{docs/generate\_figures.py}。}
 \end{figure}
 
+\hypertarget{ux591aux539fux5b50ux62d3ux5c55ux7b2cux516dux6b65ux4e00ux822cux529bux573aux4e09ux9636ux56dbux9636ux529bux5e38ux6570ux5f20ux91cfpoly_vib_force_field_levels}{%
+\subsection{\texorpdfstring{多原子拓展第六步：一般力场------三阶/四阶力常数张量（\texttt{poly\_vib\_force\_field\_levels}）}{多原子拓展第六步：一般力场------三阶/四阶力常数张量（poly\_vib\_force\_field\_levels）}}\label{ux591aux539fux5b50ux62d3ux5c55ux7b2cux516dux6b65ux4e00ux822cux529bux573aux4e09ux9636ux56dbux9636ux529bux5e38ux6570ux5f20ux91cfpoly_vib_force_field_levels}}
+
+第四步的 Morse
+是单模非谐的精确可解模型；实际分子振动光谱学的标准语言是\textbf{平衡位形附近的力场展开}：
+
+\[V(Q)=\frac12\sum_k\omega_k^{2}Q_k^{2}+\sum_{k<l}\lambda_{kl}Q_kQ_l
++\sum_{i\le j\le k}c_{ijk}Q_iQ_jQ_k+\sum_{i\le j\le k\le l}d_{ijkl}Q_iQ_jQ_kQ_l,\]
+
+（\(c/d\) 为展开式系数，非 Taylor \(1/3!\)、\(1/4!\)
+约定。）乘积格点上这一切仍然\textbf{对角}------\texttt{poly\_vib\_force\_field\_levels}
+与前几步共享
+\texttt{add\_mode\_kinetic}，仅对角势换成张量收缩，故任意对角势都能以同一机制处理。
+
+\textbf{验收基准（微扰论）。}
+力场没有闭式解，但首阶微扰给出解析标度：对纯四阶项
+\(dQ^4\)，\(\langle v|Q^4|v\rangle=(2v^2+2v+1)\cdot3/(4\omega^{2})\)，故
+
+\[E_v=\omega\Bigl(v+\tfrac12\Bigr)+\frac{3d\,(2v^{2}+2v+1)}{4\omega^{2}}+O(d^{2}/\omega^{5});\]
+
+对纯三阶项，\textbf{宇称使首阶修正严格为零}（\(\langle v|Q^3|v\rangle=0\)，三阶的效应出现在二阶
+\(O(c^{2})\) 且为负）。小耦合下 DVR
+与这两条微扰线定量吻合：\(\omega=0.12\)、\(d=10^{-6}\) 时 \(E_0\) 与一阶
+PT 差 \(8.6\times10^{-8}\ E_h\)；\(c=10^{-4}\) 的三阶位移
+\(6.1\times10^{-5}\ E_h=O(c^{2})\)；可分离多模（非对角张量元为零、同网格）能级逐位等于各模之和（\(10^{-13}\)）。图
+3.6(b) 展示三者的关系：完整力场的 DVR 位移落在``三阶零线''与``四阶 PT
+线''之间------三次的二阶贡献为负。
+
+\textbf{两条物理边界（书稿警示）。}
+其一，\textbf{纯三次势无下界}：沿软方向 \(cQ^3\) 在大 \(|Q|\)
+处压过谐振墙，数值上表现为``能级''随网格加密滑向逃逸通道（实测
+\(c=10^{-3}\) 时位移达
+\(-0.13\ E_h\)，为盒态而非束缚态）------力场展开必须以\textbf{正定四阶张量兜底}。其二，力场是平衡位形附近的\textbf{局域展开}：大振幅与接近解离的物理由高阶项主导，应改用
+Morse（第四步）或全局 PES。
+
+\begin{figure}
+\centering
+\includegraphics[width=13cm,height=\textheight]{figures/fig22_force_field.png}
+\caption{图 3.6：一般力场 vs
+谐振参考（\texttt{poly\_vib\_force\_field\_levels}，\(\omega=0.12\ E_h\)，\(c=2\times10^{-4}\)、\(d=10^{-4}\ E_h\)，\(n=50\)
+Sinc
+点）。（a）力场势（黑）与谐振势（蓝虚线）：三次项使软侧（\(Q<0\)）变软、硬侧变陡，红实线为
+DVR 能级（低于谐振能级------不对称性软化胜过四阶刚性）；（b）能级位移
+\(\Delta E_v=E_{\mathrm{ff}}(v)-\omega(v+\tfrac12)\)：四次一阶 PT
+线（红虚）、三阶宇称零线（灰虚）与完整力场 DVR 位移（紫叉）------DVR
+落在两线之间，三次二阶贡献为负。绘图脚本见
+\texttt{docs/generate\_figures.py}。}
+\end{figure}
+
 \hypertarget{ux5bf9ux5e94ux6e90ux7801ux591aux539fux5b50ux62d3ux5c55}{%
 \subsection{对应源码（多原子拓展）}\label{ux5bf9ux5e94ux6e90ux7801ux591aux539fux5b50ux62d3ux5c55}}
 
@@ -1862,21 +1911,22 @@ Sinc 点/模）。（a）扇形图：精确线 \(E(v,l;g)=\omega(v+1)-gl\) 与 D
   \texttt{add\_mode\_kinetic}）、\texttt{morse\_bound\_energy}/\texttt{morse\_bound\_count}（Morse
   精确谱与束缚态计数）、\texttt{poly\_vib\_coriolis\_levels}（第五步：简并模对
   + \(L_z\) Coriolis 耦合，DVR 动量矩阵 \(p=i[T,X]\) + 2
-  倍维实对称化）、\texttt{basis\_idx}（乘积基线性索引，模 0 最快）。
+  倍维实对称化）、\texttt{poly\_vib\_force\_field\_levels}（第六步：三阶/四阶力常数张量对角势）、\texttt{basis\_idx}（乘积基线性索引，模
+  0 最快）。
 \item
   Python 参照：\texttt{python/pygenmod/rovibrational.py} 的
   \texttt{watson\_asymmetric\_levels}、\texttt{watson\_asymmetric\_levels\_cd}
   与
   \texttt{inertia\_constants\_from\_geometry}；\texttt{python/pygenmod/polyatomic\_vib.py}
   的
-  \texttt{coupled2\_normal\_freqs}、\texttt{poly\_vib\_product\_levels}、\texttt{poly\_vib\_morse\_levels}、\texttt{morse\_bound\_energy}、\texttt{morse\_bound\_count}、\texttt{poly\_vib\_coriolis\_levels}（numpy
+  \texttt{coupled2\_normal\_freqs}、\texttt{poly\_vib\_product\_levels}、\texttt{poly\_vib\_morse\_levels}、\texttt{morse\_bound\_energy}、\texttt{morse\_bound\_count}、\texttt{poly\_vib\_coriolis\_levels}、\texttt{poly\_vib\_force\_field\_levels}（numpy
   Kronecker 和组装，与 Fortran 同一索引约定）。
 \item
   验证：\texttt{tests/test\_watson\_rotor.f90}（三极限解析谱、迹规则、垂直轴定理、H₂O
   实验值 1\% 对照、离心畸变回归/解析/迹规则，共 37
   项断言）；\texttt{tests/test\_polyatomic\_vib.f90}（分离谐振解析谱、双模耦合对
   \(\Omega_\mp\) 的机器精度验收、简并旋转不变性、网格收敛、Morse
-  精确谱分层容差/束缚态计数/非谐红移/可分离多模，共 33
+  精确谱分层容差/束缚态计数/非谐红移/可分离多模，共 41
   项断言）。多原子振动的完整 Watson 处理（Coriolis 与 \(d_1/d_2\)
   畸变项）与 Morse 型非谐力场见 §12.2 路线图。
 \item
@@ -7292,6 +7342,19 @@ Coriolis 振动角动量（简并模对 \(L_z\)）\strut
 图 3.5\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
+3.4\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+一般力场（三阶/四阶力常数张量）\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{mod\_polyatomic\_vib::poly\_vib\_force\_field\_levels}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{polyatomic\_vib.poly\_vib\_force\_field\_levels}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{test\_polyatomic\_vib}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+图 3.6\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.14\columnwidth}\raggedright
 4.3\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 Wilkinson 位移 QL 迭代\strut
@@ -9329,7 +9392,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 48 个测试程序、470 项断言全部通过。
+  全库 48 个测试程序、478 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的

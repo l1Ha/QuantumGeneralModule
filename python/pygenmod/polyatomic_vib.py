@@ -235,3 +235,78 @@ def poly_vib_coriolis_levels(omega: float, g_coriolis: float, x_half: float,
     h2[:n_tot, n_tot:] = -m_mat
     h2[n_tot:, :n_tot] = m_mat
     return np.linalg.eigvalsh(h2)
+
+
+def poly_vib_force_field_levels(omegas, lam, cubic, quartic, x_half, n_pts: int) -> np.ndarray:
+    """N-mode (N = 1..3) general force field (harmonic + bilinear + cubic +
+    quartic tensor coefficients) on a product Sinc-DVR grid (step 6).
+
+    V(Q) = sum w_k^2 Q_k^2 / 2 + sum_{k<l} lam_kl Q_k Q_l
+           + sum_{i<=j<=k} c_ijk Q_i Q_j Q_k
+           + sum_{i<=j<=k<=l} d_ijkl Q_i Q_j Q_k Q_l
+    (c/d are expansion coefficients, not the Taylor 1/3!, 1/4! convention;
+    only the i<=j<=k(<=l) entries are read).
+
+    Acceptance: zero tensors reproduce poly_vib_product_levels bit-exactly;
+    a pure quartic term follows first-order perturbation theory
+    E_v = w(v+1/2) + 3 d (2v^2+2v+1) / (4 w^2) at small d; the cubic
+    first-order shift vanishes by parity (<v|Q^3|v> = 0); separable
+    multi-mode runs (vanishing off-diagonal tensor entries, identical
+    grids) sum exactly.
+
+    Warning: a pure cubic term makes V unbounded below along the soft
+    direction (c Q^3 overcomes the harmonic wall at large |Q|) - a force
+    field expansion needs a positive-definite quartic floor. The expansion
+    is a local model near equilibrium; large-amplitude/near-dissociation
+    physics requires Morse (step 4) or a global PES.
+    Fortran mirror: `poly_vib_force_field_levels` (src/mod_polyatomic_vib.f90).
+    """
+    omegas = np.asarray(omegas, dtype=float)
+    lam = np.asarray(lam, dtype=float)
+    cubic = np.asarray(cubic, dtype=float)
+    quartic = np.asarray(quartic, dtype=float)
+    x_half = np.asarray(x_half, dtype=float)
+    n_modes = len(omegas)
+    if not 1 <= n_modes <= POLY_MAX_MODES:
+        raise ValueError("n_modes must be 1..3")
+    if n_pts ** n_modes > 3400:
+        raise ValueError("product basis too large for dense diagonalization")
+    if np.any(omegas <= 0.0) or np.any(x_half <= 0.0):
+        raise ValueError("omegas and x_half must be positive")
+
+    dvrs = [dvr_sinc_init(-x_half[k], x_half[k], n_pts, 1.0)
+            for k in range(n_modes)]
+    n_tot = n_pts ** n_modes
+    h_mat = np.zeros((n_tot, n_tot))
+    for k in range(n_modes):
+        n_slow = n_pts ** k
+        n_fast = n_pts ** (n_modes - 1 - k)
+        term = dvrs[k].t_mat
+        if n_fast > 1:
+            term = np.kron(term, np.eye(n_fast))
+        if n_slow > 1:
+            term = np.kron(np.eye(n_slow), term)
+        h_mat += term
+
+    for t_ in np.ndindex(*([n_pts] * n_modes)):
+        x_vals = [dvrs[k].x[t_[k]] for k in range(n_modes)]
+        pot = 0.5 * omegas[0] ** 2 * x_vals[0] ** 2
+        for k in range(1, n_modes):
+            pot += 0.5 * omegas[k] ** 2 * x_vals[k] ** 2
+        for k in range(n_modes):
+            for l in range(k + 1, n_modes):
+                pot += lam[k, l] * x_vals[k] * x_vals[l]
+        for i in range(n_modes):
+            for j in range(i, n_modes):
+                for k in range(j, n_modes):
+                    pot += cubic[i, j, k] * x_vals[i] * x_vals[j] * x_vals[k]
+        for i in range(n_modes):
+            for j in range(i, n_modes):
+                for k in range(j, n_modes):
+                    for l in range(k, n_modes):
+                        pot += (quartic[i, j, k, l]
+                                * x_vals[i] * x_vals[j] * x_vals[k] * x_vals[l])
+        flat = np.ravel_multi_index(t_, (n_pts,) * n_modes)
+        h_mat[flat, flat] += pot
+
+    return np.linalg.eigvalsh(h_mat)

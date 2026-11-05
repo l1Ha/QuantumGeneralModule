@@ -11,10 +11,13 @@
 !>          双模耦合简正频率 coupled2_normal_freqs; Morse 单模精确谱
 !>          G(v) = w0(v+1/2) - w0^2 (v+1/2)^2/(4D) (morse_bound_energy);
 !>          Coriolis 简并模对精确谱 E(v,l) = w(v+1) - g*l
-!>          (poly_vib_coriolis_levels, 多原子拓展第五步)。
+!>          (poly_vib_coriolis_levels, 多原子拓展第五步);
+!>          一般力场 (三阶+四阶力常数张量, 展开式系数)
+!>          poly_vib_force_field_levels (多原子拓展第六步)。
 !> \note   多原子拓展步序: (3) 谐振 + 双线性耦合; (4) Morse 型非谐力场;
-!>          (5) Watson Coriolis 振动角动量 (简并模对 z 轴耦合可解核心)。
-!>          一般力常数张量与完整振转 Coriolis (J 耦合) 属后续增量。
+!>          (5) Watson Coriolis 振动角动量 (简并模对 z 轴耦合可解核心);
+!>          (6) 一般力场 (三阶/四阶力常数张量)。
+!>          完整振转 Coriolis (J 耦合) 属后续增量。
 !> \author LiHao
 module mod_polyatomic_vib
     use, intrinsic :: iso_fortran_env, only: dp => real64
@@ -29,6 +32,7 @@ module mod_polyatomic_vib
     public :: morse_bound_energy
     public :: morse_bound_count
     public :: poly_vib_coriolis_levels
+    public :: poly_vib_force_field_levels
     integer, parameter, public :: POLY_MAX_MODES = 3
 
 contains
@@ -364,5 +368,96 @@ contains
         call diag_symmetric_matrix(n_dbl, h2, e_levels, vecs, ierr)
         stat = merge(0, -2, ierr == 0)
     end subroutine poly_vib_coriolis_levels
+
+    !> \brief N 模 (N = 1..3) 一般力场 (谐振 + 双线性 + 三阶/四阶力常数)
+    !>        的乘积 DVR 变分能级 (多原子拓展第六步)
+    !> \details V(Q) = 1/2 sum w_k^2 Q_k^2 + sum_{k<l} lam_kl Q_k Q_l
+    !>          + sum_{i<=j<=k} c_ijk Q_i Q_j Q_k
+    !>          + sum_{i<=j<=k<=l} d_ijkl Q_i Q_j Q_k Q_l,
+    !>          c/d 为展开式系数 (非 Taylor 1/3!、1/4! 约定), 乘积格点上对角。
+    !>          动能复用 add_mode_kinetic。
+    !> \note   验收: (1) 零张量与第三步谐振机制逐位一致; (2) 单模纯四阶的
+    !>          首阶微扰 E_v = w(v+1/2) + 3 d (2v^2+2v+1)/(4 w^2) (小 d);
+    !>          (3) 纯三阶首阶修正为零 (<v|Q^3|v> = 0, 对称性); (4) 可分离
+    !>          多模 (非对角张量元为零) E(v1..vN) = sum_k E_k。
+    !> \warning 力场是平衡位形附近的局域展开: 大振幅/接近解离时全局行为
+    !>          由高阶项主导, 应改用 Morse (第四步) 或全局 PES。
+    subroutine poly_vib_force_field_levels(n_modes, omegas, lam, cubic, quartic, &
+                                           x_half, n_pts, e_levels, stat)
+        integer, intent(in)  :: n_modes
+        real(dp), intent(in) :: omegas(n_modes)
+        real(dp), intent(in) :: lam(n_modes, n_modes)
+        real(dp), intent(in) :: cubic(n_modes, n_modes, n_modes)
+        real(dp), intent(in) :: quartic(n_modes, n_modes, n_modes, n_modes)
+        real(dp), intent(in) :: x_half(n_modes)
+        integer, intent(in)  :: n_pts
+        real(dp), intent(out), allocatable :: e_levels(:)
+        integer, intent(out) :: stat
+
+        type(dvr_1d_t) :: d1, d2, d3
+        real(dp), allocatable :: h_mat(:, :), vecs(:, :)
+        real(dp) :: pot, qq(3)
+        integer  :: n_tot, i1, j2, j3, i, j, k, l, ierr
+
+        stat = -1
+        if (n_modes < 1 .or. n_modes > 3) return
+        if (n_pts < 5 .or. n_pts**n_modes > 3400) return
+        if (any(omegas(1:n_modes) <= 0.0_dp)) return
+        if (any(x_half(1:n_modes) <= 0.0_dp)) return
+
+        call dvr_sinc_init(-x_half(1), x_half(1), n_pts, 1.0_dp, d1)
+        if (n_modes >= 2) call dvr_sinc_init(-x_half(2), x_half(2), n_pts, 1.0_dp, d2)
+        if (n_modes >= 3) call dvr_sinc_init(-x_half(3), x_half(3), n_pts, 1.0_dp, d3)
+
+        n_tot = n_pts**n_modes
+        allocate(h_mat(n_tot, n_tot), vecs(n_tot, n_tot))
+        h_mat = 0.0_dp
+
+        call add_mode_kinetic(n_modes, 1, n_pts, d1%t_mat, h_mat)
+        if (n_modes >= 2) call add_mode_kinetic(n_modes, 2, n_pts, d2%t_mat, h_mat)
+        if (n_modes >= 3) call add_mode_kinetic(n_modes, 3, n_pts, d3%t_mat, h_mat)
+
+        do j3 = 1, merge(n_pts, 1, n_modes >= 3)
+            do j2 = 1, merge(n_pts, 1, n_modes >= 2)
+                do i1 = 1, n_pts
+                    qq(1) = d1%x(i1)
+                    if (n_modes >= 2) qq(2) = d2%x(j2)
+                    if (n_modes >= 3) qq(3) = d3%x(j3)
+                    pot = 0.5_dp * omegas(1)**2 * qq(1)**2
+                    if (n_modes >= 2) then
+                        pot = pot + 0.5_dp * omegas(2)**2 * qq(2)**2 &
+                            + lam(1, 2) * qq(1) * qq(2)
+                    end if
+                    if (n_modes >= 3) then
+                        pot = pot + 0.5_dp * omegas(3)**2 * qq(3)**2 &
+                            + lam(1, 3) * qq(1) * qq(3) + lam(2, 3) * qq(2) * qq(3)
+                    end if
+                    do i = 1, n_modes
+                        do j = i, n_modes
+                            do k = j, n_modes
+                                pot = pot + cubic(i, j, k) * qq(i) * qq(j) * qq(k)
+                            end do
+                        end do
+                    end do
+                    do i = 1, n_modes
+                        do j = i, n_modes
+                            do k = j, n_modes
+                                do l = k, n_modes
+                                    pot = pot + quartic(i, j, k, l) &
+                                        * qq(i) * qq(j) * qq(k) * qq(l)
+                                end do
+                            end do
+                        end do
+                    end do
+                    h_mat(basis_idx(i1, j2, j3, n_pts), basis_idx(i1, j2, j3, n_pts)) = &
+                        h_mat(basis_idx(i1, j2, j3, n_pts), basis_idx(i1, j2, j3, n_pts)) + pot
+                end do
+            end do
+        end do
+
+        allocate(e_levels(n_tot))
+        call diag_symmetric_matrix(n_tot, h_mat, e_levels, vecs, ierr)
+        stat = merge(0, -2, ierr == 0)
+    end subroutine poly_vib_force_field_levels
 
 end module mod_polyatomic_vib

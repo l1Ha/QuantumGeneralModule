@@ -604,12 +604,31 @@ $v=1$ 的 $\Pi$ 双重态劈裂为 $2\omega\mp g$，$v=2$ 分解为 $\Sigma$（$
 
 ![图 3.5：简并模对的 Coriolis 劈裂（`poly_vib_coriolis_levels`，$\omega=0.12\ E_h$，$n=20$ Sinc 点/模）。（a）扇形图：精确线 $E(v,l;g)=\omega(v+1)-gl$ 与 DVR 计算点（×）——ZPE（$l=0$，灰）平直不随 $g$ 移动，$v=1$ $\Pi$ 双重态（红）与 $v=2$ $\Delta$ 支（紫）线性张开；（b）能级图：$g=0$ 的 $\pm l$ 简并柱（灰）对比 $g=0.03$ 的 Coriolis 劈裂谱——$\Sigma$（$3\omega$）不动、$\Pi$ 与 $\Delta$ 按线性规律分离。绘图脚本见 `docs/generate_figures.py`。](figures/fig21_coriolis.png){width=13.0cm}
 
+#### 多原子拓展第六步：一般力场——三阶/四阶力常数张量（`poly_vib_force_field_levels`）
+
+第四步的 Morse 是单模非谐的精确可解模型；实际分子振动光谱学的标准语言是**平衡位形附近的力场展开**：
+
+$$V(Q)=\frac12\sum_k\omega_k^{2}Q_k^{2}+\sum_{k<l}\lambda_{kl}Q_kQ_l
++\sum_{i\le j\le k}c_{ijk}Q_iQ_jQ_k+\sum_{i\le j\le k\le l}d_{ijkl}Q_iQ_jQ_kQ_l,$$
+
+（$c/d$ 为展开式系数，非 Taylor $1/3!$、$1/4!$ 约定。）乘积格点上这一切仍然**对角**——`poly_vib_force_field_levels` 与前几步共享 `add_mode_kinetic`，仅对角势换成张量收缩，故任意对角势都能以同一机制处理。
+
+**验收基准（微扰论）。** 力场没有闭式解，但首阶微扰给出解析标度：对纯四阶项 $dQ^4$，$\langle v|Q^4|v\rangle=(2v^2+2v+1)\cdot3/(4\omega^{2})$，故
+
+$$E_v=\omega\Bigl(v+\tfrac12\Bigr)+\frac{3d\,(2v^{2}+2v+1)}{4\omega^{2}}+O(d^{2}/\omega^{5});$$
+
+对纯三阶项，**宇称使首阶修正严格为零**（$\langle v|Q^3|v\rangle=0$，三阶的效应出现在二阶 $O(c^{2})$ 且为负）。小耦合下 DVR 与这两条微扰线定量吻合：$\omega=0.12$、$d=10^{-6}$ 时 $E_0$ 与一阶 PT 差 $8.6\times10^{-8}\ E_h$；$c=10^{-4}$ 的三阶位移 $6.1\times10^{-5}\ E_h=O(c^{2})$；可分离多模（非对角张量元为零、同网格）能级逐位等于各模之和（$10^{-13}$）。图 3.6(b) 展示三者的关系：完整力场的 DVR 位移落在"三阶零线"与"四阶 PT 线"之间——三次的二阶贡献为负。
+
+**两条物理边界（书稿警示）。** 其一，**纯三次势无下界**：沿软方向 $cQ^3$ 在大 $|Q|$ 处压过谐振墙，数值上表现为"能级"随网格加密滑向逃逸通道（实测 $c=10^{-3}$ 时位移达 $-0.13\ E_h$，为盒态而非束缚态）——力场展开必须以**正定四阶张量兜底**。其二，力场是平衡位形附近的**局域展开**：大振幅与接近解离的物理由高阶项主导，应改用 Morse（第四步）或全局 PES。
+
+![图 3.6：一般力场 vs 谐振参考（`poly_vib_force_field_levels`，$\omega=0.12\ E_h$，$c=2\times10^{-4}$、$d=10^{-4}\ E_h$，$n=50$ Sinc 点）。（a）力场势（黑）与谐振势（蓝虚线）：三次项使软侧（$Q<0$）变软、硬侧变陡，红实线为 DVR 能级（低于谐振能级——不对称性软化胜过四阶刚性）；（b）能级位移 $\Delta E_v=E_{\mathrm{ff}}(v)-\omega(v+\tfrac12)$：四次一阶 PT 线（红虚）、三阶宇称零线（灰虚）与完整力场 DVR 位移（紫叉）——DVR 落在两线之间，三次二阶贡献为负。绘图脚本见 `docs/generate_figures.py`。](figures/fig22_force_field.png){width=13.0cm}
+
 #### 对应源码（多原子拓展）
 
 - [src/mod_watson_rotor.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_watson_rotor.f90)：`wang_matrix_element`（Wang 矩阵元）、`asymmetric_top_levels`（给定 $J$ 的 $2J+1$ 条能级，库内 QL 求解器对角化）、`inertia_constants_from_geometry`（核坐标/质量 → 主惯量 → $A,B,C$，复用 `diag_symmetric_matrix`）。
-- [src/mod_polyatomic_vib.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_polyatomic_vib.f90)：`coupled2_normal_freqs`（双模耦合解析简正频率，动力学矩阵本征值开方）、`poly_vib_product_levels`（N 模乘积 DVR 变分：Kronecker 和动能 + 对角势/双线性耦合，稠密 QL 对角化）、`poly_vib_morse_levels`（第四步：Morse 非谐对角势，与谐振版共用 `add_mode_kinetic`）、`morse_bound_energy`/`morse_bound_count`（Morse 精确谱与束缚态计数）、`poly_vib_coriolis_levels`（第五步：简并模对 + $L_z$ Coriolis 耦合，DVR 动量矩阵 $p=i[T,X]$ + 2 倍维实对称化）、`basis_idx`（乘积基线性索引，模 0 最快）。
-- Python 参照：`python/pygenmod/rovibrational.py` 的 `watson_asymmetric_levels`、`watson_asymmetric_levels_cd` 与 `inertia_constants_from_geometry`；`python/pygenmod/polyatomic_vib.py` 的 `coupled2_normal_freqs`、`poly_vib_product_levels`、`poly_vib_morse_levels`、`morse_bound_energy`、`morse_bound_count`、`poly_vib_coriolis_levels`（numpy Kronecker 和组装，与 Fortran 同一索引约定）。
-- 验证：`tests/test_watson_rotor.f90`（三极限解析谱、迹规则、垂直轴定理、H₂O 实验值 1% 对照、离心畸变回归/解析/迹规则，共 37 项断言）；`tests/test_polyatomic_vib.f90`（分离谐振解析谱、双模耦合对 $\Omega_\mp$ 的机器精度验收、简并旋转不变性、网格收敛、Morse 精确谱分层容差/束缚态计数/非谐红移/可分离多模，共 33 项断言）。多原子振动的完整 Watson 处理（Coriolis 与 $d_1/d_2$ 畸变项）与 Morse 型非谐力场见 §12.2 路线图。
+- [src/mod_polyatomic_vib.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_polyatomic_vib.f90)：`coupled2_normal_freqs`（双模耦合解析简正频率，动力学矩阵本征值开方）、`poly_vib_product_levels`（N 模乘积 DVR 变分：Kronecker 和动能 + 对角势/双线性耦合，稠密 QL 对角化）、`poly_vib_morse_levels`（第四步：Morse 非谐对角势，与谐振版共用 `add_mode_kinetic`）、`morse_bound_energy`/`morse_bound_count`（Morse 精确谱与束缚态计数）、`poly_vib_coriolis_levels`（第五步：简并模对 + $L_z$ Coriolis 耦合，DVR 动量矩阵 $p=i[T,X]$ + 2 倍维实对称化）、`poly_vib_force_field_levels`（第六步：三阶/四阶力常数张量对角势）、`basis_idx`（乘积基线性索引，模 0 最快）。
+- Python 参照：`python/pygenmod/rovibrational.py` 的 `watson_asymmetric_levels`、`watson_asymmetric_levels_cd` 与 `inertia_constants_from_geometry`；`python/pygenmod/polyatomic_vib.py` 的 `coupled2_normal_freqs`、`poly_vib_product_levels`、`poly_vib_morse_levels`、`morse_bound_energy`、`morse_bound_count`、`poly_vib_coriolis_levels`、`poly_vib_force_field_levels`（numpy Kronecker 和组装，与 Fortran 同一索引约定）。
+- 验证：`tests/test_watson_rotor.f90`（三极限解析谱、迹规则、垂直轴定理、H₂O 实验值 1% 对照、离心畸变回归/解析/迹规则，共 37 项断言）；`tests/test_polyatomic_vib.f90`（分离谐振解析谱、双模耦合对 $\Omega_\mp$ 的机器精度验收、简并旋转不变性、网格收敛、Morse 精确谱分层容差/束缚态计数/非谐红移/可分离多模，共 41 项断言）。多原子振动的完整 Watson 处理（Coriolis 与 $d_1/d_2$ 畸变项）与 Morse 型非谐力场见 §12.2 路线图。
 - 文献依据：Wilson, Decius 与 Cross, *Molecular Vibrations* (1955)，第 3 章（简正坐标）；H. W. Kroto, *Molecular Rotation Spectra*, Dover (1975)，第 4 章（非对称陀螺）。GitHub 直链与二维码见各源码文件的仓库路径 `qr/src__mod_polyatomic_vib.f90.png`、`qr/python__pygenmod__polyatomic_vib.py.png`。
 
 ![](qr/src__mod_watson_rotor.f90.png){width=2.0cm}
@@ -4136,6 +4155,7 @@ GitHub Actions 配置位于：
 | 3.4 | N 模简正振动 + 双线性耦合（乘积 DVR） | `mod_polyatomic_vib::poly_vib_product_levels`、`coupled2_normal_freqs` | `polyatomic_vib.poly_vib_product_levels`、`coupled2_normal_freqs` | `test_polyatomic_vib` | 图 3.3 |
 | 3.4 | Morse 非谐力场（精确谱验收） | `mod_polyatomic_vib::poly_vib_morse_levels`、`morse_bound_energy` | `polyatomic_vib.poly_vib_morse_levels`、`morse_bound_energy` | `test_polyatomic_vib` | 图 3.4 |
 | 3.4 | Coriolis 振动角动量（简并模对 $L_z$） | `mod_polyatomic_vib::poly_vib_coriolis_levels` | `polyatomic_vib.poly_vib_coriolis_levels` | `test_polyatomic_vib` | 图 3.5 |
+| 3.4 | 一般力场（三阶/四阶力常数张量） | `mod_polyatomic_vib::poly_vib_force_field_levels` | `polyatomic_vib.poly_vib_force_field_levels` | `test_polyatomic_vib` | 图 3.6 |
 | 4.3 | Wilkinson 位移 QL 迭代 | `mod_linear_algebra::tql2` | — | `test_dvr_grid`/`test_propagators` | 图 4.1 |
 | 5.3–5.5 | DVR/FGH 谱方法 | `mod_dvr_grid::dvr_sinc_init`、`fgh_solve_bound_states` | `dvr.dvr_sinc_init`、`fgh_solve_bound_states` | `test_dvr_grid` | 图 5.1、10.1 |
 | 6.2 / 14.2 | Split-Operator 分裂 | `mod_wavepacket_propagator::propagate_split_operator_1d/2d` | — | `test_propagators` | 图 10.2、11 |
@@ -5122,7 +5142,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 48 个测试程序、470 项断言全部通过。
+- 全库 48 个测试程序、478 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

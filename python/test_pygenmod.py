@@ -202,6 +202,27 @@ class TestPyGenMod(unittest.TestCase):
         self.assertAlmostEqual(e_cg[6], 3 * w0 - 2 * gg, delta=2e-3)
         self.assertAlmostEqual(e_cg[8], 3 * w0, delta=2e-3)
 
+        # 多原子第六步: 一般力场 (与 Fortran 测试组 7 对应)
+        from pygenmod.polyatomic_vib import poly_vib_force_field_levels
+        lam_z = np.zeros((3, 3))
+        cub_z = np.zeros((3, 3, 3))
+        qua_z = np.zeros((3, 3, 3, 3))
+        # 零张量回归
+        e_ff0 = poly_vib_force_field_levels([w0], lam_z, cub_z, qua_z, [12.0], 40)
+        e_h1 = poly_vib_product_levels([w0], lam_z, [12.0], 40)
+        self.assertAlmostEqual(e_ff0[0], e_h1[0], delta=1e-14)
+        # 纯四阶 PT (d = 1e-6)
+        qua_z[0, 0, 0, 0] = 1e-6
+        e_q = poly_vib_force_field_levels([w0], lam_z, cub_z, qua_z, [12.0], 40)
+        pt0 = w0 * 0.5 + 3e-6 / (4 * w0**2)
+        self.assertAlmostEqual(e_q[0], pt0, delta=5e-7)
+        pt1 = w0 * 1.5 + 3e-6 * 5 / (4 * w0**2)
+        self.assertAlmostEqual(e_q[1], pt1, delta=1e-6)
+        # 三阶首阶为零 (宇称)
+        cub_z[0, 0, 0] = 1e-4
+        e_c = poly_vib_force_field_levels([w0], lam_z, cub_z, qua_z, [12.0], 40)
+        self.assertAlmostEqual(e_c[0] - e_q[0], 0.0, delta=5e-4)
+
     def test_irc_reaction_path(self):
         """IRC (book Sec 3.2): analytic gradient, mass-weighted Gonzalez-Schlegel
         path. Mirrors the Fortran tests of test_triatomic_geometry (steps 6-7)."""

@@ -22,6 +22,7 @@ program test_polyatomic_vib
     call test_grid_convergence()
     call test_morse_anharmonic()
     call test_coriolis_vibration()
+    call test_force_field()
 
     print *, ""
     print *, "================================================================"
@@ -285,5 +286,77 @@ contains
         call assert_near(eg(7), 3.0_dp * w - 2.0_dp * g, 2.0e-3_dp, "v=2 Delta lower = 3w - 2g")
         call assert_near(eg(9), 3.0_dp * w, 2.0e-3_dp, "v=2 Sigma = 3w")
     end subroutine test_coriolis_vibration
+
+    !> 一般力场 (多原子拓展第六步): 三阶/四阶力常数张量 (展开式系数)。
+    !> 验收: (1) 零张量与第三步谐振机制逐位一致; (2) 纯四阶首阶微扰
+    !> E_v = w(v+1/2) + 3d(2v^2+2v+1)/(4w^2) (小 d, 容差由 O(d^2) 决定);
+    !> (3) 三阶首阶修正为零 (<v|Q^3|v> = 0, 差为 O(c^2));
+    !> (4) 可分离多模 (非对角张量元为零, 同网格) E = sum_k E_k 逐位;
+    !> (5) 网格收敛。
+    !> 物理警示 (进入书稿): 纯三次项使势沿软方向无界 (cQ^3 在大 |Q| 压过
+    !> 谐振墙), 力场展开必须有正定四阶张量兜底; 展开仅是平衡位形附近的
+    !> 局域模型, 大振幅/接近解离用 Morse (第四步) 或全局 PES。
+    subroutine test_force_field()
+        real(dp) :: om1(1), lam0(3, 3), xh1(1), cub1(3, 3, 3), qua1(3, 3, 3, 3)
+        real(dp) :: om2(2), lam2(2, 2), xh2(2), cub2(2, 2, 2), qua2(2, 2, 2, 2)
+        real(dp) :: om_b(1), xh_b(1), cub_b(3, 3, 3), qua_b(3, 3, 3, 3)
+        real(dp) :: w, lam4, pt
+        real(dp), allocatable :: e0(:), ez(:), eq(:), eq0(:), ec(:), e2m(:), e1a(:), e1b(:), e2g(:)
+        real(dp) :: combo_a, combo_b
+        integer :: stat
+
+        print *, ""
+        print *, "--- 7. General force field (cubic + quartic tensors) ---"
+        w = 0.12_dp
+        om1 = (/ w /); lam0 = 0.0_dp; xh1 = (/ 12.0_dp /)
+        cub1 = 0.0_dp; qua1 = 0.0_dp
+
+        ! (1) 零张量回归
+        call poly_vib_force_field_levels(1, om1, lam0, cub1, qua1, xh1, 40, e0, stat)
+        call poly_vib_product_levels(1, om1, lam0, xh1, 40, ez, stat)
+        call assert_near(e0(1), ez(1), 1.0e-14_dp, "zero-tensor ZPE = harmonic product")
+
+        ! (2) 纯四阶首阶微扰 (d = 1e-6: O(d^2) 截断决定容差)
+        lam4 = 1.0e-6_dp
+        qua1(1, 1, 1, 1) = lam4
+        call poly_vib_force_field_levels(1, om1, lam0, cub1, qua1, xh1, 40, eq, stat)
+        pt = w * 0.5_dp + 3.0_dp * lam4 / (4.0_dp * w * w)
+        call assert_near(eq(1), pt, 5.0e-7_dp, "quartic PT v=0")
+        pt = w * 1.5_dp + 3.0_dp * lam4 * 5.0_dp / (4.0_dp * w * w)
+        call assert_near(eq(2), pt, 1.0e-6_dp, "quartic PT v=1")
+        pt = w * 2.5_dp + 3.0_dp * lam4 * 13.0_dp / (4.0_dp * w * w)
+        call assert_near(eq(3), pt, 2.0e-5_dp, "quartic PT v=2")
+
+        ! (3) 三阶首阶为零: E(c=1e-4, d) vs E(c=0, d) 差为 O(c^2)
+        call poly_vib_force_field_levels(1, om1, lam0, cub1, qua1, xh1, 40, eq0, stat)
+        cub1(1, 1, 1) = 1.0e-4_dp
+        call poly_vib_force_field_levels(1, om1, lam0, cub1, qua1, xh1, 40, ec, stat)
+        call assert_near(ec(1) - eq0(1), 0.0_dp, 5.0e-4_dp, &
+                         "cubic first-order shift zero (parity, O(c^2) remainder)")
+
+        ! (4) 可分离双模 (同网格 n=34, 同一张量): E(0,0) 与第一激发 = min 组合
+        qua1(1, 1, 1, 1) = 1.0e-5_dp
+        cub1(1, 1, 1) = 1.0e-4_dp
+        call poly_vib_force_field_levels(1, om1, lam0, cub1, qua1, xh1, 34, e1a, stat)
+        om_b = (/ 0.16_dp /); xh_b = (/ 10.0_dp /)
+        cub_b = 0.0_dp; qua_b = 0.0_dp
+        cub_b(1, 1, 1) = -2.0e-4_dp; qua_b(1, 1, 1, 1) = 3.0e-5_dp
+        call poly_vib_force_field_levels(1, om_b, lam0, cub_b, qua_b, xh_b, 34, e1b, stat)
+        om2 = (/ w, 0.16_dp /); lam2 = 0.0_dp; xh2 = (/ 12.0_dp, 10.0_dp /)
+        cub2 = 0.0_dp; qua2 = 0.0_dp
+        cub2(1, 1, 1) = 1.0e-4_dp; cub2(2, 2, 2) = -2.0e-4_dp
+        qua2(1, 1, 1, 1) = 1.0e-5_dp; qua2(2, 2, 2, 2) = 3.0e-5_dp
+        call poly_vib_force_field_levels(2, om2, lam2, cub2, qua2, xh2, 34, e2m, stat)
+        call assert_near(e2m(1), e1a(1) + e1b(1), 1.0e-12_dp, &
+                         "separable FF ZPE = E1(0)+E2(0)")
+        combo_a = e1a(2) + e1b(1)
+        combo_b = e1a(1) + e1b(2)
+        call assert_near(e2m(2), min(combo_a, combo_b), 1.0e-12_dp, &
+                         "separable FF first excited = min combo")
+
+        ! (5) 网格收敛 (双模可分离 ZPE)
+        call poly_vib_force_field_levels(2, om2, lam2, cub2, qua2, xh2, 30, e2g, stat)
+        call assert_near(e2g(1), e2m(1), 1.0e-5_dp, "FF ZPE grid-converged (30->34)")
+    end subroutine test_force_field
 
 end program test_polyatomic_vib

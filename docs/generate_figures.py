@@ -1555,9 +1555,77 @@ def generate_fig21_coriolis():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig22_force_field():
+    """Fig 22 (book Fig 3.6, multi-atomic step 6): general force field
+    (cubic + quartic tensor coefficients) vs the harmonic reference.
+    (a) V(Q) = w^2 Q^2/2 + c Q^3 + d Q^4 (soft/wall asymmetry from the
+    cubic term, quartic floor keeps it bounded) with DVR levels vs harmonic
+    levels; (b) level shifts dE_v = E_ff(v) - w(v+1/2): the cubic parity
+    effect (first-order zero, O(c^2) negative) and the quartic positive
+    quadratic-in-(v+1/2) shift, with the first-order PT lines."""
+    print("Generating Fig 22: General force field (cubic + quartic)...")
+    set_publication_style()
+    from pygenmod.polyatomic_vib import poly_vib_force_field_levels
+
+    w0 = 0.12
+    lam0 = np.zeros((3, 3))
+    cub0 = np.zeros((3, 3, 3))
+    qua0 = np.zeros((3, 3, 3, 3))
+    c3, d4 = 2.0e-4, 1.0e-4
+    cub0[0, 0, 0] = c3
+    qua0[0, 0, 0, 0] = d4
+    e_ff = poly_vib_force_field_levels([w0], lam0, cub0, qua0, [14.0], 50)
+    e_h = poly_vib_force_field_levels([w0], lam0, cub0 * 0.0, qua0 * 0.0, [14.0], 50)
+    print(f"   shifts dE_v = {[(e_ff[k] - e_h[k]) for k in range(4)]}")
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4), dpi=200)
+    q = np.linspace(-6.0, 7.0, 1000)
+    v_h = 0.5 * w0**2 * q**2
+    v_ff = v_h + c3 * q**3 + d4 * q**4
+    ax1.plot(q, v_ff, color='black', linewidth=2.0,
+             label=r'Force field $V=\frac{\omega^2Q^2}{2}+cQ^3+dQ^4$')
+    ax1.plot(q, v_h, color='royalblue', linewidth=1.5, linestyle='--',
+             label=r'Harmonic $\frac{\omega^2Q^2}{2}$')
+    for v in range(4):
+        ax1.hlines(e_ff[v], -3.4, 5.4, color='crimson', linewidth=2.0)
+        ax1.hlines(e_h[v], -3.4, 5.4, color='royalblue', linewidth=1.3,
+                   linestyle='--')
+    ax1.set_xlim(-6.0, 7.0)
+    ax1.set_ylim(-0.01, 0.32)
+    ax1.set_xlabel(r'$Q$ ($a_0$)')
+    ax1.set_ylabel(r'$V$ ($E_h$)')
+    ax1.set_title('(a) Force Field vs Harmonic (red: FF levels)', fontsize=10.5)
+    ax1.legend(loc='upper left', frameon=True, fontsize=8.5)
+
+    v_grid = np.arange(4)
+    shifts_ff = e_ff[:4] - e_h[:4]
+    # 一阶微扰线: 四阶 3d(2v^2+2v+1)/(4w^2), 三阶首阶为零
+    pt_quartic = np.array([3.0 * d4 * (2.0 * v**2 + 2.0 * v + 1.0) / (4.0 * w0**2)
+                           for v in v_grid])
+    ax2.plot(v_grid, pt_quartic, color='crimson', linewidth=1.6, linestyle='--',
+             marker='o', markersize=5,
+             label=r'Quartic PT $3d(2v^2{+}2v{+}1)/(4\omega^2)$')
+    ax2.plot(v_grid, np.zeros_like(v_grid), color='dimgray', linewidth=1.6,
+             linestyle='--', marker='s', markersize=5,
+             label=r'Cubic first order $=0$ (parity)')
+    ax2.plot(v_grid, shifts_ff, linestyle='none', marker='x', markersize=9,
+             markeredgewidth=2.2, color='darkviolet',
+             label='DVR: full force field')
+    ax2.set_xlabel(r'$v$')
+    ax2.set_ylabel(r'Level shift $\Delta E_v$ ($E_h$)')
+    ax2.set_title('(b) PT Lines vs DVR Shifts', fontsize=10.5)
+    ax2.legend(loc='upper left', frameon=True, fontsize=8.5)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig22_force_field.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 21 Scientific Calculation Benchmark Figures")
+    print(" Generating All 22 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -1580,8 +1648,9 @@ def main():
     generate_fig19_coupled_modes()
     generate_fig20_morse_anharmonic()
     generate_fig21_coriolis()
+    generate_fig22_force_field()
     print("=" * 60)
-    print(" All 21 Figures Generated Successfully in docs/figures/!")
+    print(" All 22 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 
