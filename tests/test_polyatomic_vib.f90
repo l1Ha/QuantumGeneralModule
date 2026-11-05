@@ -21,6 +21,7 @@ program test_polyatomic_vib
     call test_degenerate_rotation()
     call test_grid_convergence()
     call test_morse_anharmonic()
+    call test_coriolis_vibration()
 
     print *, ""
     print *, "================================================================"
@@ -238,5 +239,51 @@ contains
         call poly_vib_morse_levels(2, d_e, a_m, lam, xh2, 48, e2, stat)
         call assert_near(e2(1), e(1), 1.0e-10_dp, "separable Morse ZPE grid-converged")
     end subroutine test_morse_anharmonic
+
+    !> Coriolis 振动角动量 (多原子拓展第五步): 简并模对 + L_z 耦合。
+    !> 精确谱 E(v,l) = w(v+1) - g l; 验收: (1) g=0 与谐振乘积机制逐位一致;
+    !> (2) 2 倍维实形式的每个能级精确二重 (H_c 与 H_c* 同谱);
+    !> (3) ZPE (l=0) 与 g 无关且等于 w; (4) v=1 Pi 双重态 2w -/+ g;
+    !> (5) v=2 Sigma/Delta 三重态 3w, 3w -/+ 2g。
+    subroutine test_coriolis_vibration()
+        real(dp), allocatable :: e0(:), eg(:), eh(:)
+        real(dp) :: om2(2), lam2(2, 2), xh2(2), w, g
+        integer :: stat, i, n_bad
+
+        print *, ""
+        print *, "--- 6. Coriolis vibrational angular momentum (degenerate pair) ---"
+        w = 0.12_dp
+        g = 0.03_dp
+
+        ! (1) g = 0 回归: 与第三步谐振乘积机制逐位一致
+        call poly_vib_coriolis_levels(w, 0.0_dp, 10.0_dp, 20, e0, stat)
+        call assert_true(stat == 0, "coriolis g=0 solve succeeded")
+        om2 = (/ w, w /); lam2 = 0.0_dp; xh2 = (/ 10.0_dp, 10.0_dp /)
+        call poly_vib_product_levels(2, om2, lam2, xh2, 20, eh, stat)
+        call assert_near(e0(1), eh(1), 1.0e-12_dp, "g=0 ZPE = harmonic product ZPE")
+        call assert_near(e0(3), eh(2), 1.0e-12_dp, "g=0 first excited = harmonic product")
+
+        ! (2) 2 倍维实形式: 每个物理能级精确出现两次
+        n_bad = 0
+        do i = 1, size(e0) - 1, 2
+            if (abs(e0(i) - e0(i + 1)) > 1.0e-11_dp) n_bad = n_bad + 1
+        end do
+        call assert_true(n_bad == 0, "doubled-real spectrum exactly pairwise degenerate")
+
+        ! (3) g = 0.03: ZPE (l=0) 与 g 无关且等于 w
+        call poly_vib_coriolis_levels(w, g, 10.0_dp, 20, eg, stat)
+        ! QL 特征解的绝对噪声随矩阵范数增长 (g != 0 引入 ~g*x*p 量级非对角元),
+        ! 实测 ZPE 差 ~2e-8, 容差取 1e-6
+        call assert_near(eg(1), e0(1), 1.0e-6_dp, "ZPE g-independent (l=0 unshifted)")
+        call assert_near(eg(1), w, 2.0e-5_dp, "ZPE = omega (2-mode DVR accuracy)")
+
+        ! (4) v=1 Pi 双重态: 2w -/+ g
+        call assert_near(eg(3), 2.0_dp * w - g, 5.0e-4_dp, "v=1 doublet lower = 2w - g")
+        call assert_near(eg(5), 2.0_dp * w + g, 5.0e-4_dp, "v=1 doublet upper = 2w + g")
+
+        ! (5) v=2 Sigma/Delta: 3w 与 3w -/+ 2g 均在谱中 (排序后位置由 l 决定)
+        call assert_near(eg(7), 3.0_dp * w - 2.0_dp * g, 2.0e-3_dp, "v=2 Delta lower = 3w - 2g")
+        call assert_near(eg(9), 3.0_dp * w, 2.0e-3_dp, "v=2 Sigma = 3w")
+    end subroutine test_coriolis_vibration
 
 end program test_polyatomic_vib

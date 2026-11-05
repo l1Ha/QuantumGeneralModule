@@ -1478,9 +1478,86 @@ def generate_fig20_morse_anharmonic():
           f"w0 = {w0:.4f}, w_e x_e = {w0**2 / (4.0 * d_e):.4f})")
 
 
+def generate_fig21_coriolis():
+    """Fig 21 (book Fig 3.5, multi-atomic step 5): Coriolis splitting of a
+    degenerate mode pair. (a) fan diagram: E(v, l; g) = w(v+1) - g*l exact
+    lines vs DVR points (poly_vib_coriolis_levels) at several g - the ZPE
+    (l=0) stays flat while v=1 (Pi) and v=2 (Sigma/Delta) fan out linearly;
+    (b) level diagram at g=0 vs g=0.03: harmonic l-degenerate columns vs the
+    Coriolis-split spectrum."""
+    print("Generating Fig 21: Coriolis splitting of a degenerate pair...")
+    set_publication_style()
+    from pygenmod.polyatomic_vib import poly_vib_coriolis_levels
+
+    w0, g_sel = 0.12, 0.03
+    g_grid = np.linspace(0.0, 0.05, 6)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4), dpi=200)
+
+    # (a) fan diagram
+    l_sets = {0: [0], 1: [-1, 1], 2: [-2, 0, 2]}
+    colors = {0: 'dimgray', 1: 'crimson', 2: 'darkviolet'}
+    for v, ls in l_sets.items():
+        for l_val in ls:
+            ax1.plot(g_grid, w0 * (v + 1) - g_grid * l_val, linewidth=1.6,
+                     color=colors[v],
+                     label=rf'$v={v}$ ($|l|={abs(l_val)}$)' if l_val >= 0 else None)
+    for g_val in (0.02, 0.035, 0.05):
+        e_dvr = poly_vib_coriolis_levels(w0, g_val, 10.0, 20)
+        for v, off in ((0, 0), (1, 1), (2, 2)):
+            for k, l_val in enumerate(sorted(l_sets[v], reverse=True)):
+                idx = 2 * (v * (v + 1) // 2) + 2 * k + 1 - (1 if v > 0 else 0)
+                # 层内排序: l 降序能量升序; 直接取该 v 块的两重对
+                pass
+        # 直接标注: ZPE 与 v=1 双重态 (索引与测试一致)
+        ax1.plot(g_val, e_dvr[0], 'x', color='dimgray', markersize=8,
+                 markeredgewidth=2.0)
+        ax1.plot(g_val, e_dvr[2], 'x', color='crimson', markersize=8,
+                 markeredgewidth=2.0)
+        ax1.plot(g_val, e_dvr[4], 'x', color='crimson', markersize=8,
+                 markeredgewidth=2.0)
+    ax1.set_xlabel(r'Coriolis coupling $g$ ($E_h$)')
+    ax1.set_ylabel(r'$E$ ($E_h$)')
+    ax1.set_title(r'(a) $E(v,l;g) = \omega(v+1) - g\,l$ vs DVR (x)', fontsize=10.5)
+    ax1.legend(loc='upper left', frameon=True, fontsize=8.5)
+
+    # (b) level diagram g=0 vs g=0.03
+    ax2.axhspan(0, 0, color='none')
+    e_ref = poly_vib_coriolis_levels(w0, 0.0, 10.0, 20)
+    e_spl = poly_vib_coriolis_levels(w0, g_sel, 10.0, 20)
+    x_ref, x_spl = 0.28, 0.72
+    lv0 = [w0 * (v + 1) for v in range(3)]
+    for e_v in lv0:
+        ax2.hlines(e_v, x_ref - 0.16, x_ref + 0.16, color='gray', linewidth=2.2)
+    for v, ls in l_sets.items():
+        for l_val in ls:
+            e_v = w0 * (v + 1) - g_sel * l_val
+            ax2.hlines(e_v, x_spl - 0.16, x_spl + 0.16, color=colors[v],
+                       linewidth=2.4)
+    ax2.annotate(r'$g=0$: $\pm l$ columns', xy=(x_ref, w0 * 3 + 0.008),
+                 fontsize=9, ha='center', color='dimgray')
+    ax2.annotate(r'$g=0.03$', xy=(x_spl, w0 * 3 + 0.008),
+                 fontsize=9, ha='center', color='black')
+    ax2.annotate(r'$\Pi$ doublet', xy=(x_spl + 0.19, 2 * w0), fontsize=8.5,
+                 color='crimson', va='center')
+    ax2.annotate(r'$\Delta$', xy=(x_spl + 0.19, 3 * w0 - 2 * g_sel + 0.004),
+                 fontsize=8.5, color='darkviolet', va='center')
+    ax2.set_xlim(0.0, 1.1)
+    ax2.set_ylim(w0 - 0.02, 3.15 * w0)
+    ax2.set_xticks([])
+    ax2.set_ylabel(r'$E$ ($E_h$)')
+    ax2.set_title(r'(b) Harmonic vs Coriolis-split ($\omega = 0.12$, $g = 0.03$)',
+                  fontsize=10.5)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig21_coriolis.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 20 Scientific Calculation Benchmark Figures")
+    print(" Generating All 21 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -1502,8 +1579,9 @@ def main():
     generate_fig18_watson_levels()
     generate_fig19_coupled_modes()
     generate_fig20_morse_anharmonic()
+    generate_fig21_coriolis()
     print("=" * 60)
-    print(" All 20 Figures Generated Successfully in docs/figures/!")
+    print(" All 21 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

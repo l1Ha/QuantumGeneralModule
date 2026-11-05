@@ -183,6 +183,25 @@ class TestPyGenMod(unittest.TestCase):
                - morse_bound_energy(0, 0.1744, 0.2))
         self.assertAlmostEqual(e_2m[1] - e_2m[0], dq1, delta=5e-6)
 
+        # 多原子第五步: Coriolis 振动角动量 (与 Fortran 测试组 6 对应)
+        from pygenmod.polyatomic_vib import poly_vib_coriolis_levels
+        w0, gg = 0.12, 0.03
+        e_c0 = poly_vib_coriolis_levels(w0, 0.0, 10.0, 20)
+        e_cg = poly_vib_coriolis_levels(w0, gg, 10.0, 20)
+        # g=0 与谐振乘积机制一致; 2 倍维实形式精确二重
+        e_h2 = poly_vib_product_levels([w0, w0], np.zeros((2, 2)),
+                                       [10.0, 10.0], 20)
+        self.assertAlmostEqual(e_c0[0], e_h2[0], delta=1e-12)
+        self.assertLess(float(np.max(np.abs(e_cg[0::2] - e_cg[1::2]))), 1e-11)
+        # ZPE (l=0) 与 g 无关且等于 w0; v=1 Pi 双重态 2w -/+ g
+        self.assertAlmostEqual(e_cg[0], e_c0[0], delta=1e-6)
+        self.assertAlmostEqual(e_cg[0], w0, delta=2e-5)
+        self.assertAlmostEqual(e_cg[2], 2 * w0 - gg, delta=5e-4)
+        self.assertAlmostEqual(e_cg[4], 2 * w0 + gg, delta=5e-4)
+        # v=2 Sigma/Delta
+        self.assertAlmostEqual(e_cg[6], 3 * w0 - 2 * gg, delta=2e-3)
+        self.assertAlmostEqual(e_cg[8], 3 * w0, delta=2e-3)
+
     def test_irc_reaction_path(self):
         """IRC (book Sec 3.2): analytic gradient, mass-weighted Gonzalez-Schlegel
         path. Mirrors the Fortran tests of test_triatomic_geometry (steps 6-7)."""

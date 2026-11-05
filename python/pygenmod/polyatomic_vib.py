@@ -167,3 +167,71 @@ def poly_vib_morse_levels(d_e, a_morse, lam, x_half, n_pts: int) -> np.ndarray:
         h_mat[flat, flat] += pot
 
     return np.linalg.eigvalsh(h_mat)
+
+
+def poly_vib_coriolis_levels(omega: float, g_coriolis: float, x_half: float,
+                             n_pts: int) -> np.ndarray:
+    """Degenerate mode pair + Coriolis vibrational angular momentum on a
+    product Sinc-DVR grid (multi-atomic step 5, Watson z-axis zeta core).
+
+    H = T1(+)T2 + w^2/2 (Q1^2 + Q2^2) - g (Q1 p2 - Q2 p1), with the exact
+    spectrum E(v, l) = w (v + 1) - g l, l = v, v-2, ..., -v (v=1: Pi doublet
+    2w -/+ g; v=2: Sigma + Delta triplet; +/-l degeneracy persists at this
+    order). The DVR momentum matrix follows from the commutator identity
+    p = i m [T, X]; the complex Hermitian H_c = H_r + i M is diagonalized in
+    the doubled real-symmetric form [[H_r, -M], [M, H_r]], so every physical
+    level appears exactly twice (H_c and H_c* share the spectrum).
+
+    Returns the ascending doubled spectrum (2*n_pts**2 levels).
+    Fortran mirror: `poly_vib_coriolis_levels` (src/mod_polyatomic_vib.f90).
+    """
+    if n_pts < 5 or 2 * n_pts ** 2 > 4000:
+        raise ValueError("require n_pts >= 5 and 2*n_pts^2 <= 4000")
+    if omega <= 0.0 or x_half <= 0.0:
+        raise ValueError("omega and x_half must be positive")
+
+    d1 = dvr_sinc_init(-x_half, x_half, n_pts, 1.0)
+    d2 = dvr_sinc_init(-x_half, x_half, n_pts, 1.0)
+    n = n_pts
+    n_tot = n * n
+
+    h_r = np.zeros((n_tot, n_tot))
+    for k in range(2):
+        n_slow = n ** k
+        n_fast = n ** (1 - k)
+        term = d1.t_mat if k == 0 else d2.t_mat
+        if n_fast > 1:
+            term = np.kron(term, np.eye(n_fast))
+        if n_slow > 1:
+            term = np.kron(np.eye(n_slow), term)
+        h_r += term
+    x1 = np.repeat(d1.x, n)          # mode 0 fastest
+    x2 = np.tile(d2.x, n)
+    h_r[np.arange(n_tot), np.arange(n_tot)] += 0.5 * omega**2 * (x1**2 + x2**2)
+
+    # D = [T, X] (real antisymmetric); p = i D
+    def comm(t_mat, x):
+        return t_mat * x[None, :] - x[:, None] * t_mat
+
+    dx1 = comm(d1.t_mat, d1.x)
+    dx2 = comm(d2.t_mat, d2.x)
+    q1 = np.repeat(d1.x, n)
+    q2 = np.tile(d2.x, n)
+    # Q1 (x) D2 with Q1 diagonal: rows (i1,i2), cols (i1,j2)
+    # D1 (x) Q2 with Q2 diagonal: rows (i1,i2), cols (j1,i2)
+    idx1 = np.arange(n_tot)
+    i1 = np.repeat(np.arange(n), n)
+    i2 = np.tile(np.arange(n), n)
+    m_mat = np.zeros((n_tot, n_tot))
+    # vectorized assembly via Kronecker products instead of loops:
+    m_mat = (-g_coriolis * np.kron(np.diag(d1.x), dx2)
+             + g_coriolis * np.kron(dx1, np.diag(d2.x)))
+    del q1, q2, idx1, i1, i2
+
+    n_dbl = 2 * n_tot
+    h2 = np.zeros((n_dbl, n_dbl))
+    h2[:n_tot, :n_tot] = h_r
+    h2[n_tot:, n_tot:] = h_r
+    h2[:n_tot, n_tot:] = -m_mat
+    h2[n_tot:, :n_tot] = m_mat
+    return np.linalg.eigvalsh(h2)

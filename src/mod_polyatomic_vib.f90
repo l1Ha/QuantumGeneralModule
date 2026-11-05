@@ -9,9 +9,12 @@
 !>          在乘积格点上是对角的, 全哈密顿量经 Kronecker 和组装后用库内 QL
 !>          对称求解器对角化。解析验收基准: 谐振极限 sum_k w_k(v_k+1/2) 与
 !>          双模耦合简正频率 coupled2_normal_freqs; Morse 单模精确谱
-!>          E_v = -D + w0(v+1/2) - w0^2 (v+1/2)^2/(4D) (morse_bound_energy)。
-!> \note   多原子拓展步序: (3) 谐振 + 双线性耦合; (4) Morse 型非谐力场。
-!>          一般力常数张量与 Watson Coriolis 项属后续增量 (见 12.2 路线图)。
+!>          G(v) = w0(v+1/2) - w0^2 (v+1/2)^2/(4D) (morse_bound_energy);
+!>          Coriolis 简并模对精确谱 E(v,l) = w(v+1) - g*l
+!>          (poly_vib_coriolis_levels, 多原子拓展第五步)。
+!> \note   多原子拓展步序: (3) 谐振 + 双线性耦合; (4) Morse 型非谐力场;
+!>          (5) Watson Coriolis 振动角动量 (简并模对 z 轴耦合可解核心)。
+!>          一般力常数张量与完整振转 Coriolis (J 耦合) 属后续增量。
 !> \author LiHao
 module mod_polyatomic_vib
     use, intrinsic :: iso_fortran_env, only: dp => real64
@@ -25,6 +28,7 @@ module mod_polyatomic_vib
     public :: poly_vib_morse_levels
     public :: morse_bound_energy
     public :: morse_bound_count
+    public :: poly_vib_coriolis_levels
     integer, parameter, public :: POLY_MAX_MODES = 3
 
 contains
@@ -261,5 +265,104 @@ contains
         call diag_symmetric_matrix(n_tot, h_mat, e_levels, vecs, ierr)
         stat = merge(0, -2, ierr == 0)
     end subroutine poly_vib_morse_levels
+
+    !> \brief 简并模对 + Coriolis 振动角动量耦合的乘积 DVR 变分能级
+    !>        (多原子拓展第五步, Watson z 轴 zeta 耦合可解核心)
+    !> \details 两个简并横模 (线性分子弯曲型) 在固定 J_z = 0 扇区内化为
+    !>          2D 谐振子 + 振动角动量耦合:
+    !>          H = T1(+)T2 + 1/2 w^2 (Q1^2 + Q2^2) - g (Q1 p2 - Q2 p1),
+    !>          L_z = Q1 p2 - Q2 p1 为振动角动量 (Watson pi_alpha 的 Q x p
+    !>          结构), g = 2B*zeta 为有效 Coriolis 常数。
+    !>          阶梯算符推导: 圆形量子 a_+/- 下 L_z = n_+ - n_-, 精确谱
+    !>          E(v, l) = w (v+1) - g l,  l = v, v-2, ..., -v
+    !>          (v=1: Pi 双重态 2w -/+ g; v=2: Sigma + Delta 三重态 3w, 3w -/+ 2g;
+    !>           +/- l 简并在本阶保持, 真 l 型倍频需高阶项)。
+    !> \note   数值要点: (1) DVR 动量矩阵由对易恒等式 p = i m [T, X] 构造
+    !>          ([T,X] 为实反对称, p 纯虚厄米); (2) Coriolis 项使哈密顿量
+    !>          成为复厄米 H_c = H_r + i M (M 实反对称), 经 2 倍维实对称化
+    !>          [[H_r, -M], [M, H_r]] 用库内实 QL 求解器对角化, 谱等于
+    !>          H_c 与 H_c* 之并 —— 每个物理能级精确出现两次 (测试断言);
+    !>          (3) ZPE (l=0) 与 g 无关 —— Coriolis 耦合不移动非简并态。
+    subroutine poly_vib_coriolis_levels(omega, g_coriolis, x_half, n_pts, &
+                                        e_levels, stat)
+        real(dp), intent(in)  :: omega           !< 简并对频率 (a.u.)
+        real(dp), intent(in)  :: g_coriolis      !< 有效 Coriolis 常数 g = 2B*zeta (a.u.)
+        real(dp), intent(in)  :: x_half          !< 半盒宽 (a.u., 两模相同)
+        integer, intent(in)   :: n_pts           !< 每模格点数 (2*n_pts^2 <= 4000)
+        real(dp), intent(out), allocatable :: e_levels(:)
+        integer, intent(out)  :: stat
+
+        type(dvr_1d_t) :: d1, d2
+        real(dp), allocatable :: h_r(:, :), m_mat(:, :), h2(:, :), vecs(:, :)
+        real(dp), allocatable :: dx1(:, :), dx2(:, :)
+        real(dp) :: pot
+        integer  :: n_tot, n_dbl, i1, i2, j1, j2, ierr, k
+
+        stat = -1
+        if (n_pts < 5 .or. 2 * n_pts**2 > 4000) return
+        if (omega <= 0.0_dp .or. x_half <= 0.0_dp) return
+
+        call dvr_sinc_init(-x_half, x_half, n_pts, 1.0_dp, d1)
+        call dvr_sinc_init(-x_half, x_half, n_pts, 1.0_dp, d2)
+
+        n_tot = n_pts * n_pts
+        n_dbl = 2 * n_tot
+        allocate(h_r(n_tot, n_tot), m_mat(n_tot, n_tot), vecs(n_dbl, n_dbl))
+        h_r = 0.0_dp
+        m_mat = 0.0_dp
+
+        ! --- 实对称部分: Kronecker 和动能 + 对角谐振势 --------------------
+        call add_mode_kinetic(2, 1, n_pts, d1%t_mat, h_r)
+        call add_mode_kinetic(2, 2, n_pts, d2%t_mat, h_r)
+        do i2 = 1, n_pts
+            do i1 = 1, n_pts
+                pot = 0.5_dp * omega**2 * (d1%x(i1)**2 + d2%x(i2)**2)
+                k = basis_idx(i1, i2, 1, n_pts)
+                h_r(k, k) = h_r(k, k) + pot
+            end do
+        end do
+
+        ! --- 反厄米动量矩阵 D = [T, X] (实反对称); p = i m D (m = 1) -------
+        allocate(dx1(n_pts, n_pts), dx2(n_pts, n_pts))
+        do j1 = 1, n_pts
+            do i1 = 1, n_pts
+                dx1(i1, j1) = d1%t_mat(i1, j1) * d1%x(j1) - d1%x(i1) * d1%t_mat(i1, j1)
+                dx2(i1, j1) = d2%t_mat(i1, j1) * d2%x(j1) - d2%x(i1) * d2%t_mat(i1, j1)
+            end do
+        end do
+
+        ! --- Coriolis: H_cor = -g (Q1 p2 - Q2 p1) = i M,                   ---
+        !     M = -g (Q1 (x) D2 - D1 (x) Q2)  (实反对称);
+        !     Q1/Q2 在各自模指标上是对角的 (delta 限制)
+        do i2 = 1, n_pts
+            do i1 = 1, n_pts
+                k = basis_idx(i1, i2, 1, n_pts)
+                ! Q1 (x) D2: j1 = i1 (Q1 对角), j2 自由
+                do j2 = 1, n_pts
+                    m_mat(k, basis_idx(i1, j2, 1, n_pts)) = &
+                        m_mat(k, basis_idx(i1, j2, 1, n_pts)) &
+                        - g_coriolis * d1%x(i1) * dx2(i2, j2)
+                end do
+                ! D1 (x) Q2: j2 = i2 (Q2 对角), j1 自由
+                do j1 = 1, n_pts
+                    m_mat(k, basis_idx(j1, i2, 1, n_pts)) = &
+                        m_mat(k, basis_idx(j1, i2, 1, n_pts)) &
+                        + g_coriolis * dx1(i1, j1) * d2%x(i2)
+                end do
+            end do
+        end do
+
+        ! --- 2 倍维实对称化: [[H_r, -M], [M, H_r]] -------------------------
+        allocate(h2(n_dbl, n_dbl))
+        h2 = 0.0_dp
+        h2(1:n_tot, 1:n_tot) = h_r
+        h2(n_tot + 1:n_dbl, n_tot + 1:n_dbl) = h_r
+        h2(1:n_tot, n_tot + 1:n_dbl) = -m_mat
+        h2(n_tot + 1:n_dbl, 1:n_tot) = m_mat
+
+        allocate(e_levels(n_dbl))
+        call diag_symmetric_matrix(n_dbl, h2, e_levels, vecs, ierr)
+        stat = merge(0, -2, ierr == 0)
+    end subroutine poly_vib_coriolis_levels
 
 end module mod_polyatomic_vib
