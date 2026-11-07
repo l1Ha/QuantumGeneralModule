@@ -310,3 +310,90 @@ def poly_vib_force_field_levels(omegas, lam, cubic, quartic, x_half, n_pts: int)
         h_mat[flat, flat] += pot
 
     return np.linalg.eigvalsh(h_mat)
+
+
+def poly_vib_coriolis_rotor_levels(omega: float, a_const: float, b_const: float,
+                                   zeta: float, j_qnum: int, x_half: float,
+                                   n_pts: int) -> np.ndarray:
+    """Vibration-rotation Coriolis coupling for a degenerate mode pair in a
+    symmetric top (B = C), product sinc-DVR vibrational basis x Wang rotor
+    basis (multi-atomic step 7).
+
+    H = [T1(+)T2 + w^2/2 (Q1^2+Q2^2)] (x) I_rot + I_vib (x) H_Wang(J)
+        - 2 A zeta (L_z (x) J_z),
+    with the exact (ladder-operator) spectrum
+        E(v, l, J, K) = w (v+1) + B J(J+1) + (A-B) K^2 - 2 A zeta l K
+    - the A+/A- Coriolis ladders of symmetric-top degenerate modes: K = 0
+    (Sigma) states are unshifted, |K| >= 1 +/-l pairs split by 4A|zeta K|.
+    L_z is built in the DVR through p = i m [T, X] (non-diagonal there);
+    J_z = K is diagonal in the Wang basis. The complex Hermitian matrix is
+    diagonalized in the doubled real-symmetric form (each physical level
+    exactly twice).
+
+    Numerical boundary: the Cartesian-box L_z has a spurious spectrum
+    (|lambda| ~ x_max pi/dx); large 2A|zeta| folds box-edge states into the
+    low spectrum (sentinel: the ZPE, l = 0, must stay zeta-independent).
+
+    Returns the ascending doubled spectrum (2*(2J+1)*n_pts^2 levels).
+    Fortran mirror: `poly_vib_coriolis_rotor_levels`.
+    """
+    n_rot = 2 * j_qnum + 1
+    if j_qnum < 1 or j_qnum > 5:
+        raise ValueError("j_qnum must be 1..5")
+    if n_pts < 5 or n_rot * n_pts ** 2 > 3400:
+        raise ValueError("require n_pts >= 5 and n_rot*n_pts^2 <= 3400")
+    if omega <= 0.0 or a_const <= 0.0 or b_const <= 0.0 or x_half <= 0.0:
+        raise ValueError("omega, a_const, b_const, x_half must be positive")
+
+    d1 = dvr_sinc_init(-x_half, x_half, n_pts, 1.0)
+    d2 = dvr_sinc_init(-x_half, x_half, n_pts, 1.0)
+    n = n_pts
+    n_vib = n * n
+    n_tot = n_vib * n_rot
+    g_cor = 2.0 * a_const * zeta
+
+    # vibrational subspace (kinetic Kronecker sum + diagonal potential)
+    h_vib = np.zeros((n_vib, n_vib))
+    for k in range(2):
+        n_slow = n ** k
+        n_fast = n ** (1 - k)
+        term = d1.t_mat if k == 0 else d2.t_mat
+        if n_fast > 1:
+            term = np.kron(term, np.eye(n_fast))
+        if n_slow > 1:
+            term = np.kron(np.eye(n_slow), term)
+        h_vib += term
+    x1 = np.repeat(d1.x, n)
+    x2 = np.tile(d2.x, n)
+    h_vib[np.arange(n_vib), np.arange(n_vib)] += 0.5 * omega**2 * (x1**2 + x2**2)
+
+    # DVR momentum matrices and vibrational angular momentum
+    dx1 = d1.t_mat * d1.x[None, :] - d1.x[:, None] * d1.t_mat
+    dx2 = d2.t_mat * d2.x[None, :] - d2.x[:, None] * d2.t_mat
+    l_z = (np.kron(np.diag(d1.x), dx2) - np.kron(dx1, np.diag(d2.x)))
+
+    # rotor Wang matrix (B = C; Delta K = +/-2 elements vanish but the
+    # general formula is kept, mirroring mod_watson_rotor)
+    kvals = np.arange(-j_qnum, j_qnum + 1)
+    h_rot = np.zeros((n_rot, n_rot))
+    jj = j_qnum * (j_qnum + 1)
+    for i, kv in enumerate(kvals):
+        for j, kvp in enumerate(kvals):
+            if abs(kv - kvp) == 0:
+                h_rot[i, j] = 0.5 * (b_const + b_const) * jj                     + (a_const - 0.5 * (b_const + b_const)) * kv * kv
+            elif abs(kv - kvp) == 2:
+                k1, k2 = min(kv, kvp), max(kv, kvp)
+                t1 = jj - k1 * (k1 + 1)
+                t2 = jj - (k1 + 1) * (k1 + 2)
+                h_rot[i, j] = 0.25 * (b_const - b_const)                     * np.sqrt(max(t1 * t2, 0.0))
+
+    # full space (rotor slow, vibrational fast)
+    h_r = (np.kron(h_vib, np.eye(n_rot)) + np.kron(np.eye(n_vib), h_rot))
+    m_mat = -g_cor * np.kron(l_z, np.diag(kvals.astype(float)))
+
+    h2 = np.zeros((2 * n_tot, 2 * n_tot))
+    h2[:n_tot, :n_tot] = h_r
+    h2[n_tot:, n_tot:] = h_r
+    h2[:n_tot, n_tot:] = -m_mat
+    h2[n_tot:, :n_tot] = m_mat
+    return np.linalg.eigvalsh(h2)

@@ -75,6 +75,7 @@ from .polyatomic_vib import (
     coupled2_normal_freqs, poly_vib_product_levels,
     poly_vib_morse_levels, morse_bound_energy, morse_bound_count,
     poly_vib_coriolis_levels, poly_vib_force_field_levels,
+    poly_vib_coriolis_rotor_levels,
 )
 
 from .scattering import (
@@ -149,6 +150,7 @@ __all__ = [
     "inertia_constants_from_geometry", "coupled2_normal_freqs", "poly_vib_product_levels",
     "poly_vib_morse_levels", "morse_bound_energy", "morse_bound_count",
     "poly_vib_coriolis_levels", "poly_vib_force_field_levels",
+    "poly_vib_coriolis_rotor_levels",
     "calc_rotational_constants_bv", "build_rovibrational_hamiltonian",
     "build_rovibrational_dipole_matrix",
     "van_der_waals_mean_length", "gribakin_flambaum_length",

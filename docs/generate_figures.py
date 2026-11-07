@@ -1623,9 +1623,80 @@ def generate_fig22_force_field():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig23_coriolis_rotor():
+    """Fig 23 (book Fig 3.7, multi-atomic step 7): vibration-rotation
+    Coriolis coupling of a degenerate pair in a symmetric top (A+/A-
+    ladders). (a) the Coriolis multiplet vs K for v=1, J=2: exact ladder
+    lines E = 2w + 2B + (A-B)K^2 -/+ 2A zeta K with DVR points
+    (poly_vib_coriolis_rotor_levels); (b) zeta-fan at (v=1, J=1, K=0,+1):
+    K=0 unshifted, K=+1 splits into the A- / A+ components linearly in
+    zeta, DVR points."""
+    print("Generating Fig 23: Vibration-rotation Coriolis ladders...")
+    set_publication_style()
+    from pygenmod.polyatomic_vib import poly_vib_coriolis_rotor_levels
+
+    w0, a_c, b_c, zeta = 0.12, 2.0, 0.9, 0.005
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4), dpi=200)
+
+    # (a) Coriolis shift vs K for v=1, J=2 (rotor baseline subtracted)
+    j_q = 2
+    k_grid = np.arange(-j_q, j_q + 1)
+    base = 2.0 * w0 + b_c * j_q * (j_q + 1)
+    shift_0 = 0.0 * k_grid
+    shift_p = -2.0 * a_c * zeta * (+1) * k_grid
+    shift_m = -2.0 * a_c * zeta * (-1) * k_grid
+    ax1.plot(k_grid, shift_0, 's--', color='dimgray', markersize=6,
+             label=r'$\Sigma$ ($l=0$): shift $=0$')
+    ax1.plot(k_grid, shift_p, 'o-', color='crimson', markersize=6,
+             label=r'$A^-$ ($l=+1$): $-2A\zeta K$')
+    ax1.plot(k_grid, shift_m, '^-', color='darkviolet', markersize=6,
+             label=r'$A^+$ ($l=-1$): $+2A\zeta K$')
+    e_dvr = poly_vib_coriolis_rotor_levels(w0, a_c, b_c, zeta, j_q, 8.0, 16)
+    for kv in k_grid:
+        for l_val in (0, +1, -1):
+            tgt = base + (a_c - b_c) * kv**2 - 2.0 * a_c * zeta * l_val * kv
+            dmin = np.min(np.abs(e_dvr - tgt))
+            if dmin < 3.0e-3:
+                ax1.plot(kv, -2.0 * a_c * zeta * l_val * kv, 'x', color='black',
+                         markersize=10, markeredgewidth=2.2)
+    ax1.set_xlabel(r'$K$')
+    ax1.set_ylabel(r'Coriolis shift $E - E_{\mathrm{rot}}$ ($E_h$)')
+    ax1.set_title(r'(a) $v=1$, $J=2$ shift vs DVR (x), $2A\zeta = %.2f$'
+                  % (2.0 * a_c * zeta), fontsize=10.5)
+    ax1.legend(loc='upper left', frameon=True, fontsize=8.5)
+
+    # (b) zeta fan at (v=1, J=1, K=0, +1)
+    z_grid = np.linspace(0.0, 0.008, 5)
+    ax2.plot(z_grid, np.full_like(z_grid, 2.0 * w0 + 2.0 * b_c + (a_c - b_c)),
+             color='dimgray', linewidth=1.8, linestyle='--',
+             label=r'$K=0$ (unshifted)')
+    ax2.plot(z_grid, 2.0 * w0 + 2.0 * b_c + (a_c - b_c) - 2.0 * a_c * z_grid,
+             color='crimson', linewidth=1.8, label=r'$K=+1$, $A^-$')
+    ax2.plot(z_grid, 2.0 * w0 + 2.0 * b_c + (a_c - b_c) + 2.0 * a_c * z_grid,
+             color='darkviolet', linewidth=1.8, label=r'$K=+1$, $A^+$')
+    for z_val in (0.0025, 0.005, 0.0075):
+        e_d = poly_vib_coriolis_rotor_levels(w0, a_c, b_c, z_val, 1, 8.0, 16)
+        for tgt in (2.0 * w0 + 2.0 * b_c + (a_c - b_c) - 2.0 * a_c * z_val,
+                    2.0 * w0 + 2.0 * b_c + (a_c - b_c) + 2.0 * a_c * z_val):
+            dmin = np.min(np.abs(e_d - tgt))
+            if dmin < 3.0e-2:
+                ax2.plot(z_val, tgt, 'x', color='black', markersize=9,
+                         markeredgewidth=2.0)
+    ax2.set_xlabel(r'Coriolis constant $\zeta$')
+    ax2.set_ylabel(r'$E$ ($E_h$)')
+    ax2.set_title(r'(b) $v=1$, $J=1$ ladder fan vs DVR (x)', fontsize=10.5)
+    ax2.legend(loc='upper left', frameon=True, fontsize=8.5)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig23_coriolis_rotor.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 22 Scientific Calculation Benchmark Figures")
+    print(" Generating All 23 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -1649,8 +1720,9 @@ def main():
     generate_fig20_morse_anharmonic()
     generate_fig21_coriolis()
     generate_fig22_force_field()
+    generate_fig23_coriolis_rotor()
     print("=" * 60)
-    print(" All 22 Figures Generated Successfully in docs/figures/!")
+    print(" All 23 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

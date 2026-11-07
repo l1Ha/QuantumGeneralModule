@@ -23,6 +23,7 @@ program test_polyatomic_vib
     call test_morse_anharmonic()
     call test_coriolis_vibration()
     call test_force_field()
+    call test_coriolis_rotor()
 
     print *, ""
     print *, "================================================================"
@@ -358,5 +359,82 @@ contains
         call poly_vib_force_field_levels(2, om2, lam2, cub2, qua2, xh2, 30, e2g, stat)
         call assert_near(e2g(1), e2m(1), 1.0e-5_dp, "FF ZPE grid-converged (30->34)")
     end subroutine test_force_field
+
+    !> 完整振转 Coriolis (多原子拓展第七步): 简并模对 + 对称陀螺 (B = C)。
+    !> 精确谱 E(v,l,J,K) = w(v+1) + B J(J+1) + (A-B)K^2 - 2A zeta l K
+    !> (A± ladder)。验收: (1) l=0 能级 (ZPE 与 Sigma) 的 zeta 无关性精确
+    !> (L_z 与 H_0 对易, l=0 态是其本征态, 一切阶都不移); (2) 2 倍维实形式
+    !> 逐对二重; (3) (v0,K) 转动能级; (4) v=1 的 K=0 不移与 K=+-1 的
+    !> Coriolis 劈裂 (A± 分量间隔 4A|zeta||K|)。
+    !> 数值边界: 笛卡尔盒的 L_z 有伪谱 (lambda ~ x_max*pi/dx), zeta 过大时
+    !> 盒边态被拉入低谱 (实测 zeta=0.1 时 -10 Eh 伪态); 测试取小 zeta 并以
+    !> l=0 zeta 无关性 (应精确为零) 作为伪谱污染的哨兵。
+    subroutine test_coriolis_rotor()
+        real(dp), allocatable :: e0(:), eg(:)
+        real(dp) :: w, a_c, b_c, zeta
+        integer :: stat, i, n_bad
+
+        print *, ""
+        print *, "--- 8. Vibration-rotation Coriolis (symmetric top, A± ladder) ---"
+        w = 0.12_dp
+        a_c = 2.0_dp
+        b_c = 0.9_dp
+        zeta = 0.005_dp          ! g = 2A zeta = 0.02, 避开盒 L_z 伪谱
+
+        call poly_vib_coriolis_rotor_levels(w, a_c, b_c, zeta, 1, 7.0_dp, 16, eg, stat)
+        call assert_true(stat == 0, "rotor-Coriolis solve succeeded")
+        call poly_vib_coriolis_rotor_levels(w, a_c, b_c, 0.0_dp, 1, 7.0_dp, 16, e0, stat)
+
+        ! (1) 伪谱污染哨兵: ZPE (v=0,l=0,K=0) 是最易被盒 L_z 伪谱拉低污染的
+        !     态; 其 zeta 无关性精确成立 (L_z 与 H_0 对易, l=0 态是本征态,
+        !     一切阶都不移)。一阶 Coriolis 只移 (l!=0 且 K!=0) 的态。
+        call assert_true(abs(eg(1) - e0(1)) < 1.0e-9_dp, &
+                         "ZPE zeta-independent (spurious-folding sentinel)")
+
+        ! (2) 2 倍维实形式逐对二重
+        n_bad = 0
+        do i = 1, size(eg) - 1, 2
+            if (abs(eg(i) - eg(i + 1)) > 1.0e-10_dp) n_bad = n_bad + 1
+        end do
+        call assert_true(n_bad == 0, "doubled-real spectrum pairwise degenerate")
+
+        ! (3) (v0,K0): w + 2B; (v0,K+-1): w + 2B + (A-B)
+        call assert_near(eg(1), w + 2.0_dp * b_c, 5.0e-3_dp, "(v0,K0) = w + 2B")
+        ! (v0,K+-1) = 3.02: 在谱中定位 (排序后位于 v1,K0 之后)
+        block
+            integer :: k2
+            real(dp) :: best
+            best = huge(1.0_dp)
+            do k2 = 1, size(eg)
+                best = min(best, abs(eg(k2) - (w + 2.0_dp * b_c + (a_c - b_c))))
+            end do
+            call assert_near(best, 0.0_dp, 5.0e-3_dp, "(v0,K+-1) = w + 2B + (A-B)")
+        end block
+
+        ! (4) v=1: K=0 不移 (2w + 2B); K=+-1 的 A± 劈裂 (间隔 4A|zeta|)
+        block
+            integer :: k2
+            real(dp) :: best, e_k0, e_up, e_dn
+            e_k0 = 2.0_dp * w + 2.0_dp * b_c
+            best = huge(1.0_dp)
+            do k2 = 1, size(eg)
+                best = min(best, abs(eg(k2) - e_k0))
+            end do
+            call assert_near(best, 0.0_dp, 2.0e-2_dp, "(v1,K0) = 2w + 2B (unshifted)")
+            ! A+ 分量: l=+1,K=+1 与 l=-1,K=-1 (2A zeta 降); A-: 升
+            e_dn = 2.0_dp * w + 2.0_dp * b_c + (a_c - b_c) - 2.0_dp * a_c * zeta
+            e_up = 2.0_dp * w + 2.0_dp * b_c + (a_c - b_c) + 2.0_dp * a_c * zeta
+            best = huge(1.0_dp)
+            do k2 = 1, size(eg)
+                best = min(best, abs(eg(k2) - e_dn))
+            end do
+            call assert_near(best, 0.0_dp, 2.0e-2_dp, "A- ladder level = 2w+2B+(A-B)-2Az")
+            best = huge(1.0_dp)
+            do k2 = 1, size(eg)
+                best = min(best, abs(eg(k2) - e_up))
+            end do
+            call assert_near(best, 0.0_dp, 2.0e-2_dp, "A+ ladder level = 2w+2B+(A-B)+2Az")
+        end block
+    end subroutine test_coriolis_rotor
 
 end program test_polyatomic_vib

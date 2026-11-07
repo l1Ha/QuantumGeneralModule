@@ -223,6 +223,26 @@ class TestPyGenMod(unittest.TestCase):
         e_c = poly_vib_force_field_levels([w0], lam_z, cub_z, qua_z, [12.0], 40)
         self.assertAlmostEqual(e_c[0] - e_q[0], 0.0, delta=5e-4)
 
+        # 多原子第七步: 完整振转 Coriolis (与 Fortran 测试组 8 对应)
+        from pygenmod.polyatomic_vib import poly_vib_coriolis_rotor_levels
+        a_const, b_const, zeta = 2.0, 0.9, 0.005
+        e_c0 = poly_vib_coriolis_rotor_levels(w0, a_const, b_const, 0.0, 1,
+                                              7.0, 16)
+        e_cg = poly_vib_coriolis_rotor_levels(w0, a_const, b_const, zeta, 1,
+                                              7.0, 16)
+        # ZPE (l=0) 伪谱污染哨兵: zeta 无关性精确成立
+        self.assertAlmostEqual(e_cg[0], e_c0[0], delta=1e-9)
+        # 2 倍维实形式逐对二重
+        self.assertLess(float(np.max(np.abs(e_cg[0::2] - e_cg[1::2]))), 1e-10)
+        # (v0,K0) 与 A± ladder 位置
+        self.assertAlmostEqual(e_cg[0], w0 + 2 * b_const, delta=5e-3)
+        d_a = float(np.min(np.abs(e_cg - (2 * w0 + 2 * b_const + (a_const - b_const)
+                                          - 2 * a_const * zeta))))
+        d_b = float(np.min(np.abs(e_cg - (2 * w0 + 2 * b_const + (a_const - b_const)
+                                          + 2 * a_const * zeta))))
+        self.assertLess(d_a, 2e-2)
+        self.assertLess(d_b, 2e-2)
+
     def test_irc_reaction_path(self):
         """IRC (book Sec 3.2): analytic gradient, mass-weighted Gonzalez-Schlegel
         path. Mirrors the Fortran tests of test_triatomic_geometry (steps 6-7)."""

@@ -1892,6 +1892,61 @@ DVR 能级（低于谐振能级------不对称性软化胜过四阶刚性）；�
 \texttt{docs/generate\_figures.py}。}
 \end{figure}
 
+\hypertarget{ux591aux539fux5b50ux62d3ux5c55ux7b2cux4e03ux6b65ux5b8cux6574ux632fux8f6c-coriolisux5bf9ux79f0ux9640ux87ba-a-ux68afux7ea7poly_vib_coriolis_rotor_levels}{%
+\subsection{\texorpdfstring{多原子拓展第七步：完整振转
+Coriolis------对称陀螺 A±
+梯级（\texttt{poly\_vib\_coriolis\_rotor\_levels}）}{多原子拓展第七步：完整振转 Coriolis------对称陀螺 A± 梯级（poly\_vib\_coriolis\_rotor\_levels）}}\label{ux591aux539fux5b50ux62d3ux5c55ux7b2cux4e03ux6b65ux5b8cux6574ux632fux8f6c-coriolisux5bf9ux79f0ux9640ux87ba-a-ux68afux7ea7poly_vib_coriolis_rotor_levels}}
+
+第五步的 \(\hat{L}_z\) 与第一步的转子在 Watson
+框架下合流：\(\hat{J}-\hat{\pi}\)
+展开的振转交叉项在对称陀螺（\(B=C\)，\(z\) 轴主轴常数 \(A\)）极限为
+\(-\mu_{zz}\hat{J}_z\hat{\pi}_z=-2A\zeta\,\hat{J}_z\hat{L}_z\)（\(\hat{\pi}_z=\zeta\hat{L}_z\)，\(\mu_{zz}=2A\)）。全哈密顿量
+
+\[\hat{H}=\bigl[\hat{T}_1(+\,)\hat{T}_2+\tfrac{\omega^{2}}{2}(Q_1^{2}+Q_2^{2})\bigr]\otimes\hat{I}_{\mathrm{rot}}
++\hat{I}_{\mathrm{vib}}\otimes\hat{H}_{\mathrm{Wang}}(J)
+-2A\zeta\,(\hat{L}_z\otimes\hat{J}_z)\]
+
+在乘积基 \(\text{DVR}_{\mathrm{vib}}\otimes\text{Wang}(J,K)\)
+中对角化（转子慢指标、振动快指标；\(\hat{J}_z=K\) 在 Wang
+基中是对角的，\(\hat{L}_z\) 由 \(\hat{p}=i[\hat{T},\hat{X}]\) 构造、在
+DVR
+中非对角）。\textbf{推导（闭式谱）}：\(\hat{L}_z=\hat{n}_+-\hat{n}_-\)
+与 \(\hat{H}_0\)、\(\hat{J}_z\) 全部对易，故
+
+\[E(v,l,J,K)=\omega(v+1)+BJ(J+1)+(A-B)K^{2}-2A\zeta\,l\,K\]
+
+精确成立------这就是对称陀螺简并模的 \textbf{A\(^\pm\) Coriolis
+梯级}：\(K=0\)（\(\Sigma\)）态不受位移，\(|K|\ge1\) 的 \(\pm l\) 对按
+\(4A|\zeta K|\)
+劈裂。数值验收（\(\omega=0.12\)、\(A=2\)、\(B=0.9\)、\(\zeta=0.005\)、\(J=1\)、\(n=16\)）：\(E_{v0,K0}=\omega+2B\)（\(1.9\times10^{-3}\)）、\(E_{v0,K\pm1}=\omega+2B+(A-B)\)（\(1.9\times10^{-3}\)）、\(v=1\)
+的 K=0 不移与 A\(^-\)/A\(^+\) 分量（\(1.0\times10^{-2}\)），Python 与
+Fortran 逐位一致；ZPE 的 \(\zeta\) 无关性达
+\(6.8\times10^{-14}\)（哨兵，见下）。
+
+\textbf{两条数值边界（进入书稿）。} 其一，\textbf{笛卡尔盒的
+\(\hat{L}_z\) 有伪谱}：\(\hat{p}=i[\hat{T},\hat{X}]\) 的盒本征值延展到
+\(\pm\pi/\Delta x\)，\(\hat{L}_z\) 伪本征值
+\(\sim x_{\max}\pi/\Delta x\)------耦合常数 \(2A\zeta\) 过大时（实测
+\(2A\zeta=0.4\)），盒边自由态被 \(-g\hat{L}_zK\) 线性势拉低
+\(g^{2}x_{\max}^{2}K^{2}/2\) 量级、成对摺入低谱（伪 ZPE 位移
+\(-12.8\ E_h\)）。测试取小 \(\zeta\) 并以 \textbf{ZPE（\(l=0\)
+态，\(\hat{L}_z\) 与 \(\hat{H}_0\) 对易使其一切阶都不移）的 \(\zeta\)
+无关性}作为伪谱污染哨兵。其二，与第五步一致，复厄米矩阵经 2
+倍维实对称化对角化，每个物理能级精确二重（\(10^{-13}\)）。
+
+\begin{figure}
+\centering
+\includegraphics[width=13cm,height=\textheight]{figures/fig23_coriolis_rotor.png}
+\caption{图 3.7：对称陀螺简并模的振转 Coriolis A\(^\pm\)
+梯级（\texttt{poly\_vib\_coriolis\_rotor\_levels}，\(\omega=0.12\ E_h\)、\(A=2\)、\(B=0.9\)、\(\zeta=0.005\)）。（a）\(v=1\)、\(J=2\)
+的 Coriolis 位移 vs \(K\)（扣除转子基线
+\(2\omega+BJ(J+1)+(A-B)K^{2}\)）：\(\Sigma\)（\(l=0\)）位移恒为零，A\(^-\)/A\(^+\)
+支按 \(\mp2A\zeta K\) 线性张开，黑叉为 DVR
+计算值（与解析线重合）；（b）\(v=1\)、\(J=1\)、\(K=0/+1\) 的 \(\zeta\)
+扇形图：\(K=0\) 平直（哨兵），\(K=+1\) 的 A\(^-\)/A\(^+\) 分量随
+\(\zeta\) 线性分离。绘图脚本见 \texttt{docs/generate\_figures.py}。}
+\end{figure}
+
 \hypertarget{ux5bf9ux5e94ux6e90ux7801ux591aux539fux5b50ux62d3ux5c55}{%
 \subsection{对应源码（多原子拓展）}\label{ux5bf9ux5e94ux6e90ux7801ux591aux539fux5b50ux62d3ux5c55}}
 
@@ -1911,7 +1966,9 @@ DVR 能级（低于谐振能级------不对称性软化胜过四阶刚性）；�
   \texttt{add\_mode\_kinetic}）、\texttt{morse\_bound\_energy}/\texttt{morse\_bound\_count}（Morse
   精确谱与束缚态计数）、\texttt{poly\_vib\_coriolis\_levels}（第五步：简并模对
   + \(L_z\) Coriolis 耦合，DVR 动量矩阵 \(p=i[T,X]\) + 2
-  倍维实对称化）、\texttt{poly\_vib\_force\_field\_levels}（第六步：三阶/四阶力常数张量对角势）、\texttt{basis\_idx}（乘积基线性索引，模
+  倍维实对称化）、\texttt{poly\_vib\_force\_field\_levels}（第六步：三阶/四阶力常数张量对角势）、\texttt{poly\_vib\_coriolis\_rotor\_levels}（第七步：振转
+  Coriolis，DVR\(\otimes\)Wang 乘积基，复用
+  \texttt{wang\_matrix\_element}）、\texttt{basis\_idx}（乘积基线性索引，模
   0 最快）。
 \item
   Python 参照：\texttt{python/pygenmod/rovibrational.py} 的
@@ -1919,14 +1976,14 @@ DVR 能级（低于谐振能级------不对称性软化胜过四阶刚性）；�
   与
   \texttt{inertia\_constants\_from\_geometry}；\texttt{python/pygenmod/polyatomic\_vib.py}
   的
-  \texttt{coupled2\_normal\_freqs}、\texttt{poly\_vib\_product\_levels}、\texttt{poly\_vib\_morse\_levels}、\texttt{morse\_bound\_energy}、\texttt{morse\_bound\_count}、\texttt{poly\_vib\_coriolis\_levels}、\texttt{poly\_vib\_force\_field\_levels}（numpy
+  \texttt{coupled2\_normal\_freqs}、\texttt{poly\_vib\_product\_levels}、\texttt{poly\_vib\_morse\_levels}、\texttt{morse\_bound\_energy}、\texttt{morse\_bound\_count}、\texttt{poly\_vib\_coriolis\_levels}、\texttt{poly\_vib\_force\_field\_levels}、\texttt{poly\_vib\_coriolis\_rotor\_levels}（numpy
   Kronecker 和组装，与 Fortran 同一索引约定）。
 \item
   验证：\texttt{tests/test\_watson\_rotor.f90}（三极限解析谱、迹规则、垂直轴定理、H₂O
   实验值 1\% 对照、离心畸变回归/解析/迹规则，共 37
   项断言）；\texttt{tests/test\_polyatomic\_vib.f90}（分离谐振解析谱、双模耦合对
   \(\Omega_\mp\) 的机器精度验收、简并旋转不变性、网格收敛、Morse
-  精确谱分层容差/束缚态计数/非谐红移/可分离多模，共 41
+  精确谱分层容差/束缚态计数/非谐红移/可分离多模，共 49
   项断言）。多原子振动的完整 Watson 处理（Coriolis 与 \(d_1/d_2\)
   畸变项）与 Morse 型非谐力场见 §12.2 路线图。
 \item
@@ -7355,6 +7412,19 @@ Coriolis 振动角动量（简并模对 \(L_z\)）\strut
 图 3.6\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
+3.4\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+振转 Coriolis（对称陀螺 A± 梯级）\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{mod\_polyatomic\_vib::poly\_vib\_coriolis\_rotor\_levels}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{polyatomic\_vib.poly\_vib\_coriolis\_rotor\_levels}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{test\_polyatomic\_vib}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+图 3.7\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.14\columnwidth}\raggedright
 4.3\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 Wilkinson 位移 QL 迭代\strut
@@ -9392,7 +9462,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 48 个测试程序、478 项断言全部通过。
+  全库 48 个测试程序、486 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的

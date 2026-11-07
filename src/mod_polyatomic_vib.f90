@@ -13,16 +13,19 @@
 !>          Coriolis 简并模对精确谱 E(v,l) = w(v+1) - g*l
 !>          (poly_vib_coriolis_levels, 多原子拓展第五步);
 !>          一般力场 (三阶+四阶力常数张量, 展开式系数)
-!>          poly_vib_force_field_levels (多原子拓展第六步)。
+!>          poly_vib_force_field_levels (多原子拓展第六步);
+!>          完整振转 Coriolis (对称陀螺 J 耦合, A± ladder 闭式谱)
+!>          poly_vib_coriolis_rotor_levels (多原子拓展第七步)。
 !> \note   多原子拓展步序: (3) 谐振 + 双线性耦合; (4) Morse 型非谐力场;
 !>          (5) Watson Coriolis 振动角动量 (简并模对 z 轴耦合可解核心);
-!>          (6) 一般力场 (三阶/四阶力常数张量)。
-!>          完整振转 Coriolis (J 耦合) 属后续增量。
+!>          (6) 一般力场 (三阶/四阶力常数张量); (7) 完整振转 Coriolis
+!>          (对称陀螺 J 耦合)。Watson d1/d2 项需 SPFIT 基准数据验收。
 !> \author LiHao
 module mod_polyatomic_vib
     use, intrinsic :: iso_fortran_env, only: dp => real64
     use mod_dvr_grid, only: dvr_1d_t, dvr_sinc_init
     use mod_linear_algebra, only: diag_symmetric_matrix
+    use mod_watson_rotor, only: wang_matrix_element
     implicit none
     private
 
@@ -33,6 +36,7 @@ module mod_polyatomic_vib
     public :: morse_bound_count
     public :: poly_vib_coriolis_levels
     public :: poly_vib_force_field_levels
+    public :: poly_vib_coriolis_rotor_levels
     integer, parameter, public :: POLY_MAX_MODES = 3
 
 contains
@@ -459,5 +463,158 @@ contains
         call diag_symmetric_matrix(n_tot, h_mat, e_levels, vecs, ierr)
         stat = merge(0, -2, ierr == 0)
     end subroutine poly_vib_force_field_levels
+
+    !> \brief 简并模对 + 对称陀螺转动的完整振转 Coriolis 耦合
+    !>        (多原子拓展第七步; A± ladder 闭式谱验收)
+    !> \details 质量权重简正坐标下, Watson (J - pi)^2 展开的振转交叉项在
+    !>          对称陀螺 (B = C, z 轴主轴 A) 极限为
+    !>          H = [T1(+)T2 + 1/2 w^2 (Q1^2+Q2^2)] (x) I_rot
+    !>              + I_vib (x) H_Wang(J)
+    !>              - 2 A zeta (L_z (x) J_z),
+    !>          其中 pi_z = zeta (Q1 p2 - Q2 p1) = zeta L_z (简并对的 zeta
+    !>          约定), J_z = K 在 Wang 基中是对角的。
+    !>          阶梯算符推导 (L_z = n_+ - n_- = l, J_z = K): 精确谱
+    !>          E(v, l, J, K) = w (v+1) + B J(J+1) + (A-B) K^2 - 2 A zeta l K,
+    !>          即对称陀螺简并模的 A+/- ladder: K = 0 (Sigma) 不受 Coriolis
+    !>          位移, |K| >= 1 的 +/- l 对按 l*K 劈裂 (4 A zeta |K|)。
+    !> \note   实现: 振动部分用 DVR (L_z 由 p = i m [T, X] 构造, 非对角),
+    !>          转动部分用第一步 Wang 矩阵 (复用 wang_matrix_element;
+    !>          B = C 时非对角元为零, 谱为闭式)。基维数 n_rot * n_pts^2
+    !>          <= 3400 (J = 2, n = 20 -> 2000)。
+    subroutine poly_vib_coriolis_rotor_levels(omega, a_const, b_const, zeta, &
+                                              j_qnum, x_half, n_pts, e_levels, stat)
+        real(dp), intent(in)  :: omega           !< 简并对频率 (a.u.)
+        real(dp), intent(in)  :: a_const         !< 对称陀螺 A 常数 (a.u.)
+        real(dp), intent(in)  :: b_const         !< B = C 常数 (a.u.)
+        real(dp), intent(in)  :: zeta            !< Coriolis zeta 常数 (简并对)
+        integer, intent(in)   :: j_qnum          !< 转动角动量 J (固定 J 块)
+        real(dp), intent(in)  :: x_half          !< 振动半盒宽 (a.u.)
+        integer, intent(in)   :: n_pts           !< 每模格点数
+        real(dp), intent(out), allocatable :: e_levels(:)
+        integer, intent(out)  :: stat
+
+        type(dvr_1d_t) :: d1, d2
+        real(dp), allocatable :: h_r(:, :), m_mat(:, :), h2(:, :), vecs(:, :)
+        real(dp), allocatable :: dx1(:, :), dx2(:, :), h_vib(:, :), l_z(:, :)
+        real(dp), allocatable :: h_rot(:, :)
+        real(dp) :: pot, g_cor
+        integer  :: n_vib, n_rot, n_tot, i1, i2, kk, kkp, ierr, k, kv, a, b
+        integer, allocatable :: kvals(:)
+
+        stat = -1
+        if (j_qnum < 1 .or. j_qnum > 5) return
+        if (n_pts < 5 .or. (2 * j_qnum + 1) * n_pts**2 > 3400) return
+        if (omega <= 0.0_dp .or. a_const <= 0.0_dp .or. b_const <= 0.0_dp) return
+        if (x_half <= 0.0_dp) return
+
+        call dvr_sinc_init(-x_half, x_half, n_pts, 1.0_dp, d1)
+        call dvr_sinc_init(-x_half, x_half, n_pts, 1.0_dp, d2)
+
+        n_vib = n_pts * n_pts
+        n_rot = 2 * j_qnum + 1
+        n_tot = n_vib * n_rot
+        g_cor = 2.0_dp * a_const * zeta
+        allocate(kvals(n_rot))
+        do kk = 1, n_rot
+            kvals(kk) = kk - 1 - j_qnum      ! K = -J..J
+        end do
+        allocate(h_r(n_tot, n_tot), m_mat(n_tot, n_tot), vecs(2 * n_tot, 2 * n_tot))
+        h_r = 0.0_dp
+        m_mat = 0.0_dp
+
+        ! --- 振动子空间 (n_vib^2): Kronecker 和动能 + 对角势 (复用助手) -----
+        allocate(h_vib(n_vib, n_vib))
+        h_vib = 0.0_dp
+        call add_mode_kinetic(2, 1, n_pts, d1%t_mat, h_vib)
+        call add_mode_kinetic(2, 2, n_pts, d2%t_mat, h_vib)
+        do i2 = 1, n_pts
+            do i1 = 1, n_pts
+                pot = 0.5_dp * omega**2 * (d1%x(i1)**2 + d2%x(i2)**2)
+                k = basis_idx(i1, i2, 1, n_pts)
+                h_vib(k, k) = h_vib(k, k) + pot
+            end do
+        end do
+
+        ! --- DVR 动量矩阵 D = [T, X] (实反对称); p = i D (m = 1) -----------
+        allocate(dx1(n_pts, n_pts), dx2(n_pts, n_pts))
+        do i2 = 1, n_pts
+            do i1 = 1, n_pts
+                dx1(i1, i2) = d1%t_mat(i1, i2) * d1%x(i2) - d1%x(i1) * d1%t_mat(i1, i2)
+                dx2(i1, i2) = d2%t_mat(i1, i2) * d2%x(i2) - d2%x(i1) * d2%t_mat(i1, i2)
+            end do
+        end do
+
+        ! --- 振动角动量 L_z = Q1 p2 - Q2 p1 = i L, L 实反对称 ---------------
+        !     L((a1,a2),(b1,b2)) = x1(a1) da(a1,b1) dx2(a2,b2)
+        !                        - dx1(a1,b1) x2(a2) da(a2,b2)
+        allocate(l_z(n_vib, n_vib))
+        l_z = 0.0_dp
+        block
+            integer :: a1, a2, b1, b2
+            do a2 = 1, n_pts
+                do a1 = 1, n_pts
+                    do b2 = 1, n_pts
+                        do b1 = 1, n_pts
+                            k = basis_idx(a1, a2, 1, n_pts)
+                            kv = basis_idx(b1, b2, 1, n_pts)
+                            l_z(k, kv) = merge(d1%x(a1) * dx2(a2, b2), 0.0_dp, a1 == b1) &
+                                       - merge(dx1(a1, b1) * d2%x(a2), 0.0_dp, a2 == b2)
+                        end do
+                    end do
+                end do
+            end do
+        end block
+
+        ! --- 转子 Wang 矩阵 (n_rot^2, 复用 wang_matrix_element) -------------
+        allocate(h_rot(n_rot, n_rot))
+        h_rot = 0.0_dp
+        do kk = 1, n_rot
+            do kkp = kk, n_rot
+                h_rot(kk, kkp) = wang_matrix_element(a_const, b_const, b_const, &
+                                                     j_qnum, kvals(kk), kvals(kkp))
+                h_rot(kkp, kk) = h_rot(kk, kkp)
+            end do
+        end do
+
+        ! --- 全空间组装 (rotor 慢, vib 快): ---------------------------------
+        !     H_r = kron(H_vib, I_rot) + kron(I_vib, H_rot)
+        do kk = 1, n_rot
+            do a = 1, n_vib
+                do b = 1, n_vib
+                    h_r((kk - 1) * n_vib + a, (kk - 1) * n_vib + b) = &
+                        h_r((kk - 1) * n_vib + a, (kk - 1) * n_vib + b) + h_vib(a, b)
+                end do
+            end do
+            do kkp = 1, n_rot
+                do a = 1, n_vib
+                    h_r((kk - 1) * n_vib + a, (kkp - 1) * n_vib + a) = &
+                        h_r((kk - 1) * n_vib + a, (kkp - 1) * n_vib + a) + h_rot(kk, kkp)
+                end do
+            end do
+        end do
+
+        ! --- Coriolis: -2 A zeta (L_z (x) J_z) = i M,                       ---
+        !     M = -g_cor * kron(L, diag(K))  (L 实反对称, K 对角慢指标)
+        do kk = 1, n_rot
+            do a = 1, n_vib
+                do b = 1, n_vib
+                    m_mat((kk - 1) * n_vib + a, (kk - 1) * n_vib + b) = &
+                        -g_cor * real(kvals(kk), dp) * l_z(a, b)
+                end do
+            end do
+        end do
+
+        ! --- 2 倍维实对称化: [[H_r, -M], [M, H_r]] -------------------------
+        allocate(h2(2 * n_tot, 2 * n_tot))
+        h2 = 0.0_dp
+        h2(1:n_tot, 1:n_tot) = h_r
+        h2(n_tot + 1:2 * n_tot, n_tot + 1:2 * n_tot) = h_r
+        h2(1:n_tot, n_tot + 1:2 * n_tot) = -m_mat
+        h2(n_tot + 1:2 * n_tot, 1:n_tot) = m_mat
+
+        allocate(e_levels(2 * n_tot))
+        call diag_symmetric_matrix(2 * n_tot, h2, e_levels, vecs, ierr)
+        stat = merge(0, -2, ierr == 0)
+    end subroutine poly_vib_coriolis_rotor_levels
 
 end module mod_polyatomic_vib
