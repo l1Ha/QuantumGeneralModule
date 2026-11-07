@@ -126,6 +126,8 @@ module general_module
     public :: lindblad_dissipator, rk4_lindblad_step, calculate_quantum_purity
     public :: calculate_von_neumann_entropy, calculate_quantum_coherence
     public :: create_relaxation_jump_op, create_dephasing_jump_op
+    public :: lindblad_supermatrix_2level, lindblad_steady_state_2level
+    public :: lindblad_eigenmodes_2level, lindblad_spectral_reconstruct
 
     ! 量子最优控制理论 (Krotov 算法)
     public :: oct_fidelity, oct_shape_function, oct_krotov_step, oct_optimize_pulse

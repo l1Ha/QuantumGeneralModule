@@ -3788,6 +3788,19 @@ $$
 
 ![图 10.4：二能级 Lindblad 弛豫与退相位（初态 $(|e\rangle+|g\rangle)/\sqrt2$，$\gamma=0.6$、$\gamma_\phi=0.7\ \mathrm{ps}^{-1}$，RK4 $\Delta t=0.001$ ps）。（a）$\rho_{ee}(t)$（$T_1$ 弛豫）、$|\rho_{eg}(t)|$（$T_2$ 退相位，速率 $\gamma/2+2\gamma_\phi$）与迹守恒：RK4 数值解（点）与解析解（虚线）全程重合；（b）纯度 $P=\operatorname{Tr}\rho^2$ 先降后升（弛豫回纯基态），数值与解析一致。绘图脚本见 `docs/generate_figures.py`；Fortran 对应实现 `src/mod_open_quantum.f90` 的 `rk4_lindblad_step` 与 `calculate_quantum_purity`。](figures/fig17_lindblad.png){width=12.0cm}
 
+#### 开放系统谱方法：Liouvillian 谱与阻尼基（`lindblad_supermatrix_2level` 等）
+
+RK4 时间步进之外，Lindblad 主方程还有一条**谱方法**路线：把 Liouvillian 超算符向量化为 $\mathcal{L}$（$n^{2}\times n^{2}$ 矩阵），其谱分解给出全部弛豫通道——这就是开放系统谱方法（§12.2 路线图项）。以热化二能级（$H=\delta|e\rangle\langle e|$，塌缩速率 $\gamma_{\downarrow}=\gamma(n_{\mathrm{th}}+1)$、$\gamma_{\uparrow}=\gamma n_{\mathrm{th}}$，退相位 $\gamma_\phi$）为例，在向量基 $(ee,eg,ge,gg)$ 中
+
+$$\mathcal{L}=\begin{pmatrix}-\gamma_\downarrow&0&0&\gamma_\uparrow\\
+0&-s-i\delta&0&0\\0&0&-s+i\delta&0\\\gamma_\downarrow&0&0&-\gamma_\uparrow\end{pmatrix},
+\qquad s=\frac{\Gamma}{2}+2\gamma_\phi,\ \Gamma=\gamma_\downarrow+\gamma_\uparrow,$$
+
+**精确谱** $\{0,-\Gamma,-s\mp i\delta\}$ 与**阻尼基**（右本征密度矩阵）：稳态 $\rho_{\mathrm{ss}}$（$\lambda=0$，闭式 $\rho_{ee}^{\mathrm{ss}}=\gamma_\uparrow/\Gamma$）、无迹布居模 $|e\rangle\langle e|-|g\rangle\langle g|$（$\lambda=-\Gamma$）、相干模 $|e\rangle\langle g|$ 与 $|g\rangle\langle e|$（$\lambda=-s\mp i\delta$）。实现分四步，每步独立验收：其一，`lindblad_supermatrix_2level` 构造超矩阵；其二，`lindblad_steady_state_2level` 以**增广线性方程** $[[\mathcal{L},\mathbf{1}],[\mathbf{1}^{T},0]][x;\nu]=[0;1]$（库内复矩阵求逆）求稳态，并与闭式对照（$10^{-10}$）；其三，`lindblad_eigenmodes_2level` 给出解析阻尼基并以**谱关系** $\lVert\mathcal{L}R_k-\lambda_kR_k\rVert<10^{-12}$ 机器验证（本征对的向量化约定为行主序 $(ee,eg,ge,gg)$——列主序展开会把相干元打到错误的超行，这一陷阱由断言直接暴露）；其四，`lindblad_spectral_reconstruct` 用 $\rho(t)=\rho_{\mathrm{ss}}+\sum_k c_k e^{\lambda_k t}R_k$ 重构 $\rho(t)$（$c_{eg}=\rho_{eg}(0)$、$c_{\mathrm{pop}}=\rho_{ee}(0)-\rho_{ee}^{\mathrm{ss}}$：$R_{\mathrm{ss}}$ 迹 1、$R_{\mathrm{pop}}$ 无迹），并与 RK4 推进**两条独立方法交叉验证**（Fortran 断言 $10^{-8}$、Python 有限差分 ODE 残差 $2\times10^{-11}$，图 10.5）。
+
+![图 10.5：二能级热化 Lindblad 的 Liouvillian 谱方法（`lindblad_supermatrix_2level` / `lindblad_steady_state_2level` / `lindblad_eigenmodes_2level` / `lindblad_spectral_reconstruct`，$\gamma_\downarrow=0.6$、$\gamma_\uparrow=0.15$、$\gamma_\phi=0.25$、$\delta=0.8\ \mathrm{ps}^{-1}$）。（a）复平面谱：稳态 0、布居衰减 $-\Gamma=-0.75$、相干模 $-s\mp i\delta=-0.875\mp0.8i$——本征关系 $\lVert\mathcal{L}R_k-\lambda_kR_k\rVert$ 达 $10^{-12}$；（b）阻尼基谱重构 $\rho(t)$：$\rho_{ee}$ 弛豫到热稳态 $\gamma_\uparrow/\Gamma=0.2$、$|\rho_{eg}|$ 以 $s=0.875\ \mathrm{ps}^{-1}$ 衰减——与 RK4 独立推进在 $10^{-8}$ 内重合。绘图脚本见 `docs/generate_figures.py`。](figures/fig24_liouvillian_spectrum.png){width=13.0cm}
+
+
 #### 对应源码
 
 - [tests/test_open_quantum_opt.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/tests/test_open_quantum_opt.f90)
@@ -4181,7 +4194,7 @@ GitHub Actions 配置位于：
 | 5.3–5.5 | DVR/FGH 谱方法 | `mod_dvr_grid::dvr_sinc_init`、`fgh_solve_bound_states` | `dvr.dvr_sinc_init`、`fgh_solve_bound_states` | `test_dvr_grid` | 图 5.1、10.1 |
 | 6.2 / 14.2 | Split-Operator 分裂 | `mod_wavepacket_propagator::propagate_split_operator_1d/2d` | — | `test_propagators` | 图 10.2、11 |
 | 6.5 | 二能级 Bloch 方程 | `mod_wavepacket_propagator::solve_bloch_two_level` | — | `test_propagators` | — |
-| 6.8 / 10.5 / 14.8 | Lindblad 超算符 | `mod_open_quantum::lindblad_dissipator`、`rk4_lindblad_step`、`calculate_quantum_purity` | — | `test_open_quantum_opt` | 图 10.4（17） |
+| 6.8 / 10.5 / 14.8 | Lindblad 超算符 + 谱方法 | `mod_open_quantum::lindblad_dissipator`、`rk4_lindblad_step`、`lindblad_supermatrix_2level`、`lindblad_steady_state_2level`、`lindblad_eigenmodes_2level`、`lindblad_spectral_reconstruct`、`calculate_quantum_purity` | `open_quantum.lindblad_supermatrix_2level` 等（谱方法四件套） | `test_open_quantum_opt` | 图 10.4（17）、10.5（24） |
 | 6.9 | Krotov 最优控制 | `mod_optimal_control::oct_optimize_pulse` | — | `test_laser_rovibrational_control` | — |
 | 7.2 / 7.5 | Numerov、有效力程 | `mod_ti_scattering::calc_scattering_length_numerov`、`fit_effective_range_expansion` | `scattering.calc_scattering_length_numerov` | `test_ti_scattering` | 图 7.1 |
 | 7.3 / 7.6 | Johnson 对数导数（多通道） | `mod_ti_scattering::calc_scattering_length_logder`、`multichannel_result_t` | `scattering.calc_multichannel_close_coupling` | `test_ti_scattering`/`test_td_scattering` | 图 7.1 |
@@ -5163,7 +5176,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 48 个测试程序、495 项断言全部通过。
+- 全库 48 个测试程序、504 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

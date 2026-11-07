@@ -114,6 +114,67 @@ program test_open_quantum_opt
     call assert_true("Krotov actual iterations <= 25", actual_iters <= 25)
     deallocate(e_field)
 
+    ! ----------------------------------------------------
+    ! 5. Lindblad Liouvillian 谱方法 (开放系统谱方法, 热化二能级)
+    ! ----------------------------------------------------
+    ! 精确谱 {0, -Gamma, -(Gamma/2+2gamma_phi) -/+ i delta}; 阻尼基重构
+    ! 与 RK4 推进两条独立方法交叉验证。
+    block
+        complex(dp), allocatable :: rho_spec(:, :), rho_rk(:, :), h_bl(:, :), &
+                                    l_ops_sp(:, :, :)
+        complex(dp) :: rho_ss2(2, 2), evals4(4), modes4(2, 2, 4), rho_t(2, 2)
+        real(dp) :: gam_d, gam_u, gam_p, dlt, gam_t, t_sp, dt_sp
+        real(dp) :: gam_rates_sp(4)
+        integer :: stat_sp, istep
+
+        gam_d = 0.6_dp; gam_u = 0.15_dp; gam_p = 0.25_dp; dlt = 0.8_dp
+        gam_t = gam_d + gam_u
+
+        call lindblad_steady_state_2level(gam_d, gam_u, gam_p, dlt, rho_ss2, stat_sp)
+        call assert_true("Steady state augmented solve = closed form", stat_sp == 0)
+        call assert_close("Steady state trace = 1.0", 1.0_dp, &
+                          real(rho_ss2(1, 1) + rho_ss2(2, 2), dp), 1.0e-12_dp)
+
+        call lindblad_eigenmodes_2level(gam_d, gam_u, gam_p, dlt, rho_ss2, &
+                                        evals4, modes4, stat_sp)
+        call assert_true("Damping-basis eigen-relation L R = lambda R", stat_sp == 0)
+        call assert_close("lambda_2 = -Gamma", -gam_t, real(evals4(2), dp), 1.0e-12_dp)
+        call assert_close("Re lambda_3 = -(Gamma/2+2gp)", &
+                          -(0.5_dp * gam_t + 2.0_dp * gam_p), &
+                          real(evals4(3), dp), 1.0e-12_dp)
+        call assert_close("Im lambda_3 = -delta", -dlt, aimag(evals4(3)), 1.0e-12_dp)
+
+        ! 谱重构 vs RK4: 初态 (|e>+|g>)/sqrt2, H = delta |e><e|
+        allocate(rho_spec(2, 2), rho_rk(2, 2), h_bl(2, 2), l_ops_sp(2, 2, 4))
+        rho_spec = (0.0_dp, 0.0_dp)
+        rho_spec(1, 1) = (0.5_dp, 0.0_dp); rho_spec(2, 2) = (0.5_dp, 0.0_dp)
+        rho_spec(1, 2) = (0.5_dp, 0.0_dp); rho_spec(2, 1) = (0.5_dp, 0.0_dp)
+        h_bl = (0.0_dp, 0.0_dp)
+        h_bl(1, 1) = cmplx(dlt, 0.0_dp, dp)
+        l_ops_sp(:, :, 1) = (0.0_dp, 0.0_dp); l_ops_sp(2, 1, 1) = (1.0_dp, 0.0_dp)
+        l_ops_sp(:, :, 2) = (0.0_dp, 0.0_dp); l_ops_sp(1, 2, 2) = (1.0_dp, 0.0_dp)
+        l_ops_sp(:, :, 3) = (0.0_dp, 0.0_dp); l_ops_sp(1, 1, 3) = (1.0_dp, 0.0_dp)
+        l_ops_sp(:, :, 4) = (0.0_dp, 0.0_dp); l_ops_sp(2, 2, 4) = (1.0_dp, 0.0_dp)
+        gam_rates_sp(1) = gam_d; gam_rates_sp(2) = gam_u
+        gam_rates_sp(3) = 2.0_dp * gam_p; gam_rates_sp(4) = 2.0_dp * gam_p
+
+        t_sp = 0.7_dp
+        dt_sp = 1.0e-3_dp
+        rho_rk = rho_spec
+        do istep = 1, nint(t_sp / dt_sp)
+            call rk4_lindblad_step(rho_rk, h_bl, l_ops_sp, gam_rates_sp, dt_sp)
+        end do
+        call lindblad_spectral_reconstruct(rho_spec, rho_ss2, gam_d, gam_u, &
+                                           gam_p, dlt, t_sp, rho_t)
+        call assert_close("Spectral reconstruction vs RK4 (t=0.7)", &
+                          real(rho_rk(1, 1), dp), real(rho_t(1, 1), dp), 1.0e-8_dp)
+        call assert_close("Spectral reconstruction coherence", &
+                          real(rho_rk(1, 2), dp), real(rho_t(1, 2), dp), 1.0e-8_dp)
+        call assert_close("Reconstruction preserves trace", 1.0_dp, &
+                          real(rho_t(1, 1) + rho_t(2, 2), dp), 1.0e-12_dp)
+        deallocate(rho_spec, rho_rk, h_bl, l_ops_sp)
+    end block
+
     print '(A)', "--------------------------------------------------"
     print '(A, I2, A, I2, A)', "Open Quantum & OCT Tests: ", n_passed, " / ", n_tests, " PASSED."
     if (n_passed /= n_tests) then

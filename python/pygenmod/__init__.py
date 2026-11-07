@@ -104,6 +104,11 @@ from .visualizer import (
 )
 
 
+from .open_quantum import (
+    lindblad_supermatrix_2level, lindblad_steady_state_2level,
+    lindblad_eigenmodes_2level, lindblad_spectral_reconstruct,
+)
+
 from .qct import (
     LEPSParameters, QCTConfig, QCTTrajectory, QCTResult,
     qct_init_trajectory, qct_propagate_step, propagate_trajectory,
@@ -184,5 +189,7 @@ __all__ = [
     "smolyak_refine", "smolyak_multi_indices",
     "MCTDHConfig", "MCTDHState", "mctdh_mean_field",
     "mctdh_propagate_step", "mctdh_propagate",
+    "lindblad_supermatrix_2level", "lindblad_steady_state_2level",
+    "lindblad_eigenmodes_2level", "lindblad_spectral_reconstruct",
 ]
 

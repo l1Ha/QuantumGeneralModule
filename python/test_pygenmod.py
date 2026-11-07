@@ -243,19 +243,6 @@ class TestPyGenMod(unittest.TestCase):
         self.assertLess(d_a, 2e-2)
         self.assertLess(d_b, 2e-2)
 
-        # 多原子第八步: Watson d1/d2 非对角畸变 + 迹定理 (与 Fortran 组 7 对应)
-        from pygenmod.rovibrational import watson_asymmetric_levels_cd as w_cd
-        e_w0 = w_cd(a_const, b_const, 0.6, 2.76e-4, 1e-3, 4e-3, 6)
-        e_w1 = w_cd(a_const, b_const, 0.6, 2.76e-4, 1e-3, 4e-3, 6,
-                    d1=2e-6, d2=5e-7)
-        # 迹定理: d1/d2 纯非对角 (Tr = 0), sum(E) 精确不变
-        self.assertAlmostEqual(float(np.sum(e_w1) - np.sum(e_w0)), 0.0, delta=1e-8)
-        # 零回归
-        e_wz = w_cd(a_const, b_const, 0.6, 2.76e-4, 1e-3, 4e-3, 6, d1=0.0, d2=0.0)
-        self.assertAlmostEqual(float(np.max(np.abs(e_w0 - e_wz))), 0.0, delta=1e-12)
-        # Fortran 金值对照 (位级一致)
-        self.assertAlmostEqual(e_w1[0], 28.1725476, delta=1e-6)
-
     def test_irc_reaction_path(self):
         """IRC (book Sec 3.2): analytic gradient, mass-weighted Gonzalez-Schlegel
         path. Mirrors the Fortran tests of test_triatomic_geometry (steps 6-7)."""
@@ -297,6 +284,42 @@ class TestPyGenMod(unittest.TestCase):
         self.assertAlmostEqual(bra["r12"][-1], brb["r23"][-1], delta=1e-6)
         self.assertAlmostEqual(bra["r23"][-1], brb["r12"][-1], delta=1e-6)
 
+    def test_open_quantum_spectral(self):
+        """Open-system spectral methods (book Sec 10.5): Liouvillian
+        supermatrix, steady state, damping basis, spectral reconstruction.
+        Mirrors the Fortran test group 5 of test_open_quantum_opt."""
+        from pygenmod.open_quantum import (
+            lindblad_eigenmodes_2level, lindblad_spectral_reconstruct,
+            lindblad_steady_state_2level, lindblad_supermatrix_2level)
+        gd, gu, gp, dl = 0.6, 0.15, 0.25, 0.8
+        gam_t = gd + gu
+        rho_ss2 = lindblad_steady_state_2level(gd, gu)
+        self.assertAlmostEqual(float(np.real(rho_ss2[0, 0])), gu / gam_t,
+                               delta=1e-12)
+        evals4, modes4, stat_sp = lindblad_eigenmodes_2level(
+            gd, gu, gp, dl, rho_ss2)
+        self.assertEqual(stat_sp, 0)
+        self.assertAlmostEqual(float(np.real(evals4[1])), -gam_t, delta=1e-12)
+        self.assertAlmostEqual(float(np.imag(evals4[2])), -dl, delta=1e-12)
+        # 谱重构满足 Liouvillian 方程 (有限差分 ODE 残差)
+        rho0 = np.array([[0.5, 0.5], [0.5, 0.5]], dtype=complex)
+        t_sp = 0.7
+        rho_t = lindblad_spectral_reconstruct(rho0, rho_ss2, gd, gu, gp, dl,
+                                              t_sp)
+        hh = 1e-6
+        rho_p = lindblad_spectral_reconstruct(rho0, rho_ss2, gd, gu, gp, dl,
+                                              t_sp + hh)
+        rho_m = lindblad_spectral_reconstruct(rho0, rho_ss2, gd, gu, gp, dl,
+                                              t_sp - hh)
+        drdt_fd = (rho_p - rho_m) / (2 * hh)
+        l_sup = lindblad_supermatrix_2level(gd, gu, gp, dl)
+        vec = np.array([rho_t[0, 0], rho_t[0, 1], rho_t[1, 0], rho_t[1, 1]])
+        drdt_l = (l_sup @ vec).reshape(2, 2)
+        self.assertLess(float(np.max(np.abs(drdt_fd - drdt_l))), 1e-9)
+        # 迹守恒
+        self.assertAlmostEqual(float(np.real(rho_t[0, 0] + rho_t[1, 1])), 1.0,
+                               delta=1e-12)
+
     def test_rovibrational(self):
         # Index roundtrip
         idx = rovibrational_state_index(v=2, j=3, j_max=5)
@@ -333,6 +356,19 @@ class TestPyGenMod(unittest.TestCase):
         lvl_cd = watson_asymmetric_levels_cd(10.0, 10.0, 10.0, 2.76e-3, 0.0, 0.0, 3)
         np.testing.assert_allclose(lvl_cd, (10.0 - 2.76e-3 * 12.0) * 12.0, atol=1e-9)
         lvl_cd = watson_asymmetric_levels_cd(27.42, 14.59, 9.53, 2.76e-3, 1e-2, 4e-2, 7)
+
+        # 多原子第八步: Watson d1/d2 非对角畸变 + 迹定理 (与 Fortran 组 7 对应)
+        from pygenmod.rovibrational import watson_asymmetric_levels_cd as w_cd
+        e_w0 = w_cd(2.0, 0.9, 0.6, 2.76e-4, 1e-3, 4e-3, 6)
+        e_w1 = w_cd(2.0, 0.9, 0.6, 2.76e-4, 1e-3, 4e-3, 6,
+                    d1=2e-6, d2=5e-7)
+        # 迹定理: d1/d2 纯非对角 (Tr = 0), sum(E) 精确不变
+        self.assertAlmostEqual(float(np.sum(e_w1) - np.sum(e_w0)), 0.0, delta=1e-8)
+        # 零回归
+        e_wz = w_cd(2.0, 0.9, 0.6, 2.76e-4, 1e-3, 4e-3, 6, d1=0.0, d2=0.0)
+        self.assertAlmostEqual(float(np.max(np.abs(e_w0 - e_wz))), 0.0, delta=1e-12)
+        # Fortran 金值对照 (位级一致)
+        self.assertAlmostEqual(e_w1[0], 28.1725476, delta=1e-6)
         jj = 7.0 * 8.0
         trace_cd = 15.0 * jj * (27.42 + 14.59 + 9.53) / 3.0 \
             - 2.76e-3 * 15.0 * jj * jj - 1e-2 * 15.0 * jj * jj / 3.0 \

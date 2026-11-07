@@ -6706,6 +6706,59 @@ RK4 传播器对 Lindblad 方程的收敛精度。注意退相干率中的因子
 \texttt{calculate\_quantum\_purity}。}
 \end{figure}
 
+\hypertarget{ux5f00ux653eux7cfbux7edfux8c31ux65b9ux6cd5liouvillian-ux8c31ux4e0eux963bux5c3cux57falindblad_supermatrix_2level-ux7b49}{%
+\subsection{\texorpdfstring{开放系统谱方法：Liouvillian
+谱与阻尼基（\texttt{lindblad\_supermatrix\_2level}
+等）}{开放系统谱方法：Liouvillian 谱与阻尼基（lindblad\_supermatrix\_2level 等）}}\label{ux5f00ux653eux7cfbux7edfux8c31ux65b9ux6cd5liouvillian-ux8c31ux4e0eux963bux5c3cux57falindblad_supermatrix_2level-ux7b49}}
+
+RK4 时间步进之外，Lindblad 主方程还有一条\textbf{谱方法}路线：把
+Liouvillian 超算符向量化为 \(\mathcal{L}\)（\(n^{2}\times n^{2}\)
+矩阵），其谱分解给出全部弛豫通道------这就是开放系统谱方法（§12.2
+路线图项）。以热化二能级（\(H=\delta|e\rangle\langle e|\)，塌缩速率
+\(\gamma_{\downarrow}=\gamma(n_{\mathrm{th}}+1)\)、\(\gamma_{\uparrow}=\gamma n_{\mathrm{th}}\)，退相位
+\(\gamma_\phi\)）为例，在向量基 \((ee,eg,ge,gg)\) 中
+
+\[\mathcal{L}=\begin{pmatrix}-\gamma_\downarrow&0&0&\gamma_\uparrow\\
+0&-s-i\delta&0&0\\0&0&-s+i\delta&0\\\gamma_\downarrow&0&0&-\gamma_\uparrow\end{pmatrix},
+\qquad s=\frac{\Gamma}{2}+2\gamma_\phi,\ \Gamma=\gamma_\downarrow+\gamma_\uparrow,\]
+
+\textbf{精确谱} \(\{0,-\Gamma,-s\mp i\delta\}\)
+与\textbf{阻尼基}（右本征密度矩阵）：稳态
+\(\rho_{\mathrm{ss}}\)（\(\lambda=0\)，闭式
+\(\rho_{ee}^{\mathrm{ss}}=\gamma_\uparrow/\Gamma\)）、无迹布居模
+\(|e\rangle\langle e|-|g\rangle\langle g|\)（\(\lambda=-\Gamma\)）、相干模
+\(|e\rangle\langle g|\) 与
+\(|g\rangle\langle e|\)（\(\lambda=-s\mp i\delta\)）。实现分四步，每步独立验收：其一，\texttt{lindblad\_supermatrix\_2level}
+构造超矩阵；其二，\texttt{lindblad\_steady\_state\_2level}
+以\textbf{增广线性方程}
+\([[\mathcal{L},\mathbf{1}],[\mathbf{1}^{T},0]][x;\nu]=[0;1]\)（库内复矩阵求逆）求稳态，并与闭式对照（\(10^{-10}\)）；其三，\texttt{lindblad\_eigenmodes\_2level}
+给出解析阻尼基并以\textbf{谱关系}
+\(\lVert\mathcal{L}R_k-\lambda_kR_k\rVert<10^{-12}\)
+机器验证（本征对的向量化约定为行主序
+\((ee,eg,ge,gg)\)------列主序展开会把相干元打到错误的超行，这一陷阱由断言直接暴露）；其四，\texttt{lindblad\_spectral\_reconstruct}
+用 \(\rho(t)=\rho_{\mathrm{ss}}+\sum_k c_k e^{\lambda_k t}R_k\) 重构
+\(\rho(t)\)（\(c_{eg}=\rho_{eg}(0)\)、\(c_{\mathrm{pop}}=\rho_{ee}(0)-\rho_{ee}^{\mathrm{ss}}\)：\(R_{\mathrm{ss}}\)
+迹 1、\(R_{\mathrm{pop}}\) 无迹），并与 RK4
+推进\textbf{两条独立方法交叉验证}（Fortran 断言 \(10^{-8}\)、Python
+有限差分 ODE 残差 \(2\times10^{-11}\)，图 10.5）。
+
+\begin{figure}
+\centering
+\includegraphics[width=13cm,height=\textheight]{figures/fig24_liouvillian_spectrum.png}
+\caption{图 10.5：二能级热化 Lindblad 的 Liouvillian
+谱方法（\texttt{lindblad\_supermatrix\_2level} /
+\texttt{lindblad\_steady\_state\_2level} /
+\texttt{lindblad\_eigenmodes\_2level} /
+\texttt{lindblad\_spectral\_reconstruct}，\(\gamma_\downarrow=0.6\)、\(\gamma_\uparrow=0.15\)、\(\gamma_\phi=0.25\)、\(\delta=0.8\ \mathrm{ps}^{-1}\)）。（a）复平面谱：稳态
+0、布居衰减 \(-\Gamma=-0.75\)、相干模
+\(-s\mp i\delta=-0.875\mp0.8i\)------本征关系
+\(\lVert\mathcal{L}R_k-\lambda_kR_k\rVert\) 达
+\(10^{-12}\)；（b）阻尼基谱重构 \(\rho(t)\)：\(\rho_{ee}\) 弛豫到热稳态
+\(\gamma_\uparrow/\Gamma=0.2\)、\(|\rho_{eg}|\) 以
+\(s=0.875\ \mathrm{ps}^{-1}\) 衰减------与 RK4 独立推进在 \(10^{-8}\)
+内重合。绘图脚本见 \texttt{docs/generate\_figures.py}。}
+\end{figure}
+
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-47}{%
 \subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-47}}
 
@@ -7495,15 +7548,16 @@ Split-Operator 分裂\strut
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
 6.8 / 10.5 / 14.8\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-Lindblad 超算符\strut
+Lindblad 超算符 + 谱方法\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-\texttt{mod\_open\_quantum::lindblad\_dissipator}、\texttt{rk4\_lindblad\_step}、\texttt{calculate\_quantum\_purity}\strut
+\texttt{mod\_open\_quantum::lindblad\_dissipator}、\texttt{rk4\_lindblad\_step}、\texttt{lindblad\_supermatrix\_2level}、\texttt{lindblad\_steady\_state\_2level}、\texttt{lindblad\_eigenmodes\_2level}、\texttt{lindblad\_spectral\_reconstruct}、\texttt{calculate\_quantum\_purity}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
----\strut
+\texttt{open\_quantum.lindblad\_supermatrix\_2level}
+等（谱方法四件套）\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 \texttt{test\_open\_quantum\_opt}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-图 10.4（17）\strut
+图 10.4（17）、10.5（24）\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
 6.9\strut
@@ -9478,7 +9532,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 48 个测试程序、495 项断言全部通过。
+  全库 48 个测试程序、504 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的
