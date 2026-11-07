@@ -540,3 +540,133 @@ def calc_scattering_wavefunction_1d_cartesian(x_grid: np.ndarray, v_pot: np.ndar
 
     psi_wf = (psi / a_inc) * norm_factor
     return psi_wf, t_prob, r_prob
+
+
+def square_well_s_phase_exact(energy: float, v0_depth: float, r_well: float,
+                              mass: float) -> float:
+    """Exact s-wave phase shift of the attractive square well (closed form).
+
+    V(r) = -v0_depth for r < r_well, 0 beyond: matching the inside solution
+    sin(k_tilde r) (k_tilde = sqrt(2 m (E + v0_depth))) to the outside free
+    wave gives delta = atan2(k sin(k_tilde R), k_tilde cos(k_tilde R)) - k R
+    (atan2 form, no branch jumps). Compare with the numerically matched
+    phase via tan(delta) (mod pi identical).
+    Fortran mirror: `square_well_s_phase_exact` (src/mod_ti_scattering.f90).
+    """
+    k = np.sqrt(2.0 * mass * energy)
+    k_tilde = np.sqrt(2.0 * mass * (energy + v0_depth))
+    return float(np.arctan2(k * np.sin(k_tilde * r_well),
+                            k_tilde * np.cos(k_tilde * r_well)) - k * r_well)
+
+
+def count_s_wave_bound_states(r_grid: np.ndarray, v_pot: np.ndarray,
+                              mass: float) -> int:
+    """Number of s-wave bound states via zero-energy node counting.
+
+    Integrates the zero-energy equation -u''/(2m) = V u (Numerov, E = 0,
+    l = 0) and counts sign changes: the node theorem equates this to the
+    number of bound states, and Levinson's theorem to delta(E -> 0) = n_b pi.
+    Fortran mirror: `count_s_wave_bound_states`.
+    """
+    n_pts = len(r_grid)
+    dr = r_grid[1] - r_grid[0]
+    dr2_12 = dr * dr / 12.0
+    u = np.zeros(n_pts)
+    u[0] = 0.0
+    u[1] = 1e-7
+    for i in range(1, n_pts - 1):
+        q_prev = -2.0 * mass * v_pot[i - 1]
+        q_curr = -2.0 * mass * v_pot[i]
+        q_next = -2.0 * mass * v_pot[i + 1]
+        c_prev = 1.0 + dr2_12 * q_prev
+        c_curr = 2.0 * (1.0 - 5.0 * dr2_12 * q_curr)
+        c_next = 1.0 + dr2_12 * q_next
+        u[i + 1] = (c_curr * u[i] - c_prev * u[i - 1]) / c_next
+        if abs(u[i + 1]) > 1e15:
+            u[:i + 2] *= 1e-10
+    return int(np.sum(u[:-1] * u[1:] < 0))
+
+
+def unwrap_phase_grid(delta_in: np.ndarray) -> np.ndarray:
+    """Unwrap atan2 principal-value phases with pi periodicity.
+
+    Log-derivative matching determines delta only mod pi; the atan2 branch
+    switches appear as +/- pi jumps. Levinson/Friedel integral theorems need
+    the continuous (pi-unwrapped) phase.
+    Fortran mirror: `unwrap_phase_grid`.
+    """
+    out = np.empty_like(delta_in)
+    out[0] = delta_in[0]
+    for i in range(1, len(delta_in)):
+        d = delta_in[i] - delta_in[i - 1]
+        while d > 0.5 * np.pi:
+            d -= np.pi
+        while d <= -0.5 * np.pi:
+            d += np.pi
+        out[i] = out[i - 1] + d
+    return out
+
+
+def _riccati_l0_l1_up(x: float, l_max: int):
+    """Riccati functions and derivatives up to l_max (upward recurrence).
+
+    Returns (jl_arr, nl_arr, djl_arr, dnl_arr) with
+    y_l(x) = x j_l(x) = sin/cos-type functions, y_0 = sin x,
+    n_0 = -cos x; derivative identity d/dx y_l = y_{l-1} - (l/x) y_l.
+    """
+    jl = np.zeros(l_max + 1)
+    nl = np.zeros(l_max + 1)
+    djl = np.zeros(l_max + 1)
+    dnl = np.zeros(l_max + 1)
+    jl[0] = np.sin(x)
+    nl[0] = -np.cos(x)
+    djl[0] = np.cos(x)
+    dnl[0] = np.sin(x)
+    if l_max >= 1:
+        jl[1] = np.sin(x) / x - np.cos(x)
+        nl[1] = -np.cos(x) / x - np.sin(x)
+        djl[1] = nl[0] - jl[0] / x
+        dnl[1] = jl[0] - nl[0] / x
+        for l in range(1, l_max):
+            jl[l + 1] = (2.0 * l + 1.0) / x * jl[l] - jl[l - 1]
+            nl[l + 1] = (2.0 * l + 1.0) / x * nl[l] - nl[l - 1]
+            djl[l + 1] = nl[l] - (l + 1.0) / x * jl[l + 1]
+            dnl[l + 1] = jl[l] - (l + 1.0) / x * nl[l + 1]
+    return jl, nl, djl, dnl
+
+
+def calc_phase_shift_single_l(r_grid: np.ndarray, v_pot: np.ndarray,
+                              mass: float, energy: float, l: int) -> float:
+    """Single-l phase shift from Numerov integration + log-derivative
+    matching against the free Riccati functions at the grid end.
+
+    tan(delta) = (k y_l' - y y_l) / (k y_n' - y y_n) at x = k r_match,
+    delta = atan2(num, den) (principal branch; log-derivative matching
+    determines delta only mod pi).
+    Fortran mirror: `calc_phase_shift_single_l` (src/mod_ti_scattering.f90).
+    """
+    n_pts = len(r_grid)
+    dr = r_grid[1] - r_grid[0]
+    dr2_12 = dr * dr / 12.0
+    k = np.sqrt(2.0 * mass * energy)
+
+    u = np.zeros(n_pts)
+    u[0] = 0.0
+    u[1] = dr ** (l + 1) * 1e-5
+    for i in range(1, n_pts - 1):
+        q_prev = 2.0 * mass * (energy - v_pot[i - 1]) - l * (l + 1) / r_grid[i - 1] ** 2
+        q_curr = 2.0 * mass * (energy - v_pot[i]) - l * (l + 1) / r_grid[i] ** 2
+        q_next = 2.0 * mass * (energy - v_pot[i + 1]) - l * (l + 1) / r_grid[i + 1] ** 2
+        c_prev = 1.0 + dr2_12 * q_prev
+        c_curr = 2.0 * (1.0 - 5.0 * dr2_12 * q_curr)
+        c_next = 1.0 + dr2_12 * q_next
+        u[i + 1] = (c_curr * u[i] - c_prev * u[i - 1]) / c_next
+        if abs(u[i + 1]) > 1e20:
+            u[:i + 2] *= 1e-15
+
+    y_logder = (3.0 * u[-1] - 4.0 * u[-2] + u[-3]) / (2.0 * dr) / u[-1]
+    x_m = k * r_grid[-1]
+    jl, nl, djl, dnl = _riccati_l0_l1_up(x_m, l)
+    num = k * djl[l] - y_logder * jl[l]
+    den = k * dnl[l] - y_logder * nl[l]
+    return float(np.arctan2(num, den))

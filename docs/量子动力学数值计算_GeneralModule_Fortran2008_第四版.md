@@ -2305,6 +2305,15 @@ $$
 
 ![](qr/src__mod_ti_scattering.f90.png){width=2.0cm}
 
+
+#### 散射理论定理：Wigner 时间延迟与 Levinson 定理（`square_well_s_phase_exact` 等）
+
+散射理论的两大普适定理把相移、束缚态与时间延迟连成闭环。**Wigner 时间延迟**：$\tau(E)=2\hbar\,\mathrm{d}\delta/\mathrm{d}E$ 度量波包散射的群延迟——势阱内准束缚态驻留处 $\tau$ 出现峰（Breit–Wigner：峰宽 $\Gamma=4\hbar/\tau_{\max}$）。**Levinson 定理**：$\delta(0)-\delta(\infty)=n_b\pi$，零能相移由束缚态数 $n_b$ 决定——而 $n_b$ 恰是零能解的**节点数**（Sturm 节点定理）。两者与散射长度在低能极限闭合：$\tau(E)\,k=-2ma_s$（$E\to0$，$\delta\simeq n_b\pi-ka_s$）。
+
+实现与验收（`square_well_s_phase_exact`、`count_s_wave_bound_states`、`unwrap_phase_grid` 配合 `calc_phase_shift_single_l`）：其一，方势阱 s 波相移闭式 $\delta=\mathrm{atan2}(k\sin\tilde{k}R,\tilde{k}\cos\tilde{k}R)-kR$（$\tilde{k}=\sqrt{2m(E+V_0)}$，atan2 形式无分支跳变）作为 Numerov + 对数导数匹配数值相移的基准——比较须用 $\tan\delta$（对数导数匹配只定 $\delta\ \mathrm{mod}\ \pi$，atan2 分支差由 Levinson $\pi$ 补齐），间断势的 Numerov 边缘误差为 $O(\Delta r)$（网格减半即减半，$\tan\delta$ 差 $2\times10^{-2}$ @ $\Delta r=3.3\times10^{-3}$）。其二，零能节点计数给出 $n_b=1$，Levinson 极限 $\delta(0)+n_b\pi=\pi$ 在 $k\,a_s$ 修正内成立（$1.4\times10^{-2}$）。其三，$\tau(E)\,k=-2ma_s$ 在全低能网格成立（$a_s$ 来自 `calc_scattering_length_numerov`，两条独立机制）。$\tau\,k$ 的散点揭示解析分支结构：atan2 主值相位的 Levinson $\pi$ 补偿必须显式加入（图 7.6）。
+
+![图 7.6：方势阱 s 波的 Wigner 时间延迟与 Levinson 定理（`calc_phase_shift_single_l` + `square_well_s_phase_exact`/`count_s_wave_bound_states`，$V_0=0.05\ E_h$、$R=8\ a_0$、$a_s=10.24\ a_0$）。（a）相移 $\delta_0(E)$：黑线为闭式解，红点为 Numerov + 对数导数匹配（Levinson 分支校正 $\delta_{\mathrm{atan2}}+n_b\pi$），点线为 Levinson 极限 $\delta(0)=n_b\pi$（$n_b=1$，零能节点计数）；（b）Wigner 时间延迟低能极限 $\tau(E)\,k=-2ma_s$：数值 $\tau$（红）与 Numerov 散射长度（蓝虚线）在 $E\lesssim10^{-4}\ E_h$ 区间吻合到 $1\%$。绘图脚本见 `docs/generate_figures.py`。](figures/fig25_wigner_levinson.png){width=13.0cm}
+
 ![图 7.1：短程吸引势阱中的超冷零能径向散射波函数 $u(r)$（实线）及在势阱外向 $r$ 轴线性外推的渐近切线 $C(r - a_s)$（虚线），切线与坐标轴的截距直接确定了 $s$-波散射长度 $a_s$。](figures/fig04_scattering_length.png){width=12.0cm}
 
 ### 7.3　Johnson 对数导数方法
@@ -4196,7 +4205,7 @@ GitHub Actions 配置位于：
 | 6.5 | 二能级 Bloch 方程 | `mod_wavepacket_propagator::solve_bloch_two_level` | — | `test_propagators` | — |
 | 6.8 / 10.5 / 14.8 | Lindblad 超算符 + 谱方法 | `mod_open_quantum::lindblad_dissipator`、`rk4_lindblad_step`、`lindblad_supermatrix_2level`、`lindblad_steady_state_2level`、`lindblad_eigenmodes_2level`、`lindblad_spectral_reconstruct`、`calculate_quantum_purity` | `open_quantum.lindblad_supermatrix_2level` 等（谱方法四件套） | `test_open_quantum_opt` | 图 10.4（17）、10.5（24） |
 | 6.9 | Krotov 最优控制 | `mod_optimal_control::oct_optimize_pulse` | — | `test_laser_rovibrational_control` | — |
-| 7.2 / 7.5 | Numerov、有效力程 | `mod_ti_scattering::calc_scattering_length_numerov`、`fit_effective_range_expansion` | `scattering.calc_scattering_length_numerov` | `test_ti_scattering` | 图 7.1 |
+| 7.2 / 7.5 | Numerov、有效力程、Wigner 时延 + Levinson | `mod_ti_scattering::calc_scattering_length_numerov`、`fit_effective_range_expansion`、`square_well_s_phase_exact`、`count_s_wave_bound_states`、`unwrap_phase_grid` | `scattering.calc_scattering_length_numerov`、`scattering.calc_phase_shift_single_l`、`scattering.square_well_s_phase_exact` 等 | `test_ti_scattering` | 图 7.1、7.6（25） |
 | 7.3 / 7.6 | Johnson 对数导数（多通道） | `mod_ti_scattering::calc_scattering_length_logder`、`multichannel_result_t` | `scattering.calc_multichannel_close_coupling` | `test_ti_scattering`/`test_td_scattering` | 图 7.1 |
 | 7.4 | 光学定理 | `mod_ti_scattering::optical_theorem_cross_section` | — | `test_ti_scattering` | — |
 | 7.8 / 10.4 | Breit-Rabi、Feshbach | `mod_field_scattering::calc_breit_rabi_energies`、`fit_feshbach_resonance_parameters` | `field_scattering` 同名 | `test_field_scattering` | 图 7.3、10.3 |
@@ -5176,7 +5185,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 48 个测试程序、504 项断言全部通过。
+- 全库 48 个测试程序、512 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

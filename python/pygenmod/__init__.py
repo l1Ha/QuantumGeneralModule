@@ -79,6 +79,8 @@ from .polyatomic_vib import (
 )
 
 from .scattering import (
+    square_well_s_phase_exact, count_s_wave_bound_states, unwrap_phase_grid,
+    calc_phase_shift_single_l,
     van_der_waals_mean_length, gribakin_flambaum_length,
     square_well_scattering_length_exact, calc_scattering_length_numerov,
     plot_scattering_length_wavefunction,
@@ -158,6 +160,8 @@ __all__ = [
     "poly_vib_coriolis_rotor_levels",
     "calc_rotational_constants_bv", "build_rovibrational_hamiltonian",
     "build_rovibrational_dipole_matrix",
+    "square_well_s_phase_exact", "count_s_wave_bound_states", "unwrap_phase_grid",
+    "calc_phase_shift_single_l",
     "van_der_waals_mean_length", "gribakin_flambaum_length",
     "square_well_scattering_length_exact", "calc_scattering_length_numerov",
     "plot_scattering_length_wavefunction",

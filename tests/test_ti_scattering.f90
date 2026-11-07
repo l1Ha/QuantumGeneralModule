@@ -534,6 +534,96 @@ program test_ti_scattering
 
     deallocate(r_grid, v_pot)
 
+    ! ----------------------------------------------------
+    ! Wigner 时间延迟 + Levinson 定理 (方势阱闭式基准)
+    ! ----------------------------------------------------
+    block
+        real(dp), allocatable :: r_w(:), v_w(:), e_w(:), ph_w(:), dtau_w(:)
+        real(dp) :: d_num, d_ex, td_w, dpi_w, s_int, dr_w, as_w, tau_k, tau_loc
+        real(dp), allocatable :: u_zero_w(:)
+        complex(dp) :: z_w
+        integer :: stat_w, n_bw, i_w, n_e_w, npts_w, n_bad
+
+        dpi_w = acos(-1.0_dp)
+        mass = 1.0_dp
+        r_well = 8.0_dp
+        v0_well = 0.05_dp
+        npts_w = 3597                       ! r_max = 0.01 + 3596*dr = 60.02
+        dr_w = 7.99_dp / 479.0_dp           ! 阱边 r=8.0 精确落在格点 (i=480)
+        allocate(r_w(npts_w), v_w(npts_w))
+        do i_w = 1, npts_w
+            r_w(i_w) = 0.01_dp + real(i_w - 1, dp) * dr_w
+            v_w(i_w) = merge(-v0_well, 0.0_dp, r_w(i_w) < r_well - 1.0e-12_dp)
+        end do
+
+        ! (1) 数值 tan(delta) vs 方势阱闭式 (容差: 间断势 Numerov O(dx) 边缘误差)
+        do i_w = 1, 5
+            energy = 0.01_dp * real(i_w, dp) ** 2
+            call calc_phase_shift_single_l(r_w, v_w, mass, energy, 0, d_num, &
+                                           td_w, z_w, z_w, stat_w)
+            d_ex = square_well_s_phase_exact(energy, v0_well, r_well, mass)
+            n_total = n_total + 1
+            if (abs(tan(d_num) - tan(d_ex)) < 3.0e-2_dp) then
+                n_pass = n_pass + 1
+                print '(A, I2, A)', " [PASS] Square-well tan(delta) vs closed form, E index ", &
+                    i_w, " (Numerov O(dx) edge error documented)"
+            else
+                print '(A, I2, A, ES10.2)', " [FAIL] Square-well tan(delta) diff = ", i_w, &
+                    tan(d_num) - tan(d_ex)
+            end if
+        end do
+
+        ! (2) Levinson 定理: delta_atan2(0) + n_b pi = pi (n_b 由节点计数)
+        call count_s_wave_bound_states(r_w, v_w, mass, n_bw, stat_w)
+        n_e_w = 80
+        allocate(e_w(n_e_w), ph_w(n_e_w), dtau_w(n_e_w))
+        do i_w = 1, n_e_w
+            e_w(i_w) = 1.0e-6_dp * (100.0_dp ** (real(i_w - 1, dp) / real(n_e_w - 1, dp)))
+            call calc_phase_shift_single_l(r_w, v_w, mass, e_w(i_w), 0, d_num, &
+                                           td_w, z_w, z_w, stat_w)
+            ph_w(i_w) = d_num
+        end do
+        call unwrap_phase_grid(ph_w, dtau_w, n_e_w)
+        n_total = n_total + 1
+        if (n_bw == 1 .and. abs(dtau_w(1) + real(n_bw, dp) * dpi_w - dpi_w) < 2.0e-2_dp) then
+            n_pass = n_pass + 1
+            print '(A, I2, A)', " [PASS] Levinson: n_b =", n_bw, &
+                " node-counted; delta(0) + n_b pi = pi within k*a correction"
+        else
+            print '(A, I3, A, ES10.3)', " [FAIL] Levinson: n_b =", n_bw, &
+                " delta(0)+n_b pi-pi =", dtau_w(1) + real(n_bw, dp) * dpi_w - dpi_w
+        end if
+
+        ! (3) Wigner 时间延迟低能极限: tau(E) = 2 d(delta)/dE = -2 m a_s / (hbar k)
+        !     (hbar = 1 a.u.) —— tau*k 与散射长度 -2 m a_s 的联系由两条独立
+        !     机制验证: tau 来自解卷绕相位差分, a_s 来自 calc_scattering_
+        !     length_numerov。低能区 tau*k 为常数。
+        call calc_scattering_length_numerov(r_w, v_w, mass, as_w, u_zero_w, stat_w)
+        n_total = n_total + 1
+        if (abs(as_w) > 0.3_dp .and. abs(as_w) < 20.0_dp) then
+            n_pass = n_pass + 1
+            print '(A, ES10.3)', " [PASS] scattering length from numerov:", as_w
+        else
+            print '(A, ES10.3)', " [FAIL] scattering length out of range:", as_w
+        end if
+        n_bad = 0
+        do i_w = 5, n_e_w - 5
+            tau_loc = 2.0_dp * (dtau_w(i_w + 1) - dtau_w(i_w)) / &
+                      (e_w(i_w + 1) - e_w(i_w))
+            tau_k = tau_loc * sqrt(2.0_dp * mass * e_w(i_w))
+            if (abs(tau_k + 2.0_dp * mass * as_w) > 0.15_dp * abs(2.0_dp * mass * as_w)) &
+                n_bad = n_bad + 1
+        end do
+        n_total = n_total + 1
+        if (n_bad == 0) then
+            n_pass = n_pass + 1
+            print '(A)', " [PASS] Wigner low-energy limit tau*k = -2 m a_s (all grid points)"
+        else
+            print '(A, I4)', " [FAIL] tau*k = -2 m a_s violations:", n_bad
+        end if
+        deallocate(r_w, v_w, e_w, ph_w, dtau_w)
+    end block
+
     print '(A)', "--------------------------------------------------"
     print '(A, I2, A, I2, A)', "TI Scattering Tests: ", n_pass, " / ", n_total, " PASSED."
     if (n_pass == n_total) then

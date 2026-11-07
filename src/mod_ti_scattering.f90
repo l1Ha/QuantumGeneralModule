@@ -104,6 +104,9 @@ module mod_ti_scattering
     public :: calc_scattering_length_numerov
     public :: calc_scattering_length_logder
     public :: calc_phase_shift_single_l
+    public :: square_well_s_phase_exact
+    public :: count_s_wave_bound_states
+    public :: unwrap_phase_grid
     public :: calc_scattering_wavefunction_ti
     public :: calc_scattering_wavefunction_1d_cartesian
     public :: calc_partial_wave_cross_sections
@@ -985,6 +988,105 @@ contains
         ! a_s = a_bar * [1 - tan(Phi - pi/8)]
         a_s = a_bar * (1.0_dp - tan(phase_phi - PI / 8.0_dp))
     end function gribakin_flambaum_length
+
+    ! ==========================================================================
+    ! 9b. 散射理论定理工具: 方势阱闭式相移 / 零能节点计数 (Levinson) / 相位解卷绕
+    ! ==========================================================================
+
+    !> \brief 方势阱 s 波相移闭式解 (验收基准)
+    !> \details V(r) = -V0 (r < R), 0 (r > R): 内波数 ktilde = sqrt(2m(E+V0)),
+    !>          匹配条件 tan(kR + delta) = (k/ktilde) tan(ktilde R), 故
+    !>          delta = atan2(k sin(ktilde R), ktilde cos(ktilde R)) - k R
+    !>          (atan2 形式无分支跳变)。与数值相移的比较建议用 tan(delta)
+    !>          (mod pi 不变)。
+    pure function square_well_s_phase_exact(energy, v0_depth, r_well, mass) &
+            result(delta)
+        real(dp), intent(in) :: energy, v0_depth, r_well, mass
+        real(dp) :: delta
+
+        real(dp) :: k_wave, k_tilde
+
+        k_wave = sqrt(2.0_dp * mass * energy)
+        k_tilde = sqrt(2.0_dp * mass * (energy + v0_depth))
+        delta = atan2(k_wave * sin(k_tilde * r_well), &
+                      k_tilde * cos(k_tilde * r_well)) - k_wave * r_well
+    end function square_well_s_phase_exact
+
+    !> \brief 零能量 s 波解的节点计数 (Levinson 定理的束缚态数 n_b)
+    !> \details 零能方程 -(1/2m) u'' = V u (Numerov, E = 0, l = 0): 解的
+    !>          符号变化次数 = 束缚态数 n_b (节点定理)。 Levinson: delta(0)
+    !>          = n_b pi (吸引势), delta(inf) = 0。
+    subroutine count_s_wave_bound_states(r_grid, v_pot, mass, n_bound, stat)
+        real(dp), dimension(:), intent(in) :: r_grid
+        real(dp), dimension(:), intent(in) :: v_pot
+        real(dp), intent(in)  :: mass
+        integer, intent(out)  :: n_bound
+        integer, optional, intent(out) :: stat
+
+        integer  :: n_pts, i, n_nodes
+        real(dp) :: dr, dr2_12, q_curr
+        real(dp), allocatable :: u_wf(:)
+
+        if (present(stat)) stat = 0
+        n_pts = size(r_grid)
+        if (n_pts < 5) then
+            if (present(stat)) stat = -1
+            n_bound = 0
+            return
+        end if
+
+        dr = r_grid(2) - r_grid(1)
+        dr2_12 = (dr * dr) / 12.0_dp
+
+        allocate(u_wf(n_pts))
+        u_wf = 0.0_dp
+        u_wf(1) = 0.0_dp
+        u_wf(2) = 1.0e-5_dp
+
+        do i = 2, n_pts - 1
+            ! 零能: q = -2 m V (束缚阱内 V < 0 -> q > 0 振荡)
+            q_curr = -2.0_dp * mass * v_pot(i)
+            u_wf(i + 1) = ((2.0_dp * (1.0_dp - 5.0_dp * dr2_12 * q_curr) * u_wf(i) &
+                            - (1.0_dp + dr2_12 * (-2.0_dp * mass * v_pot(i - 1))) * u_wf(i - 1)) &
+                           / (1.0_dp + dr2_12 * (-2.0_dp * mass * v_pot(i + 1))))
+            if (abs(u_wf(i + 1)) > 1.0e20_dp) then
+                u_wf(1:i + 1) = u_wf(1:i + 1) * 1.0e-15_dp
+            end if
+        end do
+
+        n_nodes = 0
+        do i = 2, n_pts - 1
+            if (u_wf(i) * u_wf(i + 1) < 0.0_dp) n_nodes = n_nodes + 1
+        end do
+        n_bound = n_nodes
+        deallocate(u_wf)
+    end subroutine count_s_wave_bound_states
+
+    !> \brief 相位解卷绕 (pi 周期): atan2 给出的主值相位恢复连续相位
+    !> \details 对数导数匹配只确定 delta mod pi (tan 不变), atan2 的分支
+    !>          切换表现为 +/-pi 跳变 —— Levinson / Friedel 型积分定理
+    !>          (int tau dE / 2hbar = delta(0) - delta(inf)) 需要 pi 周期
+    !>          解卷绕后的连续相位。逐点累加 pi 修正。
+    pure subroutine unwrap_phase_grid(delta_in, delta_out, n_pts)
+        integer, intent(in)  :: n_pts
+        real(dp), dimension(n_pts), intent(in)  :: delta_in
+        real(dp), dimension(n_pts), intent(out) :: delta_out
+
+        integer  :: i
+        real(dp) :: d_shift
+
+        delta_out(1) = delta_in(1)
+        do i = 2, n_pts
+            d_shift = delta_in(i) - delta_in(i - 1)
+            do while (d_shift > 0.5_dp * PI)
+                d_shift = d_shift - PI
+            end do
+            do while (d_shift <= -0.5_dp * PI)
+                d_shift = d_shift + PI
+            end do
+            delta_out(i) = delta_out(i - 1) + d_shift
+        end do
+    end subroutine unwrap_phase_grid
 
     ! ==========================================================================
     ! 10. 形状共振 (Shape Resonance) Wigner 时延分析与 Breit-Wigner 参数提取

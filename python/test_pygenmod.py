@@ -477,6 +477,45 @@ class TestPyGenMod(unittest.TestCase):
         self.assertTrue(os.path.exists("test_fb.png"))
         os.remove("test_fb.png")
 
+    def test_wigner_levinson(self):
+        """Wigner time delay + Levinson theorem (book Sec 7.2 extension).
+        Mirrors the Fortran test group of test_ti_scattering."""
+        from pygenmod.scattering import (calc_phase_shift_single_l,
+                                         calc_scattering_length_numerov,
+                                         count_s_wave_bound_states,
+                                         square_well_s_phase_exact,
+                                         unwrap_phase_grid)
+        mass, v0, r_well = 1.0, 0.05, 8.0
+        npts, dr = 3597, 7.99 / 479.0
+        r_w = 0.01 + dr * np.arange(npts)
+        v_w = np.where(r_w < r_well - 1e-12, -v0, 0.0)
+
+        # (1) 数值 tan(delta) vs 方势阱闭式 (间断势 Numerov O(dx) 边缘误差)
+        a_s_w, u_z = calc_scattering_length_numerov(r_w, v_w, mass)
+        for ee in (0.01, 0.04, 0.09, 0.16, 0.25):
+            d_num = calc_phase_shift_single_l(r_w, v_w, mass, ee, 0)
+            d_ex = square_well_s_phase_exact(ee, v0, r_well, mass)
+            self.assertLess(abs(np.tan(d_num) - np.tan(d_ex)), 3e-2)
+
+        # (2) Levinson: 节点计数 n_b 与 delta(0) = n_b pi
+        n_bw = count_s_wave_bound_states(r_w, v_w, mass)
+        self.assertEqual(n_bw, 1)
+
+        # (3) Wigner 低能极限: tau*k = -2 m a_s (tau 来自相位差分)
+        n_e = 80
+        e_w = 1e-6 * 100.0 ** (np.arange(n_e) / (n_e - 1.0))
+        ph = np.empty(n_e)
+        for i_w, ee in enumerate(e_w):
+            ph[i_w] = calc_phase_shift_single_l(r_w, v_w, mass, ee, 0)
+        ph_u = unwrap_phase_grid(ph)
+        n_bad = 0
+        for i_w in range(5, n_e - 5):
+            tau_loc = 2.0 * (ph_u[i_w + 1] - ph_u[i_w]) / (e_w[i_w + 1] - e_w[i_w])
+            tau_k = tau_loc * np.sqrt(2.0 * mass * e_w[i_w])
+            if abs(tau_k + 2.0 * mass * a_s_w) > 0.15 * abs(2.0 * mass * a_s_w):
+                n_bad += 1
+        self.assertEqual(n_bad, 0)
+
     def test_continuous_scattering_wavefunction(self):
         r_grid = np.linspace(0.01, 25.0, 1000)
         v_pot = -0.8 * np.exp(-(r_grid - 2.0)**2)

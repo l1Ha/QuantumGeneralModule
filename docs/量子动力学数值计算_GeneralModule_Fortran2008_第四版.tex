@@ -4414,6 +4414,49 @@ u'(r_N)
 
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_ti_scattering.f90.png}
 
+\hypertarget{ux6563ux5c04ux7406ux8bbaux5b9aux7406wigner-ux65f6ux95f4ux5ef6ux8fdfux4e0e-levinson-ux5b9aux7406square_well_s_phase_exact-ux7b49}{%
+\subsection{\texorpdfstring{散射理论定理：Wigner 时间延迟与 Levinson
+定理（\texttt{square\_well\_s\_phase\_exact}
+等）}{散射理论定理：Wigner 时间延迟与 Levinson 定理（square\_well\_s\_phase\_exact 等）}}\label{ux6563ux5c04ux7406ux8bbaux5b9aux7406wigner-ux65f6ux95f4ux5ef6ux8fdfux4e0e-levinson-ux5b9aux7406square_well_s_phase_exact-ux7b49}}
+
+散射理论的两大普适定理把相移、束缚态与时间延迟连成闭环。\textbf{Wigner
+时间延迟}：\(\tau(E)=2\hbar\,\mathrm{d}\delta/\mathrm{d}E\)
+度量波包散射的群延迟------势阱内准束缚态驻留处 \(\tau\)
+出现峰（Breit--Wigner：峰宽
+\(\Gamma=4\hbar/\tau_{\max}\)）。\textbf{Levinson
+定理}：\(\delta(0)-\delta(\infty)=n_b\pi\)，零能相移由束缚态数 \(n_b\)
+决定------而 \(n_b\) 恰是零能解的\textbf{节点数}（Sturm
+节点定理）。两者与散射长度在低能极限闭合：\(\tau(E)\,k=-2ma_s\)（\(E\to0\)，\(\delta\simeq n_b\pi-ka_s\)）。
+
+实现与验收（\texttt{square\_well\_s\_phase\_exact}、\texttt{count\_s\_wave\_bound\_states}、\texttt{unwrap\_phase\_grid}
+配合 \texttt{calc\_phase\_shift\_single\_l}）：其一，方势阱 s 波相移闭式
+\(\delta=\mathrm{atan2}(k\sin\tilde{k}R,\tilde{k}\cos\tilde{k}R)-kR\)（\(\tilde{k}=\sqrt{2m(E+V_0)}\)，atan2
+形式无分支跳变）作为 Numerov + 对数导数匹配数值相移的基准------比较须用
+\(\tan\delta\)（对数导数匹配只定 \(\delta\ \mathrm{mod}\ \pi\)，atan2
+分支差由 Levinson \(\pi\) 补齐），间断势的 Numerov 边缘误差为
+\(O(\Delta r)\)（网格减半即减半，\(\tan\delta\) 差 \(2\times10^{-2}\) @
+\(\Delta r=3.3\times10^{-3}\)）。其二，零能节点计数给出
+\(n_b=1\)，Levinson 极限 \(\delta(0)+n_b\pi=\pi\) 在 \(k\,a_s\)
+修正内成立（\(1.4\times10^{-2}\)）。其三，\(\tau(E)\,k=-2ma_s\)
+在全低能网格成立（\(a_s\) 来自
+\texttt{calc\_scattering\_length\_numerov}，两条独立机制）。\(\tau\,k\)
+的散点揭示解析分支结构：atan2 主值相位的 Levinson \(\pi\)
+补偿必须显式加入（图 7.6）。
+
+\begin{figure}
+\centering
+\includegraphics[width=13cm,height=\textheight]{figures/fig25_wigner_levinson.png}
+\caption{图 7.6：方势阱 s 波的 Wigner 时间延迟与 Levinson
+定理（\texttt{calc\_phase\_shift\_single\_l} +
+\texttt{square\_well\_s\_phase\_exact}/\texttt{count\_s\_wave\_bound\_states}，\(V_0=0.05\ E_h\)、\(R=8\ a_0\)、\(a_s=10.24\ a_0\)）。（a）相移
+\(\delta_0(E)\)：黑线为闭式解，红点为 Numerov + 对数导数匹配（Levinson
+分支校正 \(\delta_{\mathrm{atan2}}+n_b\pi\)），点线为 Levinson 极限
+\(\delta(0)=n_b\pi\)（\(n_b=1\)，零能节点计数）；（b）Wigner
+时间延迟低能极限 \(\tau(E)\,k=-2ma_s\)：数值 \(\tau\)（红）与 Numerov
+散射长度（蓝虚线）在 \(E\lesssim10^{-4}\ E_h\) 区间吻合到
+\(1\%\)。绘图脚本见 \texttt{docs/generate\_figures.py}。}
+\end{figure}
+
 \begin{figure}
 \centering
 \includegraphics[width=12cm,height=\textheight]{figures/fig04_scattering_length.png}
@@ -7575,15 +7618,16 @@ Krotov 最优控制\strut
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
 7.2 / 7.5\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-Numerov、有效力程\strut
+Numerov、有效力程、Wigner 时延 + Levinson\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-\texttt{mod\_ti\_scattering::calc\_scattering\_length\_numerov}、\texttt{fit\_effective\_range\_expansion}\strut
+\texttt{mod\_ti\_scattering::calc\_scattering\_length\_numerov}、\texttt{fit\_effective\_range\_expansion}、\texttt{square\_well\_s\_phase\_exact}、\texttt{count\_s\_wave\_bound\_states}、\texttt{unwrap\_phase\_grid}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-\texttt{scattering.calc\_scattering\_length\_numerov}\strut
+\texttt{scattering.calc\_scattering\_length\_numerov}、\texttt{scattering.calc\_phase\_shift\_single\_l}、\texttt{scattering.square\_well\_s\_phase\_exact}
+等\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 \texttt{test\_ti\_scattering}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-图 7.1\strut
+图 7.1、7.6（25）\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
 7.3 / 7.6\strut
@@ -9532,7 +9576,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 48 个测试程序、504 项断言全部通过。
+  全库 48 个测试程序、512 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的

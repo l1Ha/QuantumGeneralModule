@@ -1782,9 +1782,76 @@ def generate_fig24_liouvillian_spectrum():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig25_wigner_levinson():
+    """Fig 25 (book Fig 7.6, scattering theorem completion): Wigner time
+    delay and Levinson theorem for the s-wave square well.
+    (a) phase shift delta(E): Numerov + log-derivative matching (dots) vs
+    the square-well closed form (line) with the Levinson limit delta(0) =
+    n_b pi (n_b = 1 from zero-energy node counting); (b) Wigner delay
+    tau = 2 d(delta)/dE and its low-energy limit tau*k = -2 m a_s (the
+    scattering length from calc_scattering_length_numerov)."""
+    print("Generating Fig 25: Wigner time delay and Levinson theorem...")
+    set_publication_style()
+    import pygenmod as _pg
+
+    mass, v0, r_well = 1.0, 0.05, 8.0
+    npts, dr = 3597, 7.99 / 479.0
+    r_w = 0.01 + dr * np.arange(npts)
+    v_w = np.where(r_w < r_well - 1e-12, -v0, 0.0)
+    a_s_w, u_z = _pg.calc_scattering_length_numerov(r_w, v_w, mass)
+    n_bw = _pg.count_s_wave_bound_states(r_w, v_w, mass)
+    print(f"   a_s = {a_s_w:.4f} a0, n_b = {n_bw} (node counting)")
+
+    n_e = 120
+    e_grid = 1e-6 * 100.0 ** (np.arange(n_e) / (n_e - 1.0))
+    ph = np.array([_pg.calc_phase_shift_single_l(r_w, v_w, mass, ee, 0)
+                   for ee in e_grid])
+    ph_u = _pg.unwrap_phase_grid(ph)
+    tau = np.empty(n_e)
+    tau[:-1] = 2.0 * (ph_u[1:] - ph_u[:-1]) / (e_grid[1:] - e_grid[:-1])
+    tau[-1] = tau[-2]
+    tau_k = tau * np.sqrt(2.0 * mass * e_grid)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4), dpi=200)
+    # (a) phase shift vs closed form
+    e_fine = np.linspace(1e-6, 0.25, 500)
+    d_fine = np.array([_pg.square_well_s_phase_exact(ee, v0, r_well, mass)
+                       for ee in e_fine])
+    ax1.plot(e_fine, d_fine, color='black', linewidth=1.8,
+             label='Square-well closed form')
+    ax1.scatter(e_grid, ph + n_bw * np.pi, s=14, color='crimson', zorder=3,
+                label='Numerov + matching ($\delta_{\mathrm{atan2}} + n_b\pi$)')
+    ax1.axhline(n_bw * np.pi, color='dimgray', linewidth=1.0, linestyle=':',
+                label=r'Levinson limit $\delta(0) = n_b\pi$ ($n_b = %d$)' % n_bw)
+    ax1.set_xscale('log')
+    ax1.set_xlabel(r'$E$ ($E_h$)')
+    ax1.set_ylabel(r'$\delta_0(E)$ (rad)')
+    ax1.set_title('(a) s-Wave Phase Shift vs Closed Form', fontsize=10.5)
+    ax1.legend(loc='lower left', frameon=True, fontsize=8.5)
+
+    # (b) Wigner delay low-energy limit
+    ax2.plot(e_grid, tau_k, color='crimson', linewidth=2.0,
+             label=r'$\tau(E)\,k$ (numerical)')
+    ax2.axhline(-2.0 * mass * a_s_w, color='royalblue', linewidth=1.6,
+                linestyle='--',
+                label=r'$-2 m a_s$ (Numerov $a_s = %.2f\ a_0$)' % a_s_w)
+    ax2.set_xscale('log')
+    ax2.set_xlabel(r'$E$ ($E_h$)')
+    ax2.set_ylabel(r'$\tau(E)\,k$ ($a_0$)')
+    ax2.set_title(r'(b) Wigner Delay Low-Energy Limit $\tau k = -2ma_s$',
+                  fontsize=10.5)
+    ax2.legend(loc='lower right', frameon=True, fontsize=8.5)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig25_wigner_levinson.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 24 Scientific Calculation Benchmark Figures")
+    print(" Generating All 25 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -1810,8 +1877,9 @@ def main():
     generate_fig22_force_field()
     generate_fig23_coriolis_rotor()
     generate_fig24_liouvillian_spectrum()
+    generate_fig25_wigner_levinson()
     print("=" * 60)
-    print(" All 24 Figures Generated Successfully in docs/figures/!")
+    print(" All 25 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 
