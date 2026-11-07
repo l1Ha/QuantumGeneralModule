@@ -21,6 +21,7 @@ program test_watson_rotor
     call test_trace_rule()
     call test_water_constants()
     call test_centrifugal_distortion()
+    call test_watson_d1_d2()
 
     print *, ""
     print *, "================================================================"
@@ -265,5 +266,56 @@ contains
                              "H2 WDC diatomic limit (K=0 slot, J=5)")
         end block
     end subroutine test_centrifugal_distortion
+
+    !> Watson d1/d2 非对角畸变 (多原子拓展第八步): Delta K = +/-2/4 梯级项。
+    !> 迹定理: d1/d2 项纯非对角 (Tr = 0), sum(E) 与 d1/d2 无关 (精确, 一切阶)
+    !> —— A/S reduction 在求和规则下解耦, 使 D 常数拟合对 reduction 选择稳健。
+    !> 近简并 ±K 对的 d1 位移是一阶的 (简并微扰), 非近简并区为二阶。
+    subroutine test_watson_d1_d2()
+        real(dp), allocatable :: e0(:), e1(:), e2(:)
+        real(dp) :: a_c, b_c, c_c, dj, djk, dk, s0, s1, s2, ratio
+        integer :: stat, jj
+
+        print *, ""
+        print *, "--- 7. Watson d1/d2 off-diagonal quartics (trace theorem) ---"
+        a_c = 2.0_dp; b_c = 0.9_dp; c_c = 0.6_dp
+        dj = 2.76e-4_dp; djk = 1.0e-3_dp; dk = 4.0e-3_dp
+
+        ! (1) 迹不变: sum(E) 与 d1/d2 无关 (精确, J = 3..8)
+        do jj = 3, 8
+            call asymmetric_top_levels_cd(a_c, b_c, c_c, dj, djk, dk, jj, e0, stat)
+            call asymmetric_top_levels_cd(a_c, b_c, c_c, dj, djk, dk, jj, e1, stat, &
+                                          d1_in=2.0e-6_dp, d2_in=5.0e-7_dp)
+            call assert_near(sum(e1) - sum(e0), 0.0_dp, 1.0e-8_dp, &
+                             "trace theorem, sum(E) d1/d2-independent, J")
+        end do
+
+        ! (2) d2 单独: 迹不变
+        call asymmetric_top_levels_cd(a_c, b_c, c_c, dj, djk, dk, 6, e0, stat)
+        call asymmetric_top_levels_cd(a_c, b_c, c_c, dj, djk, dk, 6, e1, stat, &
+                                      d1_in=0.0_dp, d2_in=5.0e-7_dp)
+        call assert_near(sum(e1) - sum(e0), 0.0_dp, 1.0e-8_dp, &
+                         "trace theorem, d2-only")
+
+        ! (3) 零回归: d1 = d2 = 0 与既有对角版本逐位一致
+        call asymmetric_top_levels_cd(a_c, b_c, c_c, dj, djk, dk, 8, e0, stat)
+        call asymmetric_top_levels_cd(a_c, b_c, c_c, dj, djk, dk, 8, e1, stat, &
+                                      d1_in=0.0_dp, d2_in=0.0_dp)
+        call assert_near(maxval(abs(e0 - e1)), 0.0_dp, 1.0e-12_dp, &
+                         "d1=d2=0 regression vs diagonal-only version")
+
+        ! (4) 近简并 ±K 对的 d1 位移是一阶的 (简并微扰): d1 -> 2d1 时
+        !     max|E shift| 比值 = 2 (非近简并区应为 4 = 二阶)
+        call asymmetric_top_levels_cd(a_c, b_c, c_c, dj, djk, dk, 8, e0, stat)
+        call asymmetric_top_levels_cd(a_c, b_c, c_c, dj, djk, dk, 8, e1, stat, &
+                                      d1_in=1.0e-8_dp)
+        call asymmetric_top_levels_cd(a_c, b_c, c_c, dj, djk, dk, 8, e2, stat, &
+                                      d1_in=2.0e-8_dp)
+        s1 = maxval(abs(e1 - e0))
+        s2 = maxval(abs(e2 - e0))
+        ratio = s2 / s1
+        call assert_near(ratio, 2.0_dp, 0.1_dp, &
+                         "near-degenerate +/-K pair shifts are first order in d1")
+    end subroutine test_watson_d1_d2
 
 end program test_watson_rotor

@@ -243,6 +243,19 @@ class TestPyGenMod(unittest.TestCase):
         self.assertLess(d_a, 2e-2)
         self.assertLess(d_b, 2e-2)
 
+        # 多原子第八步: Watson d1/d2 非对角畸变 + 迹定理 (与 Fortran 组 7 对应)
+        from pygenmod.rovibrational import watson_asymmetric_levels_cd as w_cd
+        e_w0 = w_cd(a_const, b_const, 0.6, 2.76e-4, 1e-3, 4e-3, 6)
+        e_w1 = w_cd(a_const, b_const, 0.6, 2.76e-4, 1e-3, 4e-3, 6,
+                    d1=2e-6, d2=5e-7)
+        # 迹定理: d1/d2 纯非对角 (Tr = 0), sum(E) 精确不变
+        self.assertAlmostEqual(float(np.sum(e_w1) - np.sum(e_w0)), 0.0, delta=1e-8)
+        # 零回归
+        e_wz = w_cd(a_const, b_const, 0.6, 2.76e-4, 1e-3, 4e-3, 6, d1=0.0, d2=0.0)
+        self.assertAlmostEqual(float(np.max(np.abs(e_w0 - e_wz))), 0.0, delta=1e-12)
+        # Fortran 金值对照 (位级一致)
+        self.assertAlmostEqual(e_w1[0], 28.1725476, delta=1e-6)
+
     def test_irc_reaction_path(self):
         """IRC (book Sec 3.2): analytic gradient, mass-weighted Gonzalez-Schlegel
         path. Mirrors the Fortran tests of test_triatomic_geometry (steps 6-7)."""

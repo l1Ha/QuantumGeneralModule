@@ -546,7 +546,9 @@ $$
 
 ![图 3.2：H$_2$O 型非对称陀螺转动能级与离心畸变（Watson 刚转子 + A reduction 对角四次项）。（a）$J=0\ldots5$ 能级图：红为非对称陀螺能级（$A=27.43$、$B=14.60$、$C=9.53\ \mathrm{cm^{-1}}$，由 `inertia_constants_from_geometry` 从实验几何计算），灰虚线与蓝点线为长对称（$B=C$）与扁对称（$A=B$）极限参照；（b）离心畸变的影响：灰为刚转子能级（第一步），红为含四次畸变项 $-D_JJ^4-D_{JK}J^2J_a^2-D_KJ_a^4$（$D_J=2.76\times10^{-3}\ \mathrm{cm^{-1}}$ 等，水分子量级示例参数）的能级——下移量随 $J^2(J+1)^2$ 增长。绘图脚本见 `docs/generate_figures.py`。](figures/fig18_watson_levels.png){width=13.0cm}
 
-**多原子拓展第二步：离心畸变进入矩阵。** 刚转子之上叠加 Watson A reduction 的对角四次项 $H_{\mathrm{cd}}=-D_J\hat{J}^4-D_{JK}\hat{J}^2\hat{J}_a^2-D_K\hat{J}_a^4$（$D_J>0$ 降低能级，标准光谱学约定 $E=B J(J+1)-D_JJ^2(J+1)^2$），对角贡献为 $-D_J[J(J+1)]^2-D_{JK}J(J+1)K^2-D_KK^4$。三重验证：畸变全零与刚转子逐位一致；球陀螺加 $D_J$ 时 $E=[A-D_JJ(J+1)]J(J+1)$ 解析可验；**扩展迹规则** $\sum E=(2J+1)J(J+1)\{(A+B+C)/3-D_JJ(J+1)-D_{JK}J(J+1)/3\}-D_K(2J+1)J(J+1)(3J^2+3J-1)/15$ 精确成立（$\Delta K=\pm2/\pm4$ 的 $d_1/d_2$ 项迹为零，以非零 $d_1,d_2$ 加入时迹不变亦获验证）。$\Delta K=\pm2/\pm4$ 的非对角 $d_1/d_2$ 项与 A/S reduction 约定强相关（$2K\pm3$ 因子与符号），留作后续增量并需对照 SPFIT 约定验收。
+**多原子拓展第二步：离心畸变进入矩阵。** 刚转子之上叠加 Watson A reduction 的对角四次项 $H_{\mathrm{cd}}=-D_J\hat{J}^4-D_{JK}\hat{J}^2\hat{J}_a^2-D_K\hat{J}_a^4$（$D_J>0$ 降低能级，标准光谱学约定 $E=B J(J+1)-D_JJ^2(J+1)^2$），对角贡献为 $-D_J[J(J+1)]^2-D_{JK}J(J+1)K^2-D_KK^4$。三重验证：畸变全零与刚转子逐位一致；球陀螺加 $D_J$ 时 $E=[A-D_JJ(J+1)]J(J+1)$ 解析可验；**扩展迹规则** $\sum E=(2J+1)J(J+1)\{(A+B+C)/3-D_JJ(J+1)-D_{JK}J(J+1)/3\}-D_K(2J+1)J(J+1)(3J^2+3J-1)/15$ 精确成立。
+
+**多原子拓展第八步：Watson $d_1/d_2$ 非对角畸变与迹定理。** A reduction 的非对角四次项 $d_1\hat{J}^2(\hat{J}_+^2+\hat{J}_-^2)+d_2(\hat{J}_+^4+\hat{J}_-^4)$ 已实现（`asymmetric_top_levels_cd` 可选参数），矩阵元由角动量梯级严格给出：$\langle K{+}2|d_1\hat{J}^2\hat{J}_+^2|K\rangle=d_1[J(J+1)]^2\sqrt{[J(J+1)-K(K{+}1)][J(J+1)-(K{+}1)(K{+}2)]}$（与 Wang $\Delta K=2$ 项共享同一梯级几何因子）、$\langle K{+}4|d_2\hat{J}_+^4|K\rangle=d_2\sqrt{\prod_{m=0}^{3}[J(J+1)-(K{+}m)(K{+}m+1)]}$。**迹定理**：$d_1/d_2$ 项纯非对角（$\operatorname{Tr}=0$），故 $\sum E$ 与 $d_1/d_2$ **无关且精确到一切阶**——Watson A/S reduction 在求和规则下解耦，这正是 $D$ 常数拟合对 reduction 选择稳健的原因；测试以 $10^{-14}$ 精度断言（$J=3\ldots8$）。物理标度：$d_1[J(J+1)]^2$ 耦合的恰是**近简并 $\pm K$ 对**，其位移是一阶的（简并微扰，$d_1\to2d_1$ 时位移比 $=2$），非近简并区为二阶——两类标度都进入断言。SPFIT 的 $(2K\pm3)$ 对称化形式在对称化波函数基下与原基梯级形式等价，其符号约定对照属外部基准。
 
 #### 多原子拓展第三步：N 模简正振动与乘积 DVR（`mod_polyatomic_vib`）
 
@@ -646,7 +648,7 @@ $$E(v,l,J,K)=\omega(v+1)+BJ(J+1)+(A-B)K^{2}-2A\zeta\,l\,K$$
 - [src/mod_watson_rotor.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_watson_rotor.f90)：`wang_matrix_element`（Wang 矩阵元）、`asymmetric_top_levels`（给定 $J$ 的 $2J+1$ 条能级，库内 QL 求解器对角化）、`inertia_constants_from_geometry`（核坐标/质量 → 主惯量 → $A,B,C$，复用 `diag_symmetric_matrix`）。
 - [src/mod_polyatomic_vib.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_polyatomic_vib.f90)：`coupled2_normal_freqs`（双模耦合解析简正频率，动力学矩阵本征值开方）、`poly_vib_product_levels`（N 模乘积 DVR 变分：Kronecker 和动能 + 对角势/双线性耦合，稠密 QL 对角化）、`poly_vib_morse_levels`（第四步：Morse 非谐对角势，与谐振版共用 `add_mode_kinetic`）、`morse_bound_energy`/`morse_bound_count`（Morse 精确谱与束缚态计数）、`poly_vib_coriolis_levels`（第五步：简并模对 + $L_z$ Coriolis 耦合，DVR 动量矩阵 $p=i[T,X]$ + 2 倍维实对称化）、`poly_vib_force_field_levels`（第六步：三阶/四阶力常数张量对角势）、`poly_vib_coriolis_rotor_levels`（第七步：振转 Coriolis，DVR$\otimes$Wang 乘积基，复用 `wang_matrix_element`）、`basis_idx`（乘积基线性索引，模 0 最快）。
 - Python 参照：`python/pygenmod/rovibrational.py` 的 `watson_asymmetric_levels`、`watson_asymmetric_levels_cd` 与 `inertia_constants_from_geometry`；`python/pygenmod/polyatomic_vib.py` 的 `coupled2_normal_freqs`、`poly_vib_product_levels`、`poly_vib_morse_levels`、`morse_bound_energy`、`morse_bound_count`、`poly_vib_coriolis_levels`、`poly_vib_force_field_levels`、`poly_vib_coriolis_rotor_levels`（numpy Kronecker 和组装，与 Fortran 同一索引约定）。
-- 验证：`tests/test_watson_rotor.f90`（三极限解析谱、迹规则、垂直轴定理、H₂O 实验值 1% 对照、离心畸变回归/解析/迹规则，共 37 项断言）；`tests/test_polyatomic_vib.f90`（分离谐振解析谱、双模耦合对 $\Omega_\mp$ 的机器精度验收、简并旋转不变性、网格收敛、Morse 精确谱分层容差/束缚态计数/非谐红移/可分离多模，共 49 项断言）。多原子振动的完整 Watson 处理（Coriolis 与 $d_1/d_2$ 畸变项）与 Morse 型非谐力场见 §12.2 路线图。
+- 验证：`tests/test_watson_rotor.f90`（三极限解析谱、迹规则、垂直轴定理、H₂O 实验值 1% 对照、离心畸变回归/解析/迹规则、$d_1/d_2$ 迹定理/零回归/简并微扰标度，共 46 项断言）；`tests/test_polyatomic_vib.f90`（分离谐振解析谱、双模耦合对 $\Omega_\mp$ 的机器精度验收、简并旋转不变性、网格收敛、Morse 精确谱分层容差/束缚态计数/非谐红移/可分离多模，共 49 项断言）。多原子振动的完整 Watson 处理（Coriolis 与 $d_1/d_2$ 畸变项）与 Morse 型非谐力场见 §12.2 路线图。
 - 文献依据：Wilson, Decius 与 Cross, *Molecular Vibrations* (1955)，第 3 章（简正坐标）；H. W. Kroto, *Molecular Rotation Spectra*, Dover (1975)，第 4 章（非对称陀螺）。GitHub 直链与二维码见各源码文件的仓库路径 `qr/src__mod_polyatomic_vib.f90.png`、`qr/python__pygenmod__polyatomic_vib.py.png`。
 
 ![](qr/src__mod_watson_rotor.f90.png){width=2.0cm}
@@ -4169,7 +4171,7 @@ GitHub Actions 配置位于：
 | 1.4 / 10.2 | 幺正演化 $U=e^{-iHt}$ | `mod_wavepacket_propagator::propagate_split_operator_1d` | —（脚本级复现） | `test_propagators` | 图 10.2、11 |
 | 2.4 | 选择定则 $\langle j'|\cos\theta|j\rangle$ | `mod_special_functions::rot_matrix_cos_theta` | `rovibrational.rot_matrix_cos_theta/cos2_theta` | `test_special_functions` | 图 2.1 |
 | 3.2 | Jacobi 坐标、LEPS 面、IRC | `mod_triatomic_geometry::calc_leps_potential`、`calc_leps_gradient`、`intrinsic_reaction_coordinate` | `qct.leps_energy_gradient`、`qct.leps_collinear_gradient`、`qct.intrinsic_reaction_coordinate` | `test_triatomic_geometry` | 图 3.1 |
-| 3.4 | Watson 非对称陀螺 + 四次离心畸变（A reduction） | `mod_watson_rotor::asymmetric_top_levels_cd`、`inertia_constants_from_geometry` | `rovibrational.watson_asymmetric_levels_cd`、`inertia_constants_from_geometry` | `test_watson_rotor` | 图 3.2 |
+| 3.4 | Watson 非对称陀螺 + 全 A reduction 四次项（含 $d_1/d_2$） | `mod_watson_rotor::asymmetric_top_levels_cd`、`inertia_constants_from_geometry` | `rovibrational.watson_asymmetric_levels_cd`、`inertia_constants_from_geometry` | `test_watson_rotor` | 图 3.2 |
 | 3.4 | N 模简正振动 + 双线性耦合（乘积 DVR） | `mod_polyatomic_vib::poly_vib_product_levels`、`coupled2_normal_freqs` | `polyatomic_vib.poly_vib_product_levels`、`coupled2_normal_freqs` | `test_polyatomic_vib` | 图 3.3 |
 | 3.4 | Morse 非谐力场（精确谱验收） | `mod_polyatomic_vib::poly_vib_morse_levels`、`morse_bound_energy` | `polyatomic_vib.poly_vib_morse_levels`、`morse_bound_energy` | `test_polyatomic_vib` | 图 3.4 |
 | 3.4 | Coriolis 振动角动量（简并模对 $L_z$） | `mod_polyatomic_vib::poly_vib_coriolis_levels` | `polyatomic_vib.poly_vib_coriolis_levels` | `test_polyatomic_vib` | 图 3.5 |
@@ -5161,7 +5163,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 48 个测试程序、486 项断言全部通过。
+- 全库 48 个测试程序、495 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

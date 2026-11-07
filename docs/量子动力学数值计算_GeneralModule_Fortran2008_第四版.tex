@@ -1630,10 +1630,25 @@ reduction 的对角四次项
 \(-D_J[J(J+1)]^2-D_{JK}J(J+1)K^2-D_KK^4\)。三重验证：畸变全零与刚转子逐位一致；球陀螺加
 \(D_J\) 时 \(E=[A-D_JJ(J+1)]J(J+1)\) 解析可验；\textbf{扩展迹规则}
 \(\sum E=(2J+1)J(J+1)\{(A+B+C)/3-D_JJ(J+1)-D_{JK}J(J+1)/3\}-D_K(2J+1)J(J+1)(3J^2+3J-1)/15\)
-精确成立（\(\Delta K=\pm2/\pm4\) 的 \(d_1/d_2\) 项迹为零，以非零
-\(d_1,d_2\) 加入时迹不变亦获验证）。\(\Delta K=\pm2/\pm4\) 的非对角
-\(d_1/d_2\) 项与 A/S reduction 约定强相关（\(2K\pm3\)
-因子与符号），留作后续增量并需对照 SPFIT 约定验收。
+精确成立。
+
+\textbf{多原子拓展第八步：Watson \(d_1/d_2\) 非对角畸变与迹定理。} A
+reduction 的非对角四次项
+\(d_1\hat{J}^2(\hat{J}_+^2+\hat{J}_-^2)+d_2(\hat{J}_+^4+\hat{J}_-^4)\)
+已实现（\texttt{asymmetric\_top\_levels\_cd}
+可选参数），矩阵元由角动量梯级严格给出：\(\langle K{+}2|d_1\hat{J}^2\hat{J}_+^2|K\rangle=d_1[J(J+1)]^2\sqrt{[J(J+1)-K(K{+}1)][J(J+1)-(K{+}1)(K{+}2)]}\)（与
+Wang \(\Delta K=2\)
+项共享同一梯级几何因子）、\(\langle K{+}4|d_2\hat{J}_+^4|K\rangle=d_2\sqrt{\prod_{m=0}^{3}[J(J+1)-(K{+}m)(K{+}m+1)]}\)。\textbf{迹定理}：\(d_1/d_2\)
+项纯非对角（\(\operatorname{Tr}=0\)），故 \(\sum E\) 与 \(d_1/d_2\)
+\textbf{无关且精确到一切阶}------Watson A/S reduction
+在求和规则下解耦，这正是 \(D\) 常数拟合对 reduction
+选择稳健的原因；测试以 \(10^{-14}\)
+精度断言（\(J=3\ldots8\)）。物理标度：\(d_1[J(J+1)]^2\)
+耦合的恰是\textbf{近简并 \(\pm K\)
+对}，其位移是一阶的（简并微扰，\(d_1\to2d_1\) 时位移比
+\(=2\)），非近简并区为二阶------两类标度都进入断言。SPFIT 的
+\((2K\pm3)\)
+对称化形式在对称化波函数基下与原基梯级形式等价，其符号约定对照属外部基准。
 
 \hypertarget{ux591aux539fux5b50ux62d3ux5c55ux7b2cux4e09ux6b65n-ux6a21ux7b80ux6b63ux632fux52a8ux4e0eux4e58ux79ef-dvrmod_polyatomic_vib}{%
 \subsection{\texorpdfstring{多原子拓展第三步：N 模简正振动与乘积
@@ -1980,7 +1995,8 @@ Fortran 逐位一致；ZPE 的 \(\zeta\) 无关性达
   Kronecker 和组装，与 Fortran 同一索引约定）。
 \item
   验证：\texttt{tests/test\_watson\_rotor.f90}（三极限解析谱、迹规则、垂直轴定理、H₂O
-  实验值 1\% 对照、离心畸变回归/解析/迹规则，共 37
+  实验值 1\% 对照、离心畸变回归/解析/迹规则、\(d_1/d_2\)
+  迹定理/零回归/简并微扰标度，共 46
   项断言）；\texttt{tests/test\_polyatomic\_vib.f90}（分离谐振解析谱、双模耦合对
   \(\Omega_\mp\) 的机器精度验收、简并旋转不变性、网格收敛、Morse
   精确谱分层容差/束缚态计数/非谐红移/可分离多模，共 49
@@ -7349,7 +7365,7 @@ Jacobi 坐标、LEPS 面、IRC\strut
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
 3.4\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-Watson 非对称陀螺 + 四次离心畸变（A reduction）\strut
+Watson 非对称陀螺 + 全 A reduction 四次项（含 \(d_1/d_2\)）\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 \texttt{mod\_watson\_rotor::asymmetric\_top\_levels\_cd}、\texttt{inertia\_constants\_from\_geometry}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
@@ -9462,7 +9478,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 48 个测试程序、486 项断言全部通过。
+  全库 48 个测试程序、495 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的

@@ -76,15 +76,25 @@ def watson_asymmetric_levels(a_const: float, b_const: float, c_const: float,
 
 def watson_asymmetric_levels_cd(a_const: float, b_const: float, c_const: float,
                                 d_j: float, d_jk: float, d_k: float,
-                                j_qnum: int) -> np.ndarray:
-    """Asymmetric-top levels including A-reduced quartic centrifugal distortion.
+                                j_qnum: int, d1: float = 0.0,
+                                d2: float = 0.0) -> np.ndarray:
+    """Asymmetric-top levels including the full Watson A-reduced quartics.
 
-    Adds the diagonal quartic terms (Watson A reduction, d1 = d2 = 0)
         H_cd = -D_J J^4 - D_JK J^2 Ja^2 - D_K Ja^4
-    to the rigid Wang matrix (watson_asymmetric_levels); D > 0 lowers the
-    levels per the standard convention E = B J(J+1) - D_J J^2 (J+1)^2.
-    The Delta K = +/-2/4 d1/d2 terms are convention-sensitive (A vs S
-    reduction) and are not included.
+               + d1 J^2 (J_+^2 + J_-^2) + d2 (J_+^4 + J_-^4)
+
+    D > 0 lowers the levels per the standard convention
+    E = B J(J+1) - D_J J^2 (J+1)^2. The optional d1/d2 are the
+    Delta K = +/-2/4 off-diagonal ladder terms (multi-atomic step 8):
+        <K+2|d1 J^2 J_+^2|K> = d1 [J(J+1)]^2
+            * sqrt([J(J+1)-K(K+1)][J(J+1)-(K+1)(K+2)])
+        <K+4|d2 J_+^4|K> = d2 sqrt(prod_{m=0..3} [J(J+1)-(K+m)(K+m+1)])
+    Trace theorem: the d1/d2 terms are purely off-diagonal (Tr = 0), so
+    sum(levels) is d1/d2-independent to all orders (Watson A/S reduction
+    decouples under the sum rule). The SPFIT (2K+/-3) symmetrized form is
+    equivalent in the symmetrized-function basis; its sign convention is an
+    external benchmark.
+    Fortran mirror: `asymmetric_top_levels_cd` (src/mod_watson_rotor.f90).
     """
     n_dim = 2 * j_qnum + 1
     jj = float(j_qnum * (j_qnum + 1))
@@ -99,9 +109,20 @@ def watson_asymmetric_levels_cd(a_const: float, b_const: float, c_const: float,
             i2 = k2 + j_qnum
             t1 = jj - float(k1 * (k1 + 1))
             t2 = jj - float((k1 + 1) * (k1 + 2))
-            h_val = 0.25 * (b_const - c_const) * np.sqrt(max(t1 * t2, 0.0))
+            h_val = 0.25 * (b_const - c_const) * np.sqrt(max(t1 * t2, 0.0)) \
+                + d1 * jj * jj * np.sqrt(max(t1 * t2, 0.0))
             h_mat[i2, i1] = h_val
             h_mat[i1, i2] = h_val
+        if d2 != 0.0 and k1 + 4 <= j_qnum:
+            k4 = k1 + 4
+            i4 = k4 + j_qnum
+            prod4 = 1.0
+            for m in range(4):
+                km = k1 + m
+                prod4 *= jj - float(km * (km + 1))
+            h_val = d2 * np.sqrt(max(prod4, 0.0))
+            h_mat[i4, i1] = h_val
+            h_mat[i1, i4] = h_val
     return np.linalg.eigvalsh(h_mat)
 
 
