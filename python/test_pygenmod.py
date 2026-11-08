@@ -356,6 +356,28 @@ class TestPyGenMod(unittest.TestCase):
         self.assertAlmostEqual(float(np.real(rho_t[0, 0] + rho_t[1, 1])), 1.0,
                                delta=1e-12)
 
+    def test_partial_trace_entanglement(self):
+        """Partial trace + entanglement entropy (book Sec 10.5 toolbox)."""
+        from pygenmod.open_quantum import (partial_trace_b,
+                                           entanglement_entropy)
+        # Bell 态: 最大纠缠 S = ln(2)
+        psi_bell = np.zeros(4, dtype=complex)
+        psi_bell[0] = 1 / np.sqrt(2)
+        psi_bell[3] = 1 / np.sqrt(2)
+        self.assertAlmostEqual(entanglement_entropy(psi_bell, 2, 2),
+                               np.log(2), delta=1e-10)
+        # 直积态: S = 0
+        psi_prod = np.zeros(4, dtype=complex)
+        psi_prod[0] = 1.0
+        self.assertAlmostEqual(entanglement_entropy(psi_prod, 2, 2), 0.0,
+                               delta=1e-10)
+        # 偏迹
+        rho_x = np.zeros((4, 4), dtype=complex)
+        rho_x[0, 0] = 0.4; rho_x[1, 1] = 0.1
+        rho_x[2, 2] = 0.1; rho_x[3, 3] = 0.4
+        rho_a = partial_trace_b(rho_x, 2, 2)
+        self.assertAlmostEqual(float(np.real(rho_a[0, 0])), 0.5, delta=1e-12)
+
     def test_general_steady_state(self):
         """General n-level Lindblad steady state (book Sec 10.5 extension).
         Mirrors the Fortran test group 7 of test_open_quantum_opt."""

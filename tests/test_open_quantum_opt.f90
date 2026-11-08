@@ -265,6 +265,48 @@ program test_open_quantum_opt
         deallocate(h_g, l_g, gam_g, rho_g)
     end block
 
+    ! ----------------------------------------------------
+    ! 8. 偏迹与纠缠熵 (量子信息工具箱)
+    ! ----------------------------------------------------
+    block
+        complex(dp), allocatable :: psi_e(:), rho_ab_e(:, :), rho_a_e(:, :)
+        real(dp) :: s_ent, d_p
+        integer :: dim_a, dim_b, i_e
+
+        dim_a = 2; dim_b = 2
+        allocate(psi_e(4), rho_ab_e(4, 4), rho_a_e(2, 2))
+
+        ! (1) Bell 态: 最大纠缠 S = ln(2)
+        psi_e = (0.0_dp, 0.0_dp)
+        psi_e(1) = (1.0_dp, 0.0_dp) / sqrt(2.0_dp)
+        psi_e(4) = (1.0_dp, 0.0_dp) / sqrt(2.0_dp)
+        call entanglement_entropy(psi_e, dim_a, dim_b, s_ent)
+        call assert_close("Bell entanglement entropy = ln(2)", log(2.0_dp), s_ent, 1.0e-10_dp)
+
+        ! (2) 直积态: S = 0
+        psi_e = (0.0_dp, 0.0_dp)
+        psi_e(1) = (1.0_dp, 0.0_dp)
+        call entanglement_entropy(psi_e, dim_a, dim_b, s_ent)
+        call assert_close("Product state entropy = 0", 0.0_dp, s_ent, 1.0e-10_dp)
+
+        ! (3) 偏迹: trace = 1
+        rho_ab_e = (0.0_dp, 0.0_dp)
+        rho_ab_e(1, 1) = (0.5_dp, 0.0_dp)
+        rho_ab_e(4, 4) = (0.5_dp, 0.0_dp)
+        call partial_trace_b(rho_ab_e, dim_a, dim_b, rho_a_e)
+        call assert_close("Partial trace = diag(0.5, 0.5)", 0.5_dp, &
+                          real(rho_a_e(1, 1), dp), 1.0e-12_dp)
+
+        ! (4) X 态偏迹: rho_a(1,1) = 0.4+0.1 = 0.5
+        rho_ab_e = (0.0_dp, 0.0_dp)
+        rho_ab_e(1, 1) = (0.4_dp, 0.0_dp); rho_ab_e(2, 2) = (0.1_dp, 0.0_dp)
+        rho_ab_e(3, 3) = (0.1_dp, 0.0_dp); rho_ab_e(4, 4) = (0.4_dp, 0.0_dp)
+        call partial_trace_b(rho_ab_e, dim_a, dim_b, rho_a_e)
+        call assert_close("X-state partial trace (1,1) = 0.5", 0.5_dp, &
+                          real(rho_a_e(1, 1), dp), 1.0e-12_dp)
+        deallocate(psi_e, rho_ab_e, rho_a_e)
+    end block
+
     print '(A)', "--------------------------------------------------"
     print '(A, I2, A, I2, A)', "Open Quantum & OCT Tests: ", n_passed, " / ", n_tests, " PASSED."
     if (n_passed /= n_tests) then

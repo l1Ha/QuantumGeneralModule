@@ -3826,6 +3826,11 @@ $$\mathcal{L}=\begin{pmatrix}-\gamma_\downarrow&0&0&\gamma_\uparrow\\
 
 ![图 10.6：驱动耗散二能级的共振荧光（`optical_bloch_steady_state_driven` / `mollow_spectrum_grid`，$\Gamma=1\ \mathrm{ps}^{-1}$）。（a）弱驱动 $\Omega=0.2\Gamma$：谱以弹性瑞利峰为主（相干散射 $|\langle\sigma^-\rangle_{\mathrm{ss}}|^2\approx\rho_{ee}^{\mathrm{ss}}$），有限 $\tau$ 窗口的 FT 使 $\delta$ 峰呈 sinc 旁瓣；（b）强驱动 $\Omega=5\Gamma$：Mollow 三重峰——中心 $\omega=0$ 与边带 $\pm\sqrt{\Omega^{2}-\Gamma^{2}/4}=\pm4.97\ \mathrm{ps}^{-1}$；谱归一化 $\int S\,\mathrm{d}\omega=\rho_{ee}^{\mathrm{ss}}=0.490$。绘图脚本见 `docs/generate_figures.py`。](figures/fig27_mollow_triplet.png){width=13.0cm}
 
+#### 量子信息工具箱：偏迹与纠缠熵（`partial_trace_b` / `entanglement_entropy`）
+
+双粒子量子态的**偏迹** $\rho_A=\operatorname{Tr}_B(\rho_{AB})$ 与**纠缠熵** $S=-\operatorname{Tr}(\rho_A\ln\rho_A)$ 是量子多体物理与量子信息的基石算符。`partial_trace_b` 从行主序双粒子密度矩阵提取子系统 A 的约化密度矩阵；`entanglement_entropy` 从纯态 $|\psi\rangle\in A\otimes B$ 的约化密度矩阵本征值计算纠缠熵——纯态的 $S(\rho_A)=S(\rho_B)$（施密特分解），直积态 $S=0$，最大纠缠 Bell 态 $S=\ln 2$。**Araki–Lieb 不等式** $|S(\rho_A)-S(\rho_B)|\le S(\rho_{AB})\le S(\rho_A)+S(\rho_B)$：对纯态取等号 $S_{AB}=0$、$S_A=S_B$（机器验证到 $10^{-10}$）。
+
+
 
 
 #### 对应源码
@@ -5203,7 +5208,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 48 个测试程序、531 项断言全部通过。
+- 全库 48 个测试程序、535 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

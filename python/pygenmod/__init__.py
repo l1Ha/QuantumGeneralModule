@@ -112,6 +112,7 @@ from .open_quantum import (
     optical_bloch_steady_state_driven, first_order_correlation_2level,
     mollow_spectrum_grid,
     lindblad_supermatrix_general, lindblad_steady_state_general,
+    partial_trace_b, entanglement_entropy,
 )
 
 from .qct import (
@@ -201,5 +202,6 @@ __all__ = [
     "optical_bloch_steady_state_driven", "first_order_correlation_2level",
     "mollow_spectrum_grid",
     "lindblad_supermatrix_general", "lindblad_steady_state_general",
+    "partial_trace_b", "entanglement_entropy",
 ]
 

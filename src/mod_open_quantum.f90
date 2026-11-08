@@ -5,7 +5,8 @@
 !>          向量化超算符、稳态 (增广线性方程 + 闭式)、阻尼基谱分解与谱重构;
 !>          驱动耗散二能级: 光学 Bloch 稳态 (饱和闭式)、量子回归定理一阶
 !>          关联函数与 Mollow 三重峰共振荧光谱 (多原子拓展第十步);
-!>          通用 n 能级 Lindblad 稳态求解器 (多原子拓展第十一步)。
+!>          通用 n 能级 Lindblad 稳态求解器 (多原子拓展第十一步);
+!>          偏迹与纠缠熵 (量子信息工具箱, Araki-Lieb 不等式机器验证)。
 !> \author LiHao
 module mod_open_quantum
     use mod_constants, only: dp, EYE, KB
@@ -29,6 +30,8 @@ module mod_open_quantum
     public :: mollow_spectrum_grid
     public :: lindblad_supermatrix_general
     public :: lindblad_steady_state_general
+    public :: partial_trace_b
+    public :: entanglement_entropy
     public :: lindblad_supermatrix_driven
 
 contains
@@ -672,5 +675,62 @@ contains
 
         deallocate(l_super, aug, aug_inv, resid)
     end subroutine lindblad_steady_state_general
+
+    !> \brief 偏迹: rho_A = Tr_B(rho_AB) (dim_A × dim_B → dim_A × dim_A)
+    !> \details 行主序约定: rho_AB((i_a-1)*dim_b+i_b, (j_a-1)*dim_b+j_b)
+    !>          = <i_a i_b| rho_AB |j_a j_b>。
+    subroutine partial_trace_b(rho_ab, dim_a, dim_b, rho_a)
+        complex(dp), intent(in)  :: rho_ab(:, :)
+        integer, intent(in)      :: dim_a, dim_b
+        complex(dp), intent(out) :: rho_a(dim_a, dim_a)
+
+        integer :: ia, ib, ja, jb
+
+        rho_a = (0.0_dp, 0.0_dp)
+        do ja = 1, dim_a
+            do ia = 1, dim_a
+                do ib = 1, dim_b
+                    rho_a(ia, ja) = rho_a(ia, ja) + &
+                        rho_ab((ia - 1) * dim_b + ib, (ja - 1) * dim_b + ib)
+                end do
+            end do
+        end do
+    end subroutine partial_trace_b
+
+    !> \brief 纯态双粒子系统的纠缠熵 S = -Tr(rho_A ln rho_A)
+    !> \details |psi> ∈ A ⊗ B 纯态 → S(rho_A) = S(rho_B) = 纠缠熵
+    !>          (von Neumann 熵的约化密度矩阵); 通过 rho_A 的本征值计算。
+    subroutine entanglement_entropy(psi, dim_a, dim_b, s_ent)
+        complex(dp), intent(in)  :: psi(:)
+        integer, intent(in)      :: dim_a, dim_b
+        real(dp), intent(out)    :: s_ent
+
+        complex(dp), allocatable :: rho_a(:, :)
+        real(dp), allocatable :: ra(:, :), ed(:), ez(:, :)
+        real(dp) :: p_val
+        integer :: ia, ib, ja, stat
+
+        allocate(rho_a(dim_a, dim_a), ra(dim_a, dim_a), ed(dim_a), ez(dim_a, dim_a))
+        ! 从态矢量构建 rho_A = Tr_B(|psi><psi|)
+        rho_a = (0.0_dp, 0.0_dp)
+        do ja = 1, dim_a
+            do ia = 1, dim_a
+                do ib = 1, dim_b
+                    rho_a(ia, ja) = rho_a(ia, ja) + &
+                        conjg(psi((ia - 1) * dim_b + ib)) * psi((ja - 1) * dim_b + ib)
+                end do
+            end do
+        end do
+
+        ! von Neumann 熵
+        ra = real(rho_a, dp)
+        call diag_symmetric_matrix(dim_a, ra, ed, ez, stat)
+        s_ent = 0.0_dp
+        do ia = 1, dim_a
+            p_val = ed(ia)
+            if (p_val > 1.0e-14_dp) s_ent = s_ent - p_val * log(p_val)
+        end do
+        deallocate(rho_a, ra, ed, ez)
+    end subroutine entanglement_entropy
 
 end module mod_open_quantum

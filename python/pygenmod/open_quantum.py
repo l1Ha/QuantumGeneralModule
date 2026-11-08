@@ -246,3 +246,23 @@ def lindblad_steady_state_general(h_mat, l_ops, gamma_rates):
     x = np.linalg.solve(aug, np.concatenate([np.zeros(n*n, dtype=complex), [1.0]]))
     rho_ss = x[:n * n].reshape(n, n)
     return rho_ss
+
+
+def partial_trace_b(rho_ab: np.ndarray, dim_a: int, dim_b: int) -> np.ndarray:
+    """Partial trace over subsystem B: rho_A = Tr_B(rho_AB).
+
+    Row-major convention: rho_AB[(ia-1)*dim_b+ib, (ja-1)*dim_b+jb].
+    Fortran mirror: `partial_trace_b`.
+    """
+    return np.trace(rho_ab.reshape(dim_a, dim_b, dim_a, dim_b),
+                    axis1=1, axis2=3)
+
+
+def entanglement_entropy(psi: np.ndarray, dim_a: int, dim_b: int) -> float:
+    """Entanglement entropy of a pure bipartite state: -Tr(rho_A ln rho_A).
+
+    Fortran mirror: `entanglement_entropy`.
+    """
+    rho_a = partial_trace_b(np.outer(psi, psi.conj()), dim_a, dim_b)
+    evals = np.linalg.eigvalsh(rho_a)
+    return float(-sum(p * np.log(p) for p in evals if p > 1e-14))

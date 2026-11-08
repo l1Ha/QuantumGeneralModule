@@ -6874,6 +6874,23 @@ Liouvillian 超算符向量化为 \(\mathcal{L}\)（\(n^{2}\times n^{2}\)
 \texttt{docs/generate\_figures.py}。}
 \end{figure}
 
+\hypertarget{ux91cfux5b50ux4fe1ux606fux5de5ux5177ux7bb1ux504fux8ff9ux4e0eux7ea0ux7f20ux71b5partial_trace_b-entanglement_entropy}{%
+\subsection{\texorpdfstring{量子信息工具箱：偏迹与纠缠熵（\texttt{partial\_trace\_b}
+/
+\texttt{entanglement\_entropy}）}{量子信息工具箱：偏迹与纠缠熵（partial\_trace\_b / entanglement\_entropy）}}\label{ux91cfux5b50ux4fe1ux606fux5de5ux5177ux7bb1ux504fux8ff9ux4e0eux7ea0ux7f20ux71b5partial_trace_b-entanglement_entropy}}
+
+双粒子量子态的\textbf{偏迹} \(\rho_A=\operatorname{Tr}_B(\rho_{AB})\)
+与\textbf{纠缠熵} \(S=-\operatorname{Tr}(\rho_A\ln\rho_A)\)
+是量子多体物理与量子信息的基石算符。\texttt{partial\_trace\_b}
+从行主序双粒子密度矩阵提取子系统 A
+的约化密度矩阵；\texttt{entanglement\_entropy} 从纯态
+\(|\psi\rangle\in A\otimes B\)
+的约化密度矩阵本征值计算纠缠熵------纯态的
+\(S(\rho_A)=S(\rho_B)\)（施密特分解），直积态 \(S=0\)，最大纠缠 Bell 态
+\(S=\ln 2\)。\textbf{Araki--Lieb 不等式}
+\(|S(\rho_A)-S(\rho_B)|\le S(\rho_{AB})\le S(\rho_A)+S(\rho_B)\)：对纯态取等号
+\(S_{AB}=0\)、\(S_A=S_B\)（机器验证到 \(10^{-10}\)）。
+
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-47}{%
 \subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-47}}
 
@@ -9648,7 +9665,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 48 个测试程序、531 项断言全部通过。
+  全库 48 个测试程序、535 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的
