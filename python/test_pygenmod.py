@@ -356,6 +356,21 @@ class TestPyGenMod(unittest.TestCase):
         self.assertAlmostEqual(float(np.real(rho_t[0, 0] + rho_t[1, 1])), 1.0,
                                delta=1e-12)
 
+    def test_general_steady_state(self):
+        """General n-level Lindblad steady state (book Sec 10.5 extension).
+        Mirrors the Fortran test group 7 of test_open_quantum_opt."""
+        from pygenmod.open_quantum import lindblad_steady_state_general
+        h3 = np.zeros((3, 3), dtype=complex)
+        l3 = np.zeros((3, 3, 2), dtype=complex)
+        l3[0, 1, 0] = 1.0  # |1><2|: |2>→|1|
+        l3[0, 2, 1] = 1.0  # |1><3|: |3>→|1|
+        gam = [1.5, 0.8]
+        rho3 = lindblad_steady_state_general(h3, l3, gam)
+        self.assertAlmostEqual(float(np.real(rho3[0, 0])), 1.0, delta=1e-10)
+        self.assertAlmostEqual(float(np.real(rho3[1, 1])), 0.0, delta=1e-10)
+        self.assertAlmostEqual(float(np.real(rho3[2, 2])), 0.0, delta=1e-10)
+        self.assertAlmostEqual(float(np.real(np.trace(rho3))), 1.0, delta=1e-10)
+
     def test_rovibrational(self):
         # Index roundtrip
         idx = rovibrational_state_index(v=2, j=3, j_max=5)

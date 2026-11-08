@@ -199,3 +199,50 @@ def mollow_spectrum_grid(omega: float, delta: float, gamma: float,
     weights[0] = weights[-1] = 0.5
     s_grid = np.real(phase @ (g1 * weights)) * d_tau / np.pi
     return om_grid, s_grid
+
+
+def lindblad_supermatrix_general(h_mat, l_ops, gamma_rates):
+    """General n-level Lindblad supermatrix (n^2 x n^2 complex).
+
+    Row-major vectorization: vec(rho)[(i-1)*n+j] = rho[i,j].
+    Fortran mirror: `lindblad_supermatrix_general`.
+    """
+    n = h_mat.shape[0]
+    n_ops = len(gamma_rates)
+    l_super = np.zeros((n * n, n * n), dtype=complex)
+    for j in range(n):
+        for i in range(n):
+            e_mat = np.zeros((n, n), dtype=complex)
+            e_mat[i, j] = 1.0
+            l_m = -1j * (h_mat @ e_mat - e_mat @ h_mat)
+            for ch in range(n_ops):
+                if gamma_rates[ch] > 0:
+                    l_op = l_ops[:, :, ch]
+                    l_m += gamma_rates[ch] * (l_op @ e_mat @ l_op.conj().T
+                                              - 0.5 * (l_op.conj().T @ l_op @ e_mat
+                                                       + e_mat @ l_op.conj().T @ l_op))
+            for k in range(n):
+                for l in range(n):
+                    l_super[k * n + l, i * n + j] = l_m[k, l]
+    return l_super
+
+
+def lindblad_steady_state_general(h_mat, l_ops, gamma_rates):
+    """General n-level Lindblad steady state via the augmented system.
+
+    Solves [[L, c], [r^T, 0]] [x; nu] = [0; 1] where c/r implement the
+    Tr(rho) = 1 constraint (only diagonal positions in vec space).
+    Returns rho_ss (n x n complex).
+    Fortran mirror: `lindblad_steady_state_general`.
+    """
+    n = h_mat.shape[0]
+    l_super = lindblad_supermatrix_general(h_mat, l_ops, gamma_rates)
+    n_aug = n * n + 1
+    aug = np.zeros((n_aug, n_aug), dtype=complex)
+    aug[:n*n, :n*n] = l_super
+    for i in range(n):
+        aug[i * (n + 1), n_aug - 1] = 1.0
+        aug[n_aug - 1, i * (n + 1)] = 1.0
+    x = np.linalg.solve(aug, np.concatenate([np.zeros(n*n, dtype=complex), [1.0]]))
+    rho_ss = x[:n * n].reshape(n, n)
+    return rho_ss

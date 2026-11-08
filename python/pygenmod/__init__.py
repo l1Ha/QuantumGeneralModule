@@ -111,6 +111,7 @@ from .open_quantum import (
     lindblad_eigenmodes_2level, lindblad_spectral_reconstruct,
     optical_bloch_steady_state_driven, first_order_correlation_2level,
     mollow_spectrum_grid,
+    lindblad_supermatrix_general, lindblad_steady_state_general,
 )
 
 from .qct import (
@@ -199,5 +200,6 @@ __all__ = [
     "lindblad_eigenmodes_2level", "lindblad_spectral_reconstruct",
     "optical_bloch_steady_state_driven", "first_order_correlation_2level",
     "mollow_spectrum_grid",
+    "lindblad_supermatrix_general", "lindblad_steady_state_general",
 ]
 

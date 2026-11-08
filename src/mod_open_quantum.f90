@@ -4,7 +4,8 @@
 !>          Lindblad Liouvillian 谱方法 (多原子拓展第九步 / 开放系统谱方法):
 !>          向量化超算符、稳态 (增广线性方程 + 闭式)、阻尼基谱分解与谱重构;
 !>          驱动耗散二能级: 光学 Bloch 稳态 (饱和闭式)、量子回归定理一阶
-!>          关联函数与 Mollow 三重峰共振荧光谱 (多原子拓展第十步)。
+!>          关联函数与 Mollow 三重峰共振荧光谱 (多原子拓展第十步);
+!>          通用 n 能级 Lindblad 稳态求解器 (多原子拓展第十一步)。
 !> \author LiHao
 module mod_open_quantum
     use mod_constants, only: dp, EYE, KB
@@ -26,6 +27,8 @@ module mod_open_quantum
     public :: optical_bloch_steady_state_driven
     public :: first_order_correlation_2level
     public :: mollow_spectrum_grid
+    public :: lindblad_supermatrix_general
+    public :: lindblad_steady_state_general
     public :: lindblad_supermatrix_driven
 
 contains
@@ -545,5 +548,129 @@ contains
         end do
         deallocate(tau_grid, g1_grid)
     end subroutine mollow_spectrum_grid
+
+    !> \brief 通用 n 能级 Lindblad 向量化超矩阵 (n^2 x n^2 复)
+    !> \details 从任意哈密顿量与任意塌缩通道列表构建完整 Liouvillian:
+    !>          L(rho) = -i[H, rho] + sum_k gamma_k D[L_k] rho。
+    !>          向量化约定: vec(rho)_{(i-1)*n+j} = rho(i,j) (行主序)。
+    subroutine lindblad_supermatrix_general(h_mat, l_ops, gamma_rates, &
+                                            n_dim, n_ops, l_super, stat)
+        real(dp), intent(in)  :: h_mat(:, :)
+        complex(dp), intent(in) :: l_ops(:, :, :)
+        real(dp), intent(in)  :: gamma_rates(:)
+        integer, intent(in)   :: n_dim, n_ops
+        complex(dp), intent(out) :: l_super(n_dim * n_dim, n_dim * n_dim)
+        integer, intent(out)  :: stat
+
+        complex(dp) :: e_mat(n_dim, n_dim), l_m(n_dim, n_dim), rho_p(n_dim, n_dim)
+        integer :: i, j, k, l, ch, vi, vj
+
+        stat = 0
+        if (n_dim < 2 .or. n_ops < 1) then
+            stat = -1
+            return
+        end if
+        l_super = (0.0_dp, 0.0_dp)
+
+        do j = 1, n_dim
+            do i = 1, n_dim
+                e_mat = (0.0_dp, 0.0_dp)
+                e_mat(i, j) = (1.0_dp, 0.0_dp)
+                ! Hamiltonian 部分
+                l_m = -EYE * (matmul(h_mat, e_mat) - matmul(e_mat, h_mat))
+                ! Lindblad 耗散部分
+                do ch = 1, n_ops
+                    if (gamma_rates(ch) > 0.0_dp) then
+                        l_m = l_m + gamma_rates(ch) * lindblad_dissipator( &
+                            l_ops(:, :, ch), e_mat)
+                    end if
+                end do
+                ! 散射到超矩阵 (行主序 vec(i,j) = (i-1)*n + j)
+                do l = 1, n_dim
+                    do k = 1, n_dim
+                        vi = (k - 1) * n_dim + l
+                        vj = (i - 1) * n_dim + j
+                        l_super(vi, vj) = l_m(k, l)
+                    end do
+                end do
+            end do
+        end do
+    end subroutine lindblad_supermatrix_general
+
+    !> \brief 通用 n 能级 Lindblad 稳态 (增广线性方程 + 性质自检)
+    !> \details 增广系统 [[L, I_vec], [I_vec^T, 0]] [x; nu] = [0; 1] 经库内
+    !>          复矩阵求逆求解 (n^2 + 1 阶)。性质自检: Tr = 1、厄米性、
+    !>          L rho_ss = 0 残差。
+    !> \note   复杂度 O(n^6) (求逆) —— n <= 6 建议 (n^2+1 <= 37)。
+    subroutine lindblad_steady_state_general(h_mat, l_ops, gamma_rates, &
+                                             n_dim, n_ops, rho_ss, stat)
+        real(dp), intent(in)  :: h_mat(:, :)
+        complex(dp), intent(in) :: l_ops(:, :, :)
+        real(dp), intent(in)  :: gamma_rates(:)
+        integer, intent(in)   :: n_dim, n_ops
+        complex(dp), intent(out), allocatable :: rho_ss(:, :)
+        integer, intent(out)  :: stat
+
+        complex(dp), allocatable :: l_super(:, :), aug(:, :), aug_inv(:, :)
+        complex(dp), allocatable :: resid(:, :)
+        integer :: n_aug, i, j, ierr
+        real(dp) :: tr_val
+
+        stat = 0
+        if (n_dim < 2 .or. n_ops < 1) then
+            stat = -1
+            allocate(rho_ss(0, 0))
+            return
+        end if
+        n_aug = n_dim * n_dim + 1
+        allocate(l_super(n_dim * n_dim, n_dim * n_dim), aug(n_aug, n_aug), &
+                 aug_inv(n_aug, n_aug), rho_ss(n_dim, n_dim), resid(n_dim, n_dim))
+
+        call lindblad_supermatrix_general(h_mat, l_ops, gamma_rates, &
+                                          n_dim, n_ops, l_super, stat)
+        if (stat /= 0) return
+
+        aug = (0.0_dp, 0.0_dp)
+        aug(1:n_dim*n_dim, 1:n_dim*n_dim) = l_super
+        do i = 1, n_dim
+            aug((i - 1) * n_dim + i, n_aug) = (1.0_dp, 0.0_dp)
+            aug(n_aug, (i - 1) * n_dim + i) = (1.0_dp, 0.0_dp)
+        end do
+        call inv_complex_matrix(n_aug, aug, aug_inv, ierr)
+        if (ierr /= 0) then
+            stat = -2
+            deallocate(l_super, aug, aug_inv, rho_ss, resid)
+            return
+        end if
+        rho_ss = (0.0_dp, 0.0_dp)
+        do j = 1, n_dim
+            do i = 1, n_dim
+                rho_ss(i, j) = aug_inv((i - 1) * n_dim + j, n_aug)
+            end do
+        end do
+
+        ! 性质自检: Tr = 1
+        tr_val = 0.0_dp
+        do i = 1, n_dim
+            tr_val = tr_val + real(rho_ss(i, i), dp)
+        end do
+        if (abs(tr_val - 1.0_dp) > 1.0e-10_dp) stat = -3
+        ! 厄米性
+        do i = 1, n_dim
+            do j = i + 1, n_dim
+                if (abs(rho_ss(i, j) - conjg(rho_ss(j, i))) > 1.0e-10_dp) stat = -4
+            end do
+        end do
+        ! L rho_ss = 0 残差
+        do j = 1, n_dim
+            do i = 1, n_dim
+                resid(i, j) = sum(l_super((i-1)*n_dim+j, 1:n_dim*n_dim) &
+                    * reshape(rho_ss, (/ n_dim * n_dim /)))
+            end do
+        end do
+        if (abs(sum(abs(resid))) > 1.0e-10_dp) stat = -5
+
+        deallocate(l_super, aug, aug_inv, resid)
+    end subroutine lindblad_steady_state_general
 
 end module mod_open_quantum

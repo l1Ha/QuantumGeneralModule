@@ -226,6 +226,45 @@ program test_open_quantum_opt
         deallocate(om_g, s_g)
     end block
 
+    ! ----------------------------------------------------
+    ! 7. 通用 n 能级 Lindblad 稳态求解器 (多原子拓展第十一步)
+    ! ----------------------------------------------------
+    block
+        real(dp), allocatable :: h_g(:, :), gam_g(:)
+        complex(dp), allocatable :: l_g(:, :, :), rho_g(:, :)
+        integer :: stat_g, i_g
+
+        ! 三能级 V 系统: |2>→|1> (γ₁=1.5), |3>→|1> (γ₂=0.8)
+        allocate(h_g(3, 3), l_g(3, 3, 2), gam_g(2), rho_g(3, 3))
+        h_g = 0.0_dp
+        l_g = (0.0_dp, 0.0_dp)
+        l_g(1, 2, 1) = (1.0_dp, 0.0_dp)
+        l_g(1, 3, 2) = (1.0_dp, 0.0_dp)
+        gam_g(1) = 1.5_dp; gam_g(2) = 0.8_dp
+
+        call lindblad_steady_state_general(h_g, l_g, gam_g, 3, 2, rho_g, stat_g)
+        call assert_true("V-system general steady state solve", stat_g == 0)
+        call assert_close("V-system rho_11 = 1 (ground state)", 1.0_dp, &
+                          real(rho_g(1, 1), dp), 1.0e-10_dp)
+        call assert_close("V-system rho_22 = 0 (no drive)", 0.0_dp, &
+                          real(rho_g(2, 2), dp), 1.0e-10_dp)
+        call assert_close("V-system trace = 1", 1.0_dp, &
+                          real(rho_g(1, 1) + rho_g(2, 2) + rho_g(3, 3)), 1.0e-10_dp)
+
+        ! 二能级一致性: 通过一般求解器重现热化闭式
+        deallocate(h_g, l_g, gam_g, rho_g)
+        allocate(h_g(2, 2), l_g(2, 2, 2), gam_g(2), rho_g(2, 2))
+        h_g = 0.0_dp
+        l_g = (0.0_dp, 0.0_dp)
+        l_g(2, 1, 1) = (1.0_dp, 0.0_dp)  ! sigma^- (decay)
+        l_g(1, 2, 2) = (1.0_dp, 0.0_dp)  ! sigma^+ (pump)
+        gam_g(1) = 0.6_dp; gam_g(2) = 0.15_dp
+        call lindblad_steady_state_general(h_g, l_g, gam_g, 2, 2, rho_g, stat_g)
+        call assert_close("2-level general rho_ee = gamma_up/Gamma", &
+                          0.15_dp / 0.75_dp, real(rho_g(1, 1), dp), 1.0e-10_dp)
+        deallocate(h_g, l_g, gam_g, rho_g)
+    end block
+
     print '(A)', "--------------------------------------------------"
     print '(A, I2, A, I2, A)', "Open Quantum & OCT Tests: ", n_passed, " / ", n_tests, " PASSED."
     if (n_passed /= n_tests) then
