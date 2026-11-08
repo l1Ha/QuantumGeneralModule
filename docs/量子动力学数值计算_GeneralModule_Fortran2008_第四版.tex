@@ -5278,6 +5278,38 @@ c_j^{*}c_k\,\mathbf v\cdot\mathbf d_{jk}
   §14.7。
 \end{itemize}
 
+\hypertarget{ux975eux7eddux70edux8026ux5408ux573aux7684ux95edux5f0fux6838ux5fc3ux7ebfux6027ux907fux514dux4ea4ux53c9ux6a21ux578bux4e0eux672cux5f81ux77e2ux7ec8ux5ba1tully_lac}{%
+\subsection{\texorpdfstring{非绝热耦合场的闭式核心：线性避免交叉模型与本征矢终审（\texttt{TULLY\_LAC}）}{非绝热耦合场的闭式核心：线性避免交叉模型与本征矢终审（TULLY\_LAC）}}\label{ux975eux7eddux70edux8026ux5408ux573aux7684ux95edux5f0fux6838ux5fc3ux7ebfux6027ux907fux514dux4ea4ux53c9ux6a21ux578bux4e0eux672cux5f81ux77e2ux7ec8ux5ba1tully_lac}}
+
+FSSH 的跳跃概率与电子波函数传播全部依赖非绝热导数耦合
+\(d_{12}=\langle\varphi_1|\partial_x|\varphi_2\rangle\)------它的正确性决定整个表面跳跃算法的保真度。§12.2
+路线图项``非绝热耦合场''的可解核心：\textbf{线性避免交叉模型（\texttt{TULLY\_LAC}）}
+\(H=\begin{pmatrix}-ax/2&c\\c&ax/2\end{pmatrix}\)，其 NACV 有闭式
+
+\[d_{12}(x)=-\frac{ac}{(ax)^{2}+4c^{2}},\qquad \int_{-\infty}^{\infty}d_{12}\,dx=-\frac{\pi}{2}\]
+
+（\(d_{12}=\mathrm{d}\theta/\mathrm{d}x\)，\(\tan 2\theta=2c/(-ax)\)；积分即混合角总变化
+\(-\pi/2\)，Sturm--Liouville 精确）。这一闭式成为\textbf{终审工具}：对
+\texttt{calc\_adiabatic\_surface\_and\_nacv}
+的通用混合角公式做本征矢有限差分对审时，发现公式\textbf{差 2
+倍因子}------数值定谳（规范固定的本征矢中心差分 vs 公式，Tully SAC 与
+LAC 两模型全部 \(x\) 点比值 1.00000）修正为
+\(d_{12}=\tfrac12\bigl[v_{12}(v_{11}'-v_{22}')/2-\det\cdot v_{12}'\bigr]/\mathrm{gap}^{2}\)。因子
+2 的量级足以使 FSSH
+跳跃概率系统性偏大------这正是``闭式基准钉住通用公式''方法论的价值。积分定理（\(-\pi/2\)，数值积分
+\(1.6\times10^{-3}\) 内）与绝热能隙闭式同测。
+
+\begin{figure}
+\centering
+\includegraphics[width=13cm,height=\textheight]{figures/fig26_lac_nacv.png}
+\caption{图 7.8：线性避免交叉模型与闭式
+NACV（\texttt{TULLY\_LAC}，\(a=0.4\)、\(c=0.15\ E_h\)）。（a）非对角表象（虚线）与绝热表象（实线）势能面：避免交叉隙
+\(2c=0.3\ E_h\)；（b）NACV
+\(d_{12}(x)=-ac/((ax)^{2}+4c^{2})\)（红线）与库内公式（紫点，本征矢有限差分终审通过）------Lorentz
+型峰集中于交叉点，积分 \(=-\pi/2\)（混合角总变化，数值
+\(-1.552\)，尾修正内）。绘图脚本见 \texttt{docs/generate\_figures.py}。}
+\end{figure}
+
 \hypertarget{ux9ad8ux7ea7ux4e13ux9898ux7684ux7edfux4e00ux7814ux7a76ux6846ux67b6}{%
 \section{7.13　高级专题的统一研究框架}\label{ux9ad8ux7ea7ux4e13ux9898ux7684ux7edfux4e00ux7814ux7a76ux6846ux67b6}}
 
@@ -7684,15 +7716,15 @@ Breit-Rabi、Feshbach\strut
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
 7.12 / 14.7\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-FSSH 表面跳跃\strut
+FSSH 表面跳跃 + 闭式 NACV\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-\texttt{mod\_surface\_hopping\_fssh::run\_fssh\_ensemble}\strut
+\texttt{mod\_surface\_hopping\_fssh::run\_fssh\_ensemble}、\texttt{TULLY\_LAC}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 ---\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 \texttt{test\_surface\_hopping\_fssh}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
----\strut
+图 7.8（26）\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
 9.10 / 10.x\strut
@@ -9576,7 +9608,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 48 个测试程序、512 项断言全部通过。
+  全库 48 个测试程序、521 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的

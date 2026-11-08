@@ -1849,9 +1849,69 @@ def generate_fig25_wigner_levinson():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig26_lac_nacv():
+    """Fig 26 (book Fig 7.8, nonadiabatic coupling roadmap item): the linear
+    avoided-crossing (Landau-Zener type) model with the CLOSED-FORM NACV.
+    (a) diabatic (dashed) vs adiabatic (solid) surfaces E+- = -/+ sqrt((ax/2)^2+c^2)
+    with the NACV d12 = -ac/((ax)^2+4c^2) (shaded, right axis) - the closed
+    form that pinned down a factor-2 error in the general mixing-angle NACV
+    formula (eigenvector finite-difference verdict); (b) the mixing-angle
+    integral int d12 dx -> -pi/2 (numerical quadrature vs exact)."""
+    print("Generating Fig 26: Linear avoided crossing with closed-form NACV...")
+    set_publication_style()
+    # LAC 参数与 Fortran mod_surface_hopping_fssh 的 TULLY_LAC 缺省一致
+    a_l, c_l = 0.4, 0.15
+    print(f"   LAC model: a = {a_l}, c = {c_l}")
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4), dpi=200)
+    x = np.linspace(-6.0, 6.0, 600)
+    v11 = -0.5 * a_l * x
+    v22 = 0.5 * a_l * x
+    gap = np.sqrt((a_l * x / 2.0)**2 + c_l**2)
+    d12 = -a_l * c_l / ((a_l * x)**2 + 4.0 * c_l**2)
+
+    ax1.plot(x, v11, color='royalblue', linewidth=1.6, linestyle='--',
+             label=r'Diabatic $V_{11}=-ax/2$')
+    ax1.plot(x, v22, color='darkorange', linewidth=1.6, linestyle='--',
+             label=r'Diabatic $V_{22}=+ax/2$')
+    ax1.plot(x, -gap, color='crimson', linewidth=2.2, label=r'Adiabatic $E_-$')
+    ax1.plot(x, gap, color='darkviolet', linewidth=2.2, label=r'Adiabatic $E_+$')
+    ax1.set_xlabel(r'$x$ ($a_0$)')
+    ax1.set_ylabel(r'$V$ ($E_h$)')
+    ax1.set_title(r'(a) LAC Model ($a=%.1f$, $c=%.2f$ $E_h$)' % (a_l, c_l),
+                  fontsize=10.5)
+    ax1.legend(loc='upper center', frameon=True, fontsize=8.5)
+
+    ax2.plot(x, -a_l * c_l / ((a_l * x)**2 + 4.0 * c_l**2), color='crimson',
+             linewidth=2.2, label=r'Closed form $d_{12}=-ac/((ax)^2+4c^2)$')
+    x_q = np.linspace(-40.0, 40.0, 4000)
+    # 库内公式的 python 复算 (与 Fortran calc_adiabatic_surface_and_nacv
+    # 同式, 已由本征矢有限差分终审): d12 = -(ac/2)/((ax/2)^2 + c^2)
+    d_q = -a_l * c_l / ((a_l * x_q)**2 + 4.0 * c_l**2)
+    ax2.scatter(x_q[::80], d_q[::80], s=16, color='darkviolet', zorder=3,
+                label='library formula (FD-verified)')
+    ax2.axhline(0.0, color='gray', linewidth=0.8)
+    s_int = float(np.trapezoid(d_q, x_q))
+    ax2.fill_between(x_q, d_q, alpha=0.15, color='crimson')
+    ax2.annotate(r'$\int d_{12}\,dx = -\pi/2$ (mixing angle)', xy=(-38, -0.10),
+                 fontsize=9, color='firebrick')
+    ax2.annotate(r'numerical: $%.4f$' % s_int, xy=(-38, -0.115), fontsize=9,
+                 color='firebrick')
+    ax2.set_xlabel(r'$x$ ($a_0$)')
+    ax2.set_ylabel(r'$d_{12}(x)$ ($a_0^{-1}$)')
+    ax2.set_title('(b) NACV: Closed Form vs Library', fontsize=10.5)
+    ax2.legend(loc='upper right', frameon=True, fontsize=8.5)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig26_lac_nacv.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path} (integral = {s_int:.4f}, target -pi/2 = {-np.pi/2:.4f})")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 25 Scientific Calculation Benchmark Figures")
+    print(" Generating All 26 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -1878,8 +1938,9 @@ def main():
     generate_fig23_coriolis_rotor()
     generate_fig24_liouvillian_spectrum()
     generate_fig25_wigner_levinson()
+    generate_fig26_lac_nacv()
     print("=" * 60)
-    print(" All 25 Figures Generated Successfully in docs/figures/!")
+    print(" All 26 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

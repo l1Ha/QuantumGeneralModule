@@ -110,6 +110,61 @@ program test_surface_hopping_fssh
     end if
 
     print '(A)', "--------------------------------------------------"
+    ! ----------------------------------------------------
+    ! 线性避免交叉 (TULLY_LAC) 闭式 NACV 与积分定理 (多原子/非绝热第九步)
+    ! ----------------------------------------------------
+    block
+        type(tully_model_t) :: model
+        real(dp) :: e1_l, e2_l, f1_l, f2_l, d12_l, x_l
+        real(dp) :: a_l, c_l, d_closed, s_l, dthr
+        integer :: i_l
+
+        call init_tully_model(model, TULLY_LAC, stat)
+        a_l = model%a; c_l = model%c
+
+        ! (1) 闭式 NACV: d12 = -a c / ((a x)^2 + 4 c^2)
+        do i_l = -3, 3
+            x_l = 0.7_dp * real(i_l, dp)
+            call calc_adiabatic_surface_and_nacv(model, x_l, e1_l, e2_l, f1_l, f2_l, d12_l)
+            d_closed = -a_l * c_l / ((a_l * x_l)**2 + 4.0_dp * c_l**2)
+            n_total = n_total + 1
+            if (abs(d12_l - d_closed) < 1.0e-12_dp) then
+                n_pass = n_pass + 1
+                print '(A, F6.3)', " [PASS] LAC closed-form NACV at x =", x_l
+            else
+                print '(A, F6.3, A, ES10.2)', " [FAIL] LAC NACV at x =", x_l, &
+                    " diff:", d12_l - d_closed
+            end if
+        end do
+
+        ! (2) 积分定理: int d12 dx = -pi/2 (混合角总变化, Sturm-Liouville)
+        s_l = 0.0_dp
+        do i_l = -4000, 3999
+            x_l = (real(i_l, dp) + 0.5_dp) * 0.02_dp
+            call calc_adiabatic_surface_and_nacv(model, x_l, e1_l, e2_l, f1_l, f2_l, d12_l)
+            s_l = s_l + d12_l * 0.02_dp
+        end do
+        dthr = acos(-1.0_dp)
+        n_total = n_total + 1
+        if (abs(s_l + dthr / 2.0_dp) < 1.0e-2_dp) then
+            n_pass = n_pass + 1
+            print '(A, ES10.3)', " [PASS] LAC NACV integral = -pi/2:", s_l
+        else
+            print '(A, ES10.3)', " [FAIL] LAC NACV integral:", s_l
+        end if
+
+        ! (3) 绝热能面闭式: E± = ±sqrt((a x/2)^2 + c^2) (无迹偏移)
+        x_l = 1.3_dp
+        call calc_adiabatic_surface_and_nacv(model, x_l, e1_l, e2_l, f1_l, f2_l, d12_l)
+        n_total = n_total + 1
+        if (abs((e2_l - e1_l) / 2.0_dp - sqrt((a_l * x_l / 2.0_dp)**2 + c_l**2)) < 1.0e-12_dp) then
+            n_pass = n_pass + 1
+            print '(A)', " [PASS] LAC adiabatic gap = 2*sqrt((a x/2)^2 + c^2)"
+        else
+            print '(A)', " [FAIL] LAC adiabatic gap mismatch"
+        end if
+    end block
+
     print '(A, I2, A, I2, A)', " Surface Hopping Tests: ", n_pass, " / ", n_total, " PASSED."
     if (n_pass == n_total) then
         print '(A)', " SUCCESS: All surface hopping FSSH tests passed."

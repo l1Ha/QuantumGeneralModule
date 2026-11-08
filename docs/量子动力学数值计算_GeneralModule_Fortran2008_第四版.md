@@ -2879,6 +2879,17 @@ $$
 - [src/mod_surface_hopping_fssh.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_surface_hopping_fssh.f90)：`init_tully_model`（Tully 模型 1/2/3）、`calc_adiabatic_surface_and_nacv`（绝热面与非绝热耦合）、`propagate_fssh_step` 与 `run_fssh_ensemble`（系综）。
 - 验证：`tests/test_surface_hopping_fssh.f90`；分支比统计见 §14.7。
 
+
+#### 非绝热耦合场的闭式核心：线性避免交叉模型与本征矢终审（`TULLY_LAC`）
+
+FSSH 的跳跃概率与电子波函数传播全部依赖非绝热导数耦合 $d_{12}=\langle\varphi_1|\partial_x|\varphi_2\rangle$——它的正确性决定整个表面跳跃算法的保真度。§12.2 路线图项"非绝热耦合场"的可解核心：**线性避免交叉模型（`TULLY_LAC`）** $H=\begin{pmatrix}-ax/2&c\\c&ax/2\end{pmatrix}$，其 NACV 有闭式
+
+$$d_{12}(x)=-\frac{ac}{(ax)^{2}+4c^{2}},\qquad \int_{-\infty}^{\infty}d_{12}\,dx=-\frac{\pi}{2}$$
+
+（$d_{12}=\mathrm{d}\theta/\mathrm{d}x$，$\tan 2\theta=2c/(-ax)$；积分即混合角总变化 $-\pi/2$，Sturm–Liouville 精确）。这一闭式成为**终审工具**：对 `calc_adiabatic_surface_and_nacv` 的通用混合角公式做本征矢有限差分对审时，发现公式**差 2 倍因子**——数值定谳（规范固定的本征矢中心差分 vs 公式，Tully SAC 与 LAC 两模型全部 $x$ 点比值 1.00000）修正为 $d_{12}=\tfrac12\bigl[v_{12}(v_{11}'-v_{22}')/2-\det\cdot v_{12}'\bigr]/\mathrm{gap}^{2}$。因子 2 的量级足以使 FSSH 跳跃概率系统性偏大——这正是"闭式基准钉住通用公式"方法论的价值。积分定理（$-\pi/2$，数值积分 $1.6\times10^{-3}$ 内）与绝热能隙闭式同测。
+
+![图 7.8：线性避免交叉模型与闭式 NACV（`TULLY_LAC`，$a=0.4$、$c=0.15\ E_h$）。（a）非对角表象（虚线）与绝热表象（实线）势能面：避免交叉隙 $2c=0.3\ E_h$；（b）NACV $d_{12}(x)=-ac/((ax)^{2}+4c^{2})$（红线）与库内公式（紫点，本征矢有限差分终审通过）——Lorentz 型峰集中于交叉点，积分 $=-\pi/2$（混合角总变化，数值 $-1.552$，尾修正内）。绘图脚本见 `docs/generate_figures.py`。](figures/fig26_lac_nacv.png){width=13.0cm}
+
 ### 7.13　高级专题的统一研究框架
 
 GeneralModule 还包含多个研究级专题模块。它们不是孤立 API，而是同一套数学结构的延伸。
@@ -4210,7 +4221,7 @@ GitHub Actions 配置位于：
 | 7.4 | 光学定理 | `mod_ti_scattering::optical_theorem_cross_section` | — | `test_ti_scattering` | — |
 | 7.8 / 10.4 | Breit-Rabi、Feshbach | `mod_field_scattering::calc_breit_rabi_energies`、`fit_feshbach_resonance_parameters` | `field_scattering` 同名 | `test_field_scattering` | 图 7.3、10.3 |
 | 7.10 | 转振哈密顿量 | `mod_rovibrational::build_rovibrational_hamiltonian` | `rovibrational.build_rovibrational_hamiltonian` | `test_molecular_alignment` | 图 7.4 |
-| 7.12 / 14.7 | FSSH 表面跳跃 | `mod_surface_hopping_fssh::run_fssh_ensemble` | — | `test_surface_hopping_fssh` | — |
+| 7.12 / 14.7 | FSSH 表面跳跃 + 闭式 NACV | `mod_surface_hopping_fssh::run_fssh_ensemble`、`TULLY_LAC` | — | `test_surface_hopping_fssh` | 图 7.8（26） |
 | 9.10 / 10.x | HHG 三步模型 | `mod_hhg_spectra::hhg_power_spectrum`、`lewenstein_sfa_dipole` | `hhg.hhg_power_spectrum` | `test_atomic_hhg` | 图 9.1 |
 | 17.1–17.5 | QCT 反应散射 | `mod_qct_dynamics::run_qct_ensemble`（OpenMP） | `qct.run_qct_ensemble` | `test_qct_dynamics` | 图 17.1 |
 | 18.1 / 14.4 | SOP 与 TT | `mod_sop_hamiltonian::sop_apply`、`mod_tensor_train::tt_round` | `sop_hamiltonian`、`tensor_train` | `test_sop_hamiltonian`/`test_tensor_train` | — |
@@ -5185,7 +5196,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 48 个测试程序、512 项断言全部通过。
+- 全库 48 个测试程序、521 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

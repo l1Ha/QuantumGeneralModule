@@ -71,7 +71,7 @@ jobs:
           fi
           exit $rc
 
-      - name: Run Direct Fortran Unit Test Suite (48 Test Suites, 512 Assertions)
+      - name: Run Direct Fortran Unit Test Suite (48 Test Suites, 521 Assertions)
         run: |
           bash tests/run_all_tests.sh
 

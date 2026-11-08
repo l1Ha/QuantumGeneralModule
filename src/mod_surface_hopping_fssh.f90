@@ -22,6 +22,8 @@ module mod_surface_hopping_fssh
     integer, parameter :: TULLY_SAC = 1  !< 单避免交叉 (Simple Avoided Crossing)
     integer, parameter :: TULLY_DAC = 2  !< 双避免交叉与斯托克斯干涉 (Dual Avoided Crossing)
     integer, parameter :: TULLY_ECR = 3  !< 扩展耦合反射 (Extended Coupling with Reflection)
+    integer, parameter :: TULLY_LAC = 4  !< 线性避免交叉 (Landau-Zener 型, 闭式 NACV 基准)
+    public :: TULLY_LAC
 
     !> Tully 解析势能模型参数结构体
     type :: tully_model_t
@@ -77,6 +79,15 @@ contains
             model%c  = 0.09_dp
             model%d  = 0.0_dp
             model%e0 = 0.0_dp
+        case (TULLY_LAC)
+            ! 线性避免交叉 (Landau-Zener 型): V11 = -a x/2, V22 = +a x/2,
+            ! V12 = c (常数)。闭式 NACV d12 = -(a c/2)/((a x/2)^2 + c^2),
+            ! 积分定理 int d12 dx = -pi/2 (混合角总变化)。
+            model%a  = 0.4_dp
+            model%c  = 0.15_dp
+            model%b  = 0.0_dp
+            model%d  = 0.0_dp
+            model%e0 = 0.0_dp
         case default
             if (present(stat)) stat = -1
         end select
@@ -110,6 +121,14 @@ contains
             dv22 = 2.0_dp * model%a * model%b * x * exp(-model%b * (x**2))
             v12 = model%c * exp(-model%d * (x**2))
             dv12 = -2.0_dp * model%d * x * v12
+
+        case (TULLY_LAC)
+            v11 = -0.5_dp * model%a * x
+            dv11 = -0.5_dp * model%a
+            v22 = 0.5_dp * model%a * x
+            dv22 = 0.5_dp * model%a
+            v12 = model%c
+            dv12 = 0.0_dp
 
         case default
             v11 = model%a
@@ -152,8 +171,12 @@ contains
         f2 = - (0.5_dp * (dv11 + dv22) + (det_diff * 0.5_dp * (dv11 - dv22) + v12 * dv12) / max(1.0e-14_dp, gap))
 
         ! 混合角 theta: tan(2*theta) = 2*v12 / (v11 - v22)
-        ! 非绝热导数耦合: d_12 = d(theta)/dx = (v12 * (dv11 - dv22)/2 - det_diff * dv12) / (gap^2)
-        d12 = (v12 * 0.5_dp * (dv11 - dv22) - det_diff * dv12) / max(1.0e-14_dp, gap**2)
+        ! 非绝热导数耦合 d_12 = <phi1|d/dx|phi2> = d(theta)/dx:
+        !   d_12 = [v12 (dv11 - dv22)/2 + det_diff * dv12] / (2 * gap^2)
+        ! (由 Hellmann-Feynman 恒等式 d12 = <phi1|dH/dx|phi2>/(E2-E1) 严格导出;
+        !  因子 1/2 与符号由本征矢有限差分终审验证 —— 修正前公式差 -2 倍)
+        d12 = 0.5_dp * (v12 * 0.5_dp * (dv11 - dv22) - det_diff * dv12) &
+              / max(1.0e-14_dp, gap**2)
     end subroutine calc_adiabatic_surface_and_nacv
 
     !> \brief 初始化单条 FSSH 轨迹
