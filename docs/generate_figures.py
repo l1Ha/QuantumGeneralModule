@@ -1909,9 +1909,46 @@ def generate_fig26_lac_nacv():
     print(f" -> Saved to {fig_path} (integral = {s_int:.4f}, target -pi/2 = {-np.pi/2:.4f})")
 
 
+def generate_fig27_mollow():
+    """Fig 27 (book Fig 10.6, driven-dissipative completion): resonance
+    fluorescence of a driven two-level system. (a) weak drive (single
+    Lorentzian at the drive frequency, HWHM Gamma/2); (b) strong drive
+    (the Mollow triplet: central + sidebands at ±sqrt(Omega^2-Gamma^2/4));
+    spectrum normalization = rho_ee^ss (Wiener-Khinchin via the quantum
+    regression theorem)."""
+    print("Generating Fig 27: Mollow triplet resonance fluorescence...")
+    set_publication_style()
+    import pygenmod as _pg
+
+    gam = 1.0
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4), dpi=200,
+                                   sharey=True)
+    for ax, om_r, lab in ((ax1, 0.2, '(a) Weak drive ($\\Omega=0.2\\Gamma$)'),
+                          (ax2, 5.0, '(b) Strong drive ($\\Omega=5\\Gamma$) — Mollow triplet')):
+        rho_ss = _pg.optical_bloch_steady_state_driven(om_r, 0.0, gam)
+        om, s = _pg.mollow_spectrum_grid(om_r, 0.0, gam, rho_ss, 12.0, 300, 400)
+        ax.plot(om, s, color='crimson', linewidth=2.0)
+        ax.fill_between(om, s, alpha=0.15, color='crimson')
+        ax.axvline(0.0, color='gray', linewidth=0.8, linestyle=':')
+        rho_ee = float(np.real(rho_ss[0, 0]))
+        ax.annotate(r'$\int S\,\mathrm{d}\omega = \rho_{ee}^{\mathrm{ss}}'
+                    r' = %.3f$' % rho_ee, xy=(0.97, 0.92),
+                    xycoords='axes fraction', fontsize=9, ha='right',
+                    color='dimgray')
+        ax.set_xlabel(r'$\omega - \omega_0$ ($\mathrm{ps}^{-1}$)')
+    ax1.set_ylabel(r'$S(\omega)$ (a.u.)')
+    ax1.set_title('(a) Weak Drive: Single Lorentzian', fontsize=10.5)
+    ax2.set_title('(b) Strong Drive: Mollow Triplet', fontsize=10.5)
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig27_mollow_triplet.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 26 Scientific Calculation Benchmark Figures")
+    print(" Generating All 27 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -1939,8 +1976,9 @@ def main():
     generate_fig24_liouvillian_spectrum()
     generate_fig25_wigner_levinson()
     generate_fig26_lac_nacv()
+    generate_fig27_mollow()
     print("=" * 60)
-    print(" All 26 Figures Generated Successfully in docs/figures/!")
+    print(" All 27 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

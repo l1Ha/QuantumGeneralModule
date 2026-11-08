@@ -51,6 +51,10 @@ class TestPublicAPI(unittest.TestCase):
             self.assertIn(name, pygenmod.__all__)
 
 
+def _maxval(arr):
+    return float(np.max(arr)) if len(arr) else 0.0
+
+
 class TestPyGenMod(unittest.TestCase):
 
     def test_constants_and_units(self):
@@ -283,6 +287,38 @@ class TestPyGenMod(unittest.TestCase):
         # branch endpoints mirror each other
         self.assertAlmostEqual(bra["r12"][-1], brb["r23"][-1], delta=1e-6)
         self.assertAlmostEqual(bra["r23"][-1], brb["r12"][-1], delta=1e-6)
+
+    def test_driven_mollow(self):
+        """Driven-dissipative two-level: saturation steady state, Mollow
+        triplet (book Sec 10.5 extension). Mirrors the Fortran test group 6."""
+        from pygenmod.open_quantum import (optical_bloch_steady_state_driven,
+                                           mollow_spectrum_grid)
+        om_r, gam = 5.0, 1.0
+        rho_ss = optical_bloch_steady_state_driven(om_r, 0.0, gam)
+        s_sat = 2.0 * om_r**2 / gam**2
+        self.assertAlmostEqual(float(np.real(rho_ss[0, 0])),
+                               s_sat / (2.0 * (1.0 + s_sat)), delta=1e-10)
+        om, s = mollow_spectrum_grid(om_r, 0.0, gam, rho_ss, 12.0, 300, 400)
+        self.assertAlmostEqual(float(np.trapezoid(s, om)),
+                               float(np.real(rho_ss[0, 0])), delta=2e-2)
+        om_eff = np.sqrt(om_r**2 - 0.25 * gam**2)
+        n_pk = 0
+        d_om = om[1] - om[0]
+        for i in range(1, len(s) - 1):
+            if (s[i] > s[i-1] and s[i] >= s[i+1] and s[i] > 0.05
+                    and (abs(abs(om[i]) - om_eff) < 3 * d_om
+                         or abs(om[i]) < d_om)):
+                n_pk += 1
+        self.assertEqual(n_pk, 3)
+        # 弱驱动: 单 Lorentz 峰
+        rho_w = optical_bloch_steady_state_driven(0.2, 0.0, gam)
+        om, s = mollow_spectrum_grid(0.2, 0.0, gam, rho_w, 12.0, 300, 300)
+        n_pk = 0
+        for i in range(1, len(s) - 1):
+            if (s[i] > s[i-1] and s[i] >= s[i+1]
+                    and s[i] > 0.3 * _maxval(s)):
+                n_pk += 1
+        self.assertEqual(n_pk, 1)
 
     def test_open_quantum_spectral(self):
         """Open-system spectral methods (book Sec 10.5): Liouvillian

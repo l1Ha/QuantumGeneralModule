@@ -175,6 +175,57 @@ program test_open_quantum_opt
         deallocate(rho_spec, rho_rk, h_bl, l_ops_sp)
     end block
 
+    ! ----------------------------------------------------
+    ! 6. 驱动耗散二能级: 饱和稳态 + 量子回归定理 + Mollow 三重峰
+    ! ----------------------------------------------------
+    block
+        complex(dp) :: rho_ss3(2, 2), ev3(4), md3(2, 2, 4), rho_t3(2, 2)
+        real(dp), allocatable :: om_g(:), s_g(:), tau_g(:), g1_g(:)
+        real(dp) :: om_r, dlt, gam, s_sat, om_eff, s_norm, d_om
+        integer :: stat3, i3, n_pk, n_om3
+
+        om_r = 5.0_dp; dlt = 0.0_dp; gam = 1.0_dp
+        call optical_bloch_steady_state_driven(om_r, dlt, gam, rho_ss3, stat3)
+        call assert_true("Driven steady state = saturation closed form", stat3 == 0)
+        s_sat = 2.0_dp * om_r**2 / gam**2
+        call assert_close("Driven rho_ee = s/(2(1+s))", &
+                          s_sat / (2.0_dp * (1.0_dp + s_sat)), &
+                          real(rho_ss3(1, 1), dp), 1.0e-10_dp)
+
+        ! Mollow 谱: 归一化 = rho_ee^ss; 边带 = ±Ω_eff
+        n_om3 = 400
+        allocate(om_g(n_om3), s_g(n_om3))
+        call mollow_spectrum_grid(om_r, dlt, gam, rho_ss3, 12.0_dp, 400, &
+                                  n_om3, om_g, s_g, stat3)
+        s_norm = sum(s_g) * (om_g(2) - om_g(1))
+        call assert_close("Mollow spectrum normalization = rho_ee^ss", &
+                          real(rho_ss3(1, 1), dp), s_norm, 2.0e-2_dp)
+        om_eff = sqrt(om_r**2 - 0.25_dp * gam**2)
+        n_pk = 0
+        d_om = om_g(2) - om_g(1)
+        do i3 = 2, n_om3 - 1
+            if (s_g(i3) > s_g(i3 - 1) .and. s_g(i3) >= s_g(i3 + 1) .and. &
+                s_g(i3) > 0.05_dp) then
+                if (abs(abs(om_g(i3)) - om_eff) < 3.0_dp * d_om .or. &
+                    abs(om_g(i3)) < d_om) n_pk = n_pk + 1
+            end if
+        end do
+        call assert_true("Mollow triplet: central + 2 sidebands at ±Ω_eff", n_pk == 3)
+
+        ! 弱驱动: 单 Lorentz 峰在 delta (无边带), 峰位 = 0
+        om_r = 0.2_dp
+        call optical_bloch_steady_state_driven(om_r, dlt, gam, rho_ss3, stat3)
+        call mollow_spectrum_grid(om_r, dlt, gam, rho_ss3, 12.0_dp, 400, &
+                                  n_om3, om_g, s_g, stat3)
+        n_pk = 0
+        do i3 = 2, n_om3 - 1
+            if (s_g(i3) > s_g(i3 - 1) .and. s_g(i3) >= s_g(i3 + 1) .and. &
+                s_g(i3) > 0.3_dp * maxval(s_g)) n_pk = n_pk + 1
+        end do
+        call assert_true("Weak drive: single Lorentzian peak (no sidebands)", n_pk == 1)
+        deallocate(om_g, s_g)
+    end block
+
     print '(A)', "--------------------------------------------------"
     print '(A, I2, A, I2, A)', "Open Quantum & OCT Tests: ", n_passed, " / ", n_tests, " PASSED."
     if (n_passed /= n_tests) then

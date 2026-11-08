@@ -6834,6 +6834,46 @@ Liouvillian 超算符向量化为 \(\mathcal{L}\)（\(n^{2}\times n^{2}\)
 内重合。绘图脚本见 \texttt{docs/generate\_figures.py}。}
 \end{figure}
 
+\hypertarget{ux9a71ux52a8ux8017ux6563ux4e8cux80fdux7ea7ux9971ux548cux7a33ux6001ux4e0e-mollow-ux4e09ux91cdux5cf0optical_bloch_steady_state_driven-ux7b49}{%
+\subsection{\texorpdfstring{驱动耗散二能级：饱和稳态与 Mollow
+三重峰（\texttt{optical\_bloch\_steady\_state\_driven}
+等）}{驱动耗散二能级：饱和稳态与 Mollow 三重峰（optical\_bloch\_steady\_state\_driven 等）}}\label{ux9a71ux52a8ux8017ux6563ux4e8cux80fdux7ea7ux9971ux548cux7a33ux6001ux4e0e-mollow-ux4e09ux91cdux5cf0optical_bloch_steady_state_driven-ux7b49}}
+
+外加驱动场时（旋转框架
+\(H=-\delta\sigma_z/2+\Omega\sigma_x/2\)，\(\Omega\) 为 Rabi
+频率），Liouvillian 谱方法与 QRT
+的组合给出共振荧光的完整描述。\textbf{饱和稳态}（增广求解 +
+闭式对照）：饱和参数
+\(s=2\Omega^{2}/(\Gamma^{2}+4\delta^{2})\)，\(\rho_{ee}^{\mathrm{ss}}=s/[2(1+s)]\)------弱驱动
+\(\rho_{ee}\approx s/2\)（线性吸收），强驱动
+\(\rho_{ee}\to1/2\)（饱和）。\textbf{量子回归定理（QRT）}：一阶关联
+\(g^{(1)}(\tau)=\langle\sigma^{+}(\tau)\sigma^{-}(0)\rangle=\operatorname{tr}[\sigma^{+}e^{\mathcal{L}\tau}(\sigma^{-}\rho_{\mathrm{ss}})]\)------传播的初值
+\(\sigma^{-}\rho_{\mathrm{ss}}\) 不是密度矩阵（迹零、非厄米），RK4
+推进不得施加厄米化/迹归一（密度矩阵清理器会将其非对角模减半------实测陷阱）。\textbf{Mollow
+三重峰}：\(g^{(1)}(\tau)=\langle\sigma^{-}\rangle^{2}+\rho_{ee}^{\mathrm{ss}}e^{-\Gamma\tau/2}\cos(\Omega_{\mathrm{eff}}\tau)\cdot(\ldots)\)
+的 Wiener--Khinchin 傅里叶------弹性瑞利峰（\(\delta\) 函数，来自
+\(\langle\sigma^{-}\rangle_{\mathrm{ss}}\ne0\) 的相干散射）+
+非弹性三重峰（中心 \(\omega=0\)、边带
+\(\pm\sqrt{\Omega^{2}-\Gamma^{2}/4}\)，衰减率 \(3\Gamma/4\) 与
+\(\Gamma/2\)）。谱归一化
+\(\int S\,\mathrm{d}\omega=\rho_{ee}^{\mathrm{ss}}\)（Wiener--Khinchin）。
+
+\begin{figure}
+\centering
+\includegraphics[width=13cm,height=\textheight]{figures/fig27_mollow_triplet.png}
+\caption{图
+10.6：驱动耗散二能级的共振荧光（\texttt{optical\_bloch\_steady\_state\_driven}
+/
+\texttt{mollow\_spectrum\_grid}，\(\Gamma=1\ \mathrm{ps}^{-1}\)）。（a）弱驱动
+\(\Omega=0.2\Gamma\)：谱以弹性瑞利峰为主（相干散射
+\(|\langle\sigma^-\rangle_{\mathrm{ss}}|^2\approx\rho_{ee}^{\mathrm{ss}}\)），有限
+\(\tau\) 窗口的 FT 使 \(\delta\) 峰呈 sinc 旁瓣；（b）强驱动
+\(\Omega=5\Gamma\)：Mollow 三重峰------中心 \(\omega=0\) 与边带
+\(\pm\sqrt{\Omega^{2}-\Gamma^{2}/4}=\pm4.97\ \mathrm{ps}^{-1}\)；谱归一化
+\(\int S\,\mathrm{d}\omega=\rho_{ee}^{\mathrm{ss}}=0.490\)。绘图脚本见
+\texttt{docs/generate\_figures.py}。}
+\end{figure}
+
 \hypertarget{ux5bf9ux5e94ux6e90ux7801-47}{%
 \subsection{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-47}}
 
@@ -9608,7 +9648,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 48 个测试程序、521 项断言全部通过。
+  全库 48 个测试程序、526 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的

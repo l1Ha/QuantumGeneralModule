@@ -98,3 +98,104 @@ def lindblad_spectral_reconstruct(rho0: np.ndarray, rho_ss: np.ndarray,
     rho_t[0, 1] += rho0[0, 1] * np.exp(-(s + 1j * delta) * t_now)
     rho_t[1, 0] += rho0[1, 0] * np.exp(-(s - 1j * delta) * t_now)
     return rho_t
+
+
+
+
+def lindblad_supermatrix_driven(omega: float, delta: float, gamma: float) -> np.ndarray:
+    """4x4 complex vectorized Liouvillian of the DRIVEN dissipative two-level
+    system (rotating frame H = -delta sigma_z/2 + Omega sigma_x/2, collapse
+    Gamma via sigma^-). Row-major vectorization (ee, eg, ge, gg).
+    Fortran mirror: `lindblad_supermatrix_driven`.
+    """
+    l_super = np.zeros((4, 4), dtype=complex)
+    h_rot = np.array([[-delta / 2, omega / 2], [omega / 2, delta / 2]],
+                     dtype=complex)
+    s_m = np.array([[0, 0], [1, 0]], dtype=complex)
+    s_dag = s_m.conj().T
+    for j in range(2):
+        for i in range(2):
+            e = np.zeros((2, 2), dtype=complex)
+            e[i, j] = 1.0
+            lm = -1j * (h_rot @ e - e @ h_rot) + \
+                gamma * (s_m @ e @ s_dag - 0.5 * (s_dag @ s_m @ e + e @ s_dag @ s_m))
+            for k in range(2):
+                for l in range(2):
+                    l_super[k * 2 + l, i * 2 + j] = lm[k, l]
+    return l_super
+
+
+def optical_bloch_steady_state_driven(omega: float, delta: float,
+                                      gamma: float) -> np.ndarray:
+    """Driven-dissipative two-level steady state (rotating frame).
+
+    H = -delta sigma_z/2 + Omega sigma_x/2, collapse Gamma (sigma^-).
+    Saturation closed form rho_ee = s/(2(1+s)) with
+    s = 2 Omega^2 / (Gamma^2 + 4 delta^2); solved here by the augmented
+    linear system (L vec = 0, trace = 1) with the closed-form check.
+    Fortran mirror: `optical_bloch_steady_state_driven`.
+    """
+    l_super = lindblad_supermatrix_driven(omega, delta, gamma)
+    aug = np.zeros((5, 5), dtype=complex)
+    aug[:4, :4] = l_super
+    aug[4, :4] = 1.0
+    aug[:4, 4] = 1.0
+    x = np.linalg.solve(aug, np.array([0, 0, 0, 0, 1], dtype=complex))
+    s_sat = 2.0 * omega**2 / (gamma**2 + 4.0 * delta**2)
+    rho_ss = np.array([[x[0], x[1]], [x[2], x[3]]])
+    if abs(rho_ss[0, 0].real - s_sat / (2.0 * (1.0 + s_sat))) > 1e-10:
+        raise ValueError("driven steady state inconsistent with closed form")
+    return rho_ss
+
+
+def first_order_correlation_2level(omega: float, delta: float, gamma: float,
+                                   rho_ss: np.ndarray, tau_max: float,
+                                   n_tau: int):
+    """Quantum regression theorem: g1(tau) = <sigma+(tau) sigma-(0)>.
+
+    Propagates M(0) = sigma^- rho_ss under the driven Liouvillian by
+    vectorized RK4 (no Hermitization/trace normalization — M(tau) is not
+    a density matrix). g1(tau) = tr[sigma+ M(tau)] = M[1, 0] (0-based).
+    Returns (tau_grid, g1_grid).
+    Fortran mirror: `first_order_correlation_2level`.
+    """
+    l_super = lindblad_supermatrix_driven(omega, delta, gamma)
+    tau_grid = tau_max * np.arange(n_tau) / (n_tau - 1.0)
+    m0 = np.array([[0, 0], [1, 0]], dtype=complex) @ rho_ss
+    m_vec = np.array([m0[0, 0], m0[0, 1], m0[1, 0], m0[1, 1]])
+    dt = tau_max / (n_tau - 1.0) / 40.0
+    g1 = [m_vec[2]]
+    for _ in range(n_tau - 1):
+        for _ in range(40):
+            k1 = l_super @ m_vec
+            k2 = l_super @ (m_vec + 0.5 * dt * k1)
+            k3 = l_super @ (m_vec + 0.5 * dt * k2)
+            k4 = l_super @ (m_vec + dt * k3)
+            m_vec = m_vec + (dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+        g1.append(m_vec[2])
+    return tau_grid, np.array(g1)
+
+
+def mollow_spectrum_grid(omega: float, delta: float, gamma: float,
+                         rho_ss: np.ndarray, tau_max: float, n_tau: int,
+                         n_om: int):
+    """Resonance-fluorescence spectrum via the Wiener-Khinchin Fourier
+    transform of g1(tau): S(omega) = Re int_0^inf g1 e^{i omega tau} dtau / pi.
+
+    Weak drive: single Lorentzian at omega = delta (HWHM Gamma/2).
+    Strong drive: the Mollow triplet (central + sidebands at
+    +/- sqrt(Omega^2 - Gamma^2/4)).
+    Returns (om_grid, s_grid).
+    Fortran mirror: `mollow_spectrum_grid`.
+    """
+    tau_grid, g1 = first_order_correlation_2level(omega, delta, gamma,
+                                                  rho_ss, tau_max, n_tau)
+    d_tau = tau_grid[1] - tau_grid[0]
+    om_lo = -2.0 * (omega + 5.0 * gamma)
+    om_grid = om_lo + (om_lo * -2.0 + 2.0 * (omega + 5.0 * gamma)) * \
+        np.arange(n_om) / (n_om - 1.0)
+    phase = np.exp(1j * np.outer(om_grid, tau_grid))
+    weights = np.ones(n_tau)
+    weights[0] = weights[-1] = 0.5
+    s_grid = np.real(phase @ (g1 * weights)) * d_tau / np.pi
+    return om_grid, s_grid

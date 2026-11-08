@@ -3820,6 +3820,13 @@ $$\mathcal{L}=\begin{pmatrix}-\gamma_\downarrow&0&0&\gamma_\uparrow\\
 
 ![图 10.5：二能级热化 Lindblad 的 Liouvillian 谱方法（`lindblad_supermatrix_2level` / `lindblad_steady_state_2level` / `lindblad_eigenmodes_2level` / `lindblad_spectral_reconstruct`，$\gamma_\downarrow=0.6$、$\gamma_\uparrow=0.15$、$\gamma_\phi=0.25$、$\delta=0.8\ \mathrm{ps}^{-1}$）。（a）复平面谱：稳态 0、布居衰减 $-\Gamma=-0.75$、相干模 $-s\mp i\delta=-0.875\mp0.8i$——本征关系 $\lVert\mathcal{L}R_k-\lambda_kR_k\rVert$ 达 $10^{-12}$；（b）阻尼基谱重构 $\rho(t)$：$\rho_{ee}$ 弛豫到热稳态 $\gamma_\uparrow/\Gamma=0.2$、$|\rho_{eg}|$ 以 $s=0.875\ \mathrm{ps}^{-1}$ 衰减——与 RK4 独立推进在 $10^{-8}$ 内重合。绘图脚本见 `docs/generate_figures.py`。](figures/fig24_liouvillian_spectrum.png){width=13.0cm}
 
+#### 驱动耗散二能级：饱和稳态与 Mollow 三重峰（`optical_bloch_steady_state_driven` 等）
+
+外加驱动场时（旋转框架 $H=-\delta\sigma_z/2+\Omega\sigma_x/2$，$\Omega$ 为 Rabi 频率），Liouvillian 谱方法与 QRT 的组合给出共振荧光的完整描述。**饱和稳态**（增广求解 + 闭式对照）：饱和参数 $s=2\Omega^{2}/(\Gamma^{2}+4\delta^{2})$，$\rho_{ee}^{\mathrm{ss}}=s/[2(1+s)]$——弱驱动 $\rho_{ee}\approx s/2$（线性吸收），强驱动 $\rho_{ee}\to1/2$（饱和）。**量子回归定理（QRT）**：一阶关联 $g^{(1)}(\tau)=\langle\sigma^{+}(\tau)\sigma^{-}(0)\rangle=\operatorname{tr}[\sigma^{+}e^{\mathcal{L}\tau}(\sigma^{-}\rho_{\mathrm{ss}})]$——传播的初值 $\sigma^{-}\rho_{\mathrm{ss}}$ 不是密度矩阵（迹零、非厄米），RK4 推进不得施加厄米化/迹归一（密度矩阵清理器会将其非对角模减半——实测陷阱）。**Mollow 三重峰**：$g^{(1)}(\tau)=\langle\sigma^{-}\rangle^{2}+\rho_{ee}^{\mathrm{ss}}e^{-\Gamma\tau/2}\cos(\Omega_{\mathrm{eff}}\tau)\cdot(\ldots)$ 的 Wiener–Khinchin 傅里叶——弹性瑞利峰（$\delta$ 函数，来自 $\langle\sigma^{-}\rangle_{\mathrm{ss}}\ne0$ 的相干散射）+ 非弹性三重峰（中心 $\omega=0$、边带 $\pm\sqrt{\Omega^{2}-\Gamma^{2}/4}$，衰减率 $3\Gamma/4$ 与 $\Gamma/2$）。谱归一化 $\int S\,\mathrm{d}\omega=\rho_{ee}^{\mathrm{ss}}$（Wiener–Khinchin）。
+
+![图 10.6：驱动耗散二能级的共振荧光（`optical_bloch_steady_state_driven` / `mollow_spectrum_grid`，$\Gamma=1\ \mathrm{ps}^{-1}$）。（a）弱驱动 $\Omega=0.2\Gamma$：谱以弹性瑞利峰为主（相干散射 $|\langle\sigma^-\rangle_{\mathrm{ss}}|^2\approx\rho_{ee}^{\mathrm{ss}}$），有限 $\tau$ 窗口的 FT 使 $\delta$ 峰呈 sinc 旁瓣；（b）强驱动 $\Omega=5\Gamma$：Mollow 三重峰——中心 $\omega=0$ 与边带 $\pm\sqrt{\Omega^{2}-\Gamma^{2}/4}=\pm4.97\ \mathrm{ps}^{-1}$；谱归一化 $\int S\,\mathrm{d}\omega=\rho_{ee}^{\mathrm{ss}}=0.490$。绘图脚本见 `docs/generate_figures.py`。](figures/fig27_mollow_triplet.png){width=13.0cm}
+
+
 
 #### 对应源码
 
@@ -5196,7 +5203,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 48 个测试程序、521 项断言全部通过。
+- 全库 48 个测试程序、526 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

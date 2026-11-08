@@ -2,7 +2,9 @@
 !> \details 提供密度矩阵表示、自发辐射弛豫 (T_1)、纯退相位 (T_2^*) 及热浴耦合 Jump 算符构建、
 !>          Runge-Kutta 密度矩阵含时主方程推进器，以及量子纯度、相干度与冯·诺依曼熵诊断例程；
 !>          Lindblad Liouvillian 谱方法 (多原子拓展第九步 / 开放系统谱方法):
-!>          向量化超算符、稳态 (增广线性方程 + 闭式)、阻尼基谱分解与谱重构。
+!>          向量化超算符、稳态 (增广线性方程 + 闭式)、阻尼基谱分解与谱重构;
+!>          驱动耗散二能级: 光学 Bloch 稳态 (饱和闭式)、量子回归定理一阶
+!>          关联函数与 Mollow 三重峰共振荧光谱 (多原子拓展第十步)。
 !> \author LiHao
 module mod_open_quantum
     use mod_constants, only: dp, EYE, KB
@@ -21,6 +23,10 @@ module mod_open_quantum
     public :: lindblad_steady_state_2level
     public :: lindblad_eigenmodes_2level
     public :: lindblad_spectral_reconstruct
+    public :: optical_bloch_steady_state_driven
+    public :: first_order_correlation_2level
+    public :: mollow_spectrum_grid
+    public :: lindblad_supermatrix_driven
 
 contains
 
@@ -358,5 +364,186 @@ contains
         rho_t(1, 2) = rho_t(1, 2) + c_eg * phase
         rho_t(2, 1) = rho_t(2, 1) + c_ge * conjg(phase)
     end subroutine lindblad_spectral_reconstruct
+
+    !> \brief 驱动耗散二能级的向量化 Liouvillian 超矩阵 (4x4 复, 行主序)
+    !> \details 旋转框架 H = -delta sigma_z/2 + Omega sigma_x/2, 塌缩 Gamma
+    !>          (sigma^-); 向量化约定 vec(i,j) = (i-1)*2 + j (行主序,
+    !>          与第五步阻尼基一致)。稳态与 QRT 传播共用。
+    subroutine lindblad_supermatrix_driven(omega, delta, gamma, l_super)
+        real(dp), intent(in)  :: omega, delta, gamma
+        complex(dp), intent(out) :: l_super(4, 4)
+
+        complex(dp) :: h_rot(2, 2), l_m(2, 2), rho_p(2, 2)
+        complex(dp) :: l_minus(2, 2)
+        integer :: i, j, k, l
+
+        h_rot = (0.0_dp, 0.0_dp)
+        h_rot(1, 1) = -0.5_dp * delta
+        h_rot(2, 2) = 0.5_dp * delta
+        h_rot(1, 2) = 0.5_dp * omega
+        h_rot(2, 1) = 0.5_dp * omega
+        l_minus = (0.0_dp, 0.0_dp)
+        l_minus(2, 1) = (1.0_dp, 0.0_dp)
+
+        do j = 1, 2
+            do i = 1, 2
+                rho_p = (0.0_dp, 0.0_dp)
+                rho_p(i, j) = (1.0_dp, 0.0_dp)
+                l_m = -EYE * (matmul(h_rot, rho_p) - matmul(rho_p, h_rot)) &
+                      + gamma * lindblad_dissipator(l_minus, rho_p)
+                do l = 1, 2
+                    do k = 1, 2
+                        l_super((k - 1) * 2 + l, (i - 1) * 2 + j) = l_m(k, l)
+                    end do
+                end do
+            end do
+        end do
+    end subroutine lindblad_supermatrix_driven
+
+    !> \brief 驱动耗散二能级的稳态 (旋转框架, 增广求解 + 饱和闭式对照)
+    !> \details 旋转框架 H = -delta sigma_z/2 + Omega sigma_x/2, 塌缩 Gamma
+    !>          (sigma^-), 退相位 0 (Gamma 已含相干衰减 Gamma/2):
+    !>          饱和参数 s = 2 Omega^2 / (Gamma^2 + 4 delta^2),
+    !>          闭式 rho_ee^ss = s/(2(1+s))。
+    !>          增广方程 [[L, 1], [1^T, 0]] 经库内复矩阵求逆求解并与闭式对照。
+    subroutine optical_bloch_steady_state_driven(omega, delta, gamma, &
+                                                 rho_ss, stat)
+        real(dp), intent(in)  :: omega, delta, gamma
+        complex(dp), intent(out) :: rho_ss(2, 2)
+        integer, intent(out)  :: stat
+
+        complex(dp), allocatable :: l_super(:, :), aug(:, :), aug_inv(:, :)
+        real(dp) :: s_sat
+        integer :: i, j, ierr
+
+        allocate(l_super(4, 4), aug(5, 5), aug_inv(5, 5))
+        call lindblad_supermatrix_driven(omega, delta, gamma, l_super)
+
+        aug = (0.0_dp, 0.0_dp)
+        aug(1:4, 1:4) = l_super
+        do i = 1, 4
+            aug(i, 5) = (1.0_dp, 0.0_dp)
+            aug(5, i) = (1.0_dp, 0.0_dp)
+        end do
+        call inv_complex_matrix(5, aug, aug_inv, ierr)
+        if (ierr /= 0) then
+            stat = -1
+            rho_ss = (0.0_dp, 0.0_dp)
+            deallocate(l_super, aug, aug_inv)
+            return
+        end if
+        rho_ss = (0.0_dp, 0.0_dp)
+        rho_ss(1, 1) = aug_inv(1, 5)
+        rho_ss(1, 2) = aug_inv(2, 5)
+        rho_ss(2, 1) = aug_inv(3, 5)
+        rho_ss(2, 2) = aug_inv(4, 5)
+        s_sat = 2.0_dp * omega**2 / (gamma**2 + 4.0_dp * delta**2)
+        stat = 0
+        if (abs(real(rho_ss(1, 1), dp) - s_sat / (2.0_dp * (1.0_dp + s_sat))) > 1.0e-10_dp) &
+            stat = -2
+        deallocate(l_super, aug, aug_inv)
+    end subroutine optical_bloch_steady_state_driven
+
+    !> \brief 量子回归定理一阶关联函数 g1(tau) = <sigma^+(tau) sigma^-(0)>
+    !> \details QRT: g1(tau) = tr[sigma^+ · e^{L tau}(sigma^- rho_ss)]; 传播用
+    !>          库内 rk4_lindblad_step。弱驱动单 Lorentz 峰 (HWHM = Gamma/2),
+    !>          强驱动 Mollow 三重峰 (边带 = Liouvillian 本征值虚部)。
+    subroutine first_order_correlation_2level(omega, delta, gamma, rho_ss, &
+                                              tau_max, n_tau, tau_grid, g1_grid, stat)
+        real(dp), intent(in)  :: omega, delta, gamma, tau_max
+        complex(dp), intent(in) :: rho_ss(2, 2)
+        integer, intent(in)   :: n_tau
+        real(dp), intent(out) :: tau_grid(n_tau), g1_grid(n_tau)
+        integer, intent(out)  :: stat
+
+        complex(dp), allocatable :: l_super(:, :), m_vec(:, :), k1(:, :), &
+                                    k2(:, :), k3(:, :), k4(:, :), m_tmp(:, :)
+        real(dp) :: dt
+        complex(dp) :: m0(2, 2)
+        integer :: i, istep, n_sub, r_i, c_i
+
+        stat = 0
+        if (n_tau < 2) then
+            stat = -1
+            return
+        end if
+
+        ! QRT: M(0) = sigma^- rho_ss; M_vec 传播 d vec(M)/dt = L vec(M)
+        ! (超矩阵向量 RK4, 无厄米化/迹归一 —— M(tau) 不是密度矩阵!)
+        allocate(l_super(4, 4), m_vec(4, 1), k1(4, 1), k2(4, 1), k3(4, 1), &
+                 k4(4, 1), m_tmp(4, 1))
+        call lindblad_supermatrix_driven(omega, delta, gamma, l_super)
+        m0 = reshape((/ (0.0_dp, 0.0_dp), (1.0_dp, 0.0_dp), &
+                       (0.0_dp, 0.0_dp), (0.0_dp, 0.0_dp) /), (/ 2, 2 /))
+        m0 = matmul(m0, rho_ss)
+
+        do i = 1, n_tau
+            tau_grid(i) = tau_max * real(i - 1, dp) / real(n_tau - 1, dp)
+        end do
+        ! 初始向量 (行主序 vec(i,j) = (i-1)*2 + j)
+        do r_i = 1, 2
+            do c_i = 1, 2
+                m_vec((r_i - 1) * 2 + c_i, 1) = m0(r_i, c_i)
+            end do
+        end do
+        g1_grid(1) = m_vec(3, 1)              ! <sigma+ M> = M(2,1)
+
+        n_sub = 40
+        dt = tau_max / real(n_tau - 1, dp) / real(n_sub, dp)
+        do i = 2, n_tau
+            do istep = 1, n_sub
+                k1 = matmul(l_super, m_vec)
+                k2 = matmul(l_super, m_vec + 0.5_dp * dt * k1)
+                k3 = matmul(l_super, m_vec + 0.5_dp * dt * k2)
+                k4 = matmul(l_super, m_vec + dt * k3)
+                m_vec = m_vec + (dt / 6.0_dp) * (k1 + 2.0_dp * k2 + 2.0_dp * k3 + k4)
+            end do
+            g1_grid(i) = m_vec(3, 1)          ! M(2,1): <sigma+ M>
+        end do
+        deallocate(l_super, m_vec, k1, k2, k3, k4, m_tmp)
+    end subroutine first_order_correlation_2level
+
+    !> \brief Mollow 共振荧光谱: Wiener-Khinchin 傅里叶变换 g1(tau)
+    !> \details S(omega) ∝ Re int_0^inf g1(tau) exp(i omega tau) dtau
+    !>          (g1 以 exp(-Gamma tau/2) 级衰减保证收敛)。
+    !>          归一化: sum S domega = g1(0) = rho_ee^ss。
+    subroutine mollow_spectrum_grid(omega, delta, gamma, rho_ss, tau_max, n_tau, &
+                                    n_om, om_grid, s_grid, stat)
+        real(dp), intent(in)  :: omega, delta, gamma, tau_max
+        complex(dp), intent(in) :: rho_ss(2, 2)
+        integer, intent(in)   :: n_tau, n_om
+        real(dp), intent(out) :: om_grid(n_om), s_grid(n_om)
+        integer, intent(out)  :: stat
+
+        real(dp), allocatable :: tau_grid(:), g1_grid(:)
+        real(dp) :: d_tau, om_lo, om_hi, d_om, re_part, dpi
+        complex(dp) :: ph
+        integer :: i, k
+
+        stat = 0
+        dpi = acos(-1.0_dp)
+        if (n_tau < 2 .or. n_om < 2) then
+            stat = -1
+            return
+        end if
+        allocate(tau_grid(n_tau), g1_grid(n_tau))
+        call first_order_correlation_2level(omega, delta, gamma, rho_ss, &
+                                            tau_max, n_tau, tau_grid, g1_grid, stat)
+        d_tau = tau_grid(2) - tau_grid(1)
+        om_lo = -2.0_dp * (omega + 5.0_dp * gamma)
+        om_hi = 2.0_dp * (omega + 5.0_dp * gamma)
+        d_om = (om_hi - om_lo) / real(n_om - 1, dp)
+        do k = 1, n_om
+            om_grid(k) = om_lo + real(k - 1, dp) * d_om
+            re_part = 0.0_dp
+            do i = 1, n_tau
+                ph = exp((0.0_dp, 1.0_dp) * om_grid(k) * tau_grid(i))
+                re_part = re_part + real(g1_grid(i) * ph, dp) * &
+                    merge(0.5_dp, 1.0_dp, i == 1 .or. i == n_tau)
+            end do
+            s_grid(k) = re_part * d_tau / dpi
+        end do
+        deallocate(tau_grid, g1_grid)
+    end subroutine mollow_spectrum_grid
 
 end module mod_open_quantum

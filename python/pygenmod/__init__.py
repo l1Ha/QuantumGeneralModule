@@ -109,6 +109,8 @@ from .visualizer import (
 from .open_quantum import (
     lindblad_supermatrix_2level, lindblad_steady_state_2level,
     lindblad_eigenmodes_2level, lindblad_spectral_reconstruct,
+    optical_bloch_steady_state_driven, first_order_correlation_2level,
+    mollow_spectrum_grid,
 )
 
 from .qct import (
@@ -195,5 +197,7 @@ __all__ = [
     "mctdh_propagate_step", "mctdh_propagate",
     "lindblad_supermatrix_2level", "lindblad_steady_state_2level",
     "lindblad_eigenmodes_2level", "lindblad_spectral_reconstruct",
+    "optical_bloch_steady_state_driven", "first_order_correlation_2level",
+    "mollow_spectrum_grid",
 ]
 

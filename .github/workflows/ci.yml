@@ -71,7 +71,7 @@ jobs:
           fi
           exit $rc
 
-      - name: Run Direct Fortran Unit Test Suite (48 Test Suites, 521 Assertions)
+      - name: Run Direct Fortran Unit Test Suite (48 Test Suites, 526 Assertions)
         run: |
           bash tests/run_all_tests.sh
 
@@ -83,7 +83,7 @@ jobs:
         run: |
           bash examples/build_examples.sh
 
-      - name: Run Python Package Unit Tests (pygenmod, 32 Tests)
+      - name: Run Python Package Unit Tests (pygenmod, 33 Tests)
         run: |
           python3 python/test_pygenmod.py
 
