@@ -197,6 +197,41 @@ program test_laser_rovibrational_control
 
     ! 最终测试汇总
     print '(A)', "============================================================"
+
+
+    ! Hoehnl-London 因子: 闭式 + 求和规则
+    block
+        real(dp) :: s_p, s_r, s_m_p, s_m_r, mat_el
+        integer :: j_hl, m_hl
+        logical :: ok_hl, ok_sum, ok_num
+        ok_hl = .true.; ok_sum = .true.; ok_num = .true.
+        do j_hl = 1, 8
+            call honl_london_parallel(j_hl, s_p, s_r, stat)
+            if (abs(s_p + s_r - 1.0_dp) > 1.0e-12_dp) ok_sum = .false.
+            if (abs(s_p - real(j_hl, dp) / (2.0_dp * j_hl + 1.0_dp)) > 1.0e-12_dp) ok_hl = .false.
+            s_m_p = 0.0_dp; s_m_r = 0.0_dp
+            do m_hl = -j_hl, j_hl
+                mat_el = rot_matrix_cos_theta(j_hl, j_hl - 1, m_hl)
+                s_m_p = s_m_p + mat_el**2
+                mat_el = rot_matrix_cos_theta(j_hl, j_hl + 1, m_hl)
+                s_m_r = s_m_r + mat_el**2
+            end do
+            ! M 求和 (q=0 分量) = (2J+1)*S/3:
+            ! 标准 HL 因子 S_P=J, S_R=J+1 对全部 3 个空间固定偏振分量
+            ! q=-1,0,+1 求和; Wigner-Eckart 保证 M 求和与 q 无关,
+            ! 故 cos(theta) (q=0) 单分量的 M 求和恰为完整因子的 1/3。
+            if (abs(s_m_p - real(2*j_hl + 1, dp) * s_p / 3.0_dp) > 1.0e-12_dp) ok_num = .false.
+            if (abs(s_m_r - real(2*j_hl + 1, dp) * s_r / 3.0_dp) > 1.0e-12_dp) ok_num = .false.
+        end do
+        n_tests = n_tests + 1
+        if (ok_hl .and. ok_sum .and. ok_num) then
+            n_passed = n_passed + 1
+            print '(A)', " [PASS] Hoehnl-London factors: closed forms + sum rule + M-sum"
+        else
+            print '(A, L3, L3, L3)', " [FAIL] HL: closed =", ok_hl, " sum =", ok_sum, " num =", ok_num
+        end if
+    end block
+
     print '(A, I2, A, I2, A)', "Rovibrational Control Tests: ", n_passed, " / ", n_tests, " PASSED."
     if (n_passed /= n_tests) then
         print '(A)', "FAILED: Some assertions failed!"

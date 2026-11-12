@@ -2251,7 +2251,7 @@ $$
 
 - [src/mod_ti_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_ti_scattering.f90)：`calc_phase_shift_single_l`（相移）、`calc_partial_wave_cross_sections`（分波截面）、`optical_theorem_cross_section`（光学定理）。
 - Python 参照：[python/pygenmod/scattering.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/scattering.py)。
-- 验证：`tests/test_ti_scattering.f90`；结果图 7.1/7.2。
+- 验证：`tests/test_ti_scattering.f90`；结果图 7.2/7.3。
 
 ### 7.2　Numerov 方法与散射长度
 
@@ -2310,11 +2310,11 @@ $$
 
 散射理论的两大普适定理把相移、束缚态与时间延迟连成闭环。**Wigner 时间延迟**：$\tau(E)=2\hbar\,\mathrm{d}\delta/\mathrm{d}E$ 度量波包散射的群延迟——势阱内准束缚态驻留处 $\tau$ 出现峰（Breit–Wigner：峰宽 $\Gamma=4\hbar/\tau_{\max}$）。**Levinson 定理**：$\delta(0)-\delta(\infty)=n_b\pi$，零能相移由束缚态数 $n_b$ 决定——而 $n_b$ 恰是零能解的**节点数**（Sturm 节点定理）。两者与散射长度在低能极限闭合：$\tau(E)\,k=-2ma_s$（$E\to0$，$\delta\simeq n_b\pi-ka_s$）。
 
-实现与验收（`square_well_s_phase_exact`、`count_s_wave_bound_states`、`unwrap_phase_grid` 配合 `calc_phase_shift_single_l`）：其一，方势阱 s 波相移闭式 $\delta=\mathrm{atan2}(k\sin\tilde{k}R,\tilde{k}\cos\tilde{k}R)-kR$（$\tilde{k}=\sqrt{2m(E+V_0)}$，atan2 形式无分支跳变）作为 Numerov + 对数导数匹配数值相移的基准——比较须用 $\tan\delta$（对数导数匹配只定 $\delta\ \mathrm{mod}\ \pi$，atan2 分支差由 Levinson $\pi$ 补齐），间断势的 Numerov 边缘误差为 $O(\Delta r)$（网格减半即减半，$\tan\delta$ 差 $2\times10^{-2}$ @ $\Delta r=3.3\times10^{-3}$）。其二，零能节点计数给出 $n_b=1$，Levinson 极限 $\delta(0)+n_b\pi=\pi$ 在 $k\,a_s$ 修正内成立（$1.4\times10^{-2}$）。其三，$\tau(E)\,k=-2ma_s$ 在全低能网格成立（$a_s$ 来自 `calc_scattering_length_numerov`，两条独立机制）。$\tau\,k$ 的散点揭示解析分支结构：atan2 主值相位的 Levinson $\pi$ 补偿必须显式加入（图 7.6）。
+实现与验收（`square_well_s_phase_exact`、`count_s_wave_bound_states`、`unwrap_phase_grid` 配合 `calc_phase_shift_single_l`）：其一，方势阱 s 波相移闭式 $\delta=\mathrm{atan2}(k\sin\tilde{k}R,\tilde{k}\cos\tilde{k}R)-kR$（$\tilde{k}=\sqrt{2m(E+V_0)}$，atan2 形式无分支跳变）作为 Numerov + 对数导数匹配数值相移的基准——比较须用 $\tan\delta$（对数导数匹配只定 $\delta\ \mathrm{mod}\ \pi$，atan2 分支差由 Levinson $\pi$ 补齐），间断势的 Numerov 边缘误差为 $O(\Delta r)$（网格减半即减半，$\tan\delta$ 差 $2\times10^{-2}$ @ $\Delta r=3.3\times10^{-3}$）。其二，零能节点计数给出 $n_b=1$，Levinson 极限 $\delta(0)+n_b\pi=\pi$ 在 $k\,a_s$ 修正内成立（$1.4\times10^{-2}$）。其三，$\tau(E)\,k=-2ma_s$ 在全低能网格成立（$a_s$ 来自 `calc_scattering_length_numerov`，两条独立机制）。$\tau\,k$ 的散点揭示解析分支结构：atan2 主值相位的 Levinson $\pi$ 补偿必须显式加入（图 7.1）。
 
-![图 7.6：方势阱 s 波的 Wigner 时间延迟与 Levinson 定理（`calc_phase_shift_single_l` + `square_well_s_phase_exact`/`count_s_wave_bound_states`，$V_0=0.05\ E_h$、$R=8\ a_0$、$a_s=10.24\ a_0$）。（a）相移 $\delta_0(E)$：黑线为闭式解，红点为 Numerov + 对数导数匹配（Levinson 分支校正 $\delta_{\mathrm{atan2}}+n_b\pi$），点线为 Levinson 极限 $\delta(0)=n_b\pi$（$n_b=1$，零能节点计数）；（b）Wigner 时间延迟低能极限 $\tau(E)\,k=-2ma_s$：数值 $\tau$（红）与 Numerov 散射长度（蓝虚线）在 $E\lesssim10^{-4}\ E_h$ 区间吻合到 $1\%$。绘图脚本见 `docs/generate_figures.py`。](figures/fig25_wigner_levinson.png){width=13.0cm}
+![图 7.1：方势阱 s 波的 Wigner 时间延迟与 Levinson 定理（`calc_phase_shift_single_l` + `square_well_s_phase_exact`/`count_s_wave_bound_states`，$V_0=0.05\ E_h$、$R=8\ a_0$、$a_s=10.24\ a_0$）。（a）相移 $\delta_0(E)$：黑线为闭式解，红点为 Numerov + 对数导数匹配（Levinson 分支校正 $\delta_{\mathrm{atan2}}+n_b\pi$），点线为 Levinson 极限 $\delta(0)=n_b\pi$（$n_b=1$，零能节点计数）；（b）Wigner 时间延迟低能极限 $\tau(E)\,k=-2ma_s$：数值 $\tau$（红）与 Numerov 散射长度（蓝虚线）在 $E\lesssim10^{-4}\ E_h$ 区间吻合到 $1\%$。绘图脚本见 `docs/generate_figures.py`。](figures/fig25_wigner_levinson.png){width=13.0cm}
 
-![图 7.1：短程吸引势阱中的超冷零能径向散射波函数 $u(r)$（实线）及在势阱外向 $r$ 轴线性外推的渐近切线 $C(r - a_s)$（虚线），切线与坐标轴的截距直接确定了 $s$-波散射长度 $a_s$。](figures/fig04_scattering_length.png){width=12.0cm}
+![图 7.2：短程吸引势阱中的超冷零能径向散射波函数 $u(r)$（实线）及在势阱外向 $r$ 轴线性外推的渐近切线 $C(r - a_s)$（虚线），切线与坐标轴的截距直接确定了 $s$-波散射长度 $a_s$。](figures/fig04_scattering_length.png){width=12.0cm}
 
 ### 7.3　Johnson 对数导数方法
 
@@ -2364,7 +2364,7 @@ $$
 #### 对应源码
 
 - [src/mod_ti_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_ti_scattering.f90)：`calc_scattering_length_logder`（Johnson 对数导数传播与散射长度提取）。
-- 验证：`tests/test_ti_scattering.f90`；与 Numerov 路径的对照见图 7.1。
+- 验证：`tests/test_ti_scattering.f90`；与 Numerov 路径的对照见图 7.2。
 
 ### 7.4　相移与光学定理
 
@@ -2404,7 +2404,7 @@ $$
 
 该关系可用于检验散射振幅、相移和截面计算的一致性。
 
-![图 7.2：量子微分散射截面角分布 $d\sigma/d\Omega(\theta)$ 对比：可分辨粒子（红线）无交换对称性；全同玻色子（蓝虚线）展现出特征性的交换干涉增强波纹，在 $\theta = 90^\circ$ 处满足严格对称性。](figures/fig05_differential_cross_section.png){width=12.0cm}
+![图 7.3：量子微分散射截面角分布 $d\sigma/d\Omega(\theta)$ 对比：可分辨粒子（红线）无交换对称性；全同玻色子（蓝虚线）展现出特征性的交换干涉增强波纹，在 $\theta = 90^\circ$ 处满足严格对称性。](figures/fig05_differential_cross_section.png){width=12.0cm}
 
 #### 对应源码
 
@@ -2518,7 +2518,7 @@ $$
 
 - [src/mod_ti_scattering.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_ti_scattering.f90)：`multichannel_result_t`（多通道结果）与 `mod_td_scattering.f90::calculate_td_smatrix_element`（S 矩阵元）。
 - Python 参照：[python/pygenmod/scattering.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/scattering.py) 的 `calc_multichannel_close_coupling`。
-- 验证：`tests/test_td_scattering.f90`；多基组幺正性见图 7.3。
+- 验证：`tests/test_td_scattering.f90`（多基组幺正性检查在套件内完成）。
 
 ### 7.7　分段网格与局部扇区
 
@@ -2565,7 +2565,7 @@ GeneralModule 的 `calc_feshbach_resonance_scan` 在磁场网格上计算 $a_s(B
 
 ![](qr/src__mod_field_scattering.f90.png){width=2.0cm}
 
-![图 7.3：$^{87}\mathrm{Rb}$ 原子基态（$5^2S_{1/2}, I=3/2$）在外加静磁场下的 Zeeman-超精细 Breit-Rabi 能级色散图谱：纵轴为相对超精细重心的能量移 $\Delta E/h$，各能级支按低场量子数 $|F, m_F\rangle$ 标记；低场下各支呈线性塞曼分裂，随场强增大趋于帕邢-巴克去耦。](figures/fig06_breit_rabi_diagram.png){width=12.0cm}
+![图 7.4：$^{87}\mathrm{Rb}$ 原子基态（$5^2S_{1/2}, I=3/2$）在外加静磁场下的 Zeeman-超精细 Breit-Rabi 能级色散图谱：纵轴为相对超精细重心的能量移 $\Delta E/h$，各能级支按低场量子数 $|F, m_F\rangle$ 标记；低场下各支呈线性塞曼分裂，随场强增大趋于帕邢-巴克去耦。](figures/fig06_breit_rabi_diagram.png){width=12.0cm}
 
 ### 7.9　含时波包散射
 
@@ -2713,8 +2713,44 @@ $$
 
 ![](qr/src__mod_rovibrational.f90.png){width=2.0cm}
 
-![图 7.4：飞秒非共振脉冲触发 CO 分子无场排列动力学 $\langle\cos^{2}\theta\rangle(t)$ 的正向量子计算（$\delta$-kick 模型）：各向同性基态获得相位 $e^{iP\cos^{2}\theta}$（$P=5$），在刚转子基组 $E_J=BJ(J+1)$（$B=1.9312\ \mathrm{cm^{-1}}$）下用库内 Raman 矩阵元 `rot_matrix_cos2_theta` 传播。曲线展现各向异性基线（$1/3$）、排列振荡列、半周期强取向峰（$T_{\mathrm{rot}}/2\approx4.32\ \mathrm{ps}$ 处 $\langle\cos^{2}\theta\rangle=0.91$）与全周期复苏（$T_{\mathrm{rot}}\approx8.64\ \mathrm{ps}$，动力学精确重复）；$\langle\cos^{2}\theta\rangle\in[0.08,0.92]\subset[0,1]$ 物理有界。绘图脚本见 `docs/generate_figures.py`。](figures/fig03_molecular_alignment.png){width=12.0cm}
+![图 7.5：飞秒非共振脉冲触发 CO 分子无场排列动力学 $\langle\cos^{2}\theta\rangle(t)$ 的正向量子计算（$\delta$-kick 模型）：各向同性基态获得相位 $e^{iP\cos^{2}\theta}$（$P=5$），在刚转子基组 $E_J=BJ(J+1)$（$B=1.9312\ \mathrm{cm^{-1}}$）下用库内 Raman 矩阵元 `rot_matrix_cos2_theta` 传播。曲线展现各向异性基线（$1/3$）、排列振荡列、半周期强取向峰（$T_{\mathrm{rot}}/2\approx4.32\ \mathrm{ps}$ 处 $\langle\cos^{2}\theta\rangle=0.91$）与全周期复苏（$T_{\mathrm{rot}}\approx8.64\ \mathrm{ps}$，动力学精确重复）；$\langle\cos^{2}\theta\rangle\in[0.08,0.92]\subset[0,1]$ 物理有界。绘图脚本见 `docs/generate_figures.py`。](figures/fig03_molecular_alignment.png){width=12.0cm}
 
+
+#### Hönl–London 因子：P/R 支跃迁强度的转动包络
+
+Franck–Condon 因子固定了振动跃迁的强度，而转动结构的强度包络由 Hönl–London（HL）因子给出。对 $^{1}\Sigma\text{--}^{1}\Sigma$ 平行跃迁（$\Delta\Lambda=0$，偶极矩沿分子轴，只有球张量分量 $q=0$），跃迁矩矩阵元由 Wigner–Eckart 定理分解为
+
+$$
+\langle J'M'|\cos\theta|J''M''\rangle
+=\sqrt{(2J'+1)(2J''+1)}\,
+\begin{pmatrix}J'&1&J''\\0&0&0\end{pmatrix}
+\begin{pmatrix}J'&1&J''\\-M'&0&M''\end{pmatrix},
+$$
+
+对下态所有 $M''$ 与上态 $M'$、以及全部三个空间固定偏振分量 $q=-1,0,+1$ 求和，利用 $3j$ 符号正交性 $\sum_{m_1m_2}\bigl(\begin{smallmatrix}j_1&j_2&j_3\\ m_1&m_2&m_3\end{smallmatrix}\bigr)^2=\frac{1}{2j_3+1}$ 与全零投影闭式 $\begin{pmatrix}J\mp1&1&J\\0&0&0\end{pmatrix}^2=\frac{J}{(2J\mp1)(2J+1)},\ \frac{J+1}{(2J+1)(2J+3)}$，得标准（未归一化）HL 因子
+
+$$
+S_P(J'')=J'',\qquad S_R(J'')=J''+1,
+$$
+
+分别对应 $\Delta J=-1$（P 支）与 $\Delta J=+1$（R 支）。按各向同性布居归一化（除以 $(2J+1)$）后为
+
+$$
+S_P(J)=\frac{J}{2J+1},\qquad S_R(J)=\frac{J+1}{2J+1},\qquad S_P+S_R=1,
+$$
+
+即归一化和恒为 1：所有吸收强度都在 P/R 两支之间分配，且 $S_R>S_P$ 恒成立（高频支总是更强）。
+
+**偏振分量因子 1/3 与 M 求和交叉验证**。一个容易忽略的细节是：`rot_matrix_cos_theta` 只给出 $q=0$ 单分量的矩阵元 $\langle J,M|\cos\theta|J\mp1,M\rangle=\sqrt{\dfrac{J_{\max}^2-M^2}{(2J_{\max}-1)(2J_{\max}+1)}}$（$J_{\max}=\max(J',J'')$，$|M|>\min(J',J'')$ 时恒为零），而标准 HL 因子对全部 3 个偏振分量求和。由 Wigner–Eckart 定理，$\sum_{M'M''}\bigl|\langle J'M'|T^{(1)}_q|J''M''\rangle\bigr|^2$ 与 $q$ 无关（整体转动不变性），故 $q=0$ 单分量的 M 求和恰为完整因子的 $1/3$：
+
+$$
+\sum_{M=-J}^{J}\bigl|\langle J\mp1,M|\cos\theta|J,M\rangle\bigr|^{2}
+=\frac{1}{3}\,(2J+1)\,S_{P/R}(J)=\frac{J\ \text{或}\ J+1}{3}.
+$$
+
+这一非平凡的关系（既非 0 也非完整因子）构成闭合回路验证：测试对 $J=1,\dots,8$ 同时验证 (i) 闭式 $S_P=J/(2J+1)$、(ii) 归一化和 $S_P+S_R=1$、(iii) M 求和 $\sum_M|\text{矩阵元}|^2=(2J+1)S/3$，三者全部以 $10^{-12}$ 精度通过；Python 端 `honl_london_parallel` 与 Fortran 金值逐位一致。该 1/3 因子正是转动谱线强度从"各向同性分子系综 + 非偏振光"到"固定 $q$ 分量"换算时最易出错的环节——漏掉它会导致 P/R 支强度系统性偏大 3 倍。
+
+![图 7.6：Hönl–London 因子决定的 P/R 支跃迁强度转动包络（正向计算）。(a) 归一化闭式 $S_R=(J+1)/(2J+1)$（红）与 $S_P=J/(2J+1)$（蓝）随下态 $J$ 的变化，黑色虚线为精确求和规则 $S_P+S_R=1$：$S_R>S_P$ 恒成立，大 $J$ 时两支同时收敛到 $1/2$；(b) CO 型刚转子（$B=1.9312\ \mathrm{cm^{-1}}$，$\nu_0=2143\ \mathrm{cm^{-1}}$）P/R 支棒状光谱正向计算：谱线位置由刚转子公式 $\tilde\nu_{P(J)}=\nu_0-2BJ$、$\tilde\nu_{R(J)}=\nu_0+2B(J+1)$ 给出，线高由 HL 闭式加权。$J=0$ 下态无 P 支伙伴，全部强度 $S_R(0)=1$ 落入 $\nu_0+2B$ 处的 R(0) 线——整带最强线；P 支向带源方向递减（$J=1$ 最短，$S_P=1/3$），R 支自 R(0) 起向高频单调递减。绘图脚本见 `docs/generate_figures.py`。](figures/fig28_honl_london_branches.png){width=13.0cm}
 
 #### 双原子成分与折合质量矩阵图谱
 
@@ -2728,12 +2764,12 @@ $$
 
 1. **振动基频与零点能**：微小振动近似下，谐振频率 $\omega_e = \sqrt{k/\mu} \propto \mu^{-1/2}$，振动零点能 $\mathrm{ZPE} = \frac{1}{2}\hbar\omega_e$。极轻体系（如 $\mathrm{H}_2,\ \mu \approx 0.5\ \mathrm{amu}$）具有极大的能级间隔，而重碱金属二聚体（如 $\mathrm{Cs}_2,\ \mu \approx 66.5\ \mathrm{amu}$）能级极其密集，对数值离散格距提出了截然不同的截断需求；
 2. **转动惯量与离心势垒**：刚性转子转动常数 $B_e = \frac{\hbar^2}{2\mu R_e^2} \propto \mu^{-1}$，控制转动能级阶梯 $B_e J(J+1)$ 与两体碰撞中的有效离心势垒 $V_{\mathrm{cent}}(r) = \frac{\hbar^2 l(l+1)}{2\mu r^2}$；
-3. **量子相干拍复苏时间**：超短非共振强激光场诱导的无场分子排列动力学中（见图 7.4），分子转动波包的完全量子拍复苏周期为 $T_{\mathrm{rot}} = \frac{\pi}{B_e} = \frac{2\pi \mu R_e^2}{\hbar} \propto \mu$；
+3. **量子相干拍复苏时间**：超短非共振强激光场诱导的无场分子排列动力学中（见图 7.5），分子转动波包的完全量子拍复苏周期为 $T_{\mathrm{rot}} = \frac{\pi}{B_e} = \frac{2\pi \mu R_e^2}{\hbar} \propto \mu$；
 4. **超冷低能碰撞力程**：两体范德华长程吸引势 $V(r) \sim -C_6/r^6$ 的特征平均散射长度满足 Gribakin–Flambaum 标度关系 $\bar{a} = \frac{2\pi}{\Gamma(1/4)^2}\left(\frac{2\mu C_6}{\hbar^2}\right)^{1/4} \propto \mu^{1/4}$。
 
-![图 7.5：双原子不同成分折合质量 $\mu = \frac{m_1 m_2}{m_1 + m_2}$ 矩阵热力图与全景周期分布：（a）16 种代表性同位素成分（包含从超轻同位素 $^1\mathrm{H}$、$D$ 到常见主族元素与超冷碱金属 $^{87}\mathrm{Rb}$、$^{133}\mathrm{Cs}$）的精确数值方阵（单位为 $\mathrm{amu}$，对数色阶）；（b）元素周期表前 36 号元素（$Z = 1 \sim 36$）连续全景等高线图，展现氢化物饱和带（$\mu \leq 1.0\ \mathrm{amu}$）与同核双原子对角线极大脊线（$\mu = m/2$）。绘图脚本见 `docs/generate_figures.py`。](figures/fig10_diatomic_reduced_mass_matrix.png){width=13.0cm}
+![图 7.7：双原子不同成分折合质量 $\mu = \frac{m_1 m_2}{m_1 + m_2}$ 矩阵热力图与全景周期分布：（a）16 种代表性同位素成分（包含从超轻同位素 $^1\mathrm{H}$、$D$ 到常见主族元素与超冷碱金属 $^{87}\mathrm{Rb}$、$^{133}\mathrm{Cs}$）的精确数值方阵（单位为 $\mathrm{amu}$，对数色阶）；（b）元素周期表前 36 号元素（$Z = 1 \sim 36$）连续全景等高线图，展现氢化物饱和带（$\mu \leq 1.0\ \mathrm{amu}$）与同核双原子对角线极大脊线（$\mu = m/2$）。绘图脚本见 `docs/generate_figures.py`。](figures/fig10_diatomic_reduced_mass_matrix.png){width=13.0cm}
 
-图 7.5 揭示了双原子体系折合质量在全元素周期表中的两大全局物理机制：
+图 7.7 揭示了双原子体系折合质量在全元素周期表中的两大全局物理机制：
 
 - **氢化物轻原子饱和带**：由于数学上恒有 $\mu < \min(m_1, m_2)$，当其中一个组分为轻原子（如 $^1\mathrm{H}$）时，无论与之结合的另一原子有多重（例如与 $^{133}\mathrm{Cs}$ 结合成 $\mathrm{CsH}$），折合质量极限为 $\lim_{m_2 \gg m_1} \mu = m_1 \left(1 - \frac{m_1}{m_2}\right) \approx 1.000\ \mathrm{amu}$。在矩阵图中，这表现为底部与左侧紧贴坐标轴的一条显著深色平坦条带（$\mu \le 1.0\ \mathrm{amu}$）。该机制决定了所有氢化物（HF、HCl、OH、NH 等）的相对运动动力学几乎完全受控于质子的质量；
 - **同核双原子极大脊线**：在总质量 $M = m_1 + m_2$ 固定时，当 $m_1 = m_2 = m$ 时 $\mu = m/2$ 取得严格极大值。在全景图 (b) 中，对角线（青色虚线）构成了贯穿整个元素周期的最高势能脊线；从同核向异核偏离时，$\mu$ 呈二次双曲线快速跌落。
@@ -4228,11 +4264,11 @@ GitHub Actions 配置位于：
 | 6.5 | 二能级 Bloch 方程 | `mod_wavepacket_propagator::solve_bloch_two_level` | — | `test_propagators` | — |
 | 6.8 / 10.5 / 14.8 | Lindblad 超算符 + 谱方法 | `mod_open_quantum::lindblad_dissipator`、`rk4_lindblad_step`、`lindblad_supermatrix_2level`、`lindblad_steady_state_2level`、`lindblad_eigenmodes_2level`、`lindblad_spectral_reconstruct`、`calculate_quantum_purity` | `open_quantum.lindblad_supermatrix_2level` 等（谱方法四件套） | `test_open_quantum_opt` | 图 10.4（17）、10.5（24） |
 | 6.9 | Krotov 最优控制 | `mod_optimal_control::oct_optimize_pulse` | — | `test_laser_rovibrational_control` | — |
-| 7.2 / 7.5 | Numerov、有效力程、Wigner 时延 + Levinson | `mod_ti_scattering::calc_scattering_length_numerov`、`fit_effective_range_expansion`、`square_well_s_phase_exact`、`count_s_wave_bound_states`、`unwrap_phase_grid` | `scattering.calc_scattering_length_numerov`、`scattering.calc_phase_shift_single_l`、`scattering.square_well_s_phase_exact` 等 | `test_ti_scattering` | 图 7.1、7.6（25） |
-| 7.3 / 7.6 | Johnson 对数导数（多通道） | `mod_ti_scattering::calc_scattering_length_logder`、`multichannel_result_t` | `scattering.calc_multichannel_close_coupling` | `test_ti_scattering`/`test_td_scattering` | 图 7.1 |
+| 7.2 / 7.5 | Numerov、有效力程、Wigner 时延 + Levinson | `mod_ti_scattering::calc_scattering_length_numerov`、`fit_effective_range_expansion`、`square_well_s_phase_exact`、`count_s_wave_bound_states`、`unwrap_phase_grid` | `scattering.calc_scattering_length_numerov`、`scattering.calc_phase_shift_single_l`、`scattering.square_well_s_phase_exact` 等 | `test_ti_scattering` | 图 7.2、7.1（25） |
+| 7.3 / 7.6 | Johnson 对数导数（多通道） | `mod_ti_scattering::calc_scattering_length_logder`、`multichannel_result_t` | `scattering.calc_multichannel_close_coupling` | `test_ti_scattering`/`test_td_scattering` | 图 7.2 |
 | 7.4 | 光学定理 | `mod_ti_scattering::optical_theorem_cross_section` | — | `test_ti_scattering` | — |
-| 7.8 / 10.4 | Breit-Rabi、Feshbach | `mod_field_scattering::calc_breit_rabi_energies`、`fit_feshbach_resonance_parameters` | `field_scattering` 同名 | `test_field_scattering` | 图 7.3、10.3 |
-| 7.10 | 转振哈密顿量 | `mod_rovibrational::build_rovibrational_hamiltonian` | `rovibrational.build_rovibrational_hamiltonian` | `test_molecular_alignment` | 图 7.4 |
+| 7.8 / 10.4 | Breit-Rabi、Feshbach | `mod_field_scattering::calc_breit_rabi_energies`、`fit_feshbach_resonance_parameters` | `field_scattering` 同名 | `test_field_scattering` | 图 7.4、10.3 |
+| 7.10 | 转振哈密顿量 + Hönl–London 因子 | `mod_rovibrational::build_rovibrational_hamiltonian`、`honl_london_parallel` | `rovibrational.build_rovibrational_hamiltonian`、`rovibrational.honl_london_parallel` | `test_molecular_alignment`/`test_laser_rovibrational_control` | 图 7.5、7.6（28） |
 | 7.12 / 14.7 | FSSH 表面跳跃 + 闭式 NACV | `mod_surface_hopping_fssh::run_fssh_ensemble`、`TULLY_LAC` | — | `test_surface_hopping_fssh` | 图 7.8（26） |
 | 9.10 / 10.x | HHG 三步模型 | `mod_hhg_spectra::hhg_power_spectrum`、`lewenstein_sfa_dipole` | `hhg.hhg_power_spectrum` | `test_atomic_hhg` | 图 9.1 |
 | 17.1–17.5 | QCT 反应散射 | `mod_qct_dynamics::run_qct_ensemble`（OpenMP） | `qct.run_qct_ensemble` | `test_qct_dynamics` | 图 17.1 |
@@ -5208,7 +5244,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 48 个测试程序、535 项断言全部通过。
+- 全库 48 个测试程序、536 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

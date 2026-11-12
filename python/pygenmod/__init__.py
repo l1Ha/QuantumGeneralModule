@@ -65,7 +65,7 @@ from .multistate import (
 from .rovibrational import (
     rovibrational_state_index, rovibrational_state_unindex,
     rot_matrix_cos_theta, rot_matrix_cos2_theta, calc_franck_condon_factors,
-    watson_asymmetric_levels, watson_asymmetric_levels_cd,
+    honl_london_parallel, watson_asymmetric_levels, watson_asymmetric_levels_cd,
     inertia_constants_from_geometry,
     calc_rotational_constants_bv, build_rovibrational_hamiltonian,
     build_rovibrational_dipole_matrix
@@ -157,6 +157,7 @@ __all__ = [
     "landau_zener_probability", "calculate_channel_populations",
     "rovibrational_state_index", "rovibrational_state_unindex",
     "rot_matrix_cos_theta", "rot_matrix_cos2_theta", "calc_franck_condon_factors",
+    "honl_london_parallel",
     "watson_asymmetric_levels", "watson_asymmetric_levels_cd",
     "inertia_constants_from_geometry", "coupled2_normal_freqs", "poly_vib_product_levels",
     "poly_vib_morse_levels", "morse_bound_energy", "morse_bound_count",

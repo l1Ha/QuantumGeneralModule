@@ -109,6 +109,7 @@ module general_module
     public :: rovibrational_state_index, rovibrational_state_unindex
     public :: build_rovibrational_hamiltonian, build_rovibrational_dipole_matrix
     public :: build_rovibrational_polarizability_matrix, create_stirap_pulses
+    public :: honl_london_parallel, honl_london_sum_rule
 
     ! 标准化科学 I/O 工具
     public :: save_data_table_1d, save_data_table_2d, save_matrix_dat

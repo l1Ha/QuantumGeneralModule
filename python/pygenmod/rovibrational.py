@@ -192,3 +192,14 @@ def build_rovibrational_dipole_matrix(v_max: int, j_max: int, dip_vib: np.ndarra
                     if abs(j - jp) == 1:
                         dip_mat[k1, k2] = dip_vib[v, vp] * rot_matrix_cos_theta(j, jp, 0)
     return dip_mat
+
+
+def honl_london_parallel(j_qnum: int):
+    """Hönl-London factors for a parallel (ΔΛ=0) transition.
+
+    S_P(J) = J/(2J+1), S_R(J) = (J+1)/(2J+1) — the closed forms from
+    the Wigner-Eckart theorem + 3j symbol orthogonality. The sum rule
+    S_P + S_R = 1 holds exactly for all J.
+    Fortran mirror: `honl_london_parallel` (src/mod_rovibrational.f90).
+    """
+    return j_qnum / (2.0 * j_qnum + 1.0), (j_qnum + 1.0) / (2.0 * j_qnum + 1.0)

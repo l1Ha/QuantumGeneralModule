@@ -1946,9 +1946,82 @@ def generate_fig27_mollow():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig28_honl_london():
+    """Fig 28 (book Fig 7.6, spectral completion): rotational branch
+    strength envelope from Hoehl-London factors. (a) normalized HL factors
+    S_P = J/(2J+1), S_R = (J+1)/(2J+1) with exact sum rule S_P+S_R = 1
+    (dashed); (b) forward-computed P/R stick spectrum for a CO-like rotor
+    (B = 1.9312 cm^-1, nu0 = 2143 cm^-1) weighted by the closed forms,
+    with the q=0 M-summed cos(theta) matrix elements shown as (2J+1)*S/3
+    cross-check markers on a twin scale."""
+    print("Generating Fig 28: Hoehl-London branch strength envelope...")
+    set_publication_style()
+    import pygenmod as _pg
+
+    j_grid = np.arange(1, 21)
+    s_p = np.array([_pg.honl_london_parallel(int(j))[0] for j in j_grid])
+    s_r = np.array([_pg.honl_london_parallel(int(j))[1] for j in j_grid])
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4), dpi=200)
+
+    ax1.plot(j_grid, s_r, 'o-', color='crimson', label='$S_R=(J+1)/(2J+1)$')
+    ax1.plot(j_grid, s_p, 's-', color='royalblue', label='$S_P=J/(2J+1)$')
+    ax1.plot(j_grid, s_p + s_r, '--', color='black', linewidth=1.2,
+             label='$S_P+S_R=1$ (sum rule)')
+    ax1.set_xlabel('Lower-state rotational quantum number $J$')
+    ax1.set_ylabel('Normalized HL factor')
+    ax1.set_ylim(0.0, 1.05)
+    ax1.legend(fontsize=9, loc='lower left')
+    ax1.set_title('(a) Closed Forms + Exact Sum Rule', fontsize=10.5)
+    ax1.annotate('$S_R>S_P$ always\nboth $\\to 1/2$ at large $J$', xy=(14.5, 0.60),
+                 fontsize=9, color='dimgray', ha='center')
+
+    # (b) forward stick spectrum: CO-like rotor
+    b_const, nu0 = 1.9312, 2143.0
+    jmax = 10
+    ax2.axhline(0.0, color='gray', linewidth=0.8)
+    for j in range(1, jmax + 1):
+        sp, sr = _pg.honl_london_parallel(j)
+        # P branch: lower J -> J-1 (wavenumber below band origin)
+        ax2.vlines(nu0 - 2.0 * b_const * j, 0.0, sp, color='royalblue',
+                   linewidth=2.5)
+        # R branch: lower J -> J+1 (above origin)
+        ax2.vlines(nu0 + 2.0 * b_const * (j + 1), 0.0, sr, color='crimson',
+                   linewidth=2.5)
+    # J=0 has no P partner: the entire strength sits in R(0) at nu0+2B,
+    # the tallest line of the band
+    ax2.vlines(nu0 + 2.0 * b_const, 0.0, 1.0, color='crimson', linewidth=2.5)
+    ax2.axvline(nu0, color='gray', linewidth=0.8, linestyle=':')
+    ax2.annotate('P branch ($\\Delta J=-1$)', xy=(nu0 - 30, 0.80),
+                 fontsize=9.5, color='royalblue', ha='center')
+    ax2.annotate('R branch ($\\Delta J=+1$)', xy=(nu0 + 30, 0.80),
+                 fontsize=9.5, color='crimson', ha='center')
+    ax2.annotate('R(0): $S_R(0)=1$\n(no P partner at $J=0$)',
+                 xy=(nu0 + 2.0 * b_const, 1.0), xytext=(nu0 + 26, 0.94),
+                 fontsize=8.5, color='crimson',
+                 arrowprops=dict(arrowstyle='->', color='crimson',
+                                 linewidth=0.8))
+    ax2.annotate('band origin $\\nu_0$', xy=(nu0, 0.0), xytext=(nu0, -0.02),
+                 fontsize=8.5, color='dimgray', ha='center',
+                 annotation_clip=False)
+    # gap at the origin: line spacing 2B, first P line at nu0-2B, R(0) at nu0+2B
+    ax2.set_xlim(nu0 - 6.0 * b_const * (jmax + 1) * 0.5,
+                 nu0 + 6.0 * b_const * (jmax + 1) * 0.5)
+    ax2.set_ylim(0.0, 1.10)
+    ax2.set_xlabel('Wavenumber $\\tilde\\nu$ ($\\mathrm{cm^{-1}}$), relative band structure')
+    ax2.set_ylabel('Normalized line strength $S(J)$')
+    ax2.set_title('(b) CO-like P/R Stick Spectrum ($B=1.93\\,\\mathrm{cm^{-1}}$)',
+                  fontsize=10.5)
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig28_honl_london_branches.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 27 Scientific Calculation Benchmark Figures")
+    print(" Generating All 28 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -1977,8 +2050,9 @@ def main():
     generate_fig25_wigner_levinson()
     generate_fig26_lac_nacv()
     generate_fig27_mollow()
+    generate_fig28_honl_london()
     print("=" * 60)
-    print(" All 27 Figures Generated Successfully in docs/figures/!")
+    print(" All 28 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

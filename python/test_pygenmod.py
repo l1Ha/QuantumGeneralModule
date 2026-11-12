@@ -455,6 +455,20 @@ class TestPyGenMod(unittest.TestCase):
         fc = calc_franck_condon_factors(chi, chi, dx=1.0)
         self.assertAlmostEqual(fc[0, 0], 1.0, places=6)
 
+        # Hönl-London parallel: closed forms + sum rule + q=0 M-sum (与 Fortran 组 9 对应)
+        from pygenmod import honl_london_parallel
+        for j_hl in range(1, 9):
+            s_p, s_r = honl_london_parallel(j_hl)
+            self.assertAlmostEqual(s_p + s_r, 1.0, places=12)
+            self.assertAlmostEqual(s_p, j_hl / (2.0 * j_hl + 1.0), places=12)
+            m_p = sum(rot_matrix_cos_theta(j_hl, j_hl - 1, m) ** 2
+                      for m in range(-j_hl, j_hl + 1))
+            m_r = sum(rot_matrix_cos_theta(j_hl, j_hl + 1, m) ** 2
+                      for m in range(-j_hl, j_hl + 1))
+            # q=0 单分量 M 求和 = (2J+1)*S/3 (完整因子含 3 个偏振分量)
+            self.assertAlmostEqual(m_p, (2.0 * j_hl + 1.0) * s_p / 3.0, places=12)
+            self.assertAlmostEqual(m_r, (2.0 * j_hl + 1.0) * s_r / 3.0, places=12)
+
     def test_scattering(self):
         # 1. Van der Waals mean length
         a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)
