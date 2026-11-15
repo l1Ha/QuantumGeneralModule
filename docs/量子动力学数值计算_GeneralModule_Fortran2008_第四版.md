@@ -1898,6 +1898,9 @@ Chebyshev 方法适合大时间步和长时传播，但要求谱界估计准确�
 
 ![](qr/src__mod_chebyshev_propagator.f90.png){width=2.0cm}
 
+
+**Krylov 短迭代（Lanczos/SIL）.** 切比雪夫之外的另一条大步长路线：$m$ 步 Lanczos 三对角化构造 Krylov 子空间 $\mathcal{K}_m(H,\psi)$，在子空间内精确求 $\exp(-iT_mdt)$；范数守恒到机器精度、误差随 $m$ 超指数衰减，且不变子空间（如二能级）自动精确终止。实现见 §14.1 的 `mod_krylov_propagator`，闭式验收与误差标定见图 14.1。
+
 ### 6.8　密度矩阵与开放量子系统
 
 封闭系统的态可用纯态 $|\psi\rangle$ 描述，对应密度矩阵
@@ -4276,7 +4279,7 @@ GitHub Actions 配置位于：
 ### 12.1　算法方向
 
 - 更多正交多项式 DVR；
-- 稀疏 Krylov 传播；
+- 稀疏 Krylov 传播（**已实现**：`mod_krylov_propagator`，§14.1；一般 Arnoldi/重启策略待续）；
 - 多维张量分解；
 - 高阶分裂算符；
 - 自适应时间步长；
@@ -4334,6 +4337,7 @@ GitHub Actions 配置位于：
 | 5.3–5.5 | DVR/FGH 谱方法 | `mod_dvr_grid::dvr_sinc_init`、`fgh_solve_bound_states` | `dvr.dvr_sinc_init`、`fgh_solve_bound_states` | `test_dvr_grid` | 图 5.1、10.1 |
 | 6.2 / 14.2 | Split-Operator 分裂 | `mod_wavepacket_propagator::propagate_split_operator_1d/2d` | — | `test_propagators` | 图 10.2、11 |
 | 6.5 | 二能级 Bloch 方程 | `mod_wavepacket_propagator::solve_bloch_two_level` | — | `test_propagators` | — |
+| 6.7 / 14.1 | Krylov (Lanczos) 短迭代传播 | `mod_krylov_propagator::lanczos_tridiag`、`krylov_propagate_step` | `krylov.lanczos_tridiag`、`krylov.krylov_propagate_step` | `test_krylov_propagator` | 图 14.1（30） |
 | 6.8 / 10.5 / 14.8 | Lindblad 超算符 + 谱方法 | `mod_open_quantum::lindblad_dissipator`、`rk4_lindblad_step`、`lindblad_supermatrix_2level`、`lindblad_steady_state_2level`、`lindblad_eigenmodes_2level`、`lindblad_spectral_reconstruct`、`calculate_quantum_purity` | `open_quantum.lindblad_supermatrix_2level` 等（谱方法四件套） | `test_open_quantum_opt` | 图 10.4（17）、10.5（24） |
 | 6.9 | Krotov 最优控制 | `mod_optimal_control::oct_optimize_pulse` | — | `test_laser_rovibrational_control` | — |
 | 7.2 / 7.5 | Numerov、有效力程、Wigner 时延 + Levinson | `mod_ti_scattering::calc_scattering_length_numerov`、`fit_effective_range_expansion`、`square_well_s_phase_exact`、`count_s_wave_bound_states`、`unwrap_phase_grid` | `scattering.calc_scattering_length_numerov`、`scattering.calc_phase_shift_single_l`、`scattering.square_well_s_phase_exact` 等 | `test_ti_scattering` | 图 7.2、7.1（25） |
@@ -4473,7 +4477,11 @@ Lanczos 方法适合求极端本征值和时间演化，但对重复本征值和
 
 #### 对应源码
 
-- 路线图项：本库尚未内置 Krylov 传播器（§15.10 与 §12.1 已列为缺口）；现行大步长传播由 `src/mod_chebyshev_propagator.f90` 的 `chebyshev_propagate_step` 承担（§6.7）。
+- 已实现：`src/mod_krylov_propagator.f90` 的 `lanczos_tridiag`（两遍全重正交三对角化）与 `krylov_propagate_step`（子空间内精确矩阵指数，实/虚部分别传播）；Python 镜像 `python/pygenmod/krylov.py`；验证 `tests/test_krylov_propagator.f90`（8 项断言）与 `python/test_pygenmod.py::test_krylov_propagator`。
+- 三条闭式验收（图 14.1）：其一，**HO 相干态解析演化** $|\alpha e^{-i\omega t}\rangle$——本征基中分量相位 $e^{-i\omega(n+1/2)t}$ 严格已知，Krylov 传播一个完整周期后保真度 $1-F<10^{-10}$，期望值 $\langle x\rangle(t)=\sqrt{2/\omega}\,\alpha\cos\omega t$ 偏差 $5.6\times10^{-15}$；其二，**二能级不变子空间精确终止**——$d=2$ 时 $\beta_3=0$（数值 0）、$m_{\mathrm{eff}}=2$，Rabi 几率 $P_e(t)=\frac{\Omega^2}{\Omega^2+\Delta^2}\sin^2\frac{\Omega t}{2}$ 在 400 步内误差 $1.4\times10^{-14}$（严格精确，非近似）；其三，**后验误差估计** $\epsilon\approx\beta_{m+1}|[\exp(-iT_m dt)]_{m,1}|$ 与真实误差同量级（比值 0.62–4.4，跨 6 个数量级），$m$ 从 4 增至 20 误差降 6 个数量级（超指数收敛）。Lanczos 基正交性 $\|V_m^{T}V_m-I\|<5\times10^{-16}$、$T_m=V_m^{T}HV_m$ 重构 $<4\times10^{-16}$（40 维稠密随机对称阵全三对角化）；2000 步长时范数漂移 $3\times10^{-13}$；与库内切比雪夫传播器在 DVR 网格 + quartic 非谐势上交叉验证 $1-F=-1.1\times10^{-15}$（两条独立路径到机器精度一致）。
+- 边界：本模块要求 $H$ 实对称（无磁场、无复吸收势）；复势（CAP）情形仍由切比雪夫/劈裂算符路径承担（§6.7）。一般 Arnoldi（复向量）与重启/块 Lanczos 策略属 §12.1 后续项。
+
+![图 14.1：Lanczos–Krylov 短迭代传播器验收（正向计算）。(a) 误差随 Krylov 维数 $m$ 的超指数收敛（HO 相干态，$\omega=0.5$、$dt=5.0$ a.u. 大步长）：红色为由后验误差估计 $\beta_{m+1}|[\exp(-iT_m dt)]_{m,1}|$ 给出的预测误差，蓝色为与闭式解逐点比较的真实误差，两者同量级且同步下降（$m=4\to20$ 降 6 个数量级）；绿色星标为二能级情形的严格精确点（$m=2$ 处 $\beta_3=0$，不变子空间终止）。(b) HO 相干态期望值 $\langle x\rangle(t)$：黑实线为闭式 $\sqrt{2/\omega}\,\alpha\cos\omega t$，红圈为 Krylov 传播逐点计算，最大偏差 $5.6\times10^{-15}$（机器精度）；内嵌图为 2000 步长时范数漂移（对数纵轴，饱和于 $\sim10^{-12}$）。绘图脚本见 `docs/generate_figures.py`。](figures/fig30_krylov_propagator.png){width=13.5cm}
 
 ### 14.2　高阶分裂算符
 
@@ -5240,7 +5248,7 @@ end subroutine expect_close
 | 领域 | 当前状态 | 优先级 | 建议目标 |
 |---|---|---|---|
 | 复 Hermitian 本征 | 未具备 | 高 | 支持复哈密顿量 |
-| 稀疏本征 | 未具备 | 高 | Lanczos/Arnoldi |
+| 稀疏本征 | 部分具备 (Lanczos/Ritz 极值; Arnoldi 未具备) | 高 | Lanczos/Arnoldi |
 | SVD/QR/Cholesky | 未具备 | 中 | 支持拟合和正则化 |
 | 多维插值 | 未具备 | 高 | 二维/三维势能面 |
 | 自适应网格 | 未具备 | 中 | 局部加密 |
@@ -5316,7 +5324,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 48 个测试程序、537 项断言全部通过。
+- 全库 49 个测试程序、545 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

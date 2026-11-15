@@ -2112,9 +2112,109 @@ def generate_fig29_honl_perpendicular():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig30_krylov():
+    """Fig 30 (book Fig 14.1): Lanczos-Krylov propagator validation.
+    (a) a-posteriori error estimate vs true error vs Krylov dimension m
+    (HO coherent state, dt = 5.0 a.u.) — superexponential decay, estimator
+    tracks the true error within a small factor; the two-level case
+    terminates exactly at m = 2 (invariant subspace). (b) closed-form
+    check: <x>(t) of the HO coherent state from Krylov propagation (points)
+    vs the analytic sqrt(2/omega) alpha cos(omega t) (line); inset: norm
+    drift over 2000 steps."""
+    print("Generating Fig 30: Krylov (Lanczos) propagator validation...")
+    set_publication_style()
+    import pygenmod as _pg
+    import math
+
+    om_h, alp, nh = 0.5, 0.7, 48
+    n_arr = np.arange(nh)
+    c_n = np.array([np.exp(-alp ** 2 / 2.0) * alp ** n / math.sqrt(math.factorial(n))
+                    for n in n_arr])
+    H_ho = np.diag(om_h * (n_arr + 0.5))
+    matvec = lambda v: H_ho @ v
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.2, 4.4), dpi=200)
+
+    # ---------------- (a) error vs Krylov dimension ----------------
+    ms = np.arange(3, 21, 1)
+    est, true = [], []
+    for m in ms:
+        psi = c_n.astype(complex).copy()
+        err, _ = _pg.krylov_propagate_step(psi, 5.0, int(m), matvec)
+        psi_ex = c_n * np.exp(-1j * om_h * (n_arr + 0.5) * 5.0)
+        est.append(max(err, 1e-17))
+        true.append(max(np.linalg.norm(psi_ex - psi), 1e-17))
+    ax1.semilogy(ms, est, 'o-', color='crimson', markersize=3.4,
+                 label='a-posteriori estimate')
+    ax1.semilogy(ms, true, 's--', color='royalblue', markersize=3.4,
+                 label='true error (vs closed form)')
+    ax1.axhline(1e-14, color='gray', linewidth=0.7, linestyle=':')
+    ax1.annotate('machine precision', xy=(3.2, 1.7e-14), fontsize=8.2,
+                 color='dimgray')
+    ax1.annotate('two-level:\nexact at $m=2$', xy=(4.2, 3e-10), fontsize=8.8,
+                 color='seagreen')
+    ax1.plot([2], [1e-16], marker='*', color='seagreen', markersize=11,
+             linestyle='none')
+    ax1.set_xlabel('Krylov dimension $m$')
+    ax1.set_ylabel('Error (Euclidean norm)')
+    ax1.set_ylim(1e-16, 2.0)
+    ax1.set_xlim(1.4, 20.6)
+    ax1.legend(fontsize=8.6, loc='upper right')
+    ax1.set_title('(a) Superexponential Convergence: estimator tracks truth',
+                  fontsize=10.0)
+
+    # ---------------- (b) <x>(t) closed form + norm drift inset ----------------
+    a_op = np.zeros((nh, nh)); b_op = np.zeros((nh, nh))
+    for n in range(1, nh):
+        a_op[n - 1, n] = np.sqrt(n)
+        b_op[n, n - 1] = np.sqrt(n)
+    dt, npt = 0.25, 80
+    ts = np.arange(1, npt + 1) * dt
+    x_num = []
+    psi = c_n.astype(complex).copy()
+    for t in ts:
+        _pg.krylov_propagate_step(psi, dt, 22, matvec)
+        x_num.append(np.sqrt(0.5 / om_h) * float(np.real(np.vdot(psi, (a_op + b_op) @ psi))))
+    x_num = np.array(x_num)
+    x_exact = np.sqrt(2.0 / om_h) * alp * np.cos(om_h * ts)
+    ax2.plot(ts, x_exact, '-', color='black', linewidth=1.8,
+             label=r'closed form $\sqrt{2/\omega}\,\alpha\cos\omega t$')
+    ax2.plot(ts, x_num, 'o', color='crimson', markersize=3.0,
+             markerfacecolor='none', label='Krylov propagation')
+    max_dev = float(np.max(np.abs(x_num - x_exact)))
+    ax2.annotate('max deviation\n$= %.1e$' % max_dev, xy=(2.0, 1.25),
+                 fontsize=9, color='dimgray')
+    ax2.set_xlabel('Time $t$ (a.u.)')
+    ax2.set_ylabel(r'$\langle x\rangle(t)$ (a.u.)')
+    ax2.set_ylim(-2.2, 2.0)
+    ax2.legend(fontsize=8.6, loc='lower right')
+    ax2.set_title(r'(b) HO Coherent State: $\langle x\rangle(t)$ to Machine Precision',
+                  fontsize=10.0)
+
+    # inset: norm drift over 2000 steps
+    psi_n = c_n.astype(complex).copy()
+    nrm0 = np.linalg.norm(psi_n)
+    drift = []
+    for k in range(1, 2001):
+        _pg.krylov_propagate_step(psi_n, 0.1, 20, matvec)
+        drift.append(abs(np.linalg.norm(psi_n) - nrm0) / nrm0)
+    axin = ax2.inset_axes([0.14, 0.62, 0.34, 0.30])
+    axin.semilogy(np.arange(1, 2001) * 0.1, np.maximum(drift, 1e-17),
+                  color='seagreen', linewidth=1.0)
+    axin.set_title('norm drift, 2000 steps', fontsize=7.2)
+    axin.tick_params(labelsize=6.4)
+    axin.set_ylim(1e-17, 1e-11)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig30_krylov_propagator.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 29 Scientific Calculation Benchmark Figures")
+    print(" Generating All 30 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -2145,8 +2245,9 @@ def main():
     generate_fig27_mollow()
     generate_fig28_honl_london()
     generate_fig29_honl_perpendicular()
+    generate_fig30_krylov()
     print("=" * 60)
-    print(" All 29 Figures Generated Successfully in docs/figures/!")
+    print(" All 30 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

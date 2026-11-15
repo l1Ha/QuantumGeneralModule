@@ -14,6 +14,7 @@ module general_module
     use mod_coulomb_atomic
     use mod_hhg_spectra
     use mod_chebyshev_propagator
+    use mod_krylov_propagator
     use mod_multistate_coupling
     use mod_rovibrational
     use mod_io_utils
@@ -100,6 +101,7 @@ module general_module
 
     ! 切比雪夫与能谱滤波
     public :: chebyshev_propagate_step, window_operator_pes
+    public :: lanczos_tridiag, krylov_propagate_step
 
     ! 多态非绝热动力学
     public :: propagate_split_operator_2channel, landau_zener_probability, calculate_channel_populations

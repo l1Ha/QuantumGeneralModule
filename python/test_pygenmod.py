@@ -501,6 +501,79 @@ class TestPyGenMod(unittest.TestCase):
                 else:
                     self.assertAlmostEqual(s_raw, j_pl + 2.0, places=10)
 
+    def test_krylov_propagator(self):
+        # 与 Fortran test_krylov_propagator 对应 (§14.1 路线图项)
+        from pygenmod import lanczos_tridiag, krylov_propagate_step
+
+        # --- 1. 二能级: 不变子空间精确终止 + Rabi 闭式 ---
+        om_r, det_r = 0.6, 0.3
+        Om = np.hypot(om_r, det_r)
+        H2 = np.array([[0.0, 0.5 * om_r], [0.5 * om_r, det_r]])
+
+        alpha, beta, V, m_eff = lanczos_tridiag(lambda v: H2 @ v,
+                                                np.array([1.0, 0.0]), 4)
+        self.assertEqual(m_eff, 2)
+        self.assertLess(beta[2], 1.0e-14)          # beta_3 = 0 精确终止
+
+        psi = np.array([1.0 + 0j, 0.0 + 0j])
+        err_max = 0.0
+        for k in range(1, 401):
+            krylov_propagate_step(psi, 0.05, 8, lambda v: H2 @ v)
+            p_e = abs(psi[1]) ** 2
+            p_closed = (om_r ** 2 / Om ** 2) * np.sin(0.5 * Om * k * 0.05) ** 2
+            err_max = max(err_max, abs(p_e - p_closed))
+        self.assertLess(err_max, 1.0e-13)
+
+        # --- 2. HO 相干态解析演化 (闭式基准) ---
+        import math
+        nh, om_h, alp = 48, 0.5, 0.7
+        n_arr = np.arange(nh)
+        c_n = np.array([np.exp(-alp ** 2 / 2.0) * alp ** n / math.sqrt(math.factorial(n))
+                        for n in n_arr])
+        H_ho = np.diag(om_h * (n_arr + 0.5))
+
+        psi = c_n.astype(complex).copy()
+        dt_h = 0.1
+        steps = int(round(2.0 * np.pi / om_h / dt_h))
+        fid_min = 1.0
+        for k in range(1, steps + 1):
+            krylov_propagate_step(psi, dt_h, 24, lambda v: H_ho @ v)
+            t = k * dt_h
+            psi_ex = c_n * np.exp(-1j * om_h * (n_arr + 0.5) * t)
+            fid_min = min(fid_min, abs(np.vdot(psi_ex, psi)))
+        self.assertGreater(fid_min, 1.0 - 1.0e-10)
+
+        # <x>(t) = sqrt(2/om) alpha cos(om t)
+        psi = c_n.astype(complex).copy()
+        a_op = np.zeros((nh, nh))
+        b_op = np.zeros((nh, nh))
+        for n in range(1, nh):
+            a_op[n - 1, n] = np.sqrt(n)       # a
+            b_op[n, n - 1] = np.sqrt(n)       # a^dag
+        x_dev = 0.0
+        for k in range(1, 21):
+            krylov_propagate_step(psi, 0.25, 22, lambda v: H_ho @ v)
+            t = k * 0.25
+            x_num = np.sqrt(0.5 / om_h) * float(np.real(np.vdot(psi, (a_op + b_op) @ psi)))
+            x_dev = max(x_dev, abs(x_num - np.sqrt(2.0 / om_h) * alp * np.cos(om_h * t)))
+        self.assertLess(x_dev, 1.0e-9)
+
+        # --- 3. 2000 步范数守恒 ---
+        psi = c_n.astype(complex).copy()
+        nrm0 = np.linalg.norm(psi)
+        for _ in range(2000):
+            krylov_propagate_step(psi, 0.1, 20, lambda v: H_ho @ v)
+        self.assertLess(abs(np.linalg.norm(psi) - nrm0) / nrm0, 1.0e-12)
+
+        # --- 4. 后验误差估计与真实误差同量级 ---
+        for m in (8, 12, 16, 20):
+            psi = c_n.astype(complex).copy()
+            err, _ = krylov_propagate_step(psi, 5.0, m, lambda v: H_ho @ v)
+            psi_ex = c_n * np.exp(-1j * om_h * (n_arr + 0.5) * 5.0)
+            true_err = np.linalg.norm(psi_ex - psi)
+            self.assertGreater(err / true_err, 0.3)
+            self.assertLess(err / true_err, 10.0)
+
     def test_scattering(self):
         # 1. Van der Waals mean length
         a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)

@@ -58,6 +58,8 @@ from .hhg import (
     calculate_dipole_acceleration, hhg_power_spectrum
 )
 
+from .krylov import lanczos_tridiag, krylov_propagate_step
+
 from .multistate import (
     landau_zener_probability, calculate_channel_populations
 )
@@ -156,6 +158,7 @@ __all__ = [
     "keldysh_parameter", "ponderomotive_energy", "hhg_cutoff_energy", "quiver_radius", "adk_ionization_rate",
     "calculate_dipole_acceleration", "hhg_power_spectrum",
     "landau_zener_probability", "calculate_channel_populations",
+    "lanczos_tridiag", "krylov_propagate_step",
     "rovibrational_state_index", "rovibrational_state_unindex",
     "rot_matrix_cos_theta", "rot_matrix_cos2_theta", "calc_franck_condon_factors",
     "honl_london_parallel", "honl_london_perpendicular",
