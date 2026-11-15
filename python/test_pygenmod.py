@@ -469,6 +469,38 @@ class TestPyGenMod(unittest.TestCase):
             self.assertAlmostEqual(m_p, (2.0 * j_hl + 1.0) * s_p / 3.0, places=12)
             self.assertAlmostEqual(m_r, (2.0 * j_hl + 1.0) * s_r / 3.0, places=12)
 
+        # Hönl-London perpendicular (ΔΛ=±1): integer closed forms + S_Q ≡ 1/2
+        # + clebsch_gordan_half 独立仲裁 (与 Fortran 组 10 对应)
+        from pygenmod import honl_london_perpendicular
+        from pygenmod.field_scattering import clebsch_gordan_half
+        for j_pl in range(1, 9):
+            sp, sq, sr = honl_london_perpendicular(j_pl)
+            tj = 2 * j_pl + 1
+            self.assertAlmostEqual(sp + sq + sr, 1.0, places=13)
+            # 精确整数闭式还原
+            self.assertAlmostEqual(sp * 2.0 * tj, j_pl - 1.0, places=13)
+            self.assertAlmostEqual(sq * 2.0 * tj, float(tj), places=13)
+            self.assertAlmostEqual(sr * 2.0 * tj, j_pl + 2.0, places=13)
+            # 精确恒等式
+            self.assertAlmostEqual(sq, 0.5, places=15)
+            self.assertAlmostEqual(sp + sr, 0.5, places=13)
+            self.assertAlmostEqual(sr - sp, 3.0 / (2.0 * tj), places=13)
+            if j_pl == 1:
+                self.assertAlmostEqual(sp, 0.0, places=15)  # P(1) 禁戒
+            # CG 独立仲裁: 3j(J' 1 J; 1 -1 0) = (-1)^{J'-1} <J' 1; 1 -1|J 0> / sqrt(2J+1)
+            for jp_pl, frac in ((j_pl - 1, sp), (j_pl, sq), (j_pl + 1, sr)):
+                cg = clebsch_gordan_half(2 * jp_pl, 2, 2, -2, 2 * j_pl, 0)
+                w3j = cg / np.sqrt(2.0 * j_pl + 1.0)
+                s_raw = (2.0 * jp_pl + 1.0) * tj * 2.0 * w3j ** 2
+                self.assertAlmostEqual(s_raw, frac * 2.0 * tj, places=10)
+                n_branch = jp_pl - j_pl
+                if n_branch == -1:
+                    self.assertAlmostEqual(s_raw, j_pl - 1.0, places=10)
+                elif n_branch == 0:
+                    self.assertAlmostEqual(s_raw, float(tj), places=10)
+                else:
+                    self.assertAlmostEqual(s_raw, j_pl + 2.0, places=10)
+
     def test_scattering(self):
         # 1. Van der Waals mean length
         a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)

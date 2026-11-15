@@ -736,7 +736,12 @@ Racah 代数支配。本章从转动群与角动量本征基出发，依次建�
 \(\Delta(j_1j_2j_3)=\sqrt{\dfrac{(j_1+j_2-j_3)!\,(j_1-j_2+j_3)!\,(-j_1+j_2+j_3)!}{(j_1+j_2+j_3+1)!}}\)，归一化因子
 \(\mathcal{N}=\prod_{i=1}^{3}(j_i+m_i)!\,(j_i-m_i)!\)，求和项分母为六个阶乘之积
 
-\[\mathcal{D}_t=t!\,(j_1+j_2-j_3-t)!\,(j_1-m_1-t)!\,(j_2+m_2-t)!\,(j_3-j_2+m_1+t)!\,(j_3-j_1-m_2+t)!,\]
+\[
+\begin{aligned}
+\mathcal{D}_t={}&t!\,(j_1+j_2-j_3-t)!\,(j_1-m_1-t)!\,(j_2+m_2-t)!\\
+&\times(j_3-j_2+m_1+t)!\,(j_3-j_1-m_2+t)!,
+\end{aligned}
+\]
 
 \(t\) 取使所有阶乘自变量非负的整数区间
 \([t_{\min},t_{\max}]\)。对称性质：交换两列偶次不变、奇次乘以
@@ -820,9 +825,13 @@ Theory of Angular Momentum}, World Scientific, Singapore (1988), DOI:
 \((j_2j_3)\to j_{23}\) 再与 \(j_1\) 耦合。两套耦合基之间的幺正变换系数由
 Wigner 6j 符号（Racah W 系数）给出：
 
-\[\bigl\langle (j_1j_2)j_{12},j_3;JM \big| j_1,(j_2j_3)j_{23};JM \bigr\rangle
-=(-1)^{j_1+j_2+j_3+J}\sqrt{(2j_{12}+1)(2j_{23}+1)}
-\begin{Bmatrix} j_1 & j_2 & j_{12} \\ j_3 & J & j_{23} \end{Bmatrix}.\]
+\[
+\begin{aligned}
+&\bigl\langle (j_1j_2)j_{12},j_3;JM \big| j_1,(j_2j_3)j_{23};JM \bigr\rangle \\
+&\qquad=(-1)^{j_1+j_2+j_3+J}\sqrt{(2j_{12}+1)(2j_{23}+1)}
+\begin{Bmatrix} j_1 & j_2 & j_{12} \\ j_3 & J & j_{23} \end{Bmatrix}.
+\end{aligned}
+\]
 
 四个角动量的重耦合（如原子结构中的 \(LS\) 与 \(jj\) 耦合方案互换）则由
 Wigner 9j 符号承担：
@@ -844,11 +853,16 @@ Wigner 9j 符号承担：
 该关系直接源于重耦合变换的幺正性。9j 符号可展开为 6j
 符号的三重求和（Varshalovich, 第 10 章）：
 
-\[\begin{Bmatrix} j_{11} & j_{12} & j_{13} \\ j_{21} & j_{22} & j_{23} \\ j_{31} & j_{32} & j_{33} \end{Bmatrix}
-=\sum_{x}(-1)^{2x}(2x+1)
-\begin{Bmatrix} j_{11} & j_{21} & j_{31} \\ j_{32} & j_{33} & x \end{Bmatrix}
+\[
+\begin{aligned}
+&\begin{Bmatrix} j_{11} & j_{12} & j_{13} \\ j_{21} & j_{22} & j_{23} \\ j_{31} & j_{32} & j_{33} \end{Bmatrix}
+=\sum_{x}(-1)^{2x}(2x+1)\,
+\begin{Bmatrix} j_{11} & j_{21} & j_{31} \\ j_{32} & j_{33} & x \end{Bmatrix} \\
+&\qquad\times
 \begin{Bmatrix} j_{12} & j_{22} & j_{32} \\ j_{21} & x & j_{23} \end{Bmatrix}
-\begin{Bmatrix} j_{13} & j_{23} & j_{33} \\ x & j_{11} & j_{12} \end{Bmatrix},\]
+\begin{Bmatrix} j_{13} & j_{23} & j_{33} \\ x & j_{11} & j_{12} \end{Bmatrix},
+\end{aligned}
+\]
 
 求和变量 \(x\)
 取遍同时满足三个三角条件的（整数或半奇数）值。本库实现严格遵循该式，其中相位因子在两倍整数接口下表现为
@@ -1071,7 +1085,12 @@ Euler 角 \((\alpha,\beta,\gamma)\)（\(z\)-\(y\)-\(z\)
 \[E_{JK}=B\,J(J+1)+(A-B)K^{2}.\] 不对称陀螺在 \(|JK\rangle\)
 基下的非对角矩阵元为
 
-\[\langle J,K|(\hat{J}_b^{2}-\hat{J}_c^{2})|J,K\pm2\rangle=\frac{\hbar^{2}}{2}\sqrt{(J\mp K)(J\mp K-1)(J\pm K+1)(J\pm K+2)}.\]
+\[
+\begin{aligned}
+&\langle J,K|(\hat{J}_b^{2}-\hat{J}_c^{2})|J,K\pm2\rangle\\
+&\qquad=\frac{\hbar^{2}}{2}\sqrt{(J\mp K)(J\mp K-1)(J\pm K+1)(J\pm K+2)}.
+\end{aligned}
+\]
 
 于是固定 \(J\) 的哈密顿量在 \(K\) 空间内是带宽为二的带状矩阵，可按 \(K\)
 的奇偶分块，再以宇称组合 \(|K\rangle\pm|-K\rangle\)
@@ -1274,8 +1293,12 @@ Sato 参数 \(\Delta\in[0.05,0.20]\)，讨论势垒高度对 \(\Delta\) 的单�
 \(x_1=c-\tfrac{m_2r_{12}+m_3(r_{12}+r_{23})}{M}\)
 型质心约束解出各原子速度并代入 \(T=\tfrac12\sum_i m_i\dot{x}_i^2\)，得
 
-\[\mathbf{G}_{\mathrm{vel}}=\frac{1}{M}\begin{pmatrix}m_1(m_2+m_3) & m_1m_3\\ m_1m_3 & m_3(m_1+m_2)\end{pmatrix},\qquad
-\mathbf{G}=\mathbf{G}_{\mathrm{vel}}^{-1}=\begin{pmatrix}\dfrac{1}{m_1}+\dfrac{1}{m_2} & -\dfrac{1}{m_2}\\[4pt] -\dfrac{1}{m_2} & \dfrac{1}{m_2}+\dfrac{1}{m_3}\end{pmatrix},\]
+\[
+\begin{aligned}
+&\mathbf{G}_{\mathrm{vel}}=\frac{1}{M}\begin{pmatrix}m_1(m_2+m_3) & m_1m_3\\ m_1m_3 & m_3(m_1+m_2)\end{pmatrix},\\
+&\mathbf{G}=\mathbf{G}_{\mathrm{vel}}^{-1}=\begin{pmatrix}\dfrac{1}{m_1}+\dfrac{1}{m_2} & -\dfrac{1}{m_2}\\[4pt] -\dfrac{1}{m_2} & \dfrac{1}{m_2}+\dfrac{1}{m_3}\end{pmatrix},
+\end{aligned}
+\]
 
 其逆恰是 Wilson--Decius--Cross 的 \(\mathbf{G}\)
 矩阵（\(G_{ij}=\sum_l B_{li}B_{lj}/m_l\)，对共线伸缩坐标
@@ -4996,8 +5019,8 @@ Hönl--London（HL）因子给出。对 \(^{1}\Sigma\text{--}^{1}\Sigma\)
 \[
 \langle J'M'|\cos\theta|J''M''\rangle
 =\sqrt{(2J'+1)(2J''+1)}\,
-\begin{pmatrix}J'&1&J''\\0&0&0\end{pmatrix}
-\begin{pmatrix}J'&1&J''\\-M'&0&M''\end{pmatrix},
+\bigl(\begin{smallmatrix}J'&1&J''\\0&0&0\end{smallmatrix}\bigr)
+\bigl(\begin{smallmatrix}J'&1&J''\\-M'&0&M''\end{smallmatrix}\bigr),
 \]
 
 对下态所有 \(M''\) 与上态 \(M'\)、以及全部三个空间固定偏振分量
@@ -5061,6 +5084,101 @@ P/R 支强度系统性偏大 3 倍。
 起向高频单调递减。绘图脚本见 \texttt{docs/generate\_figures.py}。}
 \end{figure}
 
+\hypertarget{ux5782ux76f4ux5e26deltalambdapm1q-ux652fux4e0eux7cbeux786eux6052ux7b49ux5f0f-s_qequiv12}{%
+\paragraph{\texorpdfstring{垂直带（\(\Delta\Lambda=\pm1\)）：Q
+支与精确恒等式
+\(S_Q\equiv1/2\)}{垂直带（\textbackslash Delta\textbackslash Lambda=\textbackslash pm1）：Q 支与精确恒等式 S\_Q\textbackslash equiv1/2}}\label{ux5782ux76f4ux5e26deltalambdapm1q-ux652fux4e0eux7cbeux786eux6052ux7b49ux5f0f-s_qequiv12}}
+
+平行带只有 P/R 两支；垂直带（如 \(^{1}\Pi\)--\(^{1}\Sigma\)，例：CH
+\(A\,^{1}\Pi\)--\(X\,^{1}\Sigma^{+}\)、OH
+\(A\,^{2}\Sigma^{+}\)--\(X\,^{2}\Pi\)）的跃迁偶极垂直于分子轴，体坐标系分量
+\(n=\pm1\)，上态 \(K'=\pm1\) 的两个 \(\Lambda\) 双重分量对同一 \(J'\)
+简并。按与平行带完全相同的框架（对 \(M,M'\)、三个空间固定分量 \(q\) 及
+\(K'=\pm1\) 求和），强度分解为
+
+\[
+S_{J'}(J'')
+=(2J'+1)(2J''+1)\cdot 2\cdot
+\begin{pmatrix}J'&1&J''\\1&-1&0\end{pmatrix}^{2},
+\]
+
+三个 \(3j\) 闭式（符号计算精确验证）为
+
+\[
+\begin{pmatrix}J-1&1&J\\1&-1&0\end{pmatrix}^{2}
+=\frac{J-1}{2(2J-1)(2J+1)},
+\]
+
+\[
+\begin{pmatrix}J&1&J\\1&-1&0\end{pmatrix}^{2}
+=\frac{1}{2(2J+1)},
+\]
+
+\[
+\begin{pmatrix}J+1&1&J\\1&-1&0\end{pmatrix}^{2}
+=\frac{J+2}{2(2J+1)(2J+3)},
+\]
+
+代入后得到\textbf{严格整数值}（未归一化）：
+
+\[
+S_P=J-1,\qquad S_Q=2J+1,\qquad S_R=J+2,\qquad
+S_P+S_Q+S_R=2(2J+1),
+\]
+
+总和恒等于
+\(2(2J+1)\)------上态转动流形完备性的直接体现（垂直带有两个体坐标分量
+\(n=\pm1\)，故总强度是平行带的两倍）。按总强度归一化后，垂直带满足三条\textbf{精确恒等式}：
+
+\[
+S_Q(J)\equiv\frac{1}{2},\qquad S_P+S_R\equiv\frac{1}{2},\qquad
+S_R-S_P=\frac{3}{2(2J+1)}>0.
+\]
+
+\(S_Q\equiv1/2\) 对所有 \(J\) 严格成立：\textbf{垂直带恰好一半的强度落在
+Q 支}，这是 \(\Delta\Lambda=\pm1\)
+带在光谱上最鲜明的指纹；\(S_R-S_P=3/(2(2J+1))\) 则给出 P/R
+支强度差的精确闭式（R 支恒强，大 \(J\) 时二者皆趋于 \(1/4\)）。\(J=1\)
+时 \(S_P=0\)：上态 \(J'=0\) 不可能携带 \(|K'|=1\)，\textbf{P(1)
+严格禁戒}------这与闭式在 \(J=1\)
+处给出零完全一致，是框架自洽性的边界检验。
+
+实现与验收（\texttt{honl\_london\_perpendicular}）：其一，\textbf{库内
+\texttt{wigner\_3j\_half} 独立仲裁}------用通用半整数 \(3j\)
+实现直接计算
+\(S=(2J'+1)(2J+1)\cdot2\cdot[3j(J'\,1\,J;1\,{-}1\,0)]^2\)，与闭式在
+\(J=1,\dots,8\) 全部吻合到 \(10^{-10}\)；其二，三条精确恒等式以
+\(10^{-14}\)（\(S_Q\) 为 \(10^{-15}\)）精度通过；其三，上态流形完备性
+\(\sum_{J'}S=2(2J+1)\) 精确成立；Python 端用
+\texttt{field\_scattering.clebsch\_gordan\_half}（独立的 CG 实现）经
+\(3j\)--CG 换算作第三方仲裁，同样通过。
+
+\begin{figure}
+\centering
+\includegraphics[width=13cm,height=\textheight]{figures/fig29_honl_perpendicular.png}
+\caption{图 7.7：垂直带（\(^{1}\Pi\)--\(^{1}\Sigma\)）Hönl--London
+因子与 Q 支指纹（正向计算）。(a) 归一化支强度分数：\(S_Q\equiv1/2\)
+严格恒等于半（绿线），\(S_P\)（蓝）、\(S_R\)（红）分别趋于
+\(1/4\)（点线），\(S_P+S_Q+S_R\equiv1\)（黑虚线）；精确恒等式
+\(S_R-S_P=3/(2(2J+1))\) 由两曲线间隙直接可见。(b) \(T=300\) K
+合成光谱（\(B''=10\ \mathrm{cm^{-1}}\)，\(B'=9.92\ \mathrm{cm^{-1}}\)，Gaussian
+仪器宽度 \(1.6\ \mathrm{cm^{-1}}\)，相对各自带源 \(\tilde\nu_0\)
+绘制）：垂直带（红）在带源处呈现尖锐的 \textbf{Q
+支堆积峰}------\(\Delta B\neq0\) 使 \(\Delta J=0\)
+谱线簇聚于带源附近（真实分子中 \(\Delta B\) 很小，Q
+支因而成为近简并强峰）；平行带（蓝虚线）只有 P/R 双瓣，带源附近留下
+\(2B\)
+空隙。两支带高按各自分支分数归一化，故对比的是\textbf{带形}而非绝对强度。Q
+支的存在与否是实验上判别 \(\Delta\Lambda=0\) 与 \(\Delta\Lambda=\pm1\)
+最直接的证据。绘图脚本见 \texttt{docs/generate\_figures.py}。}
+\end{figure}
+
+\(\Lambda\) 双重分裂分辨时还需按宇称（\(e/f\)）细分：P/R 支与 Q
+支分别终止于相反的宇称分量，故高分辨光谱中 P/R 与 Q 的 Landé
+型线型差异可用于标定 \(\Lambda\)
+双重分裂符号；上式对两支分量求和的表述即未分辨情形下的总强度。至此
+Hönl--London 因子族完整覆盖平行带（P/R）与垂直带（P/Q/R）两类基本情形。
+
 \hypertarget{ux53ccux539fux5b50ux6210ux5206ux4e0eux6298ux5408ux8d28ux91cfux77e9ux9635ux56feux8c31}{%
 \paragraph{双原子成分与折合质量矩阵图谱}\label{ux53ccux539fux5b50ux6210ux5206ux4e0eux6298ux5408ux8d28ux91cfux77e9ux9635ux56feux8c31}}
 
@@ -5100,7 +5218,7 @@ mass）决定：
 \begin{figure}
 \centering
 \includegraphics[width=13cm,height=\textheight]{figures/fig10_diatomic_reduced_mass_matrix.png}
-\caption{图 7.7：双原子不同成分折合质量
+\caption{图 7.8：双原子不同成分折合质量
 \(\mu = \frac{m_1 m_2}{m_1 + m_2}\) 矩阵热力图与全景周期分布：（a）16
 种代表性同位素成分（包含从超轻同位素 \(^1\mathrm{H}\)、\(D\)
 到常见主族元素与超冷碱金属
@@ -5110,7 +5228,7 @@ mass）决定：
 \texttt{docs/generate\_figures.py}。}
 \end{figure}
 
-图 7.7 揭示了双原子体系折合质量在全元素周期表中的两大全局物理机制：
+图 7.8 揭示了双原子体系折合质量在全元素周期表中的两大全局物理机制：
 
 \begin{itemize}
 \tightlist
@@ -5391,7 +5509,7 @@ LAC 两模型全部 \(x\) 点比值 1.00000）修正为
 \begin{figure}
 \centering
 \includegraphics[width=13cm,height=\textheight]{figures/fig26_lac_nacv.png}
-\caption{图 7.8：线性避免交叉模型与闭式
+\caption{图 7.9：线性避免交叉模型与闭式
 NACV（\texttt{TULLY\_LAC}，\(a=0.4\)、\(c=0.15\ E_h\)）。（a）非对角表象（虚线）与绝热表象（实线）势能面：避免交叉隙
 \(2c=0.3\ E_h\)；（b）NACV
 \(d_{12}(x)=-ac/((ax)^{2}+4c^{2})\)（红线）与库内公式（紫点，本征矢有限差分终审通过）------Lorentz
@@ -7857,13 +7975,13 @@ Breit-Rabi、Feshbach\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 转振哈密顿量 + Hönl--London 因子\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-\texttt{mod\_rovibrational::build\_rovibrational\_hamiltonian}、\texttt{honl\_london\_parallel}\strut
+\texttt{mod\_rovibrational::build\_rovibrational\_hamiltonian}、\texttt{honl\_london\_parallel}、\texttt{honl\_london\_perpendicular}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-\texttt{rovibrational.build\_rovibrational\_hamiltonian}、\texttt{rovibrational.honl\_london\_parallel}\strut
+\texttt{rovibrational.build\_rovibrational\_hamiltonian}、\texttt{rovibrational.honl\_london\_parallel}、\texttt{honl\_london\_perpendicular}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 \texttt{test\_molecular\_alignment}/\texttt{test\_laser\_rovibrational\_control}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-图 7.5、7.6（28）\strut
+图 7.5、7.6、7.7（28、29）\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
 7.12 / 14.7\strut
@@ -7876,7 +7994,7 @@ FSSH 表面跳跃 + 闭式 NACV\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 \texttt{test\_surface\_hopping\_fssh}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
-图 7.8（26）\strut
+图 7.9（26）\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
 9.10 / 10.x\strut
@@ -9761,7 +9879,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 48 个测试程序、536 项断言全部通过。
+  全库 48 个测试程序、537 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的

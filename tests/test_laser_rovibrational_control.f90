@@ -232,6 +232,60 @@ program test_laser_rovibrational_control
         end if
     end block
 
+    ! 垂直带 (Delta Lambda = +-1, 1Pi-1Sigma) Hoehnl-London 因子:
+    ! 未归一化整数闭式 P: J-1, Q: 2J+1, R: J+2, 总和 = 2(2J+1);
+    ! 用库内 wigner_3j_half 独立仲裁 (S = (2J'+1)(2J+1)*2*3j^2),
+    ! 并验证三个精确恒等式 S_Q = 1/2, S_P+S_R = 1/2, S_R-S_P = 3/(2(2J+1))
+    block
+        real(dp) :: s_p, s_q, s_r, w3j, s_raw, s_tot, frac_p, frac_r
+        integer :: j_pl, jp_pl, tj_p, tj, tm1, tm2, tm3
+        logical :: ok_pl, ok_id, ok_w3j
+        ok_pl = .true.; ok_id = .true.; ok_w3j = .true.
+        s_tot = 0.0_dp
+        do j_pl = 1, 8
+            call honl_london_perpendicular(j_pl, s_p, s_q, s_r, stat)
+            ! 归一化和恒为 1
+            if (abs(s_p + s_q + s_r - 1.0_dp) > 1.0e-14_dp) ok_pl = .false.
+            ! 精确整数闭式 (乘以总强度 2(2J+1) 还原)
+            tj = 2 * j_pl + 1
+            if (abs(s_p * 2.0_dp * real(tj, dp) - real(j_pl - 1, dp)) > 1.0e-13_dp) ok_pl = .false.
+            if (abs(s_q * 2.0_dp * real(tj, dp) - real(tj, dp)) > 1.0e-13_dp) ok_pl = .false.
+            if (abs(s_r * 2.0_dp * real(tj, dp) - real(j_pl + 2, dp)) > 1.0e-13_dp) ok_pl = .false.
+            ! J=1: P(1) 禁戒 (上态 J'=0 不可能 |K'|=1)
+            if (j_pl == 1 .and. abs(s_p) > 1.0e-15_dp) ok_pl = .false.
+            ! 三个精确恒等式
+            if (abs(s_q - 0.5_dp) > 1.0e-15_dp) ok_id = .false.
+            if (abs(s_p + s_r - 0.5_dp) > 1.0e-14_dp) ok_id = .false.
+            if (abs(s_r - s_p - 3.0_dp / (2.0_dp * real(tj, dp))) > 1.0e-14_dp) ok_id = .false.
+            ! wigner_3j_half 独立仲裁: 原始强度 = (2J'+1)(2J+1)*2*[3j(J' 1 J; 1 -1 0)]^2
+            do jp_pl = j_pl - 1, j_pl + 1
+                tj_p = 2 * jp_pl + 1
+                tm1 = 2; tm2 = -2; tm3 = 0
+                w3j = wigner_3j_half(2 * jp_pl, 2, 2 * j_pl, tm1, tm2, tm3)
+                s_raw = real(tj_p, dp) * real(tj, dp) * 2.0_dp * w3j**2
+                select case (jp_pl - j_pl)
+                case (-1); frac_p = s_p
+                case (0);  frac_p = s_q
+                case (+1); frac_p = s_r
+                end select
+                if (abs(s_raw - frac_p * 2.0_dp * real(tj, dp)) > 1.0e-10_dp) ok_w3j = .false.
+            end do
+            ! 上态流形完备性: 对 J' 求和 = 2(2J+1)
+            s_tot = 0.0_dp
+            do jp_pl = max(j_pl - 1, 0), j_pl + 1
+                s_tot = s_tot + honl_london_perp_raw(jp_pl, j_pl)
+            end do
+            if (abs(s_tot - 2.0_dp * real(tj, dp)) > 1.0e-10_dp) ok_pl = .false.
+        end do
+        n_tests = n_tests + 1
+        if (ok_pl .and. ok_id .and. ok_w3j) then
+            n_passed = n_passed + 1
+            print '(A)', " [PASS] HL perpendicular: integer closed forms + S_Q=1/2 + wigner_3j_half arbitration"
+        else
+            print '(A, L3, L3, L3)', " [FAIL] HL-perp: closed =", ok_pl, " ident =", ok_id, " w3j =", ok_w3j
+        end if
+    end block
+
     print '(A, I2, A, I2, A)', "Rovibrational Control Tests: ", n_passed, " / ", n_tests, " PASSED."
     if (n_passed /= n_tests) then
         print '(A)', "FAILED: Some assertions failed!"
@@ -262,6 +316,16 @@ contains
 
         c_vec = c_vec + (dt_step / 6.0_dp) * (k1 + 2.0_dp * k2 + 2.0_dp * k3 + k4)
     end subroutine rk4_rovibrational_step
+
+    !> \brief 垂直带原始 (未归一化) 强度: (2J'+1)(2J+1)*2*[3j(J' 1 J; 1 -1 0)]^2
+    !> \details 用库内 wigner_3j_half 独立计算 3j, 作为 honl_london_perpendicular
+    !>          闭式的独立仲裁 (对称化后与 Wigner-Eckart 表述一致)。
+    real(dp) function honl_london_perp_raw(jp, j) result(s_raw)
+        integer, intent(in) :: jp, j
+        real(dp) :: w3j
+        w3j = wigner_3j_half(2 * jp, 2, 2 * j, 2, -2, 0)
+        s_raw = real(2 * jp + 1, dp) * real(2 * j + 1, dp) * 2.0_dp * w3j**2
+    end function honl_london_perp_raw
 
     !> \brief 计算系数导数: dc/dt = -i * (H_0 - E(t)*mu) * c
     pure function deriv_c(c_in, diag_e, dip_m, e_t) result(dcdt)

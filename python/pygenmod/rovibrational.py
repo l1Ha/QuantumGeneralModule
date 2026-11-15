@@ -203,3 +203,26 @@ def honl_london_parallel(j_qnum: int):
     Fortran mirror: `honl_london_parallel` (src/mod_rovibrational.f90).
     """
     return j_qnum / (2.0 * j_qnum + 1.0), (j_qnum + 1.0) / (2.0 * j_qnum + 1.0)
+
+
+def honl_london_perpendicular(j_qnum: int):
+    """Hönl-London factors for a perpendicular (ΔΛ = ±1, ¹Π–¹Σ) transition.
+
+    Transition dipole ⊥ molecular axis (body-frame components n = ±1), upper
+    state K' = ±1 doubly degenerate (Λ-doublet, summed). Unnormalized integer
+    closed forms (J = lower state): S_P = J-1, S_Q = 2J+1, S_R = J+2, total
+    exactly 2(2J+1) (upper-manifold completeness). Normalized so that
+    S_P + S_Q + S_R = 1:
+
+        S_P = (J-1)/(2(2J+1)),  S_Q = 1/2,  S_R = (J+2)/(2(2J+1))
+
+    Three exact identities hold for every J: S_Q ≡ 1/2 (the Q branch carries
+    exactly half of the perpendicular-band strength — the spectroscopic
+    fingerprint of ΔΛ = ±1 bands), S_P + S_R ≡ 1/2, and
+    S_R - S_P = 3/(2(2J+1)). At J = 1, S_P = 0 (upper J' = 0 cannot carry
+    |K'| = 1, so P(1) is forbidden).
+    Fortran mirror: `honl_london_perpendicular` (src/mod_rovibrational.f90).
+    """
+    denom = 2.0 * (2.0 * j_qnum + 1.0)
+    return (j_qnum - 1.0) / denom, 0.5, (j_qnum + 2.0) / denom
+

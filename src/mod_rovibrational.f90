@@ -19,6 +19,7 @@ module mod_rovibrational
     public :: build_rovibrational_dipole_matrix
     public :: build_rovibrational_polarizability_matrix
     public :: honl_london_parallel
+    public :: honl_london_perpendicular
     public :: honl_london_sum_rule
     public :: create_stirap_pulses
 
@@ -250,5 +251,41 @@ contains
         end do
         ! 期望 = 1 (单位跃迁偶极)
     end subroutine honl_london_sum_rule
+
+    !> \brief 垂直跃迁 (Delta Lambda = +-1, 如 1Pi-1Sigma) 的 Hoehnl-London 因子
+    !> \details 垂直跃迁偶极垂直于分子轴, 体坐标系分量 n = +-1;
+    !>          下态 K'' = 0 (Sigma), 上态 K' = +-1 (Pi) 两个 Lambda 双重分量
+    !>          对同一 J' 简并 (未分辨时求和). 对 M, M', 空间固定分量 q 及
+    !>          K' = +-1 求和:
+    !>            S_{J'}(J) = (2J'+1)(2J+1) * 2 * [3j(J' 1 J; 1 -1 0)]^2
+    !>          由 3j 闭式 (符号计算精确验证):
+    !>            [3j(J-1 1 J; 1-10)]^2 = (J-1)/(2(2J-1)(2J+1))
+    !>            [3j(J   1 J; 1-10)]^2 = 1/(2(2J+1))
+    !>            [3j(J+1 1 J; 1-10)]^2 = (J+2)/(2(2J+1)(2J+3))
+    !>          给出严格整数值 (未归一化): P: J-1, Q: 2J+1, R: J+2,
+    !>          总和恒为 2(2J+1) (上态流形完备性). 按总强度归一化后:
+    !>            S_P = (J-1)/(2(2J+1)),  S_Q = 1/2,  S_R = (J+2)/(2(2J+1))
+    !>          三个精确恒等式: S_Q = 1/2 (对所有 J), S_P + S_R = 1/2,
+    !>          S_R - S_P = 3/(2(2J+1)). Q 支恰好占总强度一半是垂直带的
+    !>          光谱指纹 (平行带无 Q 支). J = 1 时 S_P = 0 (上态 J' = 0
+    !>          不可能有 |K'| = 1).
+    subroutine honl_london_perpendicular(j_qnum, s_p, s_q, s_r, stat)
+        integer, intent(in)  :: j_qnum
+        real(dp), intent(out) :: s_p, s_q, s_r
+        integer, intent(out)  :: stat
+
+        real(dp) :: jj, denom
+        stat = 0
+        if (j_qnum < 1) then
+            stat = 1
+            s_p = 0.0_dp; s_q = 0.0_dp; s_r = 0.0_dp
+            return
+        end if
+        jj = real(j_qnum, dp)
+        denom = 2.0_dp * (2.0_dp * jj + 1.0_dp)
+        s_p = (jj - 1.0_dp) / denom
+        s_q = 0.5_dp
+        s_r = (jj + 2.0_dp) / denom
+    end subroutine honl_london_perpendicular
 
 end module mod_rovibrational

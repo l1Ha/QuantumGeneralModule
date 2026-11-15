@@ -2019,9 +2019,102 @@ def generate_fig28_honl_london():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig29_honl_perpendicular():
+    """Fig 29 (book Fig 7.7): perpendicular-band (Delta Lambda = +-1,
+    1Pi-1Sigma) Hoehnl-London factors and band-shape contrast. (a) normalized
+    branch fractions with the three exact laws S_Q = 1/2, S_P + S_R = 1/2,
+    S_R - S_P = 3/(2(2J+1)); (b) forward-computed synthetic spectra at
+    T = 300 K: perpendicular band (Q-branch pile-up near the origin, B''=10,
+    B'=9.5 cm^-1) vs parallel band (no Q branch) at the same rotational
+    constants."""
+    print("Generating Fig 29: Hoehnl-London perpendicular band + Q-branch fingerprint...")
+    set_publication_style()
+    import pygenmod as _pg
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.4, 4.5), dpi=200)
+
+    # ---------------- (a) branch fractions ----------------
+    j_grid = np.arange(1, 31)
+    sp = np.array([_pg.honl_london_perpendicular(int(j))[0] for j in j_grid])
+    sq = np.array([_pg.honl_london_perpendicular(int(j))[1] for j in j_grid])
+    sr = np.array([_pg.honl_london_perpendicular(int(j))[2] for j in j_grid])
+    ax1.plot(j_grid, sq, '-', color='seagreen', linewidth=2.4,
+             label=r'$S_Q \equiv 1/2$ (exact)')
+    ax1.plot(j_grid, sr, 'o-', color='crimson', markersize=3.2,
+             label=r'$S_R=(J+2)/(2(2J+1))$')
+    ax1.plot(j_grid, sp, 's-', color='royalblue', markersize=3.2,
+             label=r'$S_P=(J-1)/(2(2J+1))$')
+    ax1.plot(j_grid, sp + sq + sr, '--', color='black', linewidth=1.1,
+             label='$S_P+S_Q+S_R\equiv 1$')
+    ax1.axhline(0.25, color='gray', linewidth=0.8, linestyle=':')
+    ax1.annotate(r'$S_{P,R}\to 1/4$', xy=(8, 0.262), fontsize=9,
+                 color='dimgray')
+    ax1.set_xlabel('Lower-state rotational quantum number $J$')
+    ax1.set_ylabel('Normalized HL factor')
+    ax1.set_ylim(0.0, 0.80)
+    ax1.set_xlim(0.5, 30.5)
+    ax1.legend(fontsize=8.4, loc='upper right')
+    ax1.set_title(r'(a) $^1\Pi$-$^1\Sigma$ Branch Fractions: $S_Q=1/2$ Exactly',
+                  fontsize=10.5)
+
+    # ---------------- (b) synthetic spectra (relative wavenumber) ----------------
+    b_pp = 10.0                        # lower-state B (cm^-1)
+    b_p = 9.92                         # upper-state B (Delta B = -0.08)
+    t_rot, hc_k = 300.0, 1.4387769     # K, cm^-1 K
+    sigma = 1.6                        # Gaussian instrument width (cm^-1)
+    jmax = 14
+
+    def gauss(x, x0):
+        return np.exp(-0.5 * ((x - x0) / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi))
+
+    def boltz(j):
+        return (2.0 * j + 1.0) * np.exp(-hc_k * b_pp * j * (j + 1) / t_rot)
+
+    # relative wavenumber axis: each band centered on its own origin
+    grid = np.linspace(-320.0, 320.0, 1300)
+    spec_perp = np.zeros_like(grid)
+    spec_para = np.zeros_like(grid)
+    for j in range(1, jmax + 1):
+        spp, sqq, srr = _pg.honl_london_perpendicular(j)
+        spa, sra = _pg.honl_london_parallel(j)
+        d_p = b_p * (j - 1) * j - b_pp * j * (j + 1)   # P(J) - nu0
+        d_q = (b_p - b_pp) * j * (j + 1)               # Q(J) - nu0
+        d_r = b_p * (j + 1) * (j + 2) - b_pp * j * (j + 1)
+        w = boltz(j)
+        spec_perp += w * (spp * gauss(grid, d_p) + sqq * gauss(grid, d_q)
+                          + srr * gauss(grid, d_r))
+        spec_para += w * (spa * gauss(grid, d_p) + sra * gauss(grid, d_r))
+
+    ax2.fill_between(grid, spec_perp, alpha=0.30, color='crimson')
+    ax2.plot(grid, spec_perp, color='crimson', linewidth=1.6,
+             label=r'$^1\Pi$-$^1\Sigma$ perpendicular (P/Q/R)')
+    ax2.plot(grid, spec_para, color='royalblue', linewidth=1.4, linestyle='--',
+             label=r'$^1\Sigma$-$^1\Sigma$ parallel (P/R only)')
+    ax2.axvline(0.0, color='gray', linewidth=0.8, linestyle=':')
+    ax2.annotate('Q-branch pile-up',
+                 xy=(0.0, 0.90 * spec_perp.max()),
+                 xytext=(60.0, 0.88 * spec_perp.max()), fontsize=9.2,
+                 color='crimson',
+                 arrowprops=dict(arrowstyle='->', color='crimson', linewidth=0.9))
+    ax2.annotate('no Q branch:\nP/R only', xy=(-120.0, 0.62 * spec_perp.max()),
+                 fontsize=9, color='royalblue', ha='center')
+    ax2.text(6.0, 0.55, 'band origin', rotation=90, fontsize=8.5,
+             color='dimgray', va='center')
+    ax2.set_ylim(0.0, 2.25)
+    ax2.set_xlabel(r'$\tilde\nu - \tilde\nu_0$ ($\mathrm{cm^{-1}}$)')
+    ax2.set_ylabel('Synthetic intensity (a.u.)')
+    ax2.legend(fontsize=8.6, loc='upper left')
+    ax2.set_title(r'(b) $T=300\,$K Synthetic Bands: Q-Branch Fingerprint', fontsize=10.5)
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig29_honl_perpendicular.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 28 Scientific Calculation Benchmark Figures")
+    print(" Generating All 29 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -2051,8 +2144,9 @@ def main():
     generate_fig26_lac_nacv()
     generate_fig27_mollow()
     generate_fig28_honl_london()
+    generate_fig29_honl_perpendicular()
     print("=" * 60)
-    print(" All 28 Figures Generated Successfully in docs/figures/!")
+    print(" All 29 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 
