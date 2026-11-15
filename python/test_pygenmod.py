@@ -574,6 +574,60 @@ class TestPyGenMod(unittest.TestCase):
             self.assertGreater(err / true_err, 0.3)
             self.assertLess(err / true_err, 10.0)
 
+    def test_hermitian_eig(self):
+        # 与 Fortran test_hermitian_eig 对应 (§15.10 路线图第 1 项)
+        from pygenmod import (diag_hermitian_matrix, peierls_ring_spectrum,
+                              peierls_ring_hamiltonian)
+
+        # --- 1. Pauli 矩阵 + 一般 2x2 解析 ---
+        sx = np.array([[0, 1], [1, 0]], dtype=complex)
+        sy = np.array([[0, -1j], [1j, 0]], dtype=complex)
+        sz = np.diag([1.0, -1.0]).astype(complex)
+        for sm in (sx, sy, sz):
+            d, z = diag_hermitian_matrix(sm)
+            np.testing.assert_allclose(d, [-1.0, 1.0], atol=1e-14)
+            np.testing.assert_allclose(np.abs(z.conj().T @ z), np.eye(2), atol=1e-14)
+
+        aa, dd, bb = 0.7, -0.2, 0.3 + 0.45j
+        a2 = np.array([[aa, bb], [np.conj(bb), dd]], dtype=complex)
+        d, z = diag_hermitian_matrix(a2)
+        disc = np.sqrt(((aa - dd) / 2.0) ** 2 + abs(bb) ** 2)
+        np.testing.assert_allclose(d, [(aa + dd) / 2 - disc, (aa + dd) / 2 + disc],
+                                   atol=1e-14)
+        np.testing.assert_allclose(a2 @ z, z * d, atol=1e-13)
+
+        # --- 2. Peierls 环闭式谱 + 与 numpy 直接解对照 ---
+        for n_sites in range(3, 13):
+            for flux in (0.0, 0.17, 0.5, 0.83):
+                h = peierls_ring_hamiltonian(n_sites, flux)
+                d, z = diag_hermitian_matrix(h)
+                np.testing.assert_allclose(d, peierls_ring_spectrum(n_sites, flux),
+                                           atol=1e-12)
+                dd, zz = np.linalg.eigh(h)
+                np.testing.assert_allclose(d, dd, atol=1e-12)
+                # 本征矢逐列 (简并处允许子空间混合, 用残差判定;
+                # 全简并谱的简并子空间数值精度 ~1e-11)
+                np.testing.assert_allclose(h @ z, z * d, atol=1e-9)
+                np.testing.assert_allclose(z.conj().T @ z, np.eye(n_sites), atol=1e-9)
+
+        # --- 3. 随机 Hermitian: 迹/行列式守恒 ---
+        rng = np.random.default_rng(7)
+        m8 = rng.standard_normal((8, 8)) + 1j * rng.standard_normal((8, 8))
+        a8 = m8 + m8.conj().T
+        d, z = diag_hermitian_matrix(a8)
+        self.assertAlmostEqual(float(np.sum(d)), float(np.trace(a8).real), places=11)
+        self.assertAlmostEqual(abs(np.prod(d)), abs(np.linalg.det(a8)), places=9)
+        np.testing.assert_allclose(a8 @ z, z * d, atol=1e-12)
+
+        # --- 4. 简并 (5 重) 与相位约定 ---
+        d5, z5 = diag_hermitian_matrix(np.eye(5, dtype=complex))
+        np.testing.assert_allclose(d5, np.ones(5), atol=1e-15)
+        for k in range(5):
+            self.assertAlmostEqual(np.linalg.norm(z5[:, k]), 1.0, places=14)
+            imax = int(np.argmax(np.abs(z5[:, k])))
+            self.assertAlmostEqual(float(np.imag(z5[imax, k])), 0.0, places=14)
+            self.assertGreaterEqual(float(np.real(z5[imax, k])), 0.0)
+
     def test_scattering(self):
         # 1. Van der Waals mean length
         a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)

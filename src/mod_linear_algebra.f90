@@ -8,6 +8,7 @@ module mod_linear_algebra
     private
 
     public :: diag_symmetric_matrix
+    public :: diag_hermitian_matrix
     public :: fft_1d
     public :: fft_2d
     public :: inv_real_matrix
@@ -39,6 +40,134 @@ contains
         ! 2. QL 隐式位移迭代求解本征值与本征向量（自动升序排列）
         call tql2(n, d, e, z, stat)
     end subroutine diag_symmetric_matrix
+
+    !> \brief 求解 n x n 复 Hermitian 矩阵的全部本征值与本征向量（本征值升序）
+    !> \details 加倍归约: 写 A = B + iC (B 实对称, C 实反对称), 构造 2n x 2n
+    !>          实对称矩阵
+    !>            M = [ B  -C ]
+    !>                [ C   B ] ,
+    !>          其本征值恰为 A 的每个本征值二重出现。对 M 用已验证的
+    !>          Householder-QL 路径对角化, 取 n 个互异本征值; 由实本征矢
+    !>          [u; v] 重构复本征矢 w = u + iv (A w = lam w 严格成立)。
+    !>          归一化 ||w|| = 1, 并固定最大模分量为正实数的相位约定。
+    !>          代价 O((2n)^3) —— 对小中型矩阵稳健且零外部依赖;
+    !>          更大规模请走 Lanczos/Arnoldi 迭代路径 (§14.1, §15.10)。
+    !> \param[in] n 矩阵阶数
+    !> \param[in] a_in 输入复 Hermitian 矩阵
+    !> \param[out] d 本征值向量 (n, 升序)
+    !> \param[out] z 复本征向量矩阵 (n, n)，第 i 列对应 d(i)
+    !> \param[out] stat 状态码 (0 正常)
+    subroutine diag_hermitian_matrix(n, a_in, d, z, stat)
+        integer, intent(in) :: n
+        complex(dp), intent(in) :: a_in(n, n)
+        real(dp), intent(out) :: d(n)
+        complex(dp), intent(out) :: z(n, n)
+        integer, intent(out) :: stat
+
+        real(dp), allocatable :: m2(:, :), d2(:), z2(:, :)
+        real(dp) :: nrm, b_val, c_val
+        integer :: i, j, k
+
+        allocate(m2(2 * n, 2 * n), d2(2 * n), z2(2 * n, 2 * n))
+
+        ! 严格对称的加倍矩阵 M = [[B, -C],[C, B]]:
+        !   B_ij = (Re A_ij + Re A_ji)/2 (实对称化), C_ij = Im A_ij (反对称化)
+        !   对称性要求 M_{n+j, i} = M_{i, n+j} = -C_ij (= C_ji, 因 C 反对称)
+        m2 = 0.0_dp
+        do j = 1, n
+            do i = 1, n
+                b_val = 0.5_dp * (real(a_in(i, j), dp) + real(a_in(j, i), dp))
+                c_val = 0.5_dp * (aimag(a_in(i, j)) - aimag(a_in(j, i)))
+                m2(i, j) = b_val
+                m2(n + i, n + j) = b_val
+                m2(i, n + j) = -c_val
+                m2(n + j, i) = -c_val
+            end do
+        end do
+
+        call diag_symmetric_matrix(2 * n, m2, d2, z2, stat)
+        if (stat /= 0) then
+            d = 0.0_dp
+            z = cmplx(0.0_dp, 0.0_dp, kind=dp)
+            deallocate(m2, d2, z2)
+            return
+        end if
+
+        ! 稳健选取 n 个独立本征矢:
+        ! 加倍矩阵 M 的**任意**本征矢 [u; v] 都给出 A 的合法本征矢
+        ! w = u + i v (A w = lam w 对 eigenspace 中任意向量成立), 故:
+        !   1) 对 M 的全部 2n 列构造候选 w_j (j = 1..2n);
+        !   2) 按简并组划分 (组大小 g = 2m, m 为该本征值在 A 中的重数);
+        !   3) 组内 MGS 依次正交化, 塌缩 (范数远小于 1) 的候选丢弃,
+        !      保留前 m 个独立向量 —— 不依赖 LAPACK 简并基序的"配对",
+        !      对任意简并度稳健 (早期"隔一取一"版本在 4 重简并处因基序
+        !      取到平行向量而失效, 已被本方案替代)。
+        block
+            integer :: kend, ii, jj, m_keep, n_keep, n_surv
+            real(dp) :: nrm2, tol_deg
+            complex(dp) :: proj_c
+            complex(dp), allocatable :: cand(:, :)
+            allocate(cand(n, 2 * n))
+            do jj = 1, 2 * n
+                do ii = 1, n
+                    cand(ii, jj) = cmplx(z2(ii, jj), z2(n + ii, jj), kind=dp)
+                end do
+            end do
+            n_keep = 0
+            jj = 1
+            do while (jj <= 2 * n)
+                tol_deg = 1.0e-10_dp * max(1.0_dp, abs(d2(jj)))
+                kend = jj
+                do while (kend < 2 * n)
+                    if (abs(d2(kend + 1) - d2(jj)) > tol_deg) exit
+                    kend = kend + 1
+                end do
+                m_keep = (kend - jj + 1) / 2      ! A 中该本征值的重数
+                n_surv = 0
+                do ii = jj, kend
+                    if (n_surv >= m_keep) exit
+                    ! 与已保留向量正交化
+                    do k = 1, n_keep
+                        proj_c = sum(conjg(z(:, k)) * cand(:, ii))
+                        cand(:, ii) = cand(:, ii) - proj_c * z(:, k)
+                    end do
+                    nrm2 = sqrt(real(sum(abs(cand(:, ii))**2), dp))
+                    if (nrm2 > 1.0e-8_dp) then
+                        n_keep = n_keep + 1
+                        z(:, n_keep) = cand(:, ii) / nrm2
+                        d(n_keep) = d2(jj)
+                        n_surv = n_surv + 1
+                    end if
+                end do
+                jj = kend + 1
+            end do
+            deallocate(cand)
+        end block
+
+        ! 归一化 + 相位约定 (最大模分量为正实数)
+        do k = 1, n
+            nrm = sqrt(real(sum(abs(z(:, k))**2), dp))
+            if (nrm > 0.0_dp) z(:, k) = z(:, k) / nrm
+            block
+                integer :: imax
+                real(dp) :: amax
+                complex(dp) :: ph
+                imax = 1
+                amax = abs(z(1, k))
+                do i = 2, n
+                    if (abs(z(i, k)) > amax) then
+                        amax = abs(z(i, k)); imax = i
+                    end if
+                end do
+                if (amax > 0.0_dp) then
+                    ph = z(imax, k) / amax
+                    z(:, k) = z(:, k) * conjg(ph)
+                end if
+            end block
+        end do
+
+        deallocate(m2, d2, z2)
+    end subroutine diag_hermitian_matrix
 
     !> \brief 安全计算 sqrt(a^2 + b^2) 避免数值溢出
     pure function pythag(a, b) result(p)

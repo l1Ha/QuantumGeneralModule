@@ -2212,9 +2212,83 @@ def generate_fig30_krylov():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig31_hermitian():
+    """Fig 31 (book Fig 4.2): complex Hermitian eigensolver (doubling
+    reduction). (a) N = 3 Peierls ring spectrum vs magnetic flux: closed-form
+    branches -2t cos(2 pi (k+Phi)/3) (lines) + numerical markers from
+    diag_hermitian_matrix; degeneracies at Phi = 0, 1/2, 1 and periodicity 1.
+    (b) validation scatter: max eigenvector residual and max eigenvalue error
+    vs ring size N = 3..12 at flux in {0, 0.17, 0.5} (log scale)."""
+    print("Generating Fig 31: Hermitian eigensolver validation (Peierls ring)...")
+    set_publication_style()
+    import pygenmod as _pg
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.2, 4.4), dpi=200)
+
+    # ---------------- (a) 3-site ring spectrum vs flux ----------------
+    fluxes = np.linspace(0.0, 1.0, 401)
+    for k in range(3):
+        lam = -2.0 * np.cos(2.0 * np.pi * (k + fluxes) / 3.0)
+        ax1.plot(fluxes, lam, '-', color=['royalblue', 'crimson', 'seagreen'][k],
+                 linewidth=1.8, label='closed form $k=%d$' % k)
+    flux_marks = np.linspace(0.0, 1.0, 11)
+    for f in flux_marks:
+        h = _pg.peierls_ring_hamiltonian(3, f)
+        d, z = _pg.diag_hermitian_matrix(h)
+        ax1.plot([f] * 3, d, 'o', color='black', markersize=3.6,
+                 markerfacecolor='none', zorder=5)
+    ax1.plot([], [], 'o', color='black', markerfacecolor='none',
+             label='numerical (doubling reduction)')
+    for f0 in (0.0, 0.5, 1.0):
+        ax1.axvline(f0, color='gray', linewidth=0.7, linestyle=':')
+    ax1.annotate('degenerate\n$\\Phi = 0,\\ 1/2,\\ 1$', xy=(0.5, 1.55),
+                 fontsize=9, color='dimgray', ha='center')
+    ax1.set_xlabel('Flux $\\Phi$ (flux quantum)')
+    ax1.set_ylabel('Energy $-2t\\cos[2\\pi(k+\\Phi)/3]$')
+    ax1.set_xlim(0.0, 1.0)
+    ax1.set_ylim(-2.3, 2.3)
+    ax1.legend(fontsize=8.0, loc='lower right', ncol=2)
+    ax1.set_title('(a) Peierls Ring Spectrum: Hermitian + Flux', fontsize=10.5)
+
+    # ---------------- (b) validation accuracy vs N ----------------
+    ns = np.arange(3, 13)
+    res_max, ev_max = [], []
+    for n_sites in ns:
+        r_best = e_best = 0.0
+        for flux in (0.0, 0.17, 0.5):
+            h = _pg.peierls_ring_hamiltonian(int(n_sites), flux)
+            d, z = _pg.diag_hermitian_matrix(h)
+            r_best = max(r_best, float(np.max(np.abs(h @ z - z * d))))
+            e_best = max(e_best, float(np.max(np.abs(
+                d - _pg.peierls_ring_spectrum(int(n_sites), flux)))))
+        res_max.append(max(r_best, 1e-17))
+        ev_max.append(max(e_best, 1e-17))
+    ax2.semilogy(ns, ev_max, 'o-', color='royalblue', markersize=4,
+                 label='eigenvalue error vs closed form')
+    ax2.semilogy(ns, res_max, 's-', color='crimson', markersize=4,
+                 label='eigenvector residual $\\|Hz-\\lambda z\\|$')
+    ax2.axhline(1e-14, color='gray', linewidth=0.7, linestyle=':')
+    ax2.annotate('machine precision', xy=(3.2, 1.6e-14), fontsize=8.2,
+                 color='dimgray')
+    ax2.annotate('fully degenerate spectra\n($\\Phi=0$, even $N$):\n$\\sim10^{-11}$',
+                 xy=(9.5, 6e-12), fontsize=8.4, color='dimgray', ha='center')
+    ax2.set_xlabel('Ring size $N$')
+    ax2.set_ylabel('Error (log scale)')
+    ax2.set_ylim(1e-17, 1e-8)
+    ax2.legend(fontsize=8.4, loc='center left')
+    ax2.set_title('(b) Accuracy vs Ring Size (flux $\\in\\{0, 0.17, 0.5\\}$)',
+                  fontsize=10.5)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig31_hermitian_eig.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 30 Scientific Calculation Benchmark Figures")
+    print(" Generating All 31 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -2246,8 +2320,9 @@ def main():
     generate_fig28_honl_london()
     generate_fig29_honl_perpendicular()
     generate_fig30_krylov()
+    generate_fig31_hermitian()
     print("=" * 60)
-    print(" All 30 Figures Generated Successfully in docs/figures/!")
+    print(" All 31 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

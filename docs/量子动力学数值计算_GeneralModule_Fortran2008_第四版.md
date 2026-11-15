@@ -796,6 +796,32 @@ $$h^{*}=\left(\frac{3\varepsilon|f|}{|f'''|}\right)^{1/3},\qquad
 
 **练习。** (1) 证明 Weyl 定理在 $2\times2$ 情形，并用 Rayleigh 商极小极大原理推广。(2) 推导中心差分的总误差函数并求最优步长。(3) 以 Richardson 外推由 $h$ 与 $h/2$ 两点外推 $f'(1)$，与精确值 $-\sin1$ 比较并实测四阶收敛。
 
+### 4.5　复 Hermitian 本征问题：加倍归约与复本征矢重构
+
+复 Hermitian 矩阵 $A=A^{\dagger}$ 出现在磁场耦合（Peierls 相位、Aharonov–Bohm 环）、圆偏振驱动与复规范场等场景，其本征值仍全为实数，但本征矢为复数。本库以一条**零新数值机制**的路径求解：把复问题严格归约为已充分验证的实对称问题。
+
+**加倍归约。** 写 $A=B+iC$，其中 $B=\tfrac12(A+A^{T})$ 实对称（注意转置而非共轭转置），$C=\tfrac12(A-A^{T})$ 实反对称。构造 $2n\times2n$ 实对称矩阵
+
+$$
+M=\begin{pmatrix}B&-C\\ C&B\end{pmatrix},\qquad M=M^{T}\ \ (\text{因 }(-C)^{T}=C),
+$$
+
+其本征值恰为 $A$ 的每个本征值**二重出现**。关键性质：$M$ 的**任意**本征矢 $[u;v]$（$M[u;v]=\lambda[u;v]$）都给出 $A$ 的合法本征矢 $w=u+iv$——由分块本征方程 $Bu-Cv=\lambda u$、$Cu+Bv=\lambda v$ 直接得 $A(u+iv)=\lambda(u+iv)$。于是"对角化 $M$ → 逐列取 $u+iv$ → 归一化"即得全部复本征矢，全程只用实对称 Householder–QL 路径。
+
+**稳健选取与简并处理。** 加倍谱的简并度是 $A$ 的两倍：$A$ 中重数为 $m$ 的本征值在 $M$ 中重数为 $2m$，而底层 QL/库例程对简并子空间的基序不作保证。早期版本的"隔一取一"配对在 $4$ 重简并（$m=2$）处会取到**平行**候选而丢失独立性——该缺陷被全简并环（$N=12$、$\Phi=0$）的回归测试捕获。现行方案：对 $M$ 的全部 $2n$ 列构造候选 $w_j$，按简并组（容差 $10^{-10}$）划分，组内依序做带塌缩阈值的修正 Gram–Schmidt：范数塌缩（$<10^{-8}$）的候选丢弃，保留前 $m$ 个独立向量。该方案不依赖任何基序假设，对任意简并度稳健。
+
+**精度与代价。** 非简并谱：本征矢残差 $\|Az-\lambda z\|\lesssim10^{-14}$、正交性 $\|Z^{\dagger}Z-I\|\lesssim10^{-15}$；全简并谱（简并子空间的向量混合放大舍入）：残差升至 $\sim10^{-11}$（Fortran QL 路径实测 $1.3\times10^{-13}$）。代价 $O((2n)^{3})$ 且内存加倍——适合小中型稠密矩阵；大规模稀疏复问题应走 Lanczos/Arnoldi 迭代路径（§14.1）。
+
+**验证（7 项断言，全部机器精度）。** 其一，Pauli 三矩阵与一般 $2\times2$ 解析本征值 $\frac{a+d}{2}\pm\sqrt{(\frac{a-d}{2})^{2}+|b|^{2}}$：误差 $3.3\times10^{-16}$；其二，**实嵌入一致性**：实对称矩阵经复路径与 `diag_symmetric_matrix` 的本征值差 $1.0\times10^{-15}$、本征矢重叠 $1-|\langle v_r|v_c\rangle|=5.6\times10^{-16}$；其三，$8\times8$ 随机 Hermitian：残差 $7.9\times10^{-15}$、正交性 $4.4\times10^{-16}$、迹守恒 $1.9\times10^{-14}$、行列式守恒 $5.1\times10^{-15}$；其四，**Peierls 环闭式谱** $\lambda_n=-2t\cos\frac{2\pi(n+\Phi)}{N}$：误差 $2.1\times10^{-15}$，复耦合二能级谱 $\pm|\Omega|/2$ 误差 $5.6\times10^{-17}$；其五，全简并环回归（$N=12$，$\Phi=0$，所有本征值二重简并）：残差/正交性 $1.3\times10^{-13}$/$2.3\times10^{-14}$；其六，$5$ 重与 $2$ 重简并的精确本征值与相位约定（最大模分量为正实数），简并子空间正交性误差 $0.0$。Python 镜像 `pygenmod/linalg.py`（同一归约 + `peierls_ring_spectrum`/`peierls_ring_hamiltonian`）与 `numpy.linalg.eigh` 直接解对照：$N=3\dots12$、四个磁通值下本征值吻合到 $10^{-12}$，并入 `test_hermitian_eig`（Python 套件 36 → 37 项）。
+
+![图 4.2：复 Hermitian 本征求解器验收（加倍归约路线）。(a) 三格点 Peierls 环谱随磁通的色散：三条闭式分支 $\lambda_k=-2t\cos[2\pi(k+\Phi)/3]$（实线）与 `diag_hermitian_matrix` 数值点（黑圈，11 个磁通值）；$\Phi=0,\ 1/2,\ 1$ 处的简并（竖点线）与周期 $1$ 自动重现。(b) 精度随环大小 $N=3\dots12$（磁通 $\in\{0,0.17,0.5\}$）：本征值对闭式的误差（蓝）与归一化本征矢残差（红）在非简并情形饱和于机器精度 $\sim10^{-15}$，全简并谱（$\Phi=0$、偶数 $N$，简并子空间向量混合放大舍入）升至 $\sim10^{-11}$。绘图脚本见 `docs/generate_figures.py`。](figures/fig31_hermitian_eig.png){width=13.5cm}
+
+#### 对应源码
+
+- [src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90)（`diag_hermitian_matrix`）
+- [python/pygenmod/linalg.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/linalg.py)
+- 验证：`tests/test_hermitian_eig.f90`（7 项断言）；`python/test_pygenmod.py::test_hermitian_eig`
+
 ---
 
 ## 参考文献
@@ -4334,6 +4360,7 @@ GitHub Actions 配置位于：
 | 3.4 | 一般力场（三阶/四阶力常数张量） | `mod_polyatomic_vib::poly_vib_force_field_levels` | `polyatomic_vib.poly_vib_force_field_levels` | `test_polyatomic_vib` | 图 3.6 |
 | 3.4 | 振转 Coriolis（对称陀螺 A± 梯级） | `mod_polyatomic_vib::poly_vib_coriolis_rotor_levels` | `polyatomic_vib.poly_vib_coriolis_rotor_levels` | `test_polyatomic_vib` | 图 3.7 |
 | 4.3 | Wilkinson 位移 QL 迭代 | `mod_linear_algebra::tql2` | — | `test_dvr_grid`/`test_propagators` | 图 4.1 |
+| 4.5 | 复 Hermitian 本征（加倍归约） | `mod_linear_algebra::diag_hermitian_matrix` | `linalg.diag_hermitian_matrix`、`linalg.peierls_ring_spectrum` | `test_hermitian_eig` | 图 4.2（31） |
 | 5.3–5.5 | DVR/FGH 谱方法 | `mod_dvr_grid::dvr_sinc_init`、`fgh_solve_bound_states` | `dvr.dvr_sinc_init`、`fgh_solve_bound_states` | `test_dvr_grid` | 图 5.1、10.1 |
 | 6.2 / 14.2 | Split-Operator 分裂 | `mod_wavepacket_propagator::propagate_split_operator_1d/2d` | — | `test_propagators` | 图 10.2、11 |
 | 6.5 | 二能级 Bloch 方程 | `mod_wavepacket_propagator::solve_bloch_two_level` | — | `test_propagators` | — |
@@ -5247,7 +5274,7 @@ end subroutine expect_close
 
 | 领域 | 当前状态 | 优先级 | 建议目标 |
 |---|---|---|---|
-| 复 Hermitian 本征 | 未具备 | 高 | 支持复哈密顿量 |
+| 复 Hermitian 本征 | 已具备 (加倍归约, §4.5) | 高 | 支持复哈密顿量 |
 | 稀疏本征 | 部分具备 (Lanczos/Ritz 极值; Arnoldi 未具备) | 高 | Lanczos/Arnoldi |
 | SVD/QR/Cholesky | 未具备 | 中 | 支持拟合和正则化 |
 | 多维插值 | 未具备 | 高 | 二维/三维势能面 |
@@ -5261,7 +5288,7 @@ end subroutine expect_close
 
 ### 15.11　最小扩展路线
 
-1. 增加 `diag_hermitian_matrix`；
+1. 增加 `diag_hermitian_matrix`（**已完成**，§4.5；稀疏对称本征求解部分见 §14.1）；
 2. 增加稀疏对称本征求解；
 3. 增加二维样条；
 4. 增加 JSON/TOML 实验记录；
@@ -5324,7 +5351,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 49 个测试程序、545 项断言全部通过。
+- 全库 50 个测试程序、552 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

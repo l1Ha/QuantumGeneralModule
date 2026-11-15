@@ -71,7 +71,8 @@ module general_module
     public :: wigner_3j_half, clebsch_gordan_half, wigner_6j_half, wigner_9j_half
     public :: rot_matrix_cos_theta, rot_matrix_cos2_theta
 
-    public :: diag_symmetric_matrix, fft_1d, fft_2d, inv_real_matrix, inv_complex_matrix
+    public :: diag_symmetric_matrix, diag_hermitian_matrix
+    public :: fft_1d, fft_2d, inv_real_matrix, inv_complex_matrix
 
     public :: dvr_1d_t, dvr_legendre_t, dvr_sinc_init, dvr_legendre_init, fgh_solve_bound_states
     public :: dvr_expectation_value, dvr_matrix_element
