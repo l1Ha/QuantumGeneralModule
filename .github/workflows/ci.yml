@@ -46,8 +46,19 @@ jobs:
 
       - name: Build and Test via CMake (53 Test Suites, 36 Examples)
         run: |
-          cmake -B build -S .
-          cmake --build build -j 4
+          # 构建各阶段失败时把错误尾部转发为注解 (无需管理员权限即可诊断)
+          if ! cmake -B build -S . > cmake_cfg.log 2>&1; then
+            msg="$(tail -n 30 cmake_cfg.log)"
+            echo "::error::cmake configure failed: ${msg//$'\n'/%0A}"
+            exit 1
+          fi
+          if ! cmake --build build -j 4 > cmake_build.log 2>&1; then
+            msg="$(grep -aE -i 'error|\[FAIL\]' cmake_build.log | head -n 30)"
+            echo "::error::cmake build failed (errors): ${msg//$'\n'/%0A}"
+            msg2="$(tail -n 25 cmake_build.log)"
+            echo "::error::cmake build tail: ${msg2//$'\n'/%0A}"
+            exit 1
+          fi
           set +e
           ctest --test-dir build --output-on-failure > ctest_full.log 2>&1
           rc=$?
