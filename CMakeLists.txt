@@ -75,6 +75,9 @@ if(BUILD_TESTING)
         )
         target_link_libraries(${TEST_NAME} PRIVATE GeneralModule_static)
         add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+        # 测试数据 (fixtures) 定位: 注入源码根目录环境变量
+        set_tests_properties(${TEST_NAME} PROPERTIES
+            ENVIRONMENT "GM_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}")
     endforeach()
 endif()
 

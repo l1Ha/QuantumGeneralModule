@@ -60,13 +60,30 @@ program test_json_io
         txt = json_get_text(w)
         call json_finalize(w)
 
-        ! 读入 fixture (可能位于 tests/fixtures/ 或 CWD)
+        ! 读入 fixture: 依次尝试
+        !   $GM_SOURCE_DIR/tests/fixtures/ (CMake/套件注入源码根)
+        !   fixtures/, tests/fixtures/, ../tests/fixtures/ (相对 CWD)
         fixture = ""
         ios = 1
-        open (newunit=unit, file="fixtures/canonical_record.json", status="old", &
-              action="read", iostat=ios)
+        block
+            character(len=512) :: env_dir
+            integer :: elen, est
+            call get_environment_variable("GM_SOURCE_DIR", env_dir, elen, est)
+            if (est == 0 .and. elen > 0) then
+                open (newunit=unit, file=trim(env_dir(:elen))//"/tests/fixtures/canonical_record.json", &
+                      status="old", action="read", iostat=ios)
+            end if
+        end block
+        if (ios /= 0) then
+            open (newunit=unit, file="fixtures/canonical_record.json", status="old", &
+                  action="read", iostat=ios)
+        end if
         if (ios /= 0) then
             open (newunit=unit, file="tests/fixtures/canonical_record.json", status="old", &
+                  action="read", iostat=ios)
+        end if
+        if (ios /= 0) then
+            open (newunit=unit, file="../tests/fixtures/canonical_record.json", status="old", &
                   action="read", iostat=ios)
         end if
         if (ios == 0) then

@@ -29,7 +29,8 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SRC_DIR="$DIR/../src"
 
 # worker 自调用所需的脚本绝对路径: 必须在任何 cd 之前、用 $PWD 解析
-# (脚本中的 `cd "$DIR"` 会使相对路径 $0 失效)
+# (脚本中的 `cd "$DIR"
+export GM_SOURCE_DIR="$(cd "$DIR/.." && pwd)"` 会使相对路径 $0 失效)
 SELF="${BASH_SOURCE[0]}"
 case "$SELF" in
     /*) ;;
