@@ -73,6 +73,8 @@ module general_module
     public :: rot_matrix_cos_theta, rot_matrix_cos2_theta
 
     public :: diag_symmetric_matrix, diag_hermitian_matrix
+    public :: cholesky_decompose, cholesky_solve, qr_decompose, least_squares_qr
+    public :: svd_decompose, svd_pseudoinverse
     public :: fft_1d, fft_2d, inv_real_matrix, inv_complex_matrix
 
     public :: dvr_1d_t, dvr_legendre_t, dvr_sinc_init, dvr_legendre_init, fgh_solve_bound_states

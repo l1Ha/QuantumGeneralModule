@@ -9,6 +9,12 @@ module mod_linear_algebra
 
     public :: diag_symmetric_matrix
     public :: diag_hermitian_matrix
+    public :: cholesky_decompose
+    public :: cholesky_solve
+    public :: qr_decompose
+    public :: least_squares_qr
+    public :: svd_decompose
+    public :: svd_pseudoinverse
     public :: fft_1d
     public :: fft_2d
     public :: inv_real_matrix
@@ -697,5 +703,324 @@ contains
 
         a_inv = aug(:, n + 1:2 * n)
     end subroutine inv_complex_matrix
+
+    !> \brief Cholesky 分解 A = L L^T (A 对称正定, L 下三角)
+    !> \details 经典平方根算法逐列递推; 对角主元非正时判定非正定 (stat = 1)。
+    !> \param[in] n 阶数
+    !> \param[in] a 输入对称矩阵 (仅用下三角)
+    !> \param[out] l 下三角因子
+    !> \param[out] stat 0 正常; 1 非正定
+    subroutine cholesky_decompose(n, a, l, stat)
+        integer, intent(in) :: n
+        real(dp), intent(in) :: a(n, n)
+        real(dp), intent(out) :: l(n, n)
+        integer, intent(out) :: stat
+
+        real(dp) :: ssum
+        integer :: i, j
+
+        stat = 0
+        l = 0.0_dp
+        do j = 1, n
+            ssum = a(j, j) - sum(l(j, 1:j - 1)**2)
+            if (ssum <= 0.0_dp) then
+                stat = 1
+                return
+            end if
+            l(j, j) = sqrt(ssum)
+            do i = j + 1, n
+                ssum = a(i, j) - sum(l(i, 1:j - 1) * l(j, 1:j - 1))
+                l(i, j) = ssum / l(j, j)
+            end do
+        end do
+    end subroutine cholesky_decompose
+
+    !> \brief 用 Cholesky 因子解 A x = b (L y = b 前代; L^T x = y 回代)
+    subroutine cholesky_solve(n, l, b, x)
+        integer, intent(in) :: n
+        real(dp), intent(in) :: l(n, n), b(n)
+        real(dp), intent(out) :: x(n)
+
+        real(dp) :: y(n), ssum
+        integer :: i, k
+
+        do i = 1, n
+            ssum = b(i)
+            do k = 1, i - 1
+                ssum = ssum - l(i, k) * y(k)
+            end do
+            y(i) = ssum / l(i, i)
+        end do
+        do i = n, 1, -1
+            ssum = y(i)
+            do k = i + 1, n
+                ssum = ssum - l(k, i) * x(k)
+            end do
+            x(i) = ssum / l(i, i)
+        end do
+    end subroutine cholesky_solve
+
+    !> \brief 薄 QR 分解 A = Q R (Householder 反射, m >= n)
+    !> \details A (m x n) -> Q (m x n, 列正交), R (n x n, 上三角)。
+    !>          反射向量在约化过程中保存, Q 由 H_1 H_2 ... H_k 作用单位阵
+    !>          逆序累计; 正交性对病态矩阵仍保持机器精度 (对比正规方程
+    !>          法失去约 2*cond 位数字, 见测试组 2)。
+    !> \param[in] m,n 维数 (m >= n)
+    !> \param[in] a 输入矩阵
+    !> \param[out] q 正交因子 (m x n)
+    !> \param[out] r 上三角因子 (n x n)
+    !> \param[out] stat 0 正常; 1 m < n
+    subroutine qr_decompose(m, n, a, q, r, stat)
+        integer, intent(in) :: m, n
+        real(dp), intent(in) :: a(m, n)
+        real(dp), intent(out) :: q(m, n), r(n, n)
+        integer, intent(out) :: stat
+
+        real(dp), allocatable :: w(:, :), vs(:, :), v(:)
+        real(dp) :: alpha, vTv
+        integer :: j, k, i
+
+        stat = 0
+        if (m < n) then
+            stat = 1
+            q = 0.0_dp; r = 0.0_dp
+            return
+        end if
+
+        allocate (w(m, n), vs(m, n), v(m))
+        w = a
+        vs = 0.0_dp
+        do j = 1, n
+            v = 0.0_dp
+            v(j:m) = w(j:m, j)
+            alpha = sqrt(sum(v(j:m)**2))
+            if (alpha > 0.0_dp) then
+                if (v(j) >= 0.0_dp) then
+                    v(j) = v(j) + alpha
+                else
+                    v(j) = v(j) - alpha
+                end if
+                vTv = sum(v(j:m)**2)
+                if (vTv > 0.0_dp) then
+                    vs(:, j) = v
+                    do k = j, n
+                        alpha = 2.0_dp * sum(v(j:m) * w(j:m, k)) / vTv
+                        w(j:m, k) = w(j:m, k) - alpha * v(j:m)
+                    end do
+                end if
+            end if
+        end do
+
+        r = 0.0_dp
+        do j = 1, n
+            do k = j, n
+                r(j, k) = w(j, k)
+            end do
+        end do
+
+        ! Q = H_1 H_2 ... H_n 作用于单位阵: 逆序应用反射
+        q = 0.0_dp
+        do i = 1, n
+            q(i, i) = 1.0_dp
+        end do
+        do j = n, 1, -1
+            v = vs(:, j)
+            vTv = sum(v(j:m)**2)
+            if (vTv > 0.0_dp) then
+                do k = 1, n
+                    alpha = 2.0_dp * sum(v(j:m) * q(j:m, k)) / vTv
+                    q(j:m, k) = q(j:m, k) - alpha * v(j:m)
+                end do
+            end if
+        end do
+
+        deallocate (w, vs, v)
+    end subroutine qr_decompose
+
+    !> \brief 用薄 QR 解最小二乘 min ||A x - b|| (m >= n)
+    !> \param[in] m,n 维数
+    !> \param[in] a 设计矩阵 (m x n)
+    !> \param[in] b 右端 (m)
+    !> \param[out] x 解 (n)
+    !> \param[out] resid 残差范数 ||A x - b||
+    !> \param[out] stat 0 正常; 其它来自 qr_decompose
+    subroutine least_squares_qr(m, n, a, b, x, resid, stat)
+        integer, intent(in) :: m, n
+        real(dp), intent(in) :: a(m, n), b(m)
+        real(dp), intent(out) :: x(n), resid
+        integer, intent(out) :: stat
+
+        real(dp), allocatable :: q(:, :), r(:, :), qtb(:), y(:)
+        real(dp) :: ssum
+        integer :: i, k
+        logical :: singular
+
+        allocate (q(m, n), r(n, n), qtb(n), y(n))
+        call qr_decompose(m, n, a, q, r, stat)
+        if (stat /= 0) then
+            x = 0.0_dp; resid = 0.0_dp
+            deallocate (q, r, qtb, y)
+            return
+        end if
+        qtb = matmul(transpose(q), b)
+
+        ! R x = Q^T b 回代 (检测零主元 -> 奇异, 用最小范数补充: 置零)
+        singular = .false.
+        y = 0.0_dp
+        do i = n, 1, -1
+            ssum = qtb(i)
+            do k = i + 1, n
+                ssum = ssum - r(i, k) * y(k)
+            end do
+            if (abs(r(i, i)) > 1.0e-300_dp) then
+                y(i) = ssum / r(i, i)
+            else
+                y(i) = 0.0_dp
+                singular = .true.
+            end if
+        end do
+        x = y
+        resid = sqrt(sum((matmul(a, x) - b)**2))
+        if (singular) stat = 2
+        deallocate (q, r, qtb, y)
+    end subroutine least_squares_qr
+
+    !> \brief 单边 Jacobi SVD: A = U diag(s) V^T (m >= n)
+    !> \details 对 A 的列做 Jacobi 旋转正交化, 收敛后列范数即奇异值;
+    !>          零奇异值对应 U 列由标准基 Gram-Schmidt 补全, 保证 U 列正交。
+    !> \param[in] m,n 维数 (m >= n)
+    !> \param[in] a 输入 (m x n)
+    !> \param[out] u 左奇异向量 (m x n)
+    !> \param[out] sv 奇异值 (n, 降序, 非负)
+    !> \param[out] vt 右奇异向量转置 (n x n)
+    !> \param[out] stat 0 正常; 1 m < n; 2 未在迭代上限内收敛
+    subroutine svd_decompose(m, n, a, u, sv, vt, stat)
+        integer, intent(in) :: m, n
+        real(dp), intent(in) :: a(m, n)
+        real(dp), intent(out) :: u(m, n), sv(n), vt(n, n)
+        integer, intent(out) :: stat
+
+        real(dp), allocatable :: b(:, :), v(:, :)
+        real(dp) :: alpha, beta, gamma, zeta, c, s_rot, tau, t
+        real(dp) :: eps_conv, nrm
+        integer :: p, q, i, j, sweep, kmax, k
+        real(dp), allocatable :: tmpcol(:)
+        logical :: changed
+
+        stat = 0
+        if (m < n) then
+            stat = 1
+            u = 0.0_dp; sv = 0.0_dp; vt = 0.0_dp
+            return
+        end if
+
+        allocate (b(m, n), v(n, n), tmpcol(m))
+        b = a
+        v = 0.0_dp
+        do i = 1, n
+            v(i, i) = 1.0_dp
+        end do
+
+        eps_conv = 1.0e-15_dp
+        kmax = 60
+        do sweep = 1, kmax
+            changed = .false.
+            do p = 1, n - 1
+                do q = p + 1, n
+                    alpha = sum(b(:, p)**2)
+                    beta = sum(b(:, q)**2)
+                    gamma = sum(b(:, p) * b(:, q))
+                    if (abs(gamma) <= eps_conv * sqrt(alpha * beta)) cycle
+                    changed = .true.
+                    zeta = (beta - alpha) / (2.0_dp * gamma)
+                    t = sign(1.0_dp, zeta) / (abs(zeta) + sqrt(1.0_dp + zeta**2))
+                    c = 1.0_dp / sqrt(1.0_dp + t**2)
+                    s_rot = c * t
+                    ! 旋转列 p,q: b' = b J; 同时累计 V
+                    do i = 1, m
+                        tau = b(i, p)
+                        b(i, p) = c * tau - s_rot * b(i, q)
+                        b(i, q) = s_rot * tau + c * b(i, q)
+                    end do
+                    do i = 1, n
+                        tau = v(i, p)
+                        v(i, p) = c * tau - s_rot * v(i, q)
+                        v(i, q) = s_rot * tau + c * v(i, q)
+                    end do
+                end do
+            end do
+            if (.not. changed) exit
+            if (sweep == kmax) stat = 2
+        end do
+
+        ! 奇异值 = 列范数; 按降序排序 (U, V 列同步)
+        do i = 1, n
+            sv(i) = sqrt(sum(b(:, i)**2))
+        end do
+        do p = 1, n - 1
+            do q = p + 1, n
+                if (sv(q) > sv(p)) then
+                    t = sv(p); sv(p) = sv(q); sv(q) = t
+                    tmpcol = b(:, p); b(:, p) = b(:, q); b(:, q) = tmpcol
+                    tmpcol(1:n) = v(1:n, p); v(1:n, p) = v(1:n, q); v(1:n, q) = tmpcol(1:n)
+                end if
+            end do
+        end do
+
+        ! U 列 = b 列归一化; 零奇异值 -> 标准基 Gram-Schmidt 补全
+        u = 0.0_dp
+        do j = 1, n
+            if (sv(j) > 1.0e-14_dp * max(1.0_dp, sv(1))) then
+                u(:, j) = b(:, j) / sv(j)
+            else
+                ! 补全: 从标准基中找与已定列正交的向量
+                do k = 1, m
+                    tmpcol = 0.0_dp
+                    tmpcol(k) = 1.0_dp
+                    do i = 1, j - 1
+                        tmpcol = tmpcol - sum(u(:, i) * tmpcol) * u(:, i)
+                    end do
+                    nrm = sqrt(sum(tmpcol**2))
+                    if (nrm > 1.0e-8_dp) then
+                        u(:, j) = tmpcol / nrm
+                        exit
+                    end if
+                end do
+            end if
+        end do
+        vt = transpose(v)
+        deallocate (b, v, tmpcol)
+    end subroutine svd_decompose
+
+    !> \brief SVD 伪逆最小范数最小二乘解 x = V Sigma^+ U^T b
+    !> \details 秩亏问题的标准稳健解法 (正规方程/QR 在此失效):
+    !>          零奇异值方向截断, 给出最小二乘中的最小范数解。
+    !> \param[in] m,n 维数
+    !> \param[in] a,b 设计矩阵与右端
+    !> \param[out] x 解 (n)
+    !> \param[out] resid 残差范数
+    !> \param[in] rtol (可选) 奇异值截断相对阈值, 默认 1e-12
+    subroutine svd_pseudoinverse(m, n, a, b, x, resid, rtol)
+        integer, intent(in) :: m, n
+        real(dp), intent(in) :: a(m, n), b(m)
+        real(dp), intent(out) :: x(n), resid
+        real(dp), intent(in), optional :: rtol
+
+        real(dp), allocatable :: u(:, :), vt(:, :), sv(:), c(:)
+        real(dp) :: tol
+        integer :: i, stat_s
+
+        allocate (u(m, n), vt(n, n), sv(n), c(n))
+        call svd_decompose(m, n, a, u, sv, vt, stat_s)
+        tol = 1.0e-12_dp
+        if (present(rtol)) tol = rtol
+        c = matmul(transpose(u), b)
+        x = 0.0_dp
+        do i = 1, n
+            if (sv(i) > tol * max(1.0_dp, sv(1))) x = x + (c(i) / sv(i)) * vt(i, :)
+        end do
+        resid = sqrt(sum((matmul(a, x) - b)**2))
+        deallocate (u, vt, sv, c)
+    end subroutine svd_pseudoinverse
 
 end module mod_linear_algebra

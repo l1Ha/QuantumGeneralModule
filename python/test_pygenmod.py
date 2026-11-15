@@ -839,6 +839,71 @@ class TestPyGenMod(unittest.TestCase):
         self.assertEqual(txt, '"k": "ctl\\u0001"')
         self.assertEqual(json.loads("{" + txt + "}")["k"], "ctl" + chr(1))
 
+    def test_linalg_decomp(self):
+        # 与 Fortran test_linalg_decomp 对应 (§15.10「SVD/QR/Cholesky」项)
+        # Python 侧为 numpy/LAPACK 参照 (第三方独立实现)
+        from pygenmod import (cholesky_decompose, cholesky_solve, qr_decompose,
+                              least_squares_qr, svd_decompose, svd_pseudoinverse,
+                              hilbert_matrix)
+
+        # --- 1. Cholesky: 解析 2x2 + 重构 + 解方程 ---
+        a2 = np.array([[4.0, 2.0], [2.0, 3.0]])
+        l2 = cholesky_decompose(a2)
+        np.testing.assert_allclose(l2, [[2.0, 0.0], [1.0, np.sqrt(2.0)]], atol=1e-14)
+        rng = np.random.default_rng(11)
+        m6 = rng.standard_normal((6, 6))
+        a6 = m6.T @ m6 + 6.0 * np.eye(6)
+        l6 = cholesky_decompose(a6)
+        np.testing.assert_allclose(l6 @ l6.T, a6, atol=1e-13)
+        xtrue = np.arange(1.0, 7.0)
+        x = cholesky_solve(a6, a6 @ xtrue)
+        np.testing.assert_allclose(x, xtrue, atol=1e-12)
+
+        # --- 2. QR: 重构/正交 + Hilbert 病态最小二乘对比 ---
+        a = hilbert_matrix(40, 8)
+        q, r = qr_decompose(a)
+        np.testing.assert_allclose(q @ r, a, atol=1e-14)
+        np.testing.assert_allclose(q.T @ q, np.eye(8), atol=1e-14)
+        self.assertTrue(np.allclose(np.triu(r), r))
+        xt = np.arange(1.0, 9.0) - 4.0
+        b = a @ xt
+        x_qr, _ = least_squares_qr(a, b)
+        err_qr = float(np.max(np.abs(x_qr - xt)))
+        x_ne = np.linalg.solve(a.T @ a, a.T @ b)      # 正规方程
+        err_ne = float(np.max(np.abs(x_ne - xt)))
+        # 经典演示: 正规方程损失 ~2*log10(cond) 位数字
+        self.assertLess(err_qr, 1e-4)
+        self.assertGreater(err_ne, 1e2 * err_qr)
+
+        # --- 3. SVD: 重构/正交/秩亏谱 + 伪逆最小二乘 ---
+        u2, s2, vt2 = svd_decompose(np.diag([3.0, -2.0]))
+        np.testing.assert_allclose(np.sort(s2)[::-1], [3.0, 2.0], atol=1e-14)
+        bm = rng.standard_normal((12, 5))
+        u, sv, vt = svd_decompose(bm)
+        np.testing.assert_allclose(u @ np.diag(sv) @ vt, bm, atol=1e-13)
+        np.testing.assert_allclose(u.T @ u, np.eye(5), atol=1e-13)
+        np.testing.assert_allclose(vt @ vt.T, np.eye(5), atol=1e-13)
+        # sigma^2 = eig(A^T A)
+        w = np.linalg.eigvalsh(bm.T @ bm)
+        np.testing.assert_allclose(np.sort(sv) ** 2, w, atol=1e-12)
+
+        # 秩 3 设计矩阵的最小范数解
+        c1 = np.sin(np.arange(1.0, 13.0))
+        c2 = np.cos(0.3 * np.arange(1.0, 13.0))
+        c3 = np.arange(1.0, 13.0) / 12.0
+        ar = np.column_stack([c1, c2, c3, c1 + c2, 2 * c3, c1 - c3])
+        br = 1.0 + 0.1 * np.arange(1.0, 13.0)
+        xr, res = svd_pseudoinverse(ar, br)
+        # 正规方程成立 + 零空间投影为零 + 残差为真最小二乘残差
+        self.assertLess(float(np.max(np.abs(ar.T @ (ar @ xr - br)))), 1e-10)
+        ata = ar.T @ ar
+        wv, zv = np.linalg.eigh(ata)
+        proj = max(abs(float(zv[:, i] @ xr)) for i in range(6) if wv[i] < 1e-10 * wv[-1])
+        self.assertLess(proj, 1e-10)
+        # 与 numpy.lstsq 的最小范数解一致
+        x_ref = np.linalg.lstsq(ar, br, rcond=None)[0]
+        np.testing.assert_allclose(xr, x_ref, atol=1e-10)
+
     def test_scattering(self):
         # 1. Van der Waals mean length
         a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)

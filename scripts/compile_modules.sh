@@ -17,6 +17,13 @@
 # ==============================================================================
 set -u
 
+# ---- 构建产物卫生 (非 worker 模式): 清除源目录中遗留的 *.mod ----
+# gfortran 优先搜索源文件所在目录的 .mod, 陈旧文件会遮蔽本脚本生成的模块,
+# 造成 "Symbol has no IMPLICIT type" 类假编译错误 (曾两次踩坑)。
+if [ "${1:-}" != "--compile-one" ] && [ -n "${1:-}" ]; then
+    rm -f "$1"/mod_*.mod "$1"/general_module.mod 2>/dev/null || true
+fi
+
 FC="${FC:-gfortran}"
 FFLAGS="${FFLAGS:--O2 -fPIC}"
 

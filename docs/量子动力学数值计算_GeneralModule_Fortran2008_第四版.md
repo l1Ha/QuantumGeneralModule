@@ -877,6 +877,26 @@ $$
 
 ![图 4.4：三维三三次样条在完整三距离 LEPS 面上的验收。(a) 对称面 $r_{12}=r_{23}=r$ 上的插值误差分布（$16^3$ 网格，对数色阶）：光滑谷区误差 $\sim10^{-7}$，急倾斜壁区 $\sim10^{-3}$，条纹结构反映三次样条误差在节点间取极大、节点处为零的解析性质；(b) 过鞍点的共线对称伸缩剖面 $r_{31}=2r$（网格有效区 $r\le1.8$）：精确 LEPS（黑实线）与 $16^3$（红圈）、$31^3$（蓝方块）样条逐点重合，最小值恰在鞍点 $r=1.775$；(c) 反应区（$V<-0.1\ E_h$）最大插值误差随网格间距的收敛（双对数），与 $h^4$ 参考斜率平行。绘图脚本见 `docs/generate_figures.py`。](figures/fig33_interp3d_leps.png){width=15.5cm}
 
+### 4.8　矩阵分解三件套：Cholesky、QR 与 SVD
+
+本征问题之外，数值工作流还依赖三类标准分解（§15.10 路线图项）：**Cholesky** $A=LL^{T}$（对称正定系统的快速直接解）、**QR** $A=QR$（最小二乘与正交化的数值稳健路径）、**SVD** $A=U\Sigma V^{T}$（秩分析与伪逆）。本库全部从零实现，零外部依赖：
+
+- **Cholesky**（平方根法，$O(n^{3}/3)$）：逐列递推，主元非正即判定非正定（`stat=1`）；`cholesky_solve` 前代 + 回代。
+- **QR**（Householder 反射，薄分解 $Q\in\mathbb{R}^{m\times n}$、$R\in\mathbb{R}^{n\times n}$）：反射向量在约化中保存，$Q$ 由 $H_1H_2\cdots H_k$ 逆序作用于单位阵累计；`least_squares_qr` 经 $Rx=Q^{T}b$ 回代（零主元置零并置 `stat=2`）。
+- **SVD**（单边 Jacobi，逐对列旋转正交化）：收敛后列范数即奇异值；按降序排序，零奇异值对应的 $U$ 列由标准基 Gram–Schmidt 补全，保证任意秩下 $U$ 列正交；`svd_pseudoinverse` 截断 $\sigma_j<\epsilon_{\text{rtol}}\sigma_1$ 给出**最小范数最小二乘解**。
+
+**验证（7 项断言）。** 其一，Cholesky：重构 $8.9\times10^{-16}$、解析 $2\times2$（$L=[[2,0],[1,\sqrt2]]$）逐位精确、解方程 $4.4\times10^{-16}$、非正定检测正确；其二，QR 重构/正交 $8.9\times10^{-16}$/$1.1\times10^{-15}$、$R$ 下三角严格为零；其三，**病态最小二乘经典演示**（40×8 Hilbert 子矩阵，$\mathrm{cond}\sim10^{10}$，精确一致系统）：QR 误差 $8.7\times10^{-9}$（贴合 $\epsilon\cdot\mathrm{cond}$），正规方程误差 $2.62$（灾难性，贴合 $\epsilon\cdot\mathrm{cond}^{2}$）——两条路径的误差差 8 个数量级，正是"最小二乘不要用正规方程"的教科书结论的量化版（图 4.5a）；其四，SVD 重构/正交 $1.1\times10^{-15}$/$4.4\times10^{-16}$，且 $\sigma_i^{2}$ 与 $\mathrm{eig}(A^{T}A)$（经库内 tql2 的独立路径）吻合 $3.6\times10^{-15}$；其五，秩亏谱（$8\times5$ 秩 2）：$\sigma_{1,2}=4.98,2.78$、$\sigma_{3..5}\le2.4\times10^{-16}$；其六，**伪逆最小二乘**（$12\times6$ 秩 3）：正规方程条件 $8.3\times10^{-15}$、零空间投影 $3.6\times10^{-16}$（最小范数性）、残差为真最小二乘残差；其七，与 NumPy/LAPACK 参照（`pygenmod/linalg.py` 包装，独立第三方）在全部分解上一致，伪逆解与 `numpy.linalg.lstsq` 最小范数解一致（Python 套件 40 → 41 项）。
+
+![图 4.5：矩阵分解三件套验证。(a) Hilbert 最小二乘问题的条件数故事（40 行，问题规模 $n=3\dots10$）：QR（蓝）误差贴合 $\epsilon\cdot\mathrm{cond}$，正规方程（红）贴合 $\epsilon\cdot\mathrm{cond}^{2}$ 并在 $n\ge8$ 处饱和为 $O(1)$ 灾难性误差；灰色点线为两条理论参考斜率。(b) 秩亏最小二乘（$12\times6$、秩 3）：正规方程误差 $2.7$、QR 误差 $1.3\times10^{15}$（零主元放大），而 SVD 伪逆（截断 $\sigma<\epsilon_{\text{rtol}}\sigma_1$）恢复最小范数解到 $4.9\times10^{-16}$。绘图脚本见 `docs/generate_figures.py`（Fortran 测试套件断言同一对比：QR $8.7\times10^{-9}$ vs 正规方程 $2.62$）。](figures/fig36_linalg_decomp.png){width=15.5cm}
+
+#### 对应源码
+
+- [src/mod_linear_algebra.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_linear_algebra.f90)（`cholesky_decompose`、`cholesky_solve`、`qr_decompose`、`least_squares_qr`、`svd_decompose`、`svd_pseudoinverse`）
+- [python/pygenmod/linalg.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/linalg.py)（NumPy/LAPACK 独立参照）
+- 验证：`tests/test_linalg_decomp.f90`（7 项断言）；`python/test_pygenmod.py::test_linalg_decomp`
+
+---
+
 #### 对应源码
 
 - [src/mod_interpolation.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_interpolation.f90)（`spline_3d_init`、`spline_3d_eval`、`spline_3d_grad`）
@@ -4473,6 +4493,7 @@ GitHub Actions 配置位于：
 | 18.4 | Smolyak 稀疏网格 | `mod_sparse_grid::smolyak_build` | `sparse_grid.smolyak_build` | `test_sparse_grid` | 图 18.1 |
 | 4.6 / 15.7 | 二维双三次样条 PES 插值 | `mod_interpolation::spline_2d_init`、`spline_2d_eval`、`spline_2d_grad` | `interp2d.Spline2D` | `test_interp_2d` | 图 4.3（32） |
 | 4.7 | 三维三三次样条 PES 插值 | `mod_interpolation::spline_3d_init`、`spline_3d_eval`、`spline_3d_grad` | `interp2d.Spline3D`、`qct.leps_potential_distances` | `test_interp_3d` | 图 4.4（33） |
+| 4.8 | Cholesky / QR / SVD 分解三件套 | `mod_linear_algebra::cholesky_decompose`、`qr_decompose`、`least_squares_qr`、`svd_decompose`、`svd_pseudoinverse` | `linalg` 同名（NumPy/LAPACK 参照） | `test_linalg_decomp` | 图 4.5（36） |
 | 8.6 | JSON 实验记录（规范化契约） | `mod_json::json_writer_t` 及 add/begin 系列 | `json_io.JsonWriter`、`json_io.format_number` | `test_json_io` | 图 8.1（34） |
 | 8.7 | 核心算法性能基准 + 回归对比 | `benchmarks/bench_kernels.f90`、`mod_linear_algebra::transpose_blocked` | — | `scripts/validate_benchmark.py`（CI 步） | 图 8.2（35） |
 | 15.4 | 差分与收敛标定 | — | — | `docs/generate_figures.py` | 图 4.1 |
@@ -5376,7 +5397,7 @@ end subroutine expect_close
 |---|---|---|---|
 | 复 Hermitian 本征 | 已具备 (加倍归约, §4.5) | 高 | 支持复哈密顿量 |
 | 稀疏本征 | 部分具备 (Lanczos/Ritz 极值; Arnoldi 未具备) | 高 | Lanczos/Arnoldi |
-| SVD/QR/Cholesky | 未具备 | 中 | 支持拟合和正则化 |
+| SVD/QR/Cholesky | 已具备 (§4.8) | 中 | 支持拟合和正则化 |
 | 多维插值 | 二维/三维已具备 (§4.6/§4.7); 四维以上未具备 | 高 | 二维/三维势能面 |
 | 自适应网格 | 未具备 | 中 | 局部加密 |
 | 并行化 | 部分具备 (QCT/排列动力学/fft_2d, 实测 9.5x@20 线程); MPI 未具备 | 高 | OpenMP/MPI |
@@ -5451,7 +5472,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 53 个测试程序、567 项断言全部通过。
+- 全库 54 个测试程序、574 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

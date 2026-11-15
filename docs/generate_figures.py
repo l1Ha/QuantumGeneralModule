@@ -2658,9 +2658,115 @@ def generate_fig35_benchmark():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig36_linalg_decomp():
+    """Fig 36 (book Fig 4.5): decomposition validation. (a) the classical
+    conditioning story on Hilbert least-squares problems: solution error of
+    QR vs the normal equations as the problem size grows, with cond and
+    cond^2 reference slopes; (b) rank-deficient least squares: solver error
+    on a rank-3 design matrix — normal equations and QR fail, the SVD
+    pseudoinverse reproduces the minimum-norm solution."""
+    print("Generating Fig 36: Cholesky/QR/SVD validation (Hilbert conditioning + rank-deficient LSQ)...")
+    set_publication_style()
+    import pygenmod as _pg
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.6, 4.4), dpi=200)
+
+    # ---------------- (a) Hilbert conditioning sweep ----------------
+    ns = np.arange(3, 11)
+    err_qr, err_ne, conds = [], [], []
+    from pygenmod import hilbert_matrix, qr_decompose, least_squares_qr
+    for n in ns:
+        a = hilbert_matrix(40, int(n))
+        xt = np.arange(1.0, n + 1.0) - 4.0
+        b = a @ xt
+        x_qr, _ = least_squares_qr(a, b)
+        x_ne = np.linalg.solve(a.T @ a, a.T @ b)
+        err_qr.append(max(np.max(np.abs(x_qr - xt)), 1e-17))
+        err_ne.append(max(np.max(np.abs(x_ne - xt)), 1e-17))
+        sv = np.linalg.svd(a, compute_uv=False)
+        conds.append(sv[0] / sv[-1])
+    conds = np.array(conds)
+    ax1.semilogy(ns, err_qr, 'o-', color='royalblue', markersize=5, label='QR (Householder)')
+    ax1.semilogy(ns, err_ne, 's--', color='crimson', markersize=5, label='normal equations')
+    eps = np.finfo(float).eps
+    ax1.semilogy(ns, eps * conds, ':', color='gray', linewidth=1.2,
+                 label=r'$\epsilon\cdot\mathrm{cond}$')
+    ax1.semilogy(ns, np.minimum(eps * conds**2, 10.0), ':', color='black',
+                 linewidth=1.2, label=r'$\epsilon\cdot\mathrm{cond}^2$')
+    ax1.set_xlabel('Hilbert problem size $n$ (40 rows)')
+    ax1.set_ylabel('solution error $\\max|x-x_{\\rm true}|$')
+    ax1.set_ylim(1e-17, 30)
+    ax1.legend(fontsize=8.0, loc='lower right')
+    ax1.set_title('(a) Conditioning: QR vs Normal Equations', fontsize=10.5)
+    ax1.grid(True, which='both', alpha=0.3)
+
+    # ---------------- (b) rank-deficient LSQ ----------------
+    c1 = np.sin(np.arange(1.0, 13.0))
+    c2 = np.cos(0.3 * np.arange(1.0, 13.0))
+    c3 = np.arange(1.0, 13.0) / 12.0
+    ar = np.column_stack([c1, c2, c3, c1 + c2, 2 * c3, c1 - c3])
+    br = 1.0 + 0.1 * np.arange(1.0, 13.0)
+    x_ref = np.linalg.lstsq(ar, br, rcond=None)[0]
+
+    from pygenmod import svd_pseudoinverse
+    x_svd, _ = svd_pseudoinverse(ar, br)
+
+    def solve_naive(ata, atb):
+        """带主元的朴素高斯消元 (与 Fortran 测试中的正规方程对照一致;
+        在奇异 A^T A 上给出有限但巨大的误差 —— 正是要展示的失败模式)。"""
+        m = ata.copy()
+        rhs = atb.copy()
+        n = len(rhs)
+        for k in range(n):
+            p = k + int(np.argmax(np.abs(m[k:, k])))
+            if p != k:
+                m[[k, p]] = m[[p, k]]
+                rhs[[k, p]] = rhs[[p, k]]
+            if abs(m[k, k]) < 1e-300:
+                m[k, k] = 1e-300
+            for i in range(k + 1, n):
+                f = m[i, k] / m[k, k]
+                m[i, k:] -= f * m[k, k:]
+                rhs[i] -= f * rhs[k]
+        x = np.zeros(n)
+        for i in range(n - 1, -1, -1):
+            x[i] = (rhs[i] - m[i, i + 1:] @ x[i + 1:]) / m[i, i]
+        return x
+
+    x_ne = solve_naive(ar.T @ ar, ar.T @ br)
+    e_ne = float(np.max(np.abs(x_ne - x_ref)))
+    x_qr, _ = least_squares_qr(ar, br)
+    e_qr = float(np.max(np.abs(x_qr - x_ref)))
+    e_svd = float(np.max(np.abs(x_svd - x_ref)))
+
+    labels = ['normal\nequations', 'QR', 'SVD\npseudoinverse']
+    vals = [e_ne, e_qr, e_svd]
+    colors = ['crimson', 'darkorange', 'seagreen']
+    bars = ax2.bar(range(3), vals, color=colors, alpha=0.85)
+    ax2.set_yscale('log')
+    ax2.set_ylim(1e-17, 1e18)
+    for b, v in zip(bars, vals):
+        ax2.text(b.get_x() + b.get_width() / 2, min(max(v, 1e-17) * 1.6, 3e17),
+                 f'{v:.1e}', ha='center', fontsize=9)
+    ax2.set_xticks(range(3))
+    ax2.set_xticklabels(labels, fontsize=9)
+    ax2.set_ylabel('error vs minimum-norm solution')
+    ax2.set_title('(b) Rank-3 of 6: Only the Pseudoinverse Works', fontsize=10.5)
+    ax2.annotate('rank-deficient design matrix\n($\\sigma_4=\\sigma_5=\\sigma_6=0$):\nnormal eq./QR blow up,\nSVD truncates $\\sigma<\\epsilon\\sigma_1$',
+                 xy=(0.03, 0.72), xycoords='axes fraction', fontsize=8.2,
+                 color='dimgray')
+    ax2.grid(True, axis='y', which='both', alpha=0.3)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig36_linalg_decomp.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 35 Scientific Calculation Benchmark Figures")
+    print(" Generating All 36 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -2697,8 +2803,9 @@ def main():
     generate_fig33_interp3d()
     generate_fig34_json_contract()
     generate_fig35_benchmark()
+    generate_fig36_linalg_decomp()
     print("=" * 60)
-    print(" All 35 Figures Generated Successfully in docs/figures/!")
+    print(" All 36 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

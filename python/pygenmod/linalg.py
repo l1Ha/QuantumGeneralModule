@@ -117,3 +117,72 @@ def peierls_ring_hamiltonian(n_sites, flux, t_hop=1.0):
         h[i, j] = hop
         h[j, i] = np.conj(hop)
     return h
+
+
+# ---------------------------------------------------------------------------
+# Cholesky / QR / SVD reference wrappers.
+#
+# Unlike the from-scratch Fortran implementations
+# (src/mod_linear_algebra.f90: cholesky_decompose, qr_decompose,
+# least_squares_qr, svd_decompose, svd_pseudoinverse), the Python side calls
+# numpy/LAPACK: it serves as the INDEPENDENT third-party reference for
+# cross-validation (the Fortran tests assert closed forms and the classic
+# Hilbert conditioning story; the Python tests assert agreement with LAPACK).
+# ---------------------------------------------------------------------------
+
+
+def cholesky_decompose(a):
+    """Lower Cholesky factor L with A = L L^T (numpy/LAPACK reference)."""
+    a = np.asarray(a, dtype=float)
+    return np.linalg.cholesky(a)
+
+
+def cholesky_solve(a, b):
+    """Solve A x = b for SPD A via the Cholesky factor."""
+    l = np.linalg.cholesky(np.asarray(a, dtype=float))
+    y = np.linalg.solve(l, np.asarray(b, dtype=float))
+    return np.linalg.solve(l.T, y)
+
+
+def qr_decompose(a):
+    """Thin QR (reduced mode): returns Q (m, n), R (n, n) with A = Q R."""
+    a = np.asarray(a, dtype=float)
+    q, r = np.linalg.qr(a, mode="reduced")
+    # sign convention: make the diagonal of R non-negative (unique QR)
+    d = np.sign(np.diag(r))
+    d[d == 0] = 1.0
+    q = q * d
+    r = r * d[:, None]
+    return q, r
+
+
+def least_squares_qr(a, b):
+    """Least-squares solution via QR (returns x and the residual norm)."""
+    a = np.asarray(a, dtype=float)
+    b = np.asarray(b, dtype=float)
+    q, r = qr_decompose(a)
+    x = np.linalg.solve(r, q.T @ b)
+    return x, float(np.linalg.norm(a @ x - b))
+
+
+def svd_decompose(a):
+    """SVD A = U diag(s) V^T with descending non-negative singular values."""
+    a = np.asarray(a, dtype=float)
+    u, s, vt = np.linalg.svd(a, full_matrices=False)
+    return u, s, vt
+
+
+def svd_pseudoinverse(a, b, rtol=1e-12):
+    """Minimum-norm least-squares solution via the SVD pseudoinverse."""
+    a = np.asarray(a, dtype=float)
+    b = np.asarray(b, dtype=float)
+    u, s, vt = svd_decompose(a)
+    keep = s > rtol * max(1.0, float(s[0]) if s.size else 1.0)
+    x = vt[keep].T @ ((u[:, keep].T @ b) / s[keep]) if np.any(keep) else np.zeros(a.shape[1])
+    return x, float(np.linalg.norm(a @ x - b))
+
+
+def hilbert_matrix(m, n):
+    """Hilbert matrix H_ij = 1/(i+j-1) (1-based indexing convention)."""
+    i, j = np.meshgrid(np.arange(1, m + 1), np.arange(1, n + 1), indexing="ij")
+    return 1.0 / (i + j - 1.0)

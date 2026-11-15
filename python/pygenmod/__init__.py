@@ -60,7 +60,9 @@ from .hhg import (
 
 from .krylov import lanczos_tridiag, krylov_propagate_step
 from .linalg import (diag_hermitian_matrix, peierls_ring_spectrum,
-                     peierls_ring_hamiltonian)
+                     peierls_ring_hamiltonian, cholesky_decompose,
+                     cholesky_solve, qr_decompose, least_squares_qr,
+                     svd_decompose, svd_pseudoinverse, hilbert_matrix)
 from .interp2d import Spline2D, Spline3D
 from .json_io import JsonWriter, format_number
 
@@ -165,6 +167,8 @@ __all__ = [
     "landau_zener_probability", "calculate_channel_populations",
     "lanczos_tridiag", "krylov_propagate_step",
     "diag_hermitian_matrix", "peierls_ring_spectrum", "peierls_ring_hamiltonian",
+    "cholesky_decompose", "cholesky_solve", "qr_decompose", "least_squares_qr",
+    "svd_decompose", "svd_pseudoinverse", "hilbert_matrix",
     "Spline2D", "Spline3D",
     "JsonWriter", "format_number",
     "rovibrational_state_index", "rovibrational_state_unindex",
