@@ -90,6 +90,18 @@ jobs:
         run: |
           make OPENMP=1 test
 
+      - name: Build & Run Kernel Performance Benchmark (JSON record sanity)
+        run: |
+          if ! make bench OPENMP=1 > bench_run.log 2>&1; then
+            msg="$(tail -n 25 bench_run.log)"
+            echo "::error::benchmark failed: ${msg//$'\n'/%0A}"
+            exit 1
+          fi
+          tail -n 14 bench_run.log
+          # scheme + 正确性门验证; 与 baseline.json 的计时对比为咨询性质
+          python3 scripts/validate_benchmark.py benchmarks/benchmark_results.json \
+              benchmarks/baseline.json
+
       - name: Build & Run Frontier Physical Examples (36 Examples)
         run: |
           bash examples/build_examples.sh

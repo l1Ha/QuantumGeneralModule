@@ -1,0 +1,41 @@
+{
+  "record_type": "benchmark",
+  "module": "GeneralModule",
+  "n_threads_max": 20,
+  "results": {
+    "fft_1d_ms": 6.76372379999999964E+001,
+    "fft_2d_ms": 2.03591699999999998E+000,
+    "diag_symmetric_ms": 1.64648302999999999E+002,
+    "diag_hermitian_ms": 4.60822929999999999E+001,
+    "krylov_100steps_ms": 4.79988786000000005E+002,
+    "chebyshev_100steps_ms": 9.00534770000000009E+001,
+    "spline3d_1e6_ms": 5.87143870000000021E+001,
+    "fft2d_scaling": [
+      {
+        "threads": 1,
+        "fft_2d_ms": 1.89032429999999998E+001
+      },
+      {
+        "threads": 2,
+        "fft_2d_ms": 9.73708300000000015E+000
+      },
+      {
+        "threads": 4,
+        "fft_2d_ms": 7.43803100000000050E+000
+      },
+      {
+        "threads": 8,
+        "fft_2d_ms": 3.94154000000000027E+000
+      },
+      {
+        "threads": 16,
+        "fft_2d_ms": 2.37905200000000017E+000
+      },
+      {
+        "threads": 20,
+        "fft_2d_ms": 1.99495400000000012E+000
+      }
+    ]
+  },
+  "all_correctness_checks_passed": true
+}

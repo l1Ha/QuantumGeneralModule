@@ -544,8 +544,8 @@ contains
         end do
         !$omp end parallel do
 
-        ! 2. 矩阵转置：行转化为列
-        temp = transpose(data_mat)
+        ! 2. 矩阵转置：行转化为列 (分块 + OpenMP 块并行)
+        call transpose_blocked(data_mat, temp)
 
         ! 3. 对转置后的矩阵所有列做 1D FFT（相当于对原始矩阵的行做变换，再次保证纯连续内存步长）
         !$omp parallel do schedule(static)
@@ -554,10 +554,38 @@ contains
         end do
         !$omp end parallel do
 
-        ! 4. 转置还原
-        data_mat = transpose(temp)
+        ! 4. 转置还原 (分块 + OpenMP 块并行)
+        call transpose_blocked(temp, data_mat)
         deallocate(temp)
     end subroutine fft_2d
+
+    !> \brief 分块转置 b = a^T (缓存友好; 编译 OpenMP 时块循环并行)
+    !> \details fft_2d 的转置步骤原为串行 `transpose()` 内在函数, 在
+    !>          OpenMP 扩展测量中成为 Amdahl 瓶颈 (1->20 线程仅 2.7 倍);
+    !>          分块 (block size 32) 转置同时改善缓存局部性, 并暴露
+    !>          块级并行维度 (collapse(2))。
+    subroutine transpose_blocked(a, b)
+        complex(dp), intent(in) :: a(:, :)
+        complex(dp), intent(out) :: b(:, :)
+        integer, parameter :: bs = 32
+        integer :: i0, j0, i, j, nx, ny, ni, nj
+
+        nx = size(a, 1)
+        ny = size(a, 2)
+        !$omp parallel do collapse(2) schedule(static) private(i0, j0, i, j, ni, nj)
+        do j0 = 1, nx, bs
+            do i0 = 1, ny, bs
+                nj = min(bs, nx - j0 + 1)
+                ni = min(bs, ny - i0 + 1)
+                do j = j0, j0 + nj - 1
+                    do i = i0, i0 + ni - 1
+                        b(i, j) = a(j, i)
+                    end do
+                end do
+            end do
+        end do
+        !$omp end parallel do
+    end subroutine transpose_blocked
 
     !> \brief 通用实方阵求逆（Gauss-Jordan 全主元消去法，零外部依赖）
     subroutine inv_real_matrix(n, a, a_inv, stat)

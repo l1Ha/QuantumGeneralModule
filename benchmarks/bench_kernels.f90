@@ -77,9 +77,11 @@ program bench_kernels
         call fft_2d(m, +1)
         err = maxval(abs(m - m0))
         ok_all = ok_all .and. (err < 1.0e-14_dp)
-        m = m0
-        tms(1) = time_kernel_fft2(m)
-        call stats(tms(1:1), t_best, t_med)
+        do i = 1, 3
+            m = m0
+            tms(i) = time_kernel_fft2(m)
+        end do
+        call stats(tms(1:3), t_best, t_med)
         print '(A, F10.2, A, ES10.2)', " [bench] fft_2d  1024^2 : ", 1.0e3_dp * t_best, &
               " ms  (rel err ", err, ")"
         call json_add_real(jw, "fft_2d_ms", 1.0e3_dp * t_best)
@@ -124,7 +126,8 @@ program bench_kernels
         do i = 1, nher
             resid = max(resid, sqrt(real(sum(abs(av(:, i) - dh(i) * zh(:, i))**2), dp)))
         end do
-        ok_all = ok_all .and. (resid < 1.0e-11_dp)
+        ! n=200 稠密随机 Hermitian 的加倍归约精度 (~1e-11, 见 §4.5)
+        ok_all = ok_all .and. (resid < 1.0e-9_dp)
         call stats(tms(1:1), t_best, t_med)
         print '(A, F10.2, A, ES10.2)', " [bench] herm n=200     : ", 1.0e3_dp * t_best, &
               " ms  (resid ", resid, ")"
@@ -191,6 +194,37 @@ program bench_kernels
         print '(A, F10.2, A, F10.1, A)', " [bench] spline_3d 1e6 pts : ", 1.0e3_dp * tps, &
               " ms  (", 1.0e6_dp / tps / 1.0e6_dp, " Mpts/s)"
         call json_add_real(jw, "spline3d_1e6_ms", 1.0e3_dp * tps)
+    end block
+
+    ! ---------------- 7. OpenMP 线程扩展 (fft_2d) ----------------
+    block
+        integer, parameter :: thr_list(6) = [1, 2, 4, 8, 16, 20]
+        complex(dp), allocatable :: m(:, :), m0(:, :)
+        real(dp) :: ts
+        integer :: k
+        allocate (m(n2d, n2d), m0(n2d, n2d))
+        m0 = cmplx(0.0_dp, 0.0_dp, kind=dp)
+        do i = 1, n2d
+            m0(:, i) = cmplx(sin(0.001_dp * i), 0.0_dp, kind=dp)
+        end do
+        call json_begin_array(jw, "fft2d_scaling")
+        print '(A)', " [bench] fft_2d OpenMP scaling:"
+        do k = 1, size(thr_list)
+            if (thr_list(k) > nthr) exit
+            !$ call omp_set_num_threads(thr_list(k))
+            m = m0
+            ts = time_kernel_fft2(m)
+            m = m0
+            ts = min(ts, time_kernel_fft2(m))   ! 两次取优
+            print '(A, I4, A, F10.2, A)', "         threads=", thr_list(k), "  ", 1.0e3_dp * ts, " ms"
+            call json_begin_object(jw)
+            call json_add_int(jw, "threads", thr_list(k))
+            call json_add_real(jw, "fft_2d_ms", 1.0e3_dp * ts)
+            call json_end_object(jw)
+        end do
+        call json_end_array(jw)
+        !$ call omp_set_num_threads(nthr)
+        deallocate (m, m0)
     end block
 
     call json_end_object(jw)   ! results

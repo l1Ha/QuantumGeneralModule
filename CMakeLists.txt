@@ -62,6 +62,16 @@ if(ENABLE_OPENMP)
     endif()
 endif()
 
+# 性能基准可执行文件 (不注册为测试; 见 Makefile bench 目标与 §8.8)
+if(BUILD_BENCHMARKS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/bench_kernels.f90")
+    add_executable(bench_kernels benchmarks/bench_kernels.f90)
+    target_include_directories(bench_kernels PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_Fortran_MODULE_DIRECTORY}
+    )
+    target_link_libraries(bench_kernels PRIVATE GeneralModule_static)
+endif()
+
 # 单元测试构建配置 (41 个单元测试套件)
 include(CTest)
 if(BUILD_TESTING)
@@ -83,6 +93,7 @@ endif()
 
 # 示例程序构建配置 (36 个前沿物理应用示例)
 option(BUILD_EXAMPLES "Build physics examples" ON)
+option(BUILD_BENCHMARKS "Build the kernel performance benchmark" ON)
 if(BUILD_EXAMPLES)
     file(GLOB EXAMPLE_SOURCES "examples/*.f90")
     foreach(EX_SRC ${EXAMPLE_SOURCES})

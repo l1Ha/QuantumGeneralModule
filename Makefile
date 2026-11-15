@@ -89,6 +89,17 @@ MODULE_SRCS = \
 MODULE_OBJS = $(MODULE_SRCS:.f90=.o)
 STATIC_LIB = $(SRC_DIR)/libgeneral_module.a
 
+# 性能基准 (路线图「基准测试」项): 构建并运行核心核计时, 输出
+# benchmarks/benchmark_results.json (规范化 JSON, §8.6/§8.8)
+bench:
+	@mkdir -p build_bench && cd build_bench && cmake $(CURDIR) -DCMAKE_BUILD_TYPE=Release \
+	    -DENABLE_OPENMP=$(OPENMP) -DBUILD_EXAMPLES=OFF -DENABLE_PYTHON_TESTS=OFF > /dev/null \
+	    && $(MAKE) -j4 GeneralModule_static > /dev/null \
+	    && gfortran -O2 -ffree-line-length-none $(if $(filter 1,$(OPENMP)),-fopenmp,) \
+	       -I include $(CURDIR)/benchmarks/bench_kernels.f90 lib/libgeneral_module.a -o bench_kernels \
+	    && (mkdir -p $(CURDIR)/benchmarks && cd $(CURDIR) && ./build_bench/bench_kernels)
+	@echo "==> benchmark JSON: benchmarks/benchmark_results.json"
+
 .PHONY: all lib test test-python examples clean check help
 
 all: lib

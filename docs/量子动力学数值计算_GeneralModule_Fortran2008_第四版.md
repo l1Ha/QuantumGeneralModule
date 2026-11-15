@@ -3344,7 +3344,26 @@ Python 测试位于：
 - [python/pygenmod/json_io.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/json_io.py)
 - 验证：`tests/test_json_io.f90`（4 项断言）；`python/test_pygenmod.py::test_json_io`；跨语言金本 `tests/fixtures/canonical_record.json`
 
-### 8.7　引用与开源规范
+### 8.7　性能基准与测量驱动的优化
+
+**基准设施。** `benchmarks/bench_kernels.f90`（`make bench [OPENMP=1]`）对七个核心核做固定工作量的墙钟计时：1D/2D FFT、实对称本征（n=600）、复 Hermitian 本征（n=200）、Krylov 与 Chebyshev 传播（4096 维 ×100 步）、三维样条求值（10⁶ 点），并测量 fft_2d 的 OpenMP 线程扩展。三条工程原则：
+- **每个核先过正确性门再做计时**（FFT 往返、本征矢残差、范数守恒、样条节点精确），任一失败以非零码退出——CI 只验证"基准负载下正确"，**不设时间阈值**（共享 runner 计时不稳定，硬门会产生假失败）；
+- 结果用 `mod_json` 写成规范 JSON 记录（§8.6 自举验证），含元数据、各核耗时与扩展数组；
+- `scripts/validate_benchmark.py` 验证 schema 与正确性门，可选地与 `benchmarks/baseline.json` 对比给出**性能回归报告**（默认咨询性质，`--strict` 可升级为硬失败）。
+
+**一次完整的测量驱动优化（图 8.2）。** 首次扩展测量显示 fft₂d 从 1 到 20 线程仅加速 2.7 倍——与 Amdahl 定律吻合：`fft_2d` 的两次矩阵转置用的是串行内在函数 `transpose()`，在 FFT 列变换被并行化后成为瓶颈。修复是把转置换成**分块（32×32）转置**并暴露块级并行维度（两次：正转置与逆转置）。复测：扩展比 **2.7× → 9.5×**（20 线程 8.5 ms → 2.0 ms），且单线程时间也从 22.7 ms 降至 18.9 ms——分块本身改善了缓存局部性，**串行路径同样受益**。这正是"先测量、再优化"的价值：瓶颈（转置）不出现在代码审查的直觉里，只出现在扩展曲线里；而修复的收益同时覆盖并行与串行两条路径。
+
+**CI 中的基准步。** 工作流新增 "Kernel Performance Benchmark (JSON record sanity)" 步：构建并运行基准、用验证脚本检查 JSON schema 与正确性门、并打印与基线记录的逐核对比。时间数据本身归档在 `benchmarks/benchmark_results.json`（含本机线程扩展曲线），供后续提交做长期性能回归对照。
+
+![图 8.2：核心算法基准与测量驱动的 fft₂d 优化。(a) OpenMP 扩展曲线：优化前（灰虚线，串行转置，Amdahl 限制在 2.7×）与优化后（红实线，分块并行转置，20 线程 9.5×），点线为理想线性参考；单线程时间同时从 22.7 ms 降至 18.9 ms（分块缓存收益）。(b) 20 线程下各核心墙钟时间（对数轴，本机 20 核）：全部核自带正确性门，记录由 `mod_json` 输出（§8.6）。绘图脚本见 `docs/generate_figures.py`。](figures/fig35_benchmark.png){width=14.5cm}
+
+#### 对应源码
+
+- [benchmarks/bench_kernels.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/benchmarks/bench_kernels.f90)
+- [scripts/validate_benchmark.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/scripts/validate_benchmark.py)
+- `src/mod_linear_algebra.f90`（`transpose_blocked`）；基线记录 `benchmarks/baseline.json`
+
+### 8.8　引用与开源规范
 
 本书引用的文献用于说明理论来源和算法背景。GeneralModule 的实现是独立编写的；引用不表示复制第三方源码。若未来引入第三方代码，必须：
 
@@ -4455,6 +4474,7 @@ GitHub Actions 配置位于：
 | 4.6 / 15.7 | 二维双三次样条 PES 插值 | `mod_interpolation::spline_2d_init`、`spline_2d_eval`、`spline_2d_grad` | `interp2d.Spline2D` | `test_interp_2d` | 图 4.3（32） |
 | 4.7 | 三维三三次样条 PES 插值 | `mod_interpolation::spline_3d_init`、`spline_3d_eval`、`spline_3d_grad` | `interp2d.Spline3D`、`qct.leps_potential_distances` | `test_interp_3d` | 图 4.4（33） |
 | 8.6 | JSON 实验记录（规范化契约） | `mod_json::json_writer_t` 及 add/begin 系列 | `json_io.JsonWriter`、`json_io.format_number` | `test_json_io` | 图 8.1（34） |
+| 8.7 | 核心算法性能基准 + 回归对比 | `benchmarks/bench_kernels.f90`、`mod_linear_algebra::transpose_blocked` | — | `scripts/validate_benchmark.py`（CI 步） | 图 8.2（35） |
 | 15.4 | 差分与收敛标定 | — | — | `docs/generate_figures.py` | 图 4.1 |
 
 表中"—"表示该层尚无独立 Python 参照或结果图（详见 §15 能力清单与 §12 路线图）。
@@ -5359,11 +5379,11 @@ end subroutine expect_close
 | SVD/QR/Cholesky | 未具备 | 中 | 支持拟合和正则化 |
 | 多维插值 | 二维/三维已具备 (§4.6/§4.7); 四维以上未具备 | 高 | 二维/三维势能面 |
 | 自适应网格 | 未具备 | 中 | 局部加密 |
-| 并行化 | 基本未具备 | 高 | OpenMP/MPI |
+| 并行化 | 部分具备 (QCT/排列动力学/fft_2d, 实测 9.5x@20 线程); MPI 未具备 | 高 | OpenMP/MPI |
 | 单位类型 | 弱 | 中 | 显式状态码 |
 | 数据格式 | JSON 已具备 (§8.6); TOML/HDF5 未具备 | 高 | JSON/TOML/HDF5 |
 | 通用测试库 | 自实现 | 中 | 统一断言库 |
-| 基准测试 | 缺失 | 中 | 性能回归 |
+| 基准测试 | 已具备 (§8.7: 核心核 + JSON 记录 + 回归对比脚本) | 中 | 性能回归 |
 | 自动微分 | 未具备 | 低 | 支持灵敏度和控制 |
 
 ### 15.11　最小扩展路线
@@ -5373,8 +5393,8 @@ end subroutine expect_close
 3. 增加二维样条（**已完成**，§4.6）；
 4. 增加 JSON/TOML 实验记录（JSON **已完成**，§8.6；TOML 待续）；
 5. 增加统一断言库；
-6. 增加 OpenMP 版本的 FFT 和矩阵乘法；
-7. 增加基准脚本；
+6. 增加 OpenMP 版本的 FFT 和矩阵乘法（FFT **已完成**且分块转置优化，§8.7；矩阵乘法待续）；
+7. 增加基准脚本（**已完成**，`make bench` + `scripts/validate_benchmark.py`，§8.7）；
 8. 为每个基础模块增加收敛性测试。
 
 ### 15.12　参考文献
