@@ -29,8 +29,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SRC_DIR="$DIR/../src"
 
 # worker 自调用所需的脚本绝对路径: 必须在任何 cd 之前、用 $PWD 解析
-# (脚本中的 `cd "$DIR"
-export GM_SOURCE_DIR="$(cd "$DIR/.." && pwd)"` 会使相对路径 $0 失效)
+# (脚本中的 `cd "$DIR"` 会使相对路径 $0 失效)
 SELF="${BASH_SOURCE[0]}"
 case "$SELF" in
     /*) ;;
@@ -92,6 +91,8 @@ if [ -n "${GITHUB_ACTIONS:-}" ]; then
 fi
 
 cd "$DIR"
+# 测试数据 (fixtures) 定位: 源码根目录, 供测试内相对路径回退
+export GM_SOURCE_DIR="$(cd "$DIR/.." && pwd)"
 
 # 2. 编译并运行各项测试 (共 53 大完整测试套件)
 TESTS=(
