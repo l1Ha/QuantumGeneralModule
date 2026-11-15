@@ -61,3 +61,6 @@ tmp/
 # LaTeX build intermediates
 docs/*.aux
 docs/*.toc
+
+# 基准构建目录 (make bench)
+build_bench/
