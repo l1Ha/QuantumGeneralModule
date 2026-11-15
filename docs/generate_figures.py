@@ -2491,9 +2491,97 @@ def generate_fig33_interp3d():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig34_json_contract():
+    """Fig 34 (book Fig 8.x): JSON experiment-record contract.
+    (a) schema of the canonical record (keys and value types);
+    (b) cross-language validation loop: the Fortran writer and the Python
+    mirror both produce the byte-identical canonical document (fixed by the
+    fixture), which the independent stdlib json parser validates with exact
+    (bitwise) double recovery."""
+    print("Generating Fig 34: JSON record contract and cross-language validation...")
+    set_publication_style()
+    from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13.6, 5.4), dpi=200)
+    for ax in (ax1, ax2):
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
+        ax.axis('off')
+
+    # ---------------- (a) schema tree ----------------
+    ax1.set_title('(a) Canonical Record Schema (RFC 8259)', fontsize=11)
+
+    def box(ax, x, y, w, h, label, fc, fs=9.0, ec='black'):
+        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.08",
+                                    linewidth=1.0, facecolor=fc, edgecolor=ec))
+        ax.text(x + w / 2, y + h / 2, label, ha='center', va='center', fontsize=fs)
+
+    box(ax1, 1.2, 9.1, 2.8, 0.66, '{ ... }  root object', '#dbe9f6')
+    rows = [
+        ('"module": "mod_json"', 'string', '#eef4fb'),
+        ('"escape_test": "a\\"b\\\\c\\tok"', 'string (escaped)', '#eef4fb'),
+        ('"n_grid": 16', 'int', '#fdf3e3'),
+        ('"saddle_energy_Eh": -1.537...E-001', 'real, 17+3 digits', '#f6e6e6'),
+        ('"converged": true  "diverged": false', 'bool', '#e9f6ec'),
+        ('"note": null', 'null', '#f0f0f0'),
+        ('"levels": [ 3 reals ]', 'real[]', '#f6e6e6'),
+        ('"shape": [ 16, 16, 16 ]', 'int[]', '#fdf3e3'),
+        ('"empty_int": []   "empty_real": []', 'empty (inline)', '#f0f0f0'),
+        ('"matrix": [ [ 2 reals ], [ 2 reals ] ]', 'real[][]', '#f6e6e6'),
+        ('"records": [ {...}, {...} ]', 'object[] (nested)', '#dbe9f6'),
+        ('"meta": { "author": "..." }', 'object (nested)', '#dbe9f6'),
+    ]
+    y = 8.2
+    # 左侧脊线 + 短横线 (简洁树形)
+    ax1.add_patch(FancyArrowPatch((0.12, 9.1), (0.12, 8.2 + 0.30),
+                                  arrowstyle='-', color='gray', linewidth=0.9))
+    for label, typ, col in rows:
+        box(ax1, 0.35, y - 0.29, 5.6, 0.58, label, col, fs=8.2)
+        ax1.text(6.15, y, typ, ha='left', va='center', fontsize=7.6,
+                 color='dimgray')
+        ax1.add_patch(FancyArrowPatch((0.12, y), (0.35, y),
+                                      arrowstyle='-', color='gray', linewidth=0.7))
+        y -= 0.64
+    ax1.text(0.35, 0.30, 'indent = 2 spaces/element;  comma between elements;\n'
+             'numbers: d.dddddddddddddddddE+-ddd (round-trip exact)',
+             fontsize=8.0, color='dimgray')
+
+    # ---------------- (b) validation loop ----------------
+    ax2.set_title('(b) Cross-Language Contract Validation', fontsize=11)
+    box(ax2, 0.3, 7.4, 3.3, 1.3, 'Fortran\nmod_json\n(json_writer_t)', '#dbe9f6', fs=8.6)
+    box(ax2, 4.1, 7.4, 3.4, 1.3, 'tests/fixtures/\ncanonical_record.json\n(861 bytes)',
+        '#fdf3e3', fs=8.4)
+    box(ax2, 0.3, 4.6, 3.3, 1.3, 'Python mirror\npygenmod.json_io\n(JsonWriter)', '#e9f6ec', fs=8.6)
+    box(ax2, 4.1, 4.6, 3.4, 1.3, 'Python stdlib\njson.loads(fixture)', '#f6e6e6', fs=8.6)
+    box(ax2, 4.1, 1.7, 3.4, 1.4,
+        'bitwise double recovery\n-0.153705, 3.141592653589793\nshape/records/nesting OK',
+        '#f0f0f0', fs=8.2)
+
+    def arrow(ax, p1, p2, label, rad=0.0, col='black'):
+        ax.add_patch(FancyArrowPatch(p1, p2, arrowstyle='-|>', color=col,
+                                     linewidth=1.4, mutation_scale=14,
+                                     connectionstyle=f'arc3,rad={rad}'))
+        ax.text((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2 + 0.30, label,
+                ha='center', fontsize=8.0, color=col)
+
+    arrow(ax2, (3.6, 8.2), (4.1, 8.2), 'write == golden', col='royalblue')
+    arrow(ax2, (3.6, 5.25), (4.1, 5.25), 'byte-identical', col='seagreen')
+    arrow(ax2, (5.8, 7.4), (5.8, 5.9), 'parse', col='crimson')
+    arrow(ax2, (5.8, 4.6), (5.8, 3.1), 'assert ==', col='crimson')
+    ax2.text(0.35, 0.35, 'Fortran asserts doc == fixture;  Python asserts mirror == fixture\n'
+             'and stdlib-parse(fixture) reproduces the doubles exactly.',
+             fontsize=8.2, color='dimgray')
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig34_json_contract.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 33 Scientific Calculation Benchmark Figures")
+    print(" Generating All 34 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -2528,8 +2616,9 @@ def main():
     generate_fig31_hermitian()
     generate_fig32_interp2d()
     generate_fig33_interp3d()
+    generate_fig34_json_contract()
     print("=" * 60)
-    print(" All 33 Figures Generated Successfully in docs/figures/!")
+    print(" All 34 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

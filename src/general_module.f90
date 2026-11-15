@@ -18,6 +18,7 @@ module general_module
     use mod_multistate_coupling
     use mod_rovibrational
     use mod_io_utils
+    use mod_json
     use mod_interpolation
     use mod_photofragment_flux
     use mod_open_quantum
@@ -116,6 +117,10 @@ module general_module
 
     ! 标准化科学 I/O 工具
     public :: save_data_table_1d, save_data_table_2d, save_matrix_dat
+    public :: json_writer_t, json_init, json_finalize, json_get_text
+    public :: json_begin_object, json_end_object, json_begin_array, json_end_array
+    public :: json_add_string, json_add_int, json_add_real, json_add_bool, json_add_null
+    public :: json_add_int_array, json_add_real_array, json_add_real_array_2d
     public :: print_banner, print_progress_bar
 
     ! 势能面高精度样条插值与外推

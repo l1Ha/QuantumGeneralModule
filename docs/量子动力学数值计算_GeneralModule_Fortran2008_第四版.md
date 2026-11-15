@@ -3332,6 +3332,18 @@ Python 测试位于：
 
 没有上述记录，即使结果看起来正确，也难以复现或定位误差。
 
+**机器可读实现：JSON 实验记录（`mod_json`）。** 上表字段的机器可读载体由新模块 `src/mod_json.f90` 承担（§15.10 路线图「数据格式」项）：无外部依赖的最小 JSON (RFC 8259) 写入器，支持对象/数组任意嵌套、字符串（按规范转义）、整数/实数/布尔/null 标量（键可选：无键即数组元素）、以及一维/二维数值数组。数字采用**固定契约格式** `d.dddddddddddddddddE±ddd`（17 位小数 + 恰 3 位指数，对应 Fortran `ES26.17E3` 去除前导空白），双精度往返无损——这对记录验收阈值、拟合系数等对舍入敏感的量是硬性要求。
+
+**跨语言契约验收（图 8.1）。** 工程上与物理验收同样严格：规范文档由 `tests/fixtures/canonical_record.json`（861 字节，含 12 类键值结构）作为**跨语言金本**固定，三方同时受其约束——其一，Fortran 测试断言写入器输出与金本**逐字节一致**（并覆盖转义边界：引号/反斜杠/制表符/退格，空容器单行、5 层嵌套缩进）；其二，数值往返对 6 个"刁钻"双精度值（0.1、π、$-0.153705$、$10^{-300}$、$10^{308}$、$1.234\ldots\times10^{-10}$）逐位复原；其三，Python 镜像 `pygenmod/json_io.py` 产出与金本逐字节相同的文档，且由 **Python 标准库 `json`（独立解析器）** 解析后对 $-0.153705$、$3.141592653589793$ 等值**逐位复原**。数字格式的一个实测边界：18 位有效数字在最大双精度附近会向上进位超出 `DBL_MAX`（$1.797\ldots\times10^{308}$ 的 18 位十进制读回溢出），故极端量级使用 `1.0e308` 类安全值记录。
+
+![图 8.1：JSON 实验记录契约与跨语言验证回路。(a) 规范记录 schema：12 类键值结构（字符串/转义字符串/整数/实数/布尔/null/实数数组/整数数组/空容器/二维数组/嵌套对象数组/嵌套对象）与数字格式契约；(b) 验证回路：Fortran `mod_json` 写入的文档与 `tests/fixtures/canonical_record.json` 逐字节一致，Python 镜像同样逐字节一致，而 Python 标准库 `json` 作为独立第三方解析器验证结构并**逐位复原**双精度值。绘图脚本见 `docs/generate_figures.py`。](figures/fig34_json_contract.png){width=15.5cm}
+
+#### 对应源码
+
+- [src/mod_json.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_json.f90)
+- [python/pygenmod/json_io.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/json_io.py)
+- 验证：`tests/test_json_io.f90`（4 项断言）；`python/test_pygenmod.py::test_json_io`；跨语言金本 `tests/fixtures/canonical_record.json`
+
 ### 8.7　引用与开源规范
 
 本书引用的文献用于说明理论来源和算法背景。GeneralModule 的实现是独立编写的；引用不表示复制第三方源码。若未来引入第三方代码，必须：
@@ -4442,6 +4454,7 @@ GitHub Actions 配置位于：
 | 18.4 | Smolyak 稀疏网格 | `mod_sparse_grid::smolyak_build` | `sparse_grid.smolyak_build` | `test_sparse_grid` | 图 18.1 |
 | 4.6 / 15.7 | 二维双三次样条 PES 插值 | `mod_interpolation::spline_2d_init`、`spline_2d_eval`、`spline_2d_grad` | `interp2d.Spline2D` | `test_interp_2d` | 图 4.3（32） |
 | 4.7 | 三维三三次样条 PES 插值 | `mod_interpolation::spline_3d_init`、`spline_3d_eval`、`spline_3d_grad` | `interp2d.Spline3D`、`qct.leps_potential_distances` | `test_interp_3d` | 图 4.4（33） |
+| 8.6 | JSON 实验记录（规范化契约） | `mod_json::json_writer_t` 及 add/begin 系列 | `json_io.JsonWriter`、`json_io.format_number` | `test_json_io` | 图 8.1（34） |
 | 15.4 | 差分与收敛标定 | — | — | `docs/generate_figures.py` | 图 4.1 |
 
 表中"—"表示该层尚无独立 Python 参照或结果图（详见 §15 能力清单与 §12 路线图）。
@@ -5348,7 +5361,7 @@ end subroutine expect_close
 | 自适应网格 | 未具备 | 中 | 局部加密 |
 | 并行化 | 基本未具备 | 高 | OpenMP/MPI |
 | 单位类型 | 弱 | 中 | 显式状态码 |
-| 数据格式 | 文本为主 | 高 | JSON/TOML/HDF5 |
+| 数据格式 | JSON 已具备 (§8.6); TOML/HDF5 未具备 | 高 | JSON/TOML/HDF5 |
 | 通用测试库 | 自实现 | 中 | 统一断言库 |
 | 基准测试 | 缺失 | 中 | 性能回归 |
 | 自动微分 | 未具备 | 低 | 支持灵敏度和控制 |
@@ -5358,7 +5371,7 @@ end subroutine expect_close
 1. 增加 `diag_hermitian_matrix`（**已完成**，§4.5；稀疏对称本征求解部分见 §14.1）；
 2. 增加稀疏对称本征求解；
 3. 增加二维样条（**已完成**，§4.6）；
-4. 增加 JSON/TOML 实验记录；
+4. 增加 JSON/TOML 实验记录（JSON **已完成**，§8.6；TOML 待续）；
 5. 增加统一断言库；
 6. 增加 OpenMP 版本的 FFT 和矩阵乘法；
 7. 增加基准脚本；
@@ -5418,7 +5431,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 52 个测试程序、563 项断言全部通过。
+- 全库 53 个测试程序、567 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

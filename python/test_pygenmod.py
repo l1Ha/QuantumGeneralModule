@@ -767,6 +767,78 @@ class TestPyGenMod(unittest.TestCase):
         self.assertLess(abs(leps_v3(1.775, 1.775, 3.55)
                             - sl.eval(1.775, 1.775, 3.55)), 1.0e-3)
 
+    def test_json_io(self):
+        # 与 Fortran test_json_io 对应 (§15.10 路线图项「数据格式」)
+        import json
+        import pathlib
+        from pygenmod import JsonWriter
+
+        fx_path = pathlib.Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "canonical_record.json"
+        fixture = fx_path.read_text()
+
+        # --- 1. fixture 由 Python stdlib 独立解析, 数值逐位复原 ---
+        d = json.loads(fixture)
+        self.assertEqual(d["module"], "mod_json")
+        self.assertEqual(d["n_grid"], 16)
+        self.assertEqual(d["saddle_energy_Eh"], -0.153705)   # bitwise value equality
+        self.assertTrue(d["pi"] == 3.141592653589793)        # bitwise
+        self.assertEqual(d["escape_test"], 'quote " backslash \\ tab\tok')
+        self.assertIs(d["converged"], True)
+        self.assertIs(d["diverged"], False)
+        self.assertIsNone(d["note"])
+        self.assertEqual(d["levels"], [1.0, 2.5, -3.25])
+        self.assertEqual(d["scaled"], [1.2345678901234567e-10])
+        self.assertEqual(d["shape"], [16, 16, 16])
+        self.assertEqual(d["empty_int"], [])
+        self.assertEqual(d["empty_real"], [])
+        self.assertEqual(d["matrix"], [[0.5, 1.0e-3], [-0.25, 42.0]])
+        self.assertEqual(d["records"], [{"tag": "first", "weight": 0.75},
+                                        {"tag": "second", "weight": -1.5}])
+        self.assertEqual(d["meta"], {"author": "GeneralModule"})
+
+        # --- 2. Python 镜像输出与 Fortran 文档逐字节一致 ---
+        w = JsonWriter()
+        w.begin_object()
+        w.add_string("module", "mod_json")
+        w.add_string("escape_test", 'quote " backslash \\ tab\tok')
+        w.add_int("n_grid", 16)
+        w.add_real("saddle_energy_Eh", -0.153705)
+        w.add_real("pi", 3.141592653589793)
+        w.add_bool("converged", True)
+        w.add_bool("diverged", False)
+        w.add_null("note")
+        w.add_real_array("levels", [1.0, 2.5, -3.25])
+        w.add_real_array("scaled", [1.2345678901234567e-10])
+        w.add_int_array("shape", [16, 16, 16])
+        w.add_int_array("empty_int", [])
+        w.add_real_array("empty_real", [])
+        w.add_real_array_2d("matrix", [[0.5, 1.0e-3], [-0.25, 42.0]])
+        w.begin_array("records")
+        for tag, wt in (("first", 0.75), ("second", -1.5)):
+            w.begin_object()
+            w.add_string("tag", tag)
+            w.add_real("weight", wt)
+            w.end_object()
+        w.end_array()
+        w.begin_object("meta")
+        w.add_string("author", "GeneralModule")
+        w.end_object()
+        w.end_object()
+        self.assertEqual(w.get_text() + "\n", fixture)
+
+        # --- 3. 数值格式往返 + 极端指数 ---
+        from pygenmod import format_number
+        for v in (0.1, -0.153705, 1.0e-300, 1.0e308, 1.2345678901234567e-10):
+            self.assertEqual(float(format_number(v)), v)     # 往返逐位
+        self.assertTrue(format_number(1.0).endswith("E+000"))
+
+        # --- 4. 转义覆盖: 控制字符 -> \u00XX ---
+        w2 = JsonWriter()
+        w2.add_string("k", "ctl" + chr(1))
+        txt = w2.get_text()
+        self.assertEqual(txt, '"k": "ctl\\u0001"')
+        self.assertEqual(json.loads("{" + txt + "}")["k"], "ctl" + chr(1))
+
     def test_scattering(self):
         # 1. Van der Waals mean length
         a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)
