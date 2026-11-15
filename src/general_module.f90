@@ -122,6 +122,7 @@ module general_module
     public :: spline_1d_t, spline_init, spline_eval, spline_eval_deriv, spline_eval_deriv2
     public :: spline_clean, interpolate_pes_to_grid, BC_NATURAL, BC_CLAMPED
     public :: spline_2d_t, spline_2d_init, spline_2d_eval, spline_2d_grad, spline_2d_clean
+    public :: spline_3d_t, spline_3d_init, spline_3d_eval, spline_3d_grad, spline_3d_clean
 
     ! 光解离碎片能谱与自相关吸收谱
     public :: calculate_autocorrelation, calculate_absorption_spectrum

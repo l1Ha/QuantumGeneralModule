@@ -694,6 +694,79 @@ class TestPyGenMod(unittest.TestCase):
                        - sl.eval(2.0 - 0.06 * i, 1.4 + 0.15 * i)) for i in range(10))
         self.assertLess(asym, 1e-12)
 
+    def test_interp_3d(self):
+        # 与 Fortran test_interp_3d 对应 (路线图「多维插值」3D 扩展)
+        from pygenmod import Spline3D
+        from pygenmod.qct import LEPSParameters, leps_energy_gradient
+
+        # --- 1. 三线性精确 + 节点精确 ---
+        n = 5
+        g = 0.1 + 0.4 * np.arange(n)
+        X, Y, Z = np.meshgrid(g, g, g, indexing='ij')
+        F = (0.3 - 0.7 * X + 0.45 * Y + 0.28 * Z - 0.15 * X * Y
+             + 0.22 * X * Z - 0.09 * Y * Z + 0.13 * X * Y * Z)
+        s3 = Spline3D(g, g, g, F)
+        xv, yv, zv = 0.25, 0.3, 0.15
+        f1 = (0.3 - 0.7 * xv + 0.45 * yv + 0.28 * zv - 0.15 * xv * yv
+              + 0.22 * xv * zv - 0.09 * yv * zv + 0.13 * xv * yv * zv)
+        self.assertLess(abs(s3.eval(xv, yv, zv) - f1), 1e-12)
+        node_err = max(abs(s3.eval(g[i], g[j], g[k]) - F[i, j, k])
+                       for i in range(n) for j in range(n) for k in range(n))
+        self.assertEqual(node_err, 0.0)
+
+        # --- 2. 全置换对称 + 解析梯度 ---
+        m = 15
+        gs = 0.6 + 0.05 * np.arange(m)
+        Xs, Ys, Zs = np.meshgrid(gs, gs, gs, indexing='ij')
+        Fs = (np.cos(0.9 * (Xs + Ys + Zs)) + 0.15 * (Xs * Ys + Ys * Zs + Zs * Xs)
+              + 0.1 * Xs * Ys * Zs)
+        ss = Spline3D(gs, gs, gs, Fs)
+        sym = 0.0
+        for i in range(8):
+            a, b, c = 0.7 + 0.06 * i, 0.75 + 0.05 * i, 0.8 + 0.04 * i
+            sym = max(sym, abs(ss.eval(a, b, c) - ss.eval(b, a, c)),
+                      abs(ss.eval(a, b, c) - ss.eval(c, b, a)))
+        self.assertLess(sym, 1e-13)
+        gx, gy, gz = ss.grad(0.9, 0.95, 1.0)
+        h = 1e-6
+        for val, (dx, dy, dz) in ((gx, (h, 0, 0)), (gy, (0, h, 0)), (gz, (0, 0, h))):
+            fp = ss.eval(0.9 + dx, 0.95 + dy, 1.0 + dz)
+            fm = ss.eval(0.9 - dx, 0.95 - dy, 1.0 - dz)
+            self.assertLess(abs(val - (fp - fm) / (2 * h)), 1e-6)
+
+        # --- 3. LEPS 3D (三距离形式, 与 Fortran 语义一致): 与直接求值对照 ---
+        from pygenmod import leps_potential_distances
+        par = LEPSParameters(sato=0.10)
+
+        def leps_v3(r12, r23, r31):
+            return leps_potential_distances(r12, r23, r31, par)
+
+        # 鞍点金值对照 (Fortran stem 鞍点 -0.153705 E_h, 参数舍入内一致)
+        self.assertAlmostEqual(leps_v3(1.775, 1.775, 3.55), -0.1533, places=4)
+
+        ng = 16
+        rg = 1.2 + (3.6 - 1.2) * np.arange(ng) / (ng - 1)
+        ZL = np.array([[[leps_v3(r1, r2, r3) for r3 in rg] for r2 in rg]
+                       for r1 in rg])
+        sl = Spline3D(rg, rg, rg, ZL)
+        err = 0.0
+        n_used = 0
+        for i in range(1, 12):
+            for j in range(1, 12):
+                for k in range(1, 12):
+                    r1 = 1.30 + 1.4 * i / 13.0
+                    r2 = 1.35 + 1.4 * j / 13.0
+                    r3 = 1.40 + 1.4 * k / 13.0
+                    v = leps_v3(r1, r2, r3)
+                    if v < -0.10:                       # 化学相关区 (势垒以下)
+                        err = max(err, abs(v - sl.eval(r1, r2, r3)))
+                        n_used += 1
+        self.assertGreater(n_used, 50)
+        self.assertLess(err, 2.0e-3)
+        # 鞍点区域插值精度
+        self.assertLess(abs(leps_v3(1.775, 1.775, 3.55)
+                            - sl.eval(1.775, 1.775, 3.55)), 1.0e-3)
+
     def test_scattering(self):
         # 1. Van der Waals mean length
         a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)

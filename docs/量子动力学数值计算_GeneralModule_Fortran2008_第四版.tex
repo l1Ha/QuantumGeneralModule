@@ -2592,6 +2592,91 @@ LEPS 共线面）。(a) 势能面等值图与 \(16\times16\)
   项断言）；\texttt{python/test\_pygenmod.py::test\_interp\_2d}
 \end{itemize}
 
+\hypertarget{ux4e09ux7ef4ux4e09ux4e09ux6b21ux6837ux6761ux5b8cux6574ux4e09ux8dddux79bbux52bfux80fdux9762}{%
+\subsubsection{4.7　三维三三次样条：完整三距离势能面}\label{ux4e09ux7ef4ux4e09ux4e09ux6b21ux6837ux6761ux5b8cux6574ux4e09ux8dddux79bbux52bfux80fdux9762}}
+
+三原子体系的完整势能面依赖三个两两距离 \((r_{12}, r_{23}, r_{31})\)（QCT
+模块的 LEPS 面即为此形式），二维插值不足以覆盖。三维三三次样条是 §4.6
+构造的逐轴递归推广：在每个节点存储 \textbf{8 个张量分量}
+
+\[
+z,\quad z^{xx},\ z^{yy},\ z^{zz},\quad z^{xy},\ z^{xz},\ z^{yz},\quad z^{xyz},
+\]
+
+由 1D 自然样条核 \(\mathcal{S}_1''[\cdot]\) 沿三个轴依次作用构造：
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  沿 \(x\) 对 \(z\) 样条 \(\to z^{xx}\)；
+\item
+  沿 \(y\) 对 \(\{z, z^{xx}\}\) 样条 \(\to \{z^{yy}, z^{xy}\}\)；
+\item
+  沿 \(z\) 对上述四个数组样条
+  \(\to \{z^{zz}, z^{xz}, z^{yz}, z^{xyz}\}\)。
+\end{enumerate}
+
+胞元内 \(2\times2\times2\) Hermite 基展开（每个方向各取 \(\{T,U\}\)
+基）自动保证节点处全部 8 类量精确重现、胞元交界 \(C^1\) 连续，解析梯度
+\(\nabla S\) 三方向直接可得（QCT 力场无需差分）。代价
+\(O(N_xN_yN_z)\)（每个方向的样条核为线性复杂度），内存为 8 个网格数组。
+
+\textbf{验收（6 项断言）。}
+其一，\textbf{三线性精确重构}：\(z=a+bx+cy+dz+exy+gxz+hyz+mxyz\) 误差
+\(5.6\times10^{-17}\)（机器精度），节点复现
+\(0.0\)；其二，\textbf{内部四阶收敛}：光滑函数 \(n=9\to17\)
+对半加密误差比
+\(371\)；其三，\textbf{全置换对称性与梯度}：置换对称数据满足
+\(S(x,y,z)=S(y,x,z)=S(z,y,x)\) 到
+\(1.7\times10^{-16}\)，解析梯度与中心差分一致到
+\(1.1\times10^{-10}\)、与精确梯度偏差
+\(2.9\times10^{-4}\)；其四，\textbf{真实 \(\mathrm{H}_3\) LEPS 三维面}
+\(V(r_{12},r_{23},r_{31})\)（\(16^3\) 网格覆盖
+\([1.2,3.6]^3\)，含共线鞍点所需的 \(r_{31}=r_{12}+r_{23}\)
+区域）：化学相关区（\(V<-0.10\ E_h\)，势垒以下反应通道）插值误差
+\(\le5.9\times10^{-4}\ E_h\)，\textbf{鞍点 \((1.775,1.775,3.55)\) 误差
+\(6.8\times10^{-6}\ E_h\)}（鞍点值 \(-0.1533\ E_h\)，Fortran 金值
+\(-0.153705\ E_h\)）；其五，LEPS 面的三键置换对称性在插值后保持到
+\(1.4\times10^{-17}\)；其六，\textbf{网格对半加密}（\(16^3\to31^3\)，\(h=0.16\to0.08\ a_0\)）反应区误差由
+\(5.9\times10^{-4}\) 降至 \(8.2\times10^{-5}\)（比
+\(7.3\)，趋近四阶标度）。高能排斥壁区（\(V>0\)）曲率极大、粗网格误差集中于此（与二维情形同一物理图像：误差随曲率增长），不作为小网格验收指标------这也是势能面插值工程的通用经验：\textbf{采样密度应按化学相关区的曲率而非全空间最陡区设置}。Python
+镜像 \texttt{Spline3D}（独立实现）+ 三距离版
+\texttt{leps\_potential\_distances}（与 Fortran
+\texttt{calc\_leps\_potential} 语义一致）并入
+\texttt{test\_interp\_3d}（Python 套件 38 → 39 项）。
+
+\begin{figure}
+\centering
+\includegraphics[width=15.5cm,height=\textheight]{figures/fig33_interp3d_leps.png}
+\caption{图 4.4：三维三三次样条在完整三距离 LEPS 面上的验收。(a) 对称面
+\(r_{12}=r_{23}=r\) 上的插值误差分布（\(16^3\)
+网格，对数色阶）：光滑谷区误差 \(\sim10^{-7}\)，急倾斜壁区
+\(\sim10^{-3}\)，条纹结构反映三次样条误差在节点间取极大、节点处为零的解析性质；(b)
+过鞍点的共线对称伸缩剖面 \(r_{31}=2r\)（网格有效区 \(r\le1.8\)）：精确
+LEPS（黑实线）与
+\(16^3\)（红圈）、\(31^3\)（蓝方块）样条逐点重合，最小值恰在鞍点
+\(r=1.775\)；(c)
+反应区（\(V<-0.1\ E_h\)）最大插值误差随网格间距的收敛（双对数），与
+\(h^4\) 参考斜率平行。绘图脚本见 \texttt{docs/generate\_figures.py}。}
+\end{figure}
+
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-2}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-2}}
+
+\begin{itemize}
+\tightlist
+\item
+  \href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_interpolation.f90}{src/mod\_interpolation.f90}（\texttt{spline\_3d\_init}、\texttt{spline\_3d\_eval}、\texttt{spline\_3d\_grad}）
+\item
+  \href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/interp2d.py}{python/pygenmod/interp2d.py}（\texttt{Spline3D}）、\href{https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/qct.py}{python/pygenmod/qct.py}（\texttt{leps\_potential\_distances}）
+\item
+  验证：\texttt{tests/test\_interp\_3d.f90}（6
+  项断言）；\texttt{python/test\_pygenmod.py::test\_interp\_3d}
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{ux53c2ux8003ux6587ux732e}{%
@@ -2742,8 +2827,8 @@ S=LL^T,
 数值上要避免直接求 \(S^{-1}\)，因为当基组近线性相关时，\(S\)
 的最小本征值接近零，\(\kappa(S)\) 会急剧增大。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-2}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-2}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-3}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-3}}
 
 \begin{itemize}
 \tightlist
@@ -2807,8 +2892,8 @@ V_{ij}=V(x_i)\delta_{ij}.
 的核心优势。它把高维问题中的势能矩阵由稠密矩阵变成对角矩阵，使矩阵存储从
 \(O(N^2)\) 降至 \(O(N)\)。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-3}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-3}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-4}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-4}}
 
 \begin{itemize}
 \tightlist
@@ -2885,8 +2970,8 @@ k_{\max}\gtrsim 6\sigma_k.
 在数值实验中，最直接的检验是把 \(N\)
 增加一倍，观察本征值和期望值是否稳定。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-4}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-4}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-5}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-5}}
 
 \begin{itemize}
 \tightlist
@@ -2983,8 +3068,8 @@ E_N-E\sim CN^{-p}.
 因此，不能仅凭两次计算结果接近判断收敛，应至少使用三个网格密度做
 Richardson 外推。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-5}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-5}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-6}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-6}}
 
 \begin{itemize}
 \tightlist
@@ -3088,8 +3173,8 @@ l(l+1)\frac{2l+1}{2}P_l(x_i)P_l(x_j).
 \(\psi(x_i)=z_i/\sqrt{w_i}\)。GeneralModule 的
 \texttt{dvr\_legendre\_init} 现在按上式构造 \(J^2\) 矩阵。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-6}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-6}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-7}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-7}}
 
 \begin{itemize}
 \tightlist
@@ -3130,8 +3215,8 @@ Distributed Gaussian DVR & 可调局域高斯 & 动能重叠矩阵 &
 因此，将 DVR 等同于 Sinc-DVR 是不完整的。GeneralModule 提供 Sinc-DVR 与
 Gauss-Legendre DVR，并可通过同一框架扩展到其他正交多项式网格。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-7}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-7}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-8}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-8}}
 
 \begin{itemize}
 \tightlist
@@ -3201,8 +3286,8 @@ O(N^{2d}).
 因此，直接对角化只适用于低维或截断后的小问题。高维问题需要稀疏矩阵、Krylov
 方法、Chebyshev 传播、张量分解或缩减基方法。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-8}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-8}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-9}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-9}}
 
 \begin{itemize}
 \tightlist
@@ -3285,8 +3370,8 @@ p
 \texttt{docs/generate\_figures.py}。}
 \end{figure}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-9}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-9}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-10}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-10}}
 
 \begin{itemize}
 \tightlist
@@ -3320,8 +3405,8 @@ GeneralModule 的 \texttt{mod\_linear\_algebra}
 \texttt{mod\_chebyshev\_propagator}
 提供时间演化。三者构成一个完整的谱方法教学与验证链路。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-10}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-10}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-11}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-11}}
 
 \begin{itemize}
 \tightlist
@@ -3352,8 +3437,8 @@ NumPy 的数组操作和 FFT 实现可作为参考算法，Matplotlib
 用于绘制能级、波函数和误差曲线【Harris et al.~2020；Hunter
 2007】。此类交叉验证不是替代 Fortran 主计算，而是数值验证工具。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-11}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-11}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-12}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-12}}
 
 \begin{itemize}
 \tightlist
@@ -3502,8 +3587,8 @@ FWHM，\(10^{14}\ \mathrm{W/cm^2}\)，\(E_0=0.0534\) a.u.）与 GDD
 FWHM），瞬时载频单调扫掠但始终远离零频，包络与场幅一致。}
 \end{figure}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-12}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-12}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-13}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-13}}
 
 \begin{itemize}
 \tightlist
@@ -3672,8 +3757,8 @@ e^{-iV(x)\Delta t/2}
 
 而不是在每步强制归一化。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-13}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-13}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-14}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-14}}
 
 \begin{itemize}
 \tightlist
@@ -3749,8 +3834,8 @@ m\in\mathbb{Z}.
 
 在数值实验中应通过逐步减小 \(\Delta x\) 检查可观测量是否收敛。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-14}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-14}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-15}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-15}}
 
 \begin{itemize}
 \tightlist
@@ -3824,8 +3909,8 @@ y_n
 
 多步方法依赖历史点的一致性和启动策略。若历史导数来自不同时间步长或不同坐标系，阶数会退化。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-15}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-15}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-16}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-16}}
 
 \begin{itemize}
 \tightlist
@@ -3920,8 +4005,8 @@ c_1(t)|1\rangle+c_2(t)|2\rangle.
 
 该方程是检验 RK4、保范数传播和激光脉冲合成的基础模型。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-16}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-16}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-17}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-17}}
 
 \begin{itemize}
 \tightlist
@@ -4015,8 +4100,8 @@ J(x,t)
   吸收量与通量诊断一致。
 \end{enumerate}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-17}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-17}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-18}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-18}}
 
 \begin{itemize}
 \tightlist
@@ -4079,8 +4164,8 @@ c\ln\epsilon^{-1}.
 Chebyshev
 方法适合大时间步和长时传播，但要求谱界估计准确。若谱外态存在，可能出现非物理放大。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-18}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-18}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-19}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-19}}
 
 \begin{itemize}
 \tightlist
@@ -4267,8 +4352,8 @@ C_{l1}(\hat\rho)
 
 每一步之后可检查厄米性和迹，但不应在参数研究开始前就强制归一化，否则会掩盖真实时间步长误差。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-19}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-19}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-20}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-20}}
 
 \begin{itemize}
 \tightlist
@@ -4363,8 +4448,8 @@ i\hbar\frac{\partial}{\partial t}|\chi(t)\rangle
 
 收敛判据应同时包括保真度增量、场变化和物理约束。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-20}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-20}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-21}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-21}}
 
 \begin{itemize}
 \tightlist
@@ -4437,8 +4522,8 @@ x_0+\frac{\hbar k_0}{m}t.
 
 \includegraphics[width=2cm,height=\textheight]{qr/tests__test_propagators.f90.png}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-21}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-21}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-22}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-22}}
 
 \begin{itemize}
 \tightlist
@@ -4570,8 +4655,8 @@ T_l=S_l-I.
 \sum_l\sigma_l.
 \]
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-22}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-22}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-23}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-23}}
 
 \begin{itemize}
 \tightlist
@@ -4632,8 +4717,8 @@ u'(r_N)
 \frac{3u_N-4u_{N-1}+u_{N-2}}{2\Delta r}.
 \]
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-23}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-23}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-24}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-24}}
 
 \begin{itemize}
 \tightlist
@@ -4745,8 +4830,8 @@ a_s
 
 得到。Johnson 方法在深势阱和长程势中数值稳定性更好。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-24}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-24}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-25}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-25}}
 
 \begin{itemize}
 \tightlist
@@ -4805,8 +4890,8 @@ S_l=e^{2i\delta_l}.
 \(\theta = 90^\circ\) 处满足严格对称性。}
 \end{figure}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-25}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-25}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-26}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-26}}
 
 \begin{itemize}
 \tightlist
@@ -4925,8 +5010,8 @@ E\mathbf F(r).
 P_{i\rightarrow j}=|S_{ij}|^2.
 \]
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-26}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-26}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-27}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-27}}
 
 \begin{itemize}
 \tightlist
@@ -4995,8 +5080,8 @@ a_{\mathrm{bg}}
 GeneralModule 的 \texttt{calc\_feshbach\_resonance\_scan}
 在磁场网格上计算 \(a_s(B)\)，并拟合共振参数。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-27}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-27}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-28}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-28}}
 
 \begin{itemize}
 \tightlist
@@ -5080,8 +5165,8 @@ R(t)
 GeneralModule 的 \texttt{ex07}
 示例专门用于定态和含时散射波函数交叉验证。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-28}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-28}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-29}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-29}}
 
 \begin{itemize}
 \tightlist
@@ -5175,8 +5260,8 @@ F_{v'v''}
 \right|^2.
 \]
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-29}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-29}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-30}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-30}}
 
 \begin{itemize}
 \tightlist
@@ -5561,8 +5646,8 @@ P(E_k)
 |A(E_k)|^2.
 \]
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-30}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-30}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-31}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-31}}
 
 \begin{itemize}
 \tightlist
@@ -5666,8 +5751,8 @@ c_j^{*}c_k\,\mathbf v\cdot\mathbf d_{jk}
 
 \includegraphics[width=2cm,height=\textheight]{qr/src__mod_surface_hopping_fssh.f90.png}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-31}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-31}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-32}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-32}}
 
 \begin{itemize}
 \tightlist
@@ -5839,8 +5924,8 @@ GeneralModule 的工程结构不是按物理主题随机堆叠，而是按依赖
 
 这种接口风格便于编译器检查，也便于 AI 辅助生成代码时减少隐式错误。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-32}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-32}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-33}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-33}}
 
 \begin{itemize}
 \tightlist
@@ -5995,8 +6080,8 @@ DVR 测试应检查
 \|\rho(t)-\rho^{\dagger}(t)\|<\epsilon.
 \]
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-33}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-33}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-34}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-34}}
 
 \begin{itemize}
 \tightlist
@@ -6194,8 +6279,8 @@ V_{\mathrm{eff}}(R)
 
 Braaten 和 Hammer 对少体普适性作了系统综述【Braaten \& Hammer 2006】。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-34}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-34}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-35}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-35}}
 
 \begin{itemize}
 \tightlist
@@ -6241,8 +6326,8 @@ a_{\mathrm{CIR}}=\frac{a_\perp}{C}
 
 Olshanii 给出了准一维约束诱导共振理论【Olshanii 1998】。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-35}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-35}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-36}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-36}}
 
 \begin{itemize}
 \tightlist
@@ -6294,8 +6379,8 @@ E_{\mathrm{res}}=E_R-i\frac{\Gamma}{2}
 Fano 给出了组态相互作用理论【Fano 1961】；Reinhardt 和 Moiseyev
 讨论了复坐标旋转方法【Reinhardt 1982；Moiseyev 1998】。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-36}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-36}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-37}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-37}}
 
 \begin{itemize}
 \tightlist
@@ -6331,8 +6416,8 @@ B_z\hat S_z+B_x\hat S_x
 耦合，破坏沿电场轴的柱对称性，形成可由倾角连续调控的 Stark--Zeeman
 反交叉谱。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-37}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-37}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-38}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-38}}
 
 \begin{itemize}
 \tightlist
@@ -6374,8 +6459,8 @@ Q_1+Q_2+Q_3
 Longuet-Higgins 等讨论了 Jahn--Teller 与几何相位【Longuet-Higgins et
 al.~1958】；Berry 给出了量子几何相位的一般表述【Berry 1984】。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-38}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-38}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-39}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-39}}
 
 \begin{itemize}
 \tightlist
@@ -6427,8 +6512,8 @@ m_z=|\zeta_{+1}|^2-|\zeta_{-1}|^2.
 Ho 和 Ohmi--Machida 给出了旋量 BEC 理论【Ho 1998；Ohmi \& Machida
 1998】。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-39}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-39}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-40}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-40}}
 
 \begin{itemize}
 \tightlist
@@ -6448,8 +6533,8 @@ Ho 和 Ohmi--Machida 给出了旋量 BEC 理论【Ho 1998；Ohmi \& Machida
 
 这类问题通常需要结合势能面、非绝热耦合和经典轨迹。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-40}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-40}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-41}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-41}}
 
 \begin{itemize}
 \tightlist
@@ -6498,8 +6583,8 @@ I_{fi}(\omega)
 
 这类模块主要用于内壳层激发、共振非弹性散射和精细结构分析。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-41}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-41}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-42}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-42}}
 
 \begin{itemize}
 \tightlist
@@ -6538,8 +6623,8 @@ S(b)
 \right].
 \]
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-42}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-42}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-43}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-43}}
 
 \begin{itemize}
 \tightlist
@@ -6595,8 +6680,8 @@ nm，\(E_0=0.08\ a.u.\)，8 周期 \(\sin^2\) 包络）。谱呈现微扰区、�
 \texttt{docs/generate\_figures.py}。}
 \end{figure}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-43}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-43}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-44}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-44}}
 
 \begin{itemize}
 \tightlist
@@ -6621,8 +6706,8 @@ V(R)\sim\frac{C_3}{R^3}.
 
 当相互作用能大于激发激光线宽时，一个里德堡激发会阻止邻近原子再被激发。该机制用于量子门、多体动力学和量子多体疤痕。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-44}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-44}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-45}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-45}}
 
 \begin{itemize}
 \tightlist
@@ -6792,8 +6877,8 @@ E_v
   期望值 \(\langle R\rangle\) 和 \(\langle R^2\rangle\) 稳定。
 \end{itemize}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-45}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-45}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-46}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-46}}
 
 \begin{itemize}
 \tightlist
@@ -6897,8 +6982,8 @@ E_v
 全程处于机器精度水平。绘图脚本见 \texttt{docs/generate\_figures.py}。}
 \end{figure}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-46}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-46}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-47}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-47}}
 
 \begin{itemize}
 \tightlist
@@ -6972,8 +7057,8 @@ i\hbar\frac{\partial\psi}{\partial t}
   不同 \(\sigma\) 下结果稳定。
 \end{itemize}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-47}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-47}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-48}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-48}}
 
 \begin{itemize}
 \tightlist
@@ -7053,8 +7138,8 @@ a_{\mathrm{bg}}
   拟合残差可控。
 \end{itemize}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-48}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-48}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-49}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-49}}
 
 \begin{itemize}
 \tightlist
@@ -7296,8 +7381,8 @@ Liouvillian 超算符向量化为 \(\mathcal{L}\)（\(n^{2}\times n^{2}\)
 \(|S(\rho_A)-S(\rho_B)|\le S(\rho_{AB})\le S(\rho_A)+S(\rho_B)\)：对纯态取等号
 \(S_{AB}=0\)、\(S_A=S_B\)（机器验证到 \(10^{-10}\)）。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-49}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-49}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-50}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-50}}
 
 \begin{itemize}
 \tightlist
@@ -7376,8 +7461,8 @@ c_j^{*}c_k\,\mathbf v\cdot\mathbf d_{jk}
   不同随机种子结果稳定。
 \end{itemize}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-50}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-50}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-51}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-51}}
 
 \begin{itemize}
 \tightlist
@@ -7420,8 +7505,8 @@ Fortran 输出通常为文本或二进制数据。Python 可用于：
 推荐使用 NumPy 处理数组，Matplotlib 绘图【Harris et al.~2020；Hunter
 2007】。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-51}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-51}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-52}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-52}}
 
 \begin{itemize}
 \tightlist
@@ -8286,6 +8371,19 @@ Smolyak 稀疏网格\strut
 图 4.3（32）\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
+4.7\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+三维三三次样条 PES 插值\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{mod\_interpolation::spline\_3d\_init}、\texttt{spline\_3d\_eval}、\texttt{spline\_3d\_grad}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{interp2d.Spline3D}、\texttt{qct.leps\_potential\_distances}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{test\_interp\_3d}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+图 4.4（33）\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.14\columnwidth}\raggedright
 15.4\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 差分与收敛标定\strut
@@ -8757,8 +8855,8 @@ e_1,
 Lanczos
 方法适合求极端本征值和时间演化，但对重复本征值和近简并子空间需要块方法或重启策略。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-52}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-52}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-53}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-53}}
 
 \begin{itemize}
 \tightlist
@@ -8844,8 +8942,8 @@ p_2=1-2p_1.
 
 更高阶方法虽然每步代价增加，但对长时间积分和严格要求幺正性的问题更有效。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-53}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-53}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-54}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-54}}
 
 \begin{itemize}
 \tightlist
@@ -8894,8 +8992,8 @@ O(zN),
   单电子耦合算符。
 \end{itemize}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-54}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-54}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-55}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-55}}
 
 \begin{itemize}
 \tightlist
@@ -8946,8 +9044,8 @@ G_d(i_d).
 
 若张量秩较低，存储和计算代价可从指数级降低到多项式级。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-55}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-55}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-56}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-56}}
 
 \begin{itemize}
 \tightlist
@@ -9003,8 +9101,8 @@ G_d(i_d).
 (\mathbf I+i\mathbf K)(\mathbf I-i\mathbf K)^{-1}.
 \]
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-56}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-56}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-57}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-57}}
 
 \begin{itemize}
 \tightlist
@@ -9053,8 +9151,8 @@ C_s\Delta r_s^p
 
 这样在强变化区域使用细网格，在平滑区域使用粗网格。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-57}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-57}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-58}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-58}}
 
 \begin{itemize}
 \tightlist
@@ -9098,8 +9196,8 @@ z\sqrt{
 
 增加轨迹数时，统计误差按 \(N^{-1/2}\) 下降。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-58}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-58}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-59}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-59}}
 
 \begin{itemize}
 \tightlist
@@ -9150,8 +9248,8 @@ e^{\lambda t}
 
 实部为负的本征值对应衰减模式，纯虚本征值对应相干振荡。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-59}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-59}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-60}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-60}}
 
 \begin{itemize}
 \tightlist
@@ -9194,8 +9292,8 @@ J_\epsilon
 
 若使用硬约束，则可采用投影或罚函数方法。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-60}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-60}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-61}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-61}}
 
 \begin{itemize}
 \tightlist
@@ -9360,8 +9458,8 @@ API，而是说明哪些能力已经稳定、哪些还不完整、在科研工�
 \epsilon |x|.
 \]
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-61}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-61}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-62}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-62}}
 
 \begin{itemize}
 \tightlist
@@ -9435,8 +9533,8 @@ C^{JM}_{j_1m_1j_2m_2}
 C^{J,-M}_{j_1,-m_1j_2,-m_2}.
 \]
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-62}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-62}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-63}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-63}}
 
 \begin{itemize}
 \tightlist
@@ -9545,8 +9643,8 @@ B & A
 其本征值与 \(H\) 的本征值一一对应。这样可以在不引入 LAPACK
 的情况下复用现有实对称本征求解器。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-63}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-63}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-64}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-64}}
 
 \begin{itemize}
 \tightlist
@@ -9699,8 +9797,8 @@ FFT 是 Split-Operator 和 FGH 的基础。当前 \texttt{fft\_1d} 已支持常�
 
 这样可以在不重写物理模块的情况下扩展更多 DVR。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-64}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-64}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-65}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-65}}
 
 \begin{itemize}
 \tightlist
@@ -9732,6 +9830,9 @@ FFT 是 Split-Operator 和 FGH 的基础。当前 \texttt{fft\_1d} 已支持常�
   \textbf{二维双三次张量积样条}（\texttt{spline\_2d\_init}/\texttt{spline\_2d\_eval}/\texttt{spline\_2d\_grad}，节点精确
   + 解析梯度，§4.6 与图 4.3）；
 \item
+  \textbf{三维三三次张量积样条}（\texttt{spline\_3d\_init}/\texttt{spline\_3d\_eval}/\texttt{spline\_3d\_grad}，8
+  类节点张量分量，§4.7 与图 4.4）；
+\item
   势能面插值到网格；
 \item
   长程 \(C_6/r^6\) 外推。
@@ -9743,9 +9844,9 @@ FFT 是 Split-Operator 和 FGH 的基础。当前 \texttt{fft\_1d} 已支持常�
 \begin{itemize}
 \tightlist
 \item
-  三维张量样条未具备（二维已具备，§4.6）；
+  四维及以上张量样条未具备（二/三维已具备，§4.6/§4.7）；
 \item
-  二维样条为自然边界、规则网格（非规则/散点数据需重采样）；
+  二/三维样条为自然边界、规则网格（非规则/散点数据需重采样）；
 \item
   没有单调性约束；
 \item
@@ -9781,8 +9882,8 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \right|.
 \]
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-65}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-65}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-66}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-66}}
 
 \begin{itemize}
 \tightlist
@@ -9854,8 +9955,8 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 
 并输出 JSON 或 TOML 头，便于 Python 自动读取。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-66}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-66}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-67}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-67}}
 
 \begin{itemize}
 \tightlist
@@ -9928,8 +10029,8 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \end{Highlighting}
 \end{Shaded}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-67}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-67}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-68}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-68}}
 
 \begin{itemize}
 \tightlist
@@ -9963,7 +10064,7 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 稀疏本征 & 部分具备 (Lanczos/Ritz 极值; Arnoldi 未具备) & 高 &
 Lanczos/Arnoldi\tabularnewline
 SVD/QR/Cholesky & 未具备 & 中 & 支持拟合和正则化\tabularnewline
-多维插值 & 二维已具备 (§4.6); 三维未具备 & 高 &
+多维插值 & 二维/三维已具备 (§4.6/§4.7); 四维以上未具备 & 高 &
 二维/三维势能面\tabularnewline
 自适应网格 & 未具备 & 中 & 局部加密\tabularnewline
 并行化 & 基本未具备 & 高 & OpenMP/MPI\tabularnewline
@@ -10167,7 +10268,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 51 个测试程序、557 项断言全部通过。
+  全库 52 个测试程序、563 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的
@@ -10301,8 +10402,8 @@ V(R,r,\gamma),
 若势能面只依赖夹角 \(\gamma\)
 而不显式依赖绝对取向，则总角动量及其空间固定分量守恒。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-68}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-68}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-69}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-69}}
 
 \begin{itemize}
 \tightlist
@@ -10370,8 +10471,8 @@ b=b_{\max}\sqrt{\xi_1},
 严格做法是在给定作用量 \((I_r,\mathbf j)\)
 的不变环面上均匀抽样，而不是随机给出 \(r\) 和 \(p_r\) 后再强行缩放。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-69}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-69}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-70}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-70}}
 
 \begin{itemize}
 \tightlist
@@ -10417,8 +10518,8 @@ Velocity-Verlet
 SHAKE
 等约束辛积分器。自适应步长虽然方便，但一般会破坏严格辛性；若必须使用，应同时监测能量误差和相位误差。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-70}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-70}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-71}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-71}}
 
 \begin{itemize}
 \tightlist
@@ -10587,8 +10688,8 @@ k(T)=\sum_{v j}p_{v j}(T)\,k_{v j}(T).
 Fortran 实现给出 \(1.242 \pm 0.018\ a_0^2\)，两套实现交叉吻合）。}
 \end{figure}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-71}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-71}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-72}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-72}}
 
 \begin{itemize}
 \tightlist
@@ -10636,8 +10737,8 @@ Fortran 实现给出 \(1.242 \pm 0.018\ a_0^2\)，两套实现交叉吻合）。
   总能量、总角动量守恒。
 \end{enumerate}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-72}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-72}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-73}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-73}}
 
 \begin{itemize}
 \tightlist
@@ -10675,8 +10776,8 @@ Fortran 实现给出 \(1.242 \pm 0.018\ a_0^2\)，两套实现交叉吻合）。
 
 无论采用哪种修正，都应在文档中明确说明；不同修正会得到不同的态到态分支比。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-73}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-73}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-74}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-74}}
 
 \begin{itemize}
 \tightlist
@@ -10711,8 +10812,8 @@ FSSH 可以看作``经典核 + 量子电子振幅''的混合方法；QCT
 推广为``准经典非绝热轨迹''：核仍用经典轨迹，电子态用 FSSH 或 Ehrenfest
 演化；此时需要同时记录电子态、核轨迹和内态作用量。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-74}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-74}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-75}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-75}}
 
 \begin{itemize}
 \tightlist
@@ -10921,8 +11022,8 @@ c_\alpha
 \(O(MDn^{D+1})\)；若局部算符稀疏或可用 FFT，则可显著降低。SOP 表示是
 MCTDH、张量网络和高维 Krylov 方法的基础。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-75}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-75}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-76}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-76}}
 
 \begin{itemize}
 \tightlist
@@ -11001,8 +11102,8 @@ i\hbar\dot{\boldsymbol\varphi}^{(\kappa)}
 可能奇异或病态，需使用伪逆、正则化或合适的规范条件。MCTDH 的优势是 SPF
 随时间自适应；代价是每步需要构造均值场矩阵和势能 SOP。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-76}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-76}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-77}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-77}}
 
 \begin{itemize}
 \tightlist
@@ -11077,8 +11178,8 @@ TT/MPS 的关键操作包括：
 TT/MPS
 对一维近邻耦合特别高效；对长程耦合或高维张量网络，需要更一般的分层张量表示。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-77}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-77}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-78}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-78}}
 
 \begin{itemize}
 \tightlist
@@ -11124,8 +11225,8 @@ O\!\left(N(\log N)^{D-1}\right),
 而不是
 \(O(N^D)\)。该复杂度依赖于函数光滑性和一维求积规则的选择；对强振荡、强局域或奇点问题，需要自适应稀疏网格。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-78}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-78}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-79}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-79}}
 
 \begin{itemize}
 \tightlist
@@ -11184,8 +11285,8 @@ n_\kappa\in\mathcal S_\kappa
 剪枝基的优点是易与现有 DVR/FGH
 框架兼容；缺点是基组不再有全张量结构，矩阵---向量乘法需要自定义稀疏索引。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-79}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-79}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-80}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-80}}
 
 \begin{itemize}
 \tightlist
@@ -11218,8 +11319,8 @@ POTFIT/SOP & MCTDH & 与传播器匹配 & 拟合误差\tabularnewline
 对高维势能面，应同时提供能量、梯度和 Hessians
 的检验，特别是对称性、渐近行为和梯度守恒。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-80}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-80}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-81}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-81}}
 
 \begin{itemize}
 \tightlist
@@ -11248,8 +11349,8 @@ POTFIT/SOP & MCTDH & 与传播器匹配 & 拟合误差\tabularnewline
 \bottomrule
 \end{longtable}
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-81}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-81}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-82}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-82}}
 
 \begin{itemize}
 \tightlist
@@ -11389,8 +11490,8 @@ MCTDH 全空间精确性与 SPF 收敛）。
 适用范围与模型边界：TT 与 MCTDH
 的张量截断误差强烈依赖初态的纠缠熵增长率以及势能面的非谐耦合强度；验证协议应覆盖弱耦合到强耦合多个参数区域，以确定有效键维与单粒子函数基组的收敛边界。
 
-\hypertarget{ux5bf9ux5e94ux6e90ux7801-82}{%
-\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-82}}
+\hypertarget{ux5bf9ux5e94ux6e90ux7801-83}{%
+\paragraph{对应源码}\label{ux5bf9ux5e94ux6e90ux7801-83}}
 
 \begin{itemize}
 \tightlist

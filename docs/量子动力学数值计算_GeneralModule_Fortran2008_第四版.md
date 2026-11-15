@@ -857,6 +857,34 @@ $$
 - [python/pygenmod/interp2d.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/interp2d.py)
 - 验证：`tests/test_interp_2d.f90`（5 项断言）；`python/test_pygenmod.py::test_interp_2d`
 
+### 4.7　三维三三次样条：完整三距离势能面
+
+三原子体系的完整势能面依赖三个两两距离 $(r_{12}, r_{23}, r_{31})$（QCT 模块的 LEPS 面即为此形式），二维插值不足以覆盖。三维三三次样条是 §4.6 构造的逐轴递归推广：在每个节点存储 **8 个张量分量**
+
+$$
+z,\quad z^{xx},\ z^{yy},\ z^{zz},\quad z^{xy},\ z^{xz},\ z^{yz},\quad z^{xyz},
+$$
+
+由 1D 自然样条核 $\mathcal{S}_1''[\cdot]$ 沿三个轴依次作用构造：
+
+1. 沿 $x$ 对 $z$ 样条 $\to z^{xx}$；
+2. 沿 $y$ 对 $\{z, z^{xx}\}$ 样条 $\to \{z^{yy}, z^{xy}\}$；
+3. 沿 $z$ 对上述四个数组样条 $\to \{z^{zz}, z^{xz}, z^{yz}, z^{xyz}\}$。
+
+胞元内 $2\times2\times2$ Hermite 基展开（每个方向各取 $\{T,U\}$ 基）自动保证节点处全部 8 类量精确重现、胞元交界 $C^1$ 连续，解析梯度 $\nabla S$ 三方向直接可得（QCT 力场无需差分）。代价 $O(N_xN_yN_z)$（每个方向的样条核为线性复杂度），内存为 8 个网格数组。
+
+**验收（6 项断言）。** 其一，**三线性精确重构**：$z=a+bx+cy+dz+exy+gxz+hyz+mxyz$ 误差 $5.6\times10^{-17}$（机器精度），节点复现 $0.0$；其二，**内部四阶收敛**：光滑函数 $n=9\to17$ 对半加密误差比 $371$；其三，**全置换对称性与梯度**：置换对称数据满足 $S(x,y,z)=S(y,x,z)=S(z,y,x)$ 到 $1.7\times10^{-16}$，解析梯度与中心差分一致到 $1.1\times10^{-10}$、与精确梯度偏差 $2.9\times10^{-4}$；其四，**真实 $\mathrm{H}_3$ LEPS 三维面** $V(r_{12},r_{23},r_{31})$（$16^3$ 网格覆盖 $[1.2,3.6]^3$，含共线鞍点所需的 $r_{31}=r_{12}+r_{23}$ 区域）：化学相关区（$V<-0.10\ E_h$，势垒以下反应通道）插值误差 $\le5.9\times10^{-4}\ E_h$，**鞍点 $(1.775,1.775,3.55)$ 误差 $6.8\times10^{-6}\ E_h$**（鞍点值 $-0.1533\ E_h$，Fortran 金值 $-0.153705\ E_h$）；其五，LEPS 面的三键置换对称性在插值后保持到 $1.4\times10^{-17}$；其六，**网格对半加密**（$16^3\to31^3$，$h=0.16\to0.08\ a_0$）反应区误差由 $5.9\times10^{-4}$ 降至 $8.2\times10^{-5}$（比 $7.3$，趋近四阶标度）。高能排斥壁区（$V>0$）曲率极大、粗网格误差集中于此（与二维情形同一物理图像：误差随曲率增长），不作为小网格验收指标——这也是势能面插值工程的通用经验：**采样密度应按化学相关区的曲率而非全空间最陡区设置**。Python 镜像 `Spline3D`（独立实现）+ 三距离版 `leps_potential_distances`（与 Fortran `calc_leps_potential` 语义一致）并入 `test_interp_3d`（Python 套件 38 → 39 项）。
+
+![图 4.4：三维三三次样条在完整三距离 LEPS 面上的验收。(a) 对称面 $r_{12}=r_{23}=r$ 上的插值误差分布（$16^3$ 网格，对数色阶）：光滑谷区误差 $\sim10^{-7}$，急倾斜壁区 $\sim10^{-3}$，条纹结构反映三次样条误差在节点间取极大、节点处为零的解析性质；(b) 过鞍点的共线对称伸缩剖面 $r_{31}=2r$（网格有效区 $r\le1.8$）：精确 LEPS（黑实线）与 $16^3$（红圈）、$31^3$（蓝方块）样条逐点重合，最小值恰在鞍点 $r=1.775$；(c) 反应区（$V<-0.1\ E_h$）最大插值误差随网格间距的收敛（双对数），与 $h^4$ 参考斜率平行。绘图脚本见 `docs/generate_figures.py`。](figures/fig33_interp3d_leps.png){width=15.5cm}
+
+#### 对应源码
+
+- [src/mod_interpolation.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_interpolation.f90)（`spline_3d_init`、`spline_3d_eval`、`spline_3d_grad`）
+- [python/pygenmod/interp2d.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/interp2d.py)（`Spline3D`）、[python/pygenmod/qct.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/qct.py)（`leps_potential_distances`）
+- 验证：`tests/test_interp_3d.f90`（6 项断言）；`python/test_pygenmod.py::test_interp_3d`
+
+---
+
 ---
 
 ## 参考文献
@@ -4413,6 +4441,7 @@ GitHub Actions 配置位于：
 | 18.1 / 14.4 | SOP 与 TT | `mod_sop_hamiltonian::sop_apply`、`mod_tensor_train::tt_round` | `sop_hamiltonian`、`tensor_train` | `test_sop_hamiltonian`/`test_tensor_train` | — |
 | 18.4 | Smolyak 稀疏网格 | `mod_sparse_grid::smolyak_build` | `sparse_grid.smolyak_build` | `test_sparse_grid` | 图 18.1 |
 | 4.6 / 15.7 | 二维双三次样条 PES 插值 | `mod_interpolation::spline_2d_init`、`spline_2d_eval`、`spline_2d_grad` | `interp2d.Spline2D` | `test_interp_2d` | 图 4.3（32） |
+| 4.7 | 三维三三次样条 PES 插值 | `mod_interpolation::spline_3d_init`、`spline_3d_eval`、`spline_3d_grad` | `interp2d.Spline3D`、`qct.leps_potential_distances` | `test_interp_3d` | 图 4.4（33） |
 | 15.4 | 差分与收敛标定 | — | — | `docs/generate_figures.py` | 图 4.1 |
 
 表中"—"表示该层尚无独立 Python 参照或结果图（详见 §15 能力清单与 §12 路线图）。
@@ -5171,13 +5200,14 @@ end type grid_t
 - 固定一阶导数边界；
 - 一阶导数和二阶导数；
 - **二维双三次张量积样条**（`spline_2d_init`/`spline_2d_eval`/`spline_2d_grad`，节点精确 + 解析梯度，§4.6 与图 4.3）；
+- **三维三三次张量积样条**（`spline_3d_init`/`spline_3d_eval`/`spline_3d_grad`，8 类节点张量分量，§4.7 与图 4.4）；
 - 势能面插值到网格；
 - 长程 $C_6/r^6$ 外推。
 
 #### 已知限制
 
-- 三维张量样条未具备（二维已具备，§4.6）；
-- 二维样条为自然边界、规则网格（非规则/散点数据需重采样）；
+- 四维及以上张量样条未具备（二/三维已具备，§4.6/§4.7）；
+- 二/三维样条为自然边界、规则网格（非规则/散点数据需重采样）；
 - 没有单调性约束；
 - 没有自动外推不确定性估计；
 - 没有对剧烈势能变化的局部加密。
@@ -5314,7 +5344,7 @@ end subroutine expect_close
 | 复 Hermitian 本征 | 已具备 (加倍归约, §4.5) | 高 | 支持复哈密顿量 |
 | 稀疏本征 | 部分具备 (Lanczos/Ritz 极值; Arnoldi 未具备) | 高 | Lanczos/Arnoldi |
 | SVD/QR/Cholesky | 未具备 | 中 | 支持拟合和正则化 |
-| 多维插值 | 二维已具备 (§4.6); 三维未具备 | 高 | 二维/三维势能面 |
+| 多维插值 | 二维/三维已具备 (§4.6/§4.7); 四维以上未具备 | 高 | 二维/三维势能面 |
 | 自适应网格 | 未具备 | 中 | 局部加密 |
 | 并行化 | 基本未具备 | 高 | OpenMP/MPI |
 | 单位类型 | 弱 | 中 | 显式状态码 |
@@ -5388,7 +5418,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 51 个测试程序、557 项断言全部通过。
+- 全库 52 个测试程序、563 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

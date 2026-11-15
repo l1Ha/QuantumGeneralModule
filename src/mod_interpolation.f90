@@ -19,6 +19,11 @@ module mod_interpolation
     public :: spline_2d_eval
     public :: spline_2d_grad
     public :: spline_2d_clean
+    public :: spline_3d_t
+    public :: spline_3d_init
+    public :: spline_3d_eval
+    public :: spline_3d_grad
+    public :: spline_3d_clean
     public :: interpolate_pes_to_grid
 
     ! 边界条件类型
@@ -53,6 +58,24 @@ module mod_interpolation
         real(dp), allocatable :: zyy(:, :)         !< d2z/dy2 节点值
         real(dp), allocatable :: zxxyy(:, :)       !< d4z/(dx2 dy2) 节点值
     end type spline_2d_t
+
+    !> \brief 三维三三次张量积样条结构体 (三维 PES 插值)
+    !> \details 二维结构 (见 spline_2d_t) 的逐轴递归推广: 在每个节点存储
+    !>          8 个张量分量 z, zxx, zyy, zzz, zxxyy, zxxzz, zyyzz, zxxyyzz,
+    !>          由 1D 自然样条核沿 x -> y -> z 依次作用构造:
+    !>            (1) 沿 x 对 z 样条 -> zxx;
+    !>            (2) 沿 y 对 {z, zxx} 样条 -> {zyy, zxxyy};
+    !>            (3) 沿 z 对上述 4 个数组样条 -> {zzz, zxxzz, zyyzz, zxxyyzz}.
+    !>          胞元内 2x2x2 Hermite 基展开保证节点处 8 类量精确重现,
+    !>          胞元交界 C1 连续; 解析梯度三方向直接可得。
+    type :: spline_3d_t
+        integer :: nx = 0, ny = 0, nz = 0
+        real(dp), allocatable :: x(:), y(:), z(:)      !< 网格轴 (严格递增)
+        real(dp), allocatable :: f(:, :, :)            !< 节点值
+        real(dp), allocatable :: fxx(:, :, :), fyy(:, :, :), fzz(:, :, :)
+        real(dp), allocatable :: fxy(:, :, :), fxz(:, :, :), fyz(:, :, :)
+        real(dp), allocatable :: fxyz(:, :, :)
+    end type spline_3d_t
 
 contains
 
@@ -518,5 +541,219 @@ contains
         spl%nx = 0
         spl%ny = 0
     end subroutine spline_2d_clean
+
+    !> \brief 初始化三维三三次张量积样条 (三维 PES 插值)
+    !> \details 逐轴递归: 沿 x 对 f 样条得 fxx; 沿 y 对 {f, fxx} 样条得
+    !>          {fyy, fxy}; 沿 z 对 {f, fxx, fyy, fxy} 样条得
+    !>          {fzz, fxz, fyz, fxyz}。全部复用 1D 自然样条核。
+    !> \param[in] x,y,z 网格轴 (严格递增)
+    !> \param[in] f 网格值 (nx, ny, nz)
+    !> \param[out] spl 三维样条结构体
+    !> \param[out] stat 状态码 (0 正常)
+    subroutine spline_3d_init(x, y, z, f, spl, stat)
+        real(dp), intent(in) :: x(:), y(:), z(:), f(:, :, :)
+        type(spline_3d_t), intent(out) :: spl
+        integer, intent(out) :: stat
+
+        type(spline_1d_t) :: s1
+        integer :: nx, ny, nz, i, j, k
+        real(dp), allocatable :: line(:)
+
+        stat = 0
+        nx = size(x); ny = size(y); nz = size(z)
+        if (size(f, 1) /= nx .or. size(f, 2) /= ny .or. size(f, 3) /= nz) then
+            stat = 1
+            return
+        end if
+        if (nx < 2 .or. ny < 2 .or. nz < 2) then
+            stat = 1
+            return
+        end if
+
+        spl%nx = nx; spl%ny = ny; spl%nz = nz
+        allocate (spl%x(nx), spl%y(ny), spl%z(nz), spl%f(nx, ny, nz))
+        allocate (spl%fxx(nx, ny, nz), spl%fyy(nx, ny, nz), spl%fzz(nx, ny, nz))
+        allocate (spl%fxy(nx, ny, nz), spl%fxz(nx, ny, nz), spl%fyz(nx, ny, nz))
+        allocate (spl%fxyz(nx, ny, nz))
+        spl%x = x; spl%y = y; spl%z = z
+        spl%f = f
+        spl%fxx = 0.0_dp; spl%fyy = 0.0_dp; spl%fzz = 0.0_dp
+        spl%fxy = 0.0_dp; spl%fxz = 0.0_dp; spl%fyz = 0.0_dp
+        spl%fxyz = 0.0_dp
+
+        allocate (line(max(nx, ny, nz)))
+
+        ! (1) 沿 x 对 f 样条 -> fxx
+        do k = 1, nz
+            do j = 1, ny
+                call spline_init(x, spl%f(:, j, k), s1, BC_NATURAL)
+                do i = 1, nx
+                    spl%fxx(i, j, k) = spline_eval_deriv2(s1, x(i))
+                end do
+                call spline_clean(s1)
+            end do
+        end do
+
+        ! (2) 沿 y 对 {f, fxx} 样条 -> {fyy, fxy}
+        do k = 1, nz
+            do i = 1, nx
+                call spline_init(y, spl%f(i, :, k), s1, BC_NATURAL)
+                do j = 1, ny
+                    spl%fyy(i, j, k) = spline_eval_deriv2(s1, y(j))
+                end do
+                call spline_clean(s1)
+                call spline_init(y, spl%fxx(i, :, k), s1, BC_NATURAL)
+                do j = 1, ny
+                    spl%fxy(i, j, k) = spline_eval_deriv2(s1, y(j))
+                end do
+                call spline_clean(s1)
+            end do
+        end do
+
+        ! (3) 沿 z 对 4 个数组样条 -> 4 个混合分量
+        do j = 1, ny
+            do i = 1, nx
+                call spline_init(z, spl%f(i, j, :), s1, BC_NATURAL)
+                do k = 1, nz
+                    spl%fzz(i, j, k) = spline_eval_deriv2(s1, z(k))
+                end do
+                call spline_clean(s1)
+
+                call spline_init(z, spl%fxx(i, j, :), s1, BC_NATURAL)
+                do k = 1, nz
+                    spl%fxz(i, j, k) = spline_eval_deriv2(s1, z(k))
+                end do
+                call spline_clean(s1)
+
+                call spline_init(z, spl%fyy(i, j, :), s1, BC_NATURAL)
+                do k = 1, nz
+                    spl%fyz(i, j, k) = spline_eval_deriv2(s1, z(k))
+                end do
+                call spline_clean(s1)
+
+                call spline_init(z, spl%fxy(i, j, :), s1, BC_NATURAL)
+                do k = 1, nz
+                    spl%fxyz(i, j, k) = spline_eval_deriv2(s1, z(k))
+                end do
+                call spline_clean(s1)
+            end do
+        end do
+
+        deallocate (line)
+    end subroutine spline_3d_init
+
+    !> \brief 三维三三次样条求值 (自然边界; 网格外钳制到边界胞元)
+    pure function spline_3d_eval(spl, xv, yv, zv) result(val)
+        type(spline_3d_t), intent(in) :: spl
+        real(dp), intent(in) :: xv, yv, zv
+        real(dp) :: val
+
+        integer :: i, j, k
+        real(dp) :: tx(2), ux(2), ty(2), uy(2), tz(2), uz(2)
+        real(dp) :: dtx(2), dux(2), dty(2), duy(2), dtz(2), duz(2)
+        real(dp) :: w(2), wx(2), wy(2), wz(2)
+        integer :: p, q, r
+
+        i = locate_cell(spl%x, spl%nx, xv)
+        j = locate_cell(spl%y, spl%ny, yv)
+        k = locate_cell(spl%z, spl%nz, zv)
+        call hermite_basis(spl%x(i), spl%x(i + 1), xv, tx(1), tx(2), ux(1), ux(2), &
+                           dtx(1), dtx(2), dux(1), dux(2))
+        call hermite_basis(spl%y(j), spl%y(j + 1), yv, ty(1), ty(2), uy(1), uy(2), &
+                           dty(1), dty(2), duy(1), duy(2))
+        call hermite_basis(spl%z(k), spl%z(k + 1), zv, tz(1), tz(2), uz(1), uz(2), &
+                           dtz(1), dtz(2), duz(1), duz(2))
+
+        val = 0.0_dp
+        do p = 1, 2
+            do q = 1, 2
+                do r = 1, 2
+                    val = val &
+                          + spl%f(i + p - 1, j + q - 1, k + r - 1) * tx(p) * ty(q) * tz(r) &
+                          + spl%fxx(i + p - 1, j + q - 1, k + r - 1) * ux(p) * ty(q) * tz(r) &
+                          + spl%fyy(i + p - 1, j + q - 1, k + r - 1) * tx(p) * uy(q) * tz(r) &
+                          + spl%fzz(i + p - 1, j + q - 1, k + r - 1) * tx(p) * ty(q) * uz(r) &
+                          + spl%fxy(i + p - 1, j + q - 1, k + r - 1) * ux(p) * uy(q) * tz(r) &
+                          + spl%fxz(i + p - 1, j + q - 1, k + r - 1) * ux(p) * ty(q) * uz(r) &
+                          + spl%fyz(i + p - 1, j + q - 1, k + r - 1) * tx(p) * uy(q) * uz(r) &
+                          + spl%fxyz(i + p - 1, j + q - 1, k + r - 1) * ux(p) * uy(q) * uz(r)
+                end do
+            end do
+        end do
+    end function spline_3d_eval
+
+    !> \brief 三维三三次样条解析梯度 (df/dx, df/dy, df/dz)
+    pure subroutine spline_3d_grad(spl, xv, yv, zv, gx, gy, gz)
+        type(spline_3d_t), intent(in) :: spl
+        real(dp), intent(in) :: xv, yv, zv
+        real(dp), intent(out) :: gx, gy, gz
+
+        integer :: i, j, k, p, q, r
+        real(dp) :: tx(2), ux(2), ty(2), uy(2), tz(2), uz(2)
+        real(dp) :: dtx(2), dux(2), dty(2), duy(2), dtz(2), duz(2)
+        real(dp) :: vx, vy, vz
+
+        i = locate_cell(spl%x, spl%nx, xv)
+        j = locate_cell(spl%y, spl%ny, yv)
+        k = locate_cell(spl%z, spl%nz, zv)
+        call hermite_basis(spl%x(i), spl%x(i + 1), xv, tx(1), tx(2), ux(1), ux(2), &
+                           dtx(1), dtx(2), dux(1), dux(2))
+        call hermite_basis(spl%y(j), spl%y(j + 1), yv, ty(1), ty(2), uy(1), uy(2), &
+                           dty(1), dty(2), duy(1), duy(2))
+        call hermite_basis(spl%z(k), spl%z(k + 1), zv, tz(1), tz(2), uz(1), uz(2), &
+                           dtz(1), dtz(2), duz(1), duz(2))
+
+        gx = 0.0_dp; gy = 0.0_dp; gz = 0.0_dp
+        do p = 1, 2
+            do q = 1, 2
+                do r = 1, 2
+                    vx = spl%f(i + p - 1, j + q - 1, k + r - 1) * dtx(p) * ty(q) * tz(r) &
+                         + spl%fxx(i + p - 1, j + q - 1, k + r - 1) * dux(p) * ty(q) * tz(r) &
+                         + spl%fyy(i + p - 1, j + q - 1, k + r - 1) * dtx(p) * uy(q) * tz(r) &
+                         + spl%fzz(i + p - 1, j + q - 1, k + r - 1) * dtx(p) * ty(q) * uz(r) &
+                         + spl%fxy(i + p - 1, j + q - 1, k + r - 1) * dux(p) * uy(q) * tz(r) &
+                         + spl%fxz(i + p - 1, j + q - 1, k + r - 1) * dux(p) * ty(q) * uz(r) &
+                         + spl%fyz(i + p - 1, j + q - 1, k + r - 1) * dtx(p) * uy(q) * uz(r) &
+                         + spl%fxyz(i + p - 1, j + q - 1, k + r - 1) * dux(p) * uy(q) * uz(r)
+                    vy = spl%f(i + p - 1, j + q - 1, k + r - 1) * tx(p) * dty(q) * tz(r) &
+                         + spl%fxx(i + p - 1, j + q - 1, k + r - 1) * ux(p) * dty(q) * tz(r) &
+                         + spl%fyy(i + p - 1, j + q - 1, k + r - 1) * tx(p) * duy(q) * tz(r) &
+                         + spl%fzz(i + p - 1, j + q - 1, k + r - 1) * tx(p) * dty(q) * uz(r) &
+                         + spl%fxy(i + p - 1, j + q - 1, k + r - 1) * ux(p) * duy(q) * tz(r) &
+                         + spl%fxz(i + p - 1, j + q - 1, k + r - 1) * ux(p) * dty(q) * uz(r) &
+                         + spl%fyz(i + p - 1, j + q - 1, k + r - 1) * tx(p) * duy(q) * uz(r) &
+                         + spl%fxyz(i + p - 1, j + q - 1, k + r - 1) * ux(p) * duy(q) * uz(r)
+                    vz = spl%f(i + p - 1, j + q - 1, k + r - 1) * tx(p) * ty(q) * dtz(r) &
+                         + spl%fxx(i + p - 1, j + q - 1, k + r - 1) * ux(p) * ty(q) * dtz(r) &
+                         + spl%fyy(i + p - 1, j + q - 1, k + r - 1) * tx(p) * uy(q) * dtz(r) &
+                         + spl%fzz(i + p - 1, j + q - 1, k + r - 1) * tx(p) * ty(q) * duz(r) &
+                         + spl%fxy(i + p - 1, j + q - 1, k + r - 1) * ux(p) * uy(q) * dtz(r) &
+                         + spl%fxz(i + p - 1, j + q - 1, k + r - 1) * ux(p) * ty(q) * duz(r) &
+                         + spl%fyz(i + p - 1, j + q - 1, k + r - 1) * tx(p) * uy(q) * duz(r) &
+                         + spl%fxyz(i + p - 1, j + q - 1, k + r - 1) * ux(p) * uy(q) * duz(r)
+                    gx = gx + vx
+                    gy = gy + vy
+                    gz = gz + vz
+                end do
+            end do
+        end do
+    end subroutine spline_3d_grad
+
+    !> \brief 释放三维样条内存
+    subroutine spline_3d_clean(spl)
+        type(spline_3d_t), intent(inout) :: spl
+        if (allocated(spl%x)) deallocate (spl%x)
+        if (allocated(spl%y)) deallocate (spl%y)
+        if (allocated(spl%z)) deallocate (spl%z)
+        if (allocated(spl%f)) deallocate (spl%f)
+        if (allocated(spl%fxx)) deallocate (spl%fxx)
+        if (allocated(spl%fyy)) deallocate (spl%fyy)
+        if (allocated(spl%fzz)) deallocate (spl%fzz)
+        if (allocated(spl%fxy)) deallocate (spl%fxy)
+        if (allocated(spl%fxz)) deallocate (spl%fxz)
+        if (allocated(spl%fyz)) deallocate (spl%fyz)
+        if (allocated(spl%fxyz)) deallocate (spl%fxyz)
+        spl%nx = 0; spl%ny = 0; spl%nz = 0
+    end subroutine spline_3d_clean
 
 end module mod_interpolation

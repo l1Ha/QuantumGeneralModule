@@ -61,7 +61,7 @@ from .hhg import (
 from .krylov import lanczos_tridiag, krylov_propagate_step
 from .linalg import (diag_hermitian_matrix, peierls_ring_spectrum,
                      peierls_ring_hamiltonian)
-from .interp2d import Spline2D
+from .interp2d import Spline2D, Spline3D
 
 from .multistate import (
     landau_zener_probability, calculate_channel_populations
@@ -123,6 +123,7 @@ from .open_quantum import (
 
 from .qct import (
     LEPSParameters, QCTConfig, QCTTrajectory, QCTResult,
+    leps_potential_distances,
     qct_init_trajectory, qct_propagate_step, propagate_trajectory,
     qct_analyze_final_state, run_qct_ensemble,
     qct_cross_section, stratified_cross_section, opacity_function,
@@ -163,7 +164,7 @@ __all__ = [
     "landau_zener_probability", "calculate_channel_populations",
     "lanczos_tridiag", "krylov_propagate_step",
     "diag_hermitian_matrix", "peierls_ring_spectrum", "peierls_ring_hamiltonian",
-    "Spline2D",
+    "Spline2D", "Spline3D",
     "rovibrational_state_index", "rovibrational_state_unindex",
     "rot_matrix_cos_theta", "rot_matrix_cos2_theta", "calc_franck_condon_factors",
     "honl_london_parallel", "honl_london_perpendicular",
@@ -192,7 +193,7 @@ __all__ = [
     "fit_feshbach_resonance_parameters", "plot_breit_rabi_diagram",
     "plot_magnetic_feshbach_resonance",
     "plot_wavefunctions", "plot_pulses", "plot_alignment_dynamics",
-    "LEPSParameters", "QCTConfig", "QCTTrajectory", "QCTResult",
+    "LEPSParameters", "leps_potential_distances", "QCTConfig", "QCTTrajectory", "QCTResult",
     "qct_init_trajectory", "qct_propagate_step", "propagate_trajectory",
     "qct_analyze_final_state", "run_qct_ensemble",
     "qct_cross_section", "stratified_cross_section", "opacity_function",

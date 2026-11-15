@@ -135,3 +135,121 @@ class Spline2D:
             + self.zxxyy[i, j + 1] * u0x * du1y + self.zxxyy[i + 1, j + 1] * u1x * du1y
         )
         return dzdx, dzdy
+
+
+class Spline3D:
+    """Tricubic tensor-product spline on a regular 3D grid (natural boundaries).
+
+    Mirrors `spline_3d_t` (src/mod_interpolation.f90): the 1D natural spline
+    kernel is applied axis by axis — along x (-> fxx), then along y
+    (-> fyy, fxy), then along z (-> fzz, fxz, fyz, fxyz) — so that the
+    in-cell 2x2x2 Hermite expansion reproduces all eight node tensor
+    components exactly (f, fxx, fyy, fzz, fxy, fxz, fyz, fxyz).
+    """
+
+    def __init__(self, x, y, z, f):
+        self.x = np.asarray(x, dtype=float)
+        self.y = np.asarray(y, dtype=float)
+        self.z = np.asarray(z, dtype=float)
+        f = np.asarray(f, dtype=float)
+        nx, ny, nz = self.x.size, self.y.size, self.z.size
+        if f.shape != (nx, ny, nz):
+            raise ValueError("f must have shape (len(x), len(y), len(z))")
+        self.f = f
+
+        fxx = np.zeros((nx, ny, nz))
+        for j in range(ny):
+            for k in range(nz):
+                fxx[:, j, k] = _spline_1d_y2(self.x, f[:, j, k])
+        fyy = np.zeros((nx, ny, nz))
+        fxy = np.zeros((nx, ny, nz))
+        for i in range(nx):
+            for k in range(nz):
+                fyy[i, :, k] = _spline_1d_y2(self.y, f[i, :, k])
+                fxy[i, :, k] = _spline_1d_y2(self.y, fxx[i, :, k])
+        fzz = np.zeros((nx, ny, nz))
+        fxz = np.zeros((nx, ny, nz))
+        fyz = np.zeros((nx, ny, nz))
+        fxyz = np.zeros((nx, ny, nz))
+        for i in range(nx):
+            for j in range(ny):
+                fzz[i, j, :] = _spline_1d_y2(self.z, f[i, j, :])
+                fxz[i, j, :] = _spline_1d_y2(self.z, fxx[i, j, :])
+                fyz[i, j, :] = _spline_1d_y2(self.z, fyy[i, j, :])
+                fxyz[i, j, :] = _spline_1d_y2(self.z, fxy[i, j, :])
+        self.fxx, self.fyy, self.fzz = fxx, fyy, fzz
+        self.fxy, self.fxz, self.fyz, self.fxyz = fxy, fxz, fyz, fxyz
+
+    def _cell(self, xv, yv, zv):
+        i = Spline2D._locate(self.x, xv)
+        j = Spline2D._locate(self.y, yv)
+        k = Spline2D._locate(self.z, zv)
+        bx = Spline2D._basis(self.x[i], self.x[i + 1], xv)
+        by = Spline2D._basis(self.y[j], self.y[j + 1], yv)
+        bz = Spline2D._basis(self.z[k], self.z[k + 1], zv)
+        return i, j, k, bx, by, bz
+
+    def eval(self, xv, yv, zv):
+        i, j, k, bx, by, bz = self._cell(xv, yv, zv)
+        val = 0.0
+        for p in (0, 1):
+            for q in (0, 1):
+                for r in (0, 1):
+                    ii, jj, kk = i + p, j + q, k + r
+                    tx, ux = bx[0 + p], bx[2 + p]
+                    ty, uy = by[0 + q], by[2 + q]
+                    tz, uz = bz[0 + r], bz[2 + r]
+                    val += (
+                        self.f[ii, jj, kk] * tx * ty * tz
+                        + self.fxx[ii, jj, kk] * ux * ty * tz
+                        + self.fyy[ii, jj, kk] * tx * uy * tz
+                        + self.fzz[ii, jj, kk] * tx * ty * uz
+                        + self.fxy[ii, jj, kk] * ux * uy * tz
+                        + self.fxz[ii, jj, kk] * ux * ty * uz
+                        + self.fyz[ii, jj, kk] * tx * uy * uz
+                        + self.fxyz[ii, jj, kk] * ux * uy * uz
+                    )
+        return val
+
+    def grad(self, xv, yv, zv):
+        """Analytic gradient (df/dx, df/dy, df/dz)."""
+        i, j, k, bx, by, bz = self._cell(xv, yv, zv)
+        gx = gy = gz = 0.0
+        for p in (0, 1):
+            for q in (0, 1):
+                for r in (0, 1):
+                    ii, jj, kk = i + p, j + q, k + r
+                    tx, ux, dtx, dux = bx[0 + p], bx[2 + p], bx[4 + p], bx[6 + p]
+                    ty, uy, dty, duy = by[0 + q], by[2 + q], by[4 + q], by[6 + q]
+                    tz, uz, dtz, duz = bz[0 + r], bz[2 + r], bz[4 + r], bz[6 + r]
+                    gx += (
+                        self.f[ii, jj, kk] * dtx * ty * tz
+                        + self.fxx[ii, jj, kk] * dux * ty * tz
+                        + self.fyy[ii, jj, kk] * dtx * uy * tz
+                        + self.fzz[ii, jj, kk] * dtx * ty * uz
+                        + self.fxy[ii, jj, kk] * dux * uy * tz
+                        + self.fxz[ii, jj, kk] * dux * ty * uz
+                        + self.fyz[ii, jj, kk] * dtx * uy * uz
+                        + self.fxyz[ii, jj, kk] * dux * uy * uz
+                    )
+                    gy += (
+                        self.f[ii, jj, kk] * tx * dty * tz
+                        + self.fxx[ii, jj, kk] * ux * dty * tz
+                        + self.fyy[ii, jj, kk] * tx * duy * tz
+                        + self.fzz[ii, jj, kk] * tx * dty * uz
+                        + self.fxy[ii, jj, kk] * ux * duy * tz
+                        + self.fxz[ii, jj, kk] * ux * dty * uz
+                        + self.fyz[ii, jj, kk] * tx * duy * uz
+                        + self.fxyz[ii, jj, kk] * ux * duy * uz
+                    )
+                    gz += (
+                        self.f[ii, jj, kk] * tx * ty * dtz
+                        + self.fxx[ii, jj, kk] * ux * ty * dtz
+                        + self.fyy[ii, jj, kk] * tx * uy * dtz
+                        + self.fzz[ii, jj, kk] * tx * ty * duz
+                        + self.fxy[ii, jj, kk] * ux * uy * dtz
+                        + self.fxz[ii, jj, kk] * ux * ty * duz
+                        + self.fyz[ii, jj, kk] * tx * uy * duz
+                        + self.fxyz[ii, jj, kk] * ux * uy * duz
+                    )
+        return gx, gy, gz

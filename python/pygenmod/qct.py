@@ -81,6 +81,25 @@ class LEPSParameters:
 _PAIRS = ((0, 1), (1, 2), (2, 0))
 
 
+def leps_potential_distances(r12, r23, r31,
+                             par: Optional[LEPSParameters] = None) -> float:
+    """LEPS potential from the three pairwise distances (no geometry needed).
+
+    Mirrors the Fortran `calc_leps_potential` semantics: the London-Eyring-
+    Polanyi-Sato form depends only on (r12, r23, r31), so arbitrary triples
+    (including those violating the triangle inequality, e.g. collinear
+    r31 = r12 + r23) are well defined. The Sato parameter must be > 0
+    (use par=LEPSParameters(sato=0.10) for the book H3 surface).
+    """
+    if par is None:
+        par = LEPSParameters()
+    q1, j1 = par.q_and_j(r12)
+    q2, j2 = par.q_and_j(r23)
+    q3, j3 = par.q_and_j(r31)
+    delta = 0.5 * ((j1 - j2) ** 2 + (j2 - j3) ** 2 + (j3 - j1) ** 2)
+    return float(q1 + q2 + q3 - np.sqrt(max(delta, 0.0)))
+
+
 def _pair_distances(q: np.ndarray):
     """Pair distances and unit vectors for atom triplets shaped (..., 3, 3)."""
     diff = q[..., :, None, :] - q[..., None, :, :]          # (..., 3, 3, 3)

@@ -2382,9 +2382,118 @@ def Zfine_lookup(Zfine, fine, targets):
     return Zfine[np.ix_(idx, idx)]
 
 
+def generate_fig33_interp3d():
+    """Fig 33 (book Fig 4.4): 3D tricubic spline on the full three-distance
+    LEPS surface V(r12, r23, r31). (a) error map on the symmetric plane
+    r12 = r23 = r (triangle-valid region masked) from a 16^3 grid, with the
+    collinear saddle marked; (b) 1D cut along the collinear symmetric stretch
+    r31 = 2r through the saddle: exact surface vs spline from 16^3 and 31^3
+    grids; (c) convergence of the reaction-region (V < -0.10 E_h) error vs
+    grid spacing with the h^4 reference."""
+    print("Generating Fig 33: 3D tricubic spline on the 3-distance LEPS surface...")
+    set_publication_style()
+    import pygenmod as _pg
+    from pygenmod.qct import LEPSParameters, leps_potential_distances
+
+    par = LEPSParameters(sato=0.10)
+
+    def leps_v3(r12, r23, r31):
+        # LEPS 只依赖三个两两距离 (与 Fortran calc_leps_potential 语义一致),
+        # 任意三元组 (含共线 r31 = r12 + r23) 均有定义
+        return leps_potential_distances(r12, r23, r31, par)
+
+    def build(n):
+        g = np.linspace(1.2, 3.6, n)
+        i1, i2, i3 = np.meshgrid(np.arange(n), np.arange(n), np.arange(n),
+                                 indexing='ij')
+        Z = np.empty((n, n, n))
+        for i, r1 in enumerate(g):
+            for j, r2 in enumerate(g):
+                for k, r3 in enumerate(g):
+                    Z[i, j, k] = leps_v3(r1, r2, r3)
+        return g, _pg.Spline3D(g, g, g, Z)
+
+    fig, axes = plt.subplots(1, 3, figsize=(16.0, 4.3), dpi=200)
+
+    # ---------------- (a) error map on the symmetric plane ----------------
+    g16, s16 = build(16)
+    rr = np.linspace(1.3, 2.6, 60)
+    r31v = np.linspace(1.2, 3.6, 90)
+    E = np.zeros((len(rr), len(r31v)))
+    for i, r in enumerate(rr):
+        for j, c in enumerate(r31v):
+            E[i, j] = abs(leps_v3(r, r, c) - s16.eval(r, r, c))
+    E = np.maximum(E, 1e-10)
+    ax = axes[0]
+    cs = ax.pcolormesh(r31v, rr, np.log10(E), cmap='inferno', shading='auto')
+    plt.colorbar(cs, ax=ax, label=r'$\log_{10}|V_{\rm spline}-V|$', shrink=0.9)
+    ax.plot(3.55, 1.775, '*', color='cyan', markersize=14)
+    ax.annotate('saddle', xy=(3.55, 1.775), xytext=(3.0, 2.25), fontsize=9,
+                color='white', arrowprops=dict(arrowstyle='->', color='white', lw=0.9))
+    ax.set_xlabel(r'$r_{31}$ ($a_0$)')
+    ax.set_ylabel(r'$r_{12} = r_{23} = r$ ($a_0$)')
+    ax.set_title('(a) Error on Symmetric Plane (16$^3$ grid)', fontsize=10.5)
+
+    # ---------------- (b) collinear cut through the saddle ----------------
+    g31, s31 = build(31)
+    # 剖线限制在网格有效区 (r31 = 2r <= 3.6 -> r <= 1.8), 覆盖鞍点与势垒区
+    rc = np.linspace(1.3, 1.8, 200)
+    v_exact = np.array([leps_v3(r, r, 2 * r) for r in rc])
+    v16 = np.array([s16.eval(r, r, 2 * r) for r in rc])
+    v31 = np.array([s31.eval(r, r, 2 * r) for r in rc])
+    ax = axes[1]
+    ax.plot(rc, v_exact, '-', color='black', linewidth=1.8, label='exact LEPS')
+    ax.plot(rc, v16, 'o', color='crimson', markersize=3.0, markerfacecolor='none',
+            label='spline 16$^3$')
+    ax.plot(rc, v31, 's', color='royalblue', markersize=2.4, markerfacecolor='none',
+            label='spline 31$^3$')
+    ax.axvline(1.775, color='gray', linewidth=0.8, linestyle=':')
+    ax.annotate(r'saddle $r=1.775$', xy=(1.775, -0.115), fontsize=8.6,
+                color='dimgray', ha='center')
+    ax.set_xlabel(r'$r_{12} = r_{23} = r$ ($a_0$), collinear $r_{31}=2r$ (grid-valid)')
+    ax.set_ylabel(r'$V$ ($E_h$)')
+    ax.legend(fontsize=8.6, loc='upper right')
+    ax.set_title('(b) Collinear Cut Through the Saddle (grid-valid region)', fontsize=10.5)
+
+    # ---------------- (c) convergence ----------------
+    ax = axes[2]
+    ns = [11, 16, 23, 31]
+    hs, errs = [], []
+    for n in ns:
+        g, sp = build(n)
+        e = 0.0
+        for i in range(1, 9):
+            for j in range(1, 9):
+                for k in range(1, 9):
+                    r1 = 1.30 + 1.4 * i / 9.0
+                    r2 = 1.35 + 1.4 * j / 9.0
+                    r3 = 1.40 + 1.4 * k / 9.0
+                    v = leps_v3(r1, r2, r3)
+                    if v < -0.10:
+                        e = max(e, abs(v - sp.eval(r1, r2, r3)))
+        hs.append((3.6 - 1.2) / (n - 1))
+        errs.append(max(e, 1e-12))
+    hs = np.array(hs); errs = np.array(errs)
+    ax.loglog(hs, errs, 'o-', color='crimson', markersize=5, label='reaction region')
+    h_ref = np.array([hs.min(), hs.max()])
+    ax.loglog(h_ref, errs[-1] * (h_ref / hs[-1]) ** 4, '--', color='gray',
+              linewidth=1.2, label=r'$\propto h^4$')
+    ax.set_xlabel('Grid spacing $h$ ($a_0$)')
+    ax.set_ylabel(r'max $|V_{\rm spline}-V|$, $V<-0.1\,E_h$')
+    ax.legend(fontsize=8.6, loc='lower right')
+    ax.set_title('(c) Convergence on the 3D Surface', fontsize=10.5)
+    ax.grid(True, which='both', alpha=0.3)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig33_interp3d_leps.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 32 Scientific Calculation Benchmark Figures")
+    print(" Generating All 33 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -2418,8 +2527,9 @@ def main():
     generate_fig30_krylov()
     generate_fig31_hermitian()
     generate_fig32_interp2d()
+    generate_fig33_interp3d()
     print("=" * 60)
-    print(" All 32 Figures Generated Successfully in docs/figures/!")
+    print(" All 33 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 
