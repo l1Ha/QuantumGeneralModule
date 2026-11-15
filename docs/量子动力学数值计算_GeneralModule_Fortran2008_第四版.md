@@ -822,6 +822,41 @@ $$
 - [python/pygenmod/linalg.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/linalg.py)
 - 验证：`tests/test_hermitian_eig.f90`（7 项断言）；`python/test_pygenmod.py::test_hermitian_eig`
 
+### 4.6　二维双三次张量积样条与势能面插值
+
+从头算势能面（PES）通常只在规则网格上给出；化学动力学（QCT 轨迹、波包传播、IRC 梯度）需要在任意点求值并取梯度。一维三次样条（§15.7 的 `spline_1d_t`）不足以处理双键坐标 $(r_{12}, r_{23})$ 的问题；本节给出一维样条在**张量积**意义下的二维推广（§15.7 与 §15.10 路线图高优先项）。
+
+**构造。** 设规则网格 $(x_i, y_j)$ 上的数据 $z_{ij}$。张量积双三次样条沿用 1D 自然边界样条核 $\mathcal{S}_1[\cdot]$（三对角方程 + Thomas 算法）反复作用：
+
+1. 逐行（固定 $x_i$）沿 $y$：$z^{yy}_{i,:} = \mathcal{S}_1''[y, z_{i,:}]$（节点二阶导 $\partial^2z/\partial y^2$）；
+2. 逐列（固定 $y_j$）沿 $x$：$z^{xx}_{:,j} = \mathcal{S}_1''[x, z_{:,j}]$；
+3. 逐列沿 $x$ 对 $z^{yy}$ 再作用：$z^{xy}_{:,j} = \mathcal{S}_1''[x, z^{yy}_{:,j}]$（混合导数 $\partial^4z/\partial x^2\partial y^2$）。
+
+胞元 $[x_i,x_{i+1}]\times[y_j,y_{j+1}]$ 内用 Hermite 型基函数（$T$ 线性帽、$U$ 三次样条基，$h$ 为胞元宽度，$d_0 = x_{i+1}-x$，$d_1 = x-x_i$）：
+
+$$
+T_i=\frac{d_0}{h},\quad T_{i+1}=\frac{d_1}{h},\qquad
+U_i=\frac{1}{6}\Bigl(\frac{d_0^{3}}{h}-h\,d_0\Bigr),\quad
+U_{i+1}=\frac{1}{6}\Bigl(\frac{d_1^{3}}{h}-h\,d_1\Bigr),
+$$
+
+$$
+S(x,y)=\sum_{p,q\in\{i,i+1\}\times\{j,j+1\}}
+\Bigl[z_{pq}T_pT_q+z^{xx}_{pq}U_pT_q+z^{yy}_{pq}T_pU_q+z^{xy}_{pq}U_pU_q\Bigr].
+$$
+
+由于 $U_i''(x_i)=1$、$U_i'(x_i)=U_i(x_i)=0$，该形式自动保证**节点处四类量精确重现**：$S=z$、$\partial^2S/\partial x^2=z^{xx}$、$\partial^2S/\partial y^2=z^{yy}$、$\partial^4S/\partial x^2\partial y^2=z^{xy}$，且胞元交界 $C^1$ 连续。解析梯度由 $T'=\mp1/h$、$U_i'=\bigl(h-3d_0^2/h\bigr)/6$、$U_{i+1}'=\bigl(3d_1^2/h-h\bigr)/6$ 直接得到——QCT/IRC 需要的力场无需数值差分。
+
+**验收（5 项断言）。** 其一，**双线性精确重构**：$z=a+bx+cy+dxy$ 满足零二阶导的自然边界条件，插值误差 $2.2\times10^{-16}$（机器精度），节点复现误差 $0.0$；其二，**内部四阶收敛**：光滑函数（含边界效应剔除的深内部采样），网格 $n=9\to17$ 对半加密误差比 $73$（四阶期望 16，实际更快）；其三，**对称性与梯度**：对称数据 $z_{ij}=z_{ji}$ 的插值满足 $S(x,y)=S(y,x)$ 到 $1.1\times10^{-16}$，解析梯度与中心差分一致到 $1.7\times10^{-10}$、与精确梯度偏差 $7.1\times10^{-6}$；其四，**真实 $\mathrm{H}_3$ LEPS 势能面**（共线 $r_{31}=r_{12}+r_{23}$，$16\times16$ 网格，$h=0.12\ a_0$）：任意内部点插值误差 $\le2.5\times10^{-5}\ E_h$，鞍点区域 $(1.775,1.775)$ 误差 $1.1\times10^{-6}\ E_h$（鞍点值 $-0.1533\ E_h$，与书中金值 $-0.1537\ E_h$ 一致）；其五，LEPS 数据自身的 $r_{12}\leftrightarrow r_{23}$ 对称性在插值后保持到 $2.8\times10^{-17}$。Python 镜像 `pygenmod/interp2d.py`（独立实现的自然样条三对角求解 + 同一 Hermite 基）并入 `test_interp_2d`（Python 套件 37 → 38 项）。
+
+![图 4.3：二维双三次样条势能面插值验收（真实 $\mathrm{H}_3$ LEPS 共线面）。(a) 势能面等值图与 $16\times16$ 采样网格（白点）、鞍点位置（红星）；(b) 插值误差空间分布（对数色阶）：最慢变化区（大 $r$ 平缓区，右上）误差降至 $10^{-12}$ 量级，而短程排斥壁（小 $r$ 角）误差最大约 $10^{-3}\ E_h$——误差分布与势能曲率直接对应；(c) 四阶收敛：内部采样点最大插值误差随网格间距 $h$ 的变化（双对数），灰色虚线为 $\propto h^{4}$ 参考斜率，$h\le0.12\ a_0$ 后与四阶标度一致。绘图脚本见 `docs/generate_figures.py`。](figures/fig32_interp2d_leps.png){width=15.0cm}
+
+#### 对应源码
+
+- [src/mod_interpolation.f90](https://github.com/l1Ha/QuantumGeneralModule/blob/main/src/mod_interpolation.f90)（`spline_2d_init`、`spline_2d_eval`、`spline_2d_grad`）
+- [python/pygenmod/interp2d.py](https://github.com/l1Ha/QuantumGeneralModule/blob/main/python/pygenmod/interp2d.py)
+- 验证：`tests/test_interp_2d.f90`（5 项断言）；`python/test_pygenmod.py::test_interp_2d`
+
 ---
 
 ## 参考文献
@@ -4377,6 +4412,7 @@ GitHub Actions 配置位于：
 | 17.1–17.5 | QCT 反应散射 | `mod_qct_dynamics::run_qct_ensemble`（OpenMP） | `qct.run_qct_ensemble` | `test_qct_dynamics` | 图 17.1 |
 | 18.1 / 14.4 | SOP 与 TT | `mod_sop_hamiltonian::sop_apply`、`mod_tensor_train::tt_round` | `sop_hamiltonian`、`tensor_train` | `test_sop_hamiltonian`/`test_tensor_train` | — |
 | 18.4 | Smolyak 稀疏网格 | `mod_sparse_grid::smolyak_build` | `sparse_grid.smolyak_build` | `test_sparse_grid` | 图 18.1 |
+| 4.6 / 15.7 | 二维双三次样条 PES 插值 | `mod_interpolation::spline_2d_init`、`spline_2d_eval`、`spline_2d_grad` | `interp2d.Spline2D` | `test_interp_2d` | 图 4.3（32） |
 | 15.4 | 差分与收敛标定 | — | — | `docs/generate_figures.py` | 图 4.1 |
 
 表中"—"表示该层尚无独立 Python 参照或结果图（详见 §15 能力清单与 §12 路线图）。
@@ -5134,26 +5170,27 @@ end type grid_t
 - 自然边界三次样条；
 - 固定一阶导数边界；
 - 一阶导数和二阶导数；
+- **二维双三次张量积样条**（`spline_2d_init`/`spline_2d_eval`/`spline_2d_grad`，节点精确 + 解析梯度，§4.6 与图 4.3）；
 - 势能面插值到网格；
 - 长程 $C_6/r^6$ 外推。
 
 #### 已知限制
 
-- 只支持一维；
-- 没有二维或三维张量样条；
+- 三维张量样条未具备（二维已具备，§4.6）；
+- 二维样条为自然边界、规则网格（非规则/散点数据需重采样）；
 - 没有单调性约束；
 - 没有自动外推不确定性估计；
 - 没有对剧烈势能变化的局部加密。
 
 #### 建议的改进
 
-增加二维双三次样条接口：
+二维双三次样条接口（**已实现**，见 §4.6；实际设计以四个节点导数数组代替 4 维系数数组，等价且更省内存）：
 
 ```fortran
 type :: spline_2d_t
     integer :: nx, ny
-    real(dp), allocatable :: x(:), y(:)
-    real(dp), allocatable :: coeffs(:, :, :, :)
+    real(dp), allocatable :: x(:), y(:), z(:, :)
+    real(dp), allocatable :: zxx(:, :), zyy(:, :), zxxyy(:, :)
 end type spline_2d_t
 ```
 
@@ -5277,7 +5314,7 @@ end subroutine expect_close
 | 复 Hermitian 本征 | 已具备 (加倍归约, §4.5) | 高 | 支持复哈密顿量 |
 | 稀疏本征 | 部分具备 (Lanczos/Ritz 极值; Arnoldi 未具备) | 高 | Lanczos/Arnoldi |
 | SVD/QR/Cholesky | 未具备 | 中 | 支持拟合和正则化 |
-| 多维插值 | 未具备 | 高 | 二维/三维势能面 |
+| 多维插值 | 二维已具备 (§4.6); 三维未具备 | 高 | 二维/三维势能面 |
 | 自适应网格 | 未具备 | 中 | 局部加密 |
 | 并行化 | 基本未具备 | 高 | OpenMP/MPI |
 | 单位类型 | 弱 | 中 | 显式状态码 |
@@ -5290,7 +5327,7 @@ end subroutine expect_close
 
 1. 增加 `diag_hermitian_matrix`（**已完成**，§4.5；稀疏对称本征求解部分见 §14.1）；
 2. 增加稀疏对称本征求解；
-3. 增加二维样条；
+3. 增加二维样条（**已完成**，§4.6）；
 4. 增加 JSON/TOML 实验记录；
 5. 增加统一断言库；
 6. 增加 OpenMP 版本的 FFT 和矩阵乘法；
@@ -5351,7 +5388,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 50 个测试程序、552 项断言全部通过。
+- 全库 51 个测试程序、557 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

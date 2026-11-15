@@ -628,6 +628,72 @@ class TestPyGenMod(unittest.TestCase):
             self.assertAlmostEqual(float(np.imag(z5[imax, k])), 0.0, places=14)
             self.assertGreaterEqual(float(np.real(z5[imax, k])), 0.0)
 
+    def test_interp_2d(self):
+        # 与 Fortran test_interp_2d 对应 (§15.10 路线图项: 多维插值)
+        import math
+        from pygenmod import Spline2D
+        from pygenmod.qct import LEPSParameters, leps_energy_gradient
+
+        # --- 1. 双线性精确重构 + 节点精确 ---
+        nx, ny = 6, 7
+        xg = 0.2 + 0.37 * np.arange(nx)
+        yg = -0.4 + 0.29 * np.arange(ny)
+        a0, b0, c0, d0 = 0.7, -1.3, 0.45, 0.28
+        zg = a0 + b0 * xg[:, None] + c0 * yg[None, :] + d0 * xg[:, None] * yg[None, :]
+        s2 = Spline2D(xg, yg, zg)
+        err_lin = 0.0
+        for i in range(9):
+            xv = xg[0] + (xg[-1] - xg[0]) * (0.05 + 0.09 * i)
+            yv = yg[0] + (yg[-1] - yg[0]) * (0.08 + 0.07 * i)
+            err_lin = max(err_lin, abs(a0 + b0 * xv + c0 * yv + d0 * xv * yv
+                                       - s2.eval(xv, yv)))
+        self.assertLess(err_lin, 1e-12)
+        self.assertEqual(float(np.max(np.abs(
+            [[s2.eval(xg[i], yg[j]) - zg[i, j] for j in range(ny)] for i in range(nx)]))), 0.0)
+
+        # --- 2. 对称数据: S(x,y) = S(y,x) ---
+        n = 21
+        xs = 0.5 + 0.075 * np.arange(n)
+        Z = (np.cos(1.3 * (xs[:, None] + xs[None, :])) * np.cos(0.9 * (xs[:, None] - xs[None, :]))
+             + 0.2 * (xs[:, None] * xs[None, :]) ** 2)
+        ss = Spline2D(xs, xs.copy(), Z)
+        sym = max(abs(ss.eval(0.7 + 0.02 * i, 0.9 + 0.015 * i)
+                      - ss.eval(0.9 + 0.015 * i, 0.7 + 0.02 * i)) for i in range(10))
+        self.assertLess(sym, 1e-13)
+
+        # --- 3. 解析梯度 vs 中心差分 ---
+        gx, gy = ss.grad(0.95, 1.05)
+        h = 1e-6
+        fdx = (ss.eval(0.95 + h, 1.05) - ss.eval(0.95 - h, 1.05)) / (2 * h)
+        fdy = (ss.eval(0.95, 1.05 + h) - ss.eval(0.95, 1.05 - h)) / (2 * h)
+        self.assertLess(abs(gx - fdx), 1e-7)
+        self.assertLess(abs(gy - fdy), 1e-7)
+
+        # --- 4. LEPS PES 插值 (共线 H3, 16x16 网格) ---
+        par = LEPSParameters(sato=0.10)
+        ng = 16
+        rg = 1.2 + (3.0 - 1.2) * np.arange(ng) / (ng - 1)
+
+        def leps_v(r1, r2):
+            q = np.array([[0.0, 0.0, 0.0], [r1, 0.0, 0.0], [r1 + r2, 0.0, 0.0]])
+            v, _ = leps_energy_gradient(q, par)
+            return float(v)
+
+        ZL = np.array([[leps_v(r1, r2) for r2 in rg] for r1 in rg])
+        sl = Spline2D(rg, rg.copy(), ZL)
+        err_leps = 0.0
+        for i in range(12):
+            xv = 1.35 + 1.45 * i / 13.0
+            yv = 1.30 + 1.50 * i / 13.0
+            err_leps = max(err_leps, abs(leps_v(xv, yv) - sl.eval(xv, yv)))
+        self.assertLess(err_leps, 1e-3)
+        # 鞍点区域 (1.775, 1.775)
+        self.assertLess(abs(leps_v(1.775, 1.775) - sl.eval(1.775, 1.775)), 1e-3)
+        # LEPS 数据自身对称 -> 插值保持对称
+        asym = max(abs(sl.eval(1.4 + 0.15 * i, 2.0 - 0.06 * i)
+                       - sl.eval(2.0 - 0.06 * i, 1.4 + 0.15 * i)) for i in range(10))
+        self.assertLess(asym, 1e-12)
+
     def test_scattering(self):
         # 1. Van der Waals mean length
         a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)

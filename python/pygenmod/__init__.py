@@ -61,6 +61,7 @@ from .hhg import (
 from .krylov import lanczos_tridiag, krylov_propagate_step
 from .linalg import (diag_hermitian_matrix, peierls_ring_spectrum,
                      peierls_ring_hamiltonian)
+from .interp2d import Spline2D
 
 from .multistate import (
     landau_zener_probability, calculate_channel_populations
@@ -162,6 +163,7 @@ __all__ = [
     "landau_zener_probability", "calculate_channel_populations",
     "lanczos_tridiag", "krylov_propagate_step",
     "diag_hermitian_matrix", "peierls_ring_spectrum", "peierls_ring_hamiltonian",
+    "Spline2D",
     "rovibrational_state_index", "rovibrational_state_unindex",
     "rot_matrix_cos_theta", "rot_matrix_cos2_theta", "calc_franck_condon_factors",
     "honl_london_parallel", "honl_london_perpendicular",

@@ -2286,9 +2286,105 @@ def generate_fig31_hermitian():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig32_interp2d():
+    """Fig 32 (book Fig 4.3): 2D bicubic spline PES interpolation validation.
+    (a) real H3 LEPS collinear surface with a 16x16 sampling grid and the
+    saddle point; (b) interpolation error map on a fine grid (log scale);
+    (c) convergence: max interpolation error vs grid spacing h with the h^4
+    reference slope (interior points)."""
+    print("Generating Fig 32: 2D bicubic spline PES interpolation...")
+    set_publication_style()
+    import pygenmod as _pg
+    from pygenmod.qct import LEPSParameters, leps_energy_gradient
+
+    par = LEPSParameters(sato=0.10)
+
+    def leps_v(r1, r2):
+        q = np.array([[0.0, 0.0, 0.0], [r1, 0.0, 0.0], [r1 + r2, 0.0, 0.0]])
+        v, _ = leps_energy_gradient(q, par)
+        return float(v)
+
+    fig, axes = plt.subplots(1, 3, figsize=(16.0, 4.3), dpi=200)
+
+    rg_lo, rg_hi = 1.2, 3.0
+    # ---------------- (a) surface + grid ----------------
+    ax = axes[0]
+    fine = np.linspace(rg_lo, rg_hi, 121)
+    Zfine = np.array([[leps_v(r1, r2) for r2 in fine] for r1 in fine])
+    levels = np.linspace(Zfine.min(), 0.35, 26)
+    cs = ax.contourf(fine, fine, Zfine, levels=levels, cmap='viridis')
+    plt.colorbar(cs, ax=ax, label=r'$V$ ($E_h$)', shrink=0.9)
+    ng = 16
+    gpts = np.linspace(rg_lo, rg_hi, ng)
+    gg = np.meshgrid(gpts, gpts, indexing='ij')
+    ax.plot(gg[0].ravel(), gg[1].ravel(), 'o', color='white', markersize=2.6,
+            markeredgecolor='black', markeredgewidth=0.4, label='16x16 grid')
+    ax.plot(1.775, 1.775, '*', color='red', markersize=13, label='saddle')
+    ax.set_xlabel(r'$r_{12}$ ($a_0$)')
+    ax.set_ylabel(r'$r_{23}$ ($a_0$)')
+    ax.legend(fontsize=8.4, loc='upper right')
+    ax.set_title('(a) H$_3$ LEPS Surface + Sampling Grid', fontsize=10.5)
+
+    # ---------------- (b) error map ----------------
+    ax = axes[1]
+    spl = _pg.Spline2D(gpts, gpts.copy(), Zfine_lookup(Zfine, fine, gpts))
+    err_map = np.zeros((121, 121))
+    for i, r1 in enumerate(fine):
+        for j, r2 in enumerate(fine):
+            err_map[i, j] = abs(Zfine[i, j] - spl.eval(r1, r2))
+    err_map = np.maximum(err_map, 1e-12)
+    cs2 = ax.contourf(fine, fine, np.log10(err_map),
+                      levels=np.linspace(-12, -3, 25), cmap='inferno', extend='both')
+    plt.colorbar(cs2, ax=ax, label=r'$\log_{10}|V_{\rm spline}-V|$', shrink=0.9)
+    ax.plot(1.775, 1.775, '*', color='cyan', markersize=13)
+    ax.set_xlabel(r'$r_{12}$ ($a_0$)')
+    ax.set_ylabel(r'$r_{23}$ ($a_0$)')
+    ax.set_title('(b) Interpolation Error Map (16x16 grid)', fontsize=10.5)
+
+    # ---------------- (c) convergence ----------------
+    ax = axes[2]
+    ns = np.array([8, 12, 16, 24, 32])
+    hs, errs = [], []
+    sample1 = np.linspace(1.6, 2.6, 9)
+    sample2 = np.linspace(1.5, 2.7, 9)
+    for n_s in ns:
+        g = np.linspace(rg_lo, rg_hi, int(n_s))
+        zg = np.array([[leps_v(r1, r2) for r2 in g] for r1 in g])
+        sp = _pg.Spline2D(g, g.copy(), zg)
+        e = 0.0
+        for r1 in sample1:
+            for r2 in sample2:
+                e = max(e, abs(leps_v(r1, r2) - sp.eval(r1, r2)))
+        hs.append((rg_hi - rg_lo) / (n_s - 1))
+        errs.append(max(e, 1e-14))
+    hs = np.array(hs); errs = np.array(errs)
+    ax.loglog(hs, errs, 'o-', color='crimson', markersize=5,
+              label='max error (interior)')
+    h_ref = np.array([hs.min(), hs.max()])
+    ax.loglog(h_ref, errs[0] * (h_ref / hs[0]) ** 4, '--', color='gray',
+              linewidth=1.2, label=r'$\propto h^4$ reference')
+    ax.set_xlabel('Grid spacing $h$ ($a_0$)')
+    ax.set_ylabel(r'max $|V_{\rm spline}-V|$ ($E_h$)')
+    ax.legend(fontsize=8.6, loc='lower right')
+    ax.set_title('(c) Fourth-Order Convergence on LEPS', fontsize=10.5)
+    ax.grid(True, which='both', alpha=0.3)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig32_interp2d_leps.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
+def Zfine_lookup(Zfine, fine, targets):
+    """Sample a fine-grid table at target coordinates (nearest index)."""
+    idx = [int(np.argmin(np.abs(fine - t))) for t in targets]
+    return Zfine[np.ix_(idx, idx)]
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 31 Scientific Calculation Benchmark Figures")
+    print(" Generating All 32 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -2321,8 +2417,9 @@ def main():
     generate_fig29_honl_perpendicular()
     generate_fig30_krylov()
     generate_fig31_hermitian()
+    generate_fig32_interp2d()
     print("=" * 60)
-    print(" All 31 Figures Generated Successfully in docs/figures/!")
+    print(" All 32 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 
