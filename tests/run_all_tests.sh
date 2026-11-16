@@ -94,7 +94,7 @@ cd "$DIR"
 # 测试数据 (fixtures) 定位: 源码根目录, 供测试内相对路径回退
 export GM_SOURCE_DIR="$(cd "$DIR/.." && pwd)"
 
-# 2. 编译并运行各项测试 (共 57 大完整测试套件)
+# 2. 编译并运行各项测试 (共 58 大完整测试套件)
 TESTS=(
     "test_constants"
     "test_special_functions"
@@ -153,6 +153,7 @@ TESTS=(
     "test_suzuki4"
     "test_adaptive_step"
     "test_toml_io"
+    "test_parallel_scattering"
 )
 
 # 并行执行: 各测试只打印 stdout、无共享文件 I/O, 天然可安全并行。

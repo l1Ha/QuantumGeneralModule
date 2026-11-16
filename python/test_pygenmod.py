@@ -1065,6 +1065,33 @@ class TestPyGenMod(unittest.TestCase):
         w3.add_string("k", "ctl" + chr(1))
         self.assertEqual(w3.get_text(), 'k = "ctl\\u0001"')
 
+    def test_parallel_scattering(self):
+        # 与 Fortran test_parallel_scattering 对应 (§12.1 并行散射计算)
+        from pygenmod import phase_shift_energy_scan, sigma_energy_scan
+        from pygenmod.scattering import square_well_s_phase_exact
+
+        n_r, r_max, v0, radius = 1200, 12.0, 0.05, 8.0
+        rg = np.arange(1, n_r + 1) * r_max / n_r
+        vg = np.where(rg < radius, -v0, 0.0)
+        ee = 1e-3 + 0.01 * np.arange(8)
+
+        # --- 1. 能量扫描相移 vs 闭式 (mod pi 距离) ---
+        d, _ = phase_shift_energy_scan(rg, vg, 1.0, ee, 0)
+        de = np.array([square_well_s_phase_exact(float(e), v0, radius, 1.0)
+                       for e in ee])
+        dist = np.abs((d - de) - np.round((d - de) / np.pi) * np.pi)
+        self.assertLess(float(dist.max()), 2e-2)
+
+        # --- 2. sigma(E) 部分波求和自洽 ---
+        l_max = 4
+        sig, dall = sigma_energy_scan(rg, vg, 1.0, ee, l_max)
+        k = np.sqrt(2.0 * ee)
+        w = 2.0 * np.arange(l_max + 1) + 1.0
+        sig_ref = 4.0 * np.pi / k ** 2 * (np.sin(dall) ** 2 @ w)
+        np.testing.assert_allclose(sig, sig_ref, rtol=1e-12)
+        self.assertTrue(np.all(sig > 0))
+        self.assertEqual(dall.shape, (len(ee), l_max + 1))
+
     def test_scattering(self):
         # 1. Van der Waals mean length
         a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)

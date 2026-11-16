@@ -100,7 +100,8 @@ from .scattering import (
     plot_differential_cross_sections,
     calc_multichannel_close_coupling, plot_multichannel_smatrix, plot_feshbach_resonance,
     calc_scattering_wavefunction_ti, plot_scattering_wavefunction,
-    calc_scattering_wavefunction_1d_cartesian
+    calc_scattering_wavefunction_1d_cartesian,
+    phase_shift_energy_scan, sigma_energy_scan,
 )
 
 from .field_scattering import (
@@ -196,6 +197,7 @@ __all__ = [
     "calc_multichannel_close_coupling", "plot_multichannel_smatrix", "plot_feshbach_resonance",
     "calc_scattering_wavefunction_ti", "plot_scattering_wavefunction",
     "calc_scattering_wavefunction_1d_cartesian",
+    "phase_shift_energy_scan", "sigma_energy_scan",
     "BASIS_UNCOUPLED", "BASIS_F_COUPLED", "BASIS_TOTAL_SPIN", "BASIS_FIELD_DRESSED",
     "GAUSS2AU", "AU2GAUSS", "MU_B_AU", "MU_N_AU", "GHZ2AU", "AU2GHZ",
     "clebsch_gordan_half", "ColdAtom", "get_cold_atom_preset", "calc_breit_rabi_energies",

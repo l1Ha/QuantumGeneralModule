@@ -3020,9 +3020,77 @@ author = "GeneralModule"
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig40_parallel_scattering():
+    """Fig 40 (book Fig 7.x): parallel scattering energy scan.
+    (a) OpenMP scaling of sigma(E) (2000 energies x 9 partial waves, square
+    well) vs fft_2d for reference, with the ideal-linear line; (b) the scan's
+    physics validation: s-wave phase shifts vs the closed-form atan2 branch
+    (mod-pi distance, lower panel) and the resulting sigma(E)."""
+    print("Generating Fig 40: parallel scattering energy scan...")
+    set_publication_style()
+    from pygenmod import phase_shift_energy_scan, sigma_energy_scan
+    from pygenmod.scattering import square_well_s_phase_exact
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.6, 4.4), dpi=200)
+
+    # ---------------- (a) scaling (读取基准 JSON 记录) ----------------
+    import json as _json
+    rec = _json.load(open(os.path.join(ROOT, "benchmarks", "benchmark_results.json")))
+    rres = rec["results"]
+    thr = np.array([e["threads"] for e in rres["sigma_scaling"]])
+    sig_ms = np.array([e["sigma_scan_ms"] for e in rres["sigma_scaling"]])
+    fft_ms = np.array([e["fft_2d_ms"] for e in rres["fft2d_scaling"]])
+    sp_max = sig_ms[0] / sig_ms[-1]
+    ax1.plot(thr, sig_ms[0] / sig_ms, 'o-', color='crimson', markersize=6,
+             label='sigma(E) scan (2000$\\times$9) x20')
+    ax1.plot(thr, fft_ms[0] / fft_ms, 's--', color='royalblue', markersize=5,
+             label='fft$_2$d 1024$^2$ (reference)')
+    ax1.plot(thr, thr, ':', color='black', linewidth=1.0, label='ideal linear')
+    ax1.set_xscale('log', base=2)
+    ax1.set_xticks(thr)
+    ax1.set_xticklabels([str(t) for t in thr])
+    ax1.set_xlabel('OpenMP threads')
+    ax1.set_ylabel('speed-up (vs 1 thread)')
+    ax1.legend(fontsize=8.2, loc='upper left')
+    ax1.set_title(f'(a) Scattering Scan Scaling: {sp_max:.1f}x at {thr[-1]} Threads',
+                  fontsize=10.5)
+    ax1.annotate(f'{sig_ms[0]:.0f} -> {sig_ms[-1]:.1f} ms', xy=(9, 8.0), fontsize=9,
+                 color='crimson')
+
+    # ---------------- (b) physics validation ----------------
+    n_r, r_max, v0, radius = 1200, 12.0, 0.05, 8.0
+    rg = np.arange(1, n_r + 1) * r_max / n_r
+    vg = np.where(rg < radius, -v0, 0.0)
+    ee = np.linspace(1e-3, 0.05, 120)
+    d, _ = phase_shift_energy_scan(rg, vg, 1.0, ee, 0)
+    de = np.array([square_well_s_phase_exact(float(e), v0, radius, 1.0) for e in ee])
+    dist = np.abs((d - de) - np.round((d - de) / np.pi) * np.pi)
+    sig, dall = sigma_energy_scan(rg, vg, 1.0, ee, 4)
+
+    ax2.semilogy(ee, np.maximum(dist, 1e-12), '-', color='seagreen',
+                 linewidth=1.4, label='scan vs closed form (mod-$\\pi$ distance)')
+    ax2.axhline(2e-2, color='gray', linewidth=0.8, linestyle=':')
+    ax2.set_xlabel('collision energy $E$ ($E_h$)')
+    ax2.set_ylabel(r'max mod-$\pi$ distance')
+    ax2.set_ylim(1e-12, 1e-1)
+    ax2.legend(fontsize=8.4, loc='upper left')
+    ax2.set_title('(b) Scan Physics Validation (square well)', fontsize=10.5)
+    axin = ax2.inset_axes([0.52, 0.52, 0.45, 0.42])
+    axin.plot(ee, sig, color='crimson', linewidth=1.0)
+    axin.set_title(r'$\sigma(E)$', fontsize=7.0)
+    axin.tick_params(labelsize=6.2)
+    ax2.grid(True, which='both', alpha=0.3)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig40_parallel_scattering.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 39 Scientific Calculation Benchmark Figures")
+    print(" Generating All 40 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -3063,8 +3131,9 @@ def main():
     generate_fig37_splitting()
     generate_fig38_adaptive_step()
     generate_fig39_toml_contract()
+    generate_fig40_parallel_scattering()
     print("=" * 60)
-    print(" All 39 Figures Generated Successfully in docs/figures/!")
+    print(" All 40 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

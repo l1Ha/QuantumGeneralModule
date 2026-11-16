@@ -107,6 +107,8 @@ module mod_ti_scattering
     public :: square_well_s_phase_exact
     public :: count_s_wave_bound_states
     public :: unwrap_phase_grid
+    public :: phase_shift_energy_scan
+    public :: sigma_energy_scan
     public :: calc_scattering_wavefunction_ti
     public :: calc_scattering_wavefunction_1d_cartesian
     public :: calc_partial_wave_cross_sections
@@ -2421,5 +2423,79 @@ contains
         deallocate(j_mat, n_mat, dj_mat, dn_mat, mj_mat, mn_mat, mn_inv)
         deallocate(eye_c, ik_mat, den_c, den_inv)
     end subroutine calc_multichannel_close_coupling_segmented_logder
+
+    !> \brief 能量网格上的相移扫描 (OpenMP 并行; 路线图 §12.1「并行散射计算」项)
+    !> \details 各能量点的 Numerov + 对数导数匹配完全独立 (无共享可变状态,
+    !>          FFT/特殊函数路径均为无状态调用), 天然适合数据并行。
+    !>          编译 -fopenmp 时以 !$omp parallel do 并行能量循环; 串行构建
+    !>          时同一代码退化为顺序执行 (结果逐位一致)。
+    !> \param[in] r_grid 径向网格; v_pot 势能; mass 质量
+    !> \param[in] energies 能量数组 (n_e, 单位 a.u.)
+    !> \param[in] l 分波量子数
+    !> \param[out] deltas 相移 (n_e); s_mats S 矩阵元 (n_e)
+    !> \param[out] stat 0 全部成功; 否则首个非零返回码
+    subroutine phase_shift_energy_scan(r_grid, v_pot, mass, energies, l, deltas, s_mats, stat)
+        real(dp), dimension(:), intent(in) :: r_grid, v_pot
+        real(dp), intent(in) :: mass
+        real(dp), dimension(:), intent(in) :: energies
+        integer, intent(in) :: l
+        real(dp), dimension(:), intent(out) :: deltas
+        complex(dp), dimension(:), intent(out) :: s_mats
+        integer, intent(out) :: stat
+
+        integer :: i, n_e, st_l
+        real(dp) :: k_l
+        complex(dp) :: t_l
+
+        n_e = size(energies)
+        stat = 0
+        !$omp parallel do schedule(static) private(i, st_l, k_l, t_l) reduction(max : stat)
+        do i = 1, n_e
+            deltas(i) = 0.0_dp
+            s_mats(i) = cmplx(1.0_dp, 0.0_dp, kind=dp)
+            call calc_phase_shift_single_l(r_grid, v_pot, mass, energies(i), l, &
+                                           deltas(i), k_l, s_mats(i), t_l, st_l)
+            if (st_l /= 0) stat = max(stat, st_l)
+        end do
+        !$omp end parallel do
+    end subroutine phase_shift_energy_scan
+
+    !> \brief 能量网格上的全截面扫描 (按能量点并行; 每点独立做全部分波)
+    !> \details sigma(E) = (4 pi / k^2) sum_l (2l+1) sin^2(delta_l);
+    !>          以能量为并行维度 (每点的分波循环为串行私有工作), 无共享
+    !>          可变状态, 结果与串行逐位一致。
+    subroutine sigma_energy_scan(r_grid, v_pot, mass, energies, l_max, sigma, deltas_all, stat)
+        real(dp), dimension(:), intent(in) :: r_grid, v_pot
+        real(dp), intent(in) :: mass
+        real(dp), dimension(:), intent(in) :: energies
+        integer, intent(in) :: l_max
+        real(dp), dimension(:), intent(out) :: sigma
+        real(dp), dimension(:, 0:), intent(out), optional :: deltas_all   !< 第二维下界 = 0 (分波 l)
+        integer, intent(out), optional :: stat
+
+        integer :: i, l, n_e, st_l, st_all
+        real(dp) :: k_l, k_wave, delta_l, ssum
+        complex(dp) :: s_l, t_l
+
+        n_e = size(energies)
+        st_all = 0
+        !$omp parallel do schedule(static) private(i, l, st_l, k_l, k_wave, &
+        !$omp& delta_l, s_l, t_l, ssum) reduction(max : st_all)
+        do i = 1, n_e
+            ssum = 0.0_dp
+            do l = 0, l_max
+                delta_l = 0.0_dp
+                call calc_phase_shift_single_l(r_grid, v_pot, mass, energies(i), l, &
+                                               delta_l, k_l, s_l, t_l, st_l)
+                st_all = max(st_all, st_l)
+                if (present(deltas_all)) deltas_all(i, l) = delta_l
+                ssum = ssum + real(2 * l + 1, dp) * sin(delta_l)**2
+            end do
+            k_wave = sqrt(2.0_dp * mass * energies(i))
+            sigma(i) = 4.0_dp * PI / k_wave**2 * ssum
+        end do
+        !$omp end parallel do
+        if (present(stat)) stat = st_all
+    end subroutine sigma_energy_scan
 
 end module mod_ti_scattering

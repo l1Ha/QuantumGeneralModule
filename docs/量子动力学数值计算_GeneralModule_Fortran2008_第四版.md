@@ -3409,6 +3409,10 @@ Python 测试位于：
 
 **CI 中的基准步。** 工作流新增 "Kernel Performance Benchmark (JSON record sanity)" 步：构建并运行基准、用验证脚本检查 JSON schema 与正确性门、并打印与基线记录的逐核对比。时间数据本身归档在 `benchmarks/benchmark_results.json`（含本机线程扩展曲线），供后续提交做长期性能回归对照。
 
+**第二个案例：并行散射计算（数据并行 + 逐位可复现）。** 路线图 §12.1 的「并行散射计算」实现为 `phase_shift_energy_scan` 与 `sigma_energy_scan`：能量网格上的每个点独立做 Numerov 积分 + 对数导数匹配（无共享可变状态），以 `!$omp parallel do` 数据并行，串行构建下同代码退化为顺序执行。验收协议包含两条独立断言：其一，**物理正确性**——扫描相移与方势阱闭式 atan2 解在模 $\pi$ 距离下最大偏差 $2.1\times10^{-3}$（与既有单点测试网格精度一致），$\sigma(E)$ 部分波求和自洽误差 $0.0$；其二，**串并逐位一致**——多线程与单线程结果完全相同（`max|Δδ| = 0`, `max|Δσ| = 0`），这是浮点确定性可复现性的硬条件（每个能量点的算例无跨点归约）。性能：$2000\times9$ 分波能量扫描（方势阱，$n_r=1200$）在 20 线程下 $119.9\to16.8$ ms（$7.1\times$；另一轮测量 $10.3\times$，共享机器上的正常运行波动，图 8.3a）。
+
+![图 8.3：并行散射能量扫描。(a) $\sigma(E)$ 扫描（$2000$ 能量 $\times\,9$ 分波）的 OpenMP 扩展曲线（红），与 fft₂d 参照（蓝）及理想线性（点线）对比——20 线程实测 $7.1$–$10.3\times$；(b) 扫描物理验证：s 波相移与方势阱闭式解的模 $\pi$ 距离（绿，上界 $2\times10^{-2}$ 点线）与 $\sigma(E)$ 曲线（内嵌）。数据来自 `benchmarks/benchmark_results.json` 与测试套件实测。绘图脚本见 `docs/generate_figures.py`。](figures/fig40_parallel_scattering.png){width=15.0cm}
+
 ![图 8.2：核心算法基准与测量驱动的 fft₂d 优化。(a) OpenMP 扩展曲线：优化前（灰虚线，串行转置，Amdahl 限制在 2.7×）与优化后（红实线，分块并行转置，20 线程 9.5×），点线为理想线性参考；单线程时间同时从 22.7 ms 降至 18.9 ms（分块缓存收益）。(b) 20 线程下各核心墙钟时间（对数轴，本机 20 核）：全部核自带正确性门，记录由 `mod_json` 输出（§8.6）。绘图脚本见 `docs/generate_figures.py`。](figures/fig35_benchmark.png){width=14.5cm}
 
 #### 对应源码
@@ -4457,7 +4461,7 @@ GitHub Actions 配置位于：
 - 多维张量分解；
 - 高阶分裂算符（**已实现**：Yoshida4/Suzuki4，§6.2；自适应时间步长待续）；
 - 自适应时间步长（**已实现**：局部误差控制 + PI 控制器，§6.2）；
-- 并行散射计算。
+- 并行散射计算（**已实现**：能量扫描数据并行 + 串并逐位一致验收，§8.7）；
 
 ### 12.2　物理方向
 
@@ -4532,6 +4536,7 @@ GitHub Actions 配置位于：
 | 8.6 | TOML 实验记录（同契约姊妹格式） | `mod_toml::toml_writer_t` 及 add/begin 系列 | `toml_io.TomlWriter` | `test_toml_io` | 图 8.1b（39） |
 | 8.7 | 核心算法性能基准 + 回归对比 | `benchmarks/bench_kernels.f90`、`mod_linear_algebra::transpose_blocked` | — | `scripts/validate_benchmark.py`（CI 步） | 图 8.2（35） |
 | 6.2 | 高阶分裂（Yoshida4/Suzuki4）+ 自适应步长 | `mod_wavepacket_propagator::propagate_yoshida4_1d`、`propagate_suzuki4_1d`、`adaptive_split_propagate_1d` | `propagation`（同名 + `adaptive_split_propagate`） | `test_suzuki4`、`test_adaptive_step` | 图 6.4（37）、6.5（38） |
+| 7.2 | 并行散射能量扫描（OpenMP 数据并行） | `mod_ti_scattering::phase_shift_energy_scan`、`sigma_energy_scan` | `scattering` 同名（串行镜像） | `test_parallel_scattering` | 图 8.3（40） |
 | 15.4 | 差分与收敛标定 | — | — | `docs/generate_figures.py` | 图 4.1 |
 
 表中"—"表示该层尚无独立 Python 参照或结果图（详见 §15 能力清单与 §12 路线图）。
@@ -5437,7 +5442,7 @@ end subroutine expect_close
 | SVD/QR/Cholesky | 已具备 (§4.8) | 中 | 支持拟合和正则化 |
 | 多维插值 | 二维/三维已具备 (§4.6/§4.7); 四维以上未具备 | 高 | 二维/三维势能面 |
 | 自适应网格 | 未具备 | 中 | 局部加密 |
-| 并行化 | 部分具备 (QCT/排列动力学/fft_2d, 实测 9.5x@20 线程); MPI 未具备 | 高 | OpenMP/MPI |
+| 并行化 | 部分具备 (QCT/排列动力学/fft_2d 9.2x、散射扫描 7-10x @20 线程, 串并逐位一致); MPI 未具备 | 高 | OpenMP/MPI |
 | 单位类型 | 弱 | 中 | 显式状态码 |
 | 数据格式 | JSON/TOML 已具备 (§8.6); HDF5 未具备 | 高 | JSON/TOML/HDF5 |
 | 通用测试库 | 自实现 | 中 | 统一断言库 |
@@ -5509,7 +5514,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 57 个测试程序、584 项断言全部通过。
+- 全库 58 个测试程序、588 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

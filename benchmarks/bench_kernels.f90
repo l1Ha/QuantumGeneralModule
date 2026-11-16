@@ -196,7 +196,37 @@ program bench_kernels
         call json_add_real(jw, "spline3d_1e6_ms", 1.0e3_dp * tps)
     end block
 
-    ! ---------------- 7. OpenMP 线程扩展 (fft_2d) ----------------
+    ! ---------------- 7. 并行散射能量扫描 ----------------
+    block
+        integer, parameter :: n_r = 1200, n_esc = 2000, l_max_s = 8
+        real(dp), parameter :: rr_max = 12.0_dp, vv0 = 0.05_dp, rr_w = 8.0_dp
+        real(dp), allocatable :: rg(:), vg(:), esc(:), sig(:)
+        integer :: st_s
+        allocate (rg(n_r), vg(n_r), esc(n_esc), sig(n_esc))
+        do i = 1, n_r
+            rg(i) = real(i, dp) * rr_max / real(n_r, dp)
+        end do
+        do i = 1, n_r
+            if (rg(i) < rr_w) then
+                vg(i) = -vv0
+            else
+                vg(i) = 0.0_dp
+            end if
+        end do
+        do i = 1, n_esc
+            esc(i) = 1.0e-4_dp + 0.05_dp * real(i - 1, dp) / real(n_esc - 1, dp)
+        end do
+        !$ call omp_set_num_threads(nthr)
+        tms(1) = time_kernel_sigma(rg, vg, esc, l_max_s, sig)
+        call stats(tms(1:1), t_best, t_med)
+        ok_all = ok_all .and. (maxval(sig) > 0.0_dp) .and. (minval(sig) >= 0.0_dp)
+        print '(A, F10.2, A, ES10.2)', " [bench] sigma(E) scan 2000x9: ", 1.0e3_dp * t_best, &
+              " ms  (sigma_max ", maxval(sig), ")"
+        call json_add_real(jw, "sigma_scan_2000x9_ms", 1.0e3_dp * t_best)
+        deallocate (rg, vg, esc, sig)
+    end block
+
+    ! ---------------- 8. OpenMP 线程扩展 (fft_2d) ----------------
     block
         integer, parameter :: thr_list(6) = [1, 2, 4, 8, 16, 20]
         complex(dp), allocatable :: m(:, :), m0(:, :)
@@ -207,6 +237,7 @@ program bench_kernels
         do i = 1, n2d
             m0(:, i) = cmplx(sin(0.001_dp * i), 0.0_dp, kind=dp)
         end do
+        ! 两个独立扫描: fft_2d 与散射扫描各写一个数组
         call json_begin_array(jw, "fft2d_scaling")
         print '(A)', " [bench] fft_2d OpenMP scaling:"
         do k = 1, size(thr_list)
@@ -216,11 +247,45 @@ program bench_kernels
             ts = time_kernel_fft2(m)
             m = m0
             ts = min(ts, time_kernel_fft2(m))   ! 两次取优
-            print '(A, I4, A, F10.2, A)', "         threads=", thr_list(k), "  ", 1.0e3_dp * ts, " ms"
+            print '(A, I4, A, F10.2, A)', "         threads=", thr_list(k), "  fft_2d ", 1.0e3_dp * ts, " ms"
             call json_begin_object(jw)
             call json_add_int(jw, "threads", thr_list(k))
             call json_add_real(jw, "fft_2d_ms", 1.0e3_dp * ts)
             call json_end_object(jw)
+        end do
+        call json_end_array(jw)
+
+        call json_begin_array(jw, "sigma_scaling")
+        print '(A)', " [bench] sigma(E) scan OpenMP scaling:"
+        do k = 1, size(thr_list)
+            if (thr_list(k) > nthr) exit
+            !$ call omp_set_num_threads(thr_list(k))
+            block
+                integer, parameter :: nr_s = 1200, ne_s = 2000
+                real(dp), allocatable :: rgs(:), vgs(:), es_s(:), sigs(:)
+                real(dp) :: ts_s
+                allocate (rgs(nr_s), vgs(nr_s), es_s(ne_s), sigs(ne_s))
+                do i = 1, nr_s
+                    rgs(i) = real(i, dp) * 12.0_dp / real(nr_s, dp)
+                end do
+                do i = 1, nr_s
+                    if (rgs(i) < 8.0_dp) then
+                        vgs(i) = -0.05_dp
+                    else
+                        vgs(i) = 0.0_dp
+                    end if
+                end do
+                do i = 1, ne_s
+                    es_s(i) = 1.0e-4_dp + 0.05_dp * real(i - 1, dp) / real(ne_s - 1, dp)
+                end do
+                ts_s = time_kernel_sigma(rgs, vgs, es_s, 8, sigs)
+                print '(A, I4, A, F10.2, A)', "         threads=", thr_list(k), "  sigma ", 1.0e3_dp * ts_s, " ms"
+                call json_begin_object(jw)
+                call json_add_int(jw, "threads", thr_list(k))
+                call json_add_real(jw, "sigma_scan_ms", 1.0e3_dp * ts_s)
+                call json_end_object(jw)
+                deallocate (rgs, vgs, es_s, sigs)
+            end block
         end do
         call json_end_array(jw)
         !$ call omp_set_num_threads(nthr)
@@ -329,6 +394,19 @@ contains
         call system_clock(t1)
         t = real(t1 - t0, dp) / real(rate, dp)
     end function time_kernel_krylov
+
+    function time_kernel_sigma(rg, vg, ee, lmax, sig) result(t)
+        real(dp), intent(in) :: rg(:), vg(:), ee(:)
+        integer, intent(in) :: lmax
+        real(dp), intent(out) :: sig(:)
+        real(dp) :: t
+        integer(8) :: t0, t1, rate
+        integer :: st_s
+        call system_clock(t0, rate)
+        call sigma_energy_scan(rg, vg, 1.0_dp, ee, lmax, sig, stat=st_s)
+        call system_clock(t1)
+        t = real(t1 - t0, dp) / real(rate, dp)
+    end function time_kernel_sigma
 
     function time_kernel_cheby(psi, nst) result(t)
         complex(dp), intent(inout) :: psi(:)

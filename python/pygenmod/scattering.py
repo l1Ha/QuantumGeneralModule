@@ -670,3 +670,38 @@ def calc_phase_shift_single_l(r_grid: np.ndarray, v_pot: np.ndarray,
     num = k * djl[l] - y_logder * jl[l]
     den = k * dnl[l] - y_logder * nl[l]
     return float(np.arctan2(num, den))
+
+
+def phase_shift_energy_scan(r_grid, v_pot, mass, energies, l):
+    """Phase shifts over an energy grid (Fortran mirror: parallel scan).
+
+    Mirrors `phase_shift_energy_scan` (src/mod_ti_scattering.f90); here the
+    loop is serial (Python-side parallelism is out of scope — the Fortran
+    OpenMP path is the production one and is verified bitwise identical to
+    its serial version). Returns (deltas, s_mats).
+    """
+    import numpy as _np
+    deltas = _np.zeros(len(energies))
+    s_mats = _np.ones(len(energies), dtype=complex)
+    for i, e in enumerate(energies):
+        deltas[i] = calc_phase_shift_single_l(r_grid, v_pot, mass, float(e), l)
+    return deltas, s_mats
+
+
+def sigma_energy_scan(r_grid, v_pot, mass, energies, l_max):
+    """Total cross section sigma(E) over an energy grid (partial-wave sum).
+
+    sigma(E) = (4 pi / k^2) * sum_l (2l+1) sin^2(delta_l) with the phase
+    shifts from `phase_shift_energy_scan` for each l.
+    Returns (sigma, deltas_all) with deltas_all of shape (n_e, l_max+1).
+    """
+    import numpy as _np
+    n_e = len(energies)
+    deltas_all = _np.zeros((n_e, l_max + 1))
+    for l in range(l_max + 1):
+        d, _ = phase_shift_energy_scan(r_grid, v_pot, mass, energies, l)
+        deltas_all[:, l] = d
+    k = _np.sqrt(2.0 * mass * _np.asarray(energies, dtype=float))
+    weights = _np.arange(0, l_max + 1) * 2.0 + 1.0
+    sigma = 4.0 * _np.pi / k ** 2 * (_np.sin(deltas_all) ** 2 @ weights)
+    return sigma, deltas_all

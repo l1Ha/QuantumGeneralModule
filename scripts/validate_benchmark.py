@@ -18,6 +18,7 @@ import sys
 KERNELS = (
     "fft_1d_ms", "fft_2d_ms", "diag_symmetric_ms", "diag_hermitian_ms",
     "krylov_100steps_ms", "chebyshev_100steps_ms", "spline3d_1e6_ms",
+    "sigma_scan_2000x9_ms",
 )
 
 
@@ -49,6 +50,14 @@ def validate(doc):
         for entry in scaling:
             if not isinstance(entry.get("threads"), int) or entry.get("fft_2d_ms", 0) <= 0:
                 errs.append("fft2d_scaling entries must carry threads/fft_2d_ms")
+                break
+    sig_scaling = res.get("sigma_scaling")
+    if not isinstance(sig_scaling, list) or not sig_scaling:
+        errs.append("results.sigma_scaling missing")
+    else:
+        for entry in sig_scaling:
+            if not isinstance(entry.get("threads"), int) or entry.get("sigma_scan_ms", 0) <= 0:
+                errs.append("sigma_scaling entries must carry threads/sigma_scan_ms")
                 break
     return errs
 
@@ -92,6 +101,12 @@ def main(argv):
     best = scaling[-1]
     print(f"       fft_2d scaling: {scaling[0]['threads']}t {t1:.2f}ms -> "
           f"{best['threads']}t {best['fft_2d_ms']:.2f}ms ({t1 / best['fft_2d_ms']:.2f}x)")
+    ss = res.get("sigma_scaling")
+    if ss:
+        s1 = ss[0]["sigma_scan_ms"]
+        sb = ss[-1]
+        print(f"       sigma(E) scaling: {ss[0]['threads']}t {s1:.2f}ms -> "
+              f"{sb['threads']}t {sb['sigma_scan_ms']:.2f}ms ({s1 / sb['sigma_scan_ms']:.2f}x)")
 
     rc = 0
     if baseline_path:

@@ -6513,6 +6513,32 @@ record sanity)'' 步：构建并运行基准、用验证脚本检查 JSON schema
 与正确性门、并打印与基线记录的逐核对比。时间数据本身归档在
 \texttt{benchmarks/benchmark\_results.json}（含本机线程扩展曲线），供后续提交做长期性能回归对照。
 
+\textbf{第二个案例：并行散射计算（数据并行 + 逐位可复现）。} 路线图
+§12.1 的「并行散射计算」实现为 \texttt{phase\_shift\_energy\_scan} 与
+\texttt{sigma\_energy\_scan}：能量网格上的每个点独立做 Numerov 积分 +
+对数导数匹配（无共享可变状态），以 \texttt{!\$omp\ parallel\ do}
+数据并行，串行构建下同代码退化为顺序执行。验收协议包含两条独立断言：其一，\textbf{物理正确性}------扫描相移与方势阱闭式
+atan2 解在模 \(\pi\) 距离下最大偏差
+\(2.1\times10^{-3}\)（与既有单点测试网格精度一致），\(\sigma(E)\)
+部分波求和自洽误差
+\(0.0\)；其二，\textbf{串并逐位一致}------多线程与单线程结果完全相同（\texttt{max\textbar{}Δδ\textbar{}\ =\ 0},
+\texttt{max\textbar{}Δσ\textbar{}\ =\ 0}），这是浮点确定性可复现性的硬条件（每个能量点的算例无跨点归约）。性能：\(2000\times9\)
+分波能量扫描（方势阱，\(n_r=1200\)）在 20 线程下 \(119.9\to16.8\)
+ms（\(7.1\times\)；另一轮测量
+\(10.3\times\)，共享机器上的正常运行波动，图 8.3a）。
+
+\begin{figure}
+\centering
+\includegraphics[width=15cm,height=\textheight]{figures/fig40_parallel_scattering.png}
+\caption{图 8.3：并行散射能量扫描。(a) \(\sigma(E)\) 扫描（\(2000\) 能量
+\(\times\,9\) 分波）的 OpenMP 扩展曲线（红），与 fft₂d
+参照（蓝）及理想线性（点线）对比------20 线程实测
+\(7.1\)--\(10.3\times\)；(b) 扫描物理验证：s 波相移与方势阱闭式解的模
+\(\pi\) 距离（绿，上界 \(2\times10^{-2}\) 点线）与 \(\sigma(E)\)
+曲线（内嵌）。数据来自 \texttt{benchmarks/benchmark\_results.json}
+与测试套件实测。绘图脚本见 \texttt{docs/generate\_figures.py}。}
+\end{figure}
+
 \begin{figure}
 \centering
 \includegraphics[width=14.5cm,height=\textheight]{figures/fig35_benchmark.png}
@@ -8233,7 +8259,8 @@ DOI。若引用开源软件，应给出项目地址和许可证。若未来引�
 \item
   自适应时间步长（\textbf{已实现}：局部误差控制 + PI 控制器，§6.2）；
 \item
-  并行散射计算。
+  并行散射计算（\textbf{已实现}：能量扫描数据并行 +
+  串并逐位一致验收，§8.7）；
 \end{itemize}
 
 \hypertarget{ux7269ux7406ux65b9ux5411}{%
@@ -8768,6 +8795,19 @@ TOML 实验记录（同契约姊妹格式）\strut
 \texttt{test\_suzuki4}、\texttt{test\_adaptive\_step}\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 图 6.4（37）、6.5（38）\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.14\columnwidth}\raggedright
+7.2\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+并行散射能量扫描（OpenMP 数据并行）\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{mod\_ti\_scattering::phase\_shift\_energy\_scan}、\texttt{sigma\_energy\_scan}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{scattering} 同名（串行镜像）\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{test\_parallel\_scattering}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+图 8.3（40）\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
 15.4\strut
@@ -10448,26 +10488,117 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 
 \begin{longtable}[]{@{}llll@{}}
 \toprule
-领域 & 当前状态 & 优先级 & 建议目标\tabularnewline
+\begin{minipage}[b]{0.22\columnwidth}\raggedright
+领域\strut
+\end{minipage} & \begin{minipage}[b]{0.22\columnwidth}\raggedright
+当前状态\strut
+\end{minipage} & \begin{minipage}[b]{0.22\columnwidth}\raggedright
+优先级\strut
+\end{minipage} & \begin{minipage}[b]{0.22\columnwidth}\raggedright
+建议目标\strut
+\end{minipage}\tabularnewline
 \midrule
 \endhead
-复 Hermitian 本征 & 已具备 (加倍归约, §4.5) & 高 &
-支持复哈密顿量\tabularnewline
-稀疏本征 & 部分具备 (Lanczos/Ritz 极值; Arnoldi 未具备) & 高 &
-Lanczos/Arnoldi\tabularnewline
-SVD/QR/Cholesky & 已具备 (§4.8) & 中 & 支持拟合和正则化\tabularnewline
-多维插值 & 二维/三维已具备 (§4.6/§4.7); 四维以上未具备 & 高 &
-二维/三维势能面\tabularnewline
-自适应网格 & 未具备 & 中 & 局部加密\tabularnewline
-并行化 & 部分具备 (QCT/排列动力学/fft\_2d, 实测 9.5x@20 线程); MPI
-未具备 & 高 & OpenMP/MPI\tabularnewline
-单位类型 & 弱 & 中 & 显式状态码\tabularnewline
-数据格式 & JSON/TOML 已具备 (§8.6); HDF5 未具备 & 高 &
-JSON/TOML/HDF5\tabularnewline
-通用测试库 & 自实现 & 中 & 统一断言库\tabularnewline
-基准测试 & 已具备 (§8.7: 核心核 + JSON 记录 + 回归对比脚本) & 中 &
-性能回归\tabularnewline
-自动微分 & 未具备 & 低 & 支持灵敏度和控制\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+复 Hermitian 本征\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+已具备 (加倍归约, §4.5)\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+高\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+支持复哈密顿量\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+稀疏本征\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+部分具备 (Lanczos/Ritz 极值; Arnoldi 未具备)\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+高\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+Lanczos/Arnoldi\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+SVD/QR/Cholesky\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+已具备 (§4.8)\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+中\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+支持拟合和正则化\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+多维插值\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+二维/三维已具备 (§4.6/§4.7); 四维以上未具备\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+高\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+二维/三维势能面\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+自适应网格\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+未具备\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+中\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+局部加密\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+并行化\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+部分具备 (QCT/排列动力学/fft\_2d 9.2x、散射扫描 7-10x @20 线程,
+串并逐位一致); MPI 未具备\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+高\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+OpenMP/MPI\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+单位类型\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+弱\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+中\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+显式状态码\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+数据格式\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+JSON/TOML 已具备 (§8.6); HDF5 未具备\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+高\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+JSON/TOML/HDF5\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+通用测试库\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+自实现\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+中\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+统一断言库\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+基准测试\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+已具备 (§8.7: 核心核 + JSON 记录 + 回归对比脚本)\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+中\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+性能回归\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.22\columnwidth}\raggedright
+自动微分\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+未具备\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+低\strut
+\end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
+支持灵敏度和控制\strut
+\end{minipage}\tabularnewline
 \bottomrule
 \end{longtable}
 
@@ -10666,7 +10797,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 57 个测试程序、584 项断言全部通过。
+  全库 58 个测试程序、588 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的

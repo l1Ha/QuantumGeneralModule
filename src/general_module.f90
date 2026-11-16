@@ -159,6 +159,7 @@ module general_module
     public :: riccati_bessel_neumann
     public :: calc_scattering_length_numerov, calc_scattering_length_logder
     public :: calc_phase_shift_single_l, calc_scattering_wavefunction_ti
+    public :: phase_shift_energy_scan, sigma_energy_scan
     public :: calc_scattering_wavefunction_1d_cartesian
     public :: calc_partial_wave_cross_sections
     public :: optical_theorem_cross_section, calc_differential_cross_section
