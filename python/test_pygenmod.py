@@ -961,6 +961,45 @@ class TestPyGenMod(unittest.TestCase):
         self.assertAlmostEqual(float(np.linalg.norm(psi) * np.sqrt(dx)), 1.0,
                                places=13)
 
+    def test_adaptive_step(self):
+        # 与 Fortran test_adaptive_step 对应 (§12.1 自适应时间步长)
+        from pygenmod import adaptive_split_propagate, split_yoshida4_step
+
+        n, dx, mass, omega, x0 = 256, 0.15, 1.0, 0.5, 2.5
+        xg = (np.arange(1, n + 1) - 0.5 * (n + 1)) * dx
+        vg = 0.5 * mass * omega ** 2 * xg ** 2
+        psi0 = np.exp(-0.5 * mass * omega * (xg - x0) ** 2)
+        psi0 /= np.linalg.norm(psi0) * np.sqrt(dx)
+        T = 2.0 * np.pi / omega
+
+        ref = psi0.copy()
+        for _ in range(4096):
+            ref = split_yoshida4_step(ref, vg, dx, mass, T / 4096.0)
+
+        # 容限跟踪: 达成误差随请求容限成比例下降
+        tols = (1e-4, 1e-6, 1e-8, 1e-10)
+        errs, counts = [], []
+        for tol in tols:
+            psi, info = adaptive_split_propagate(psi0.copy(), vg, dx, mass, T,
+                                                 tol, order4=True, h0=0.1, h_max=0.5)
+            errs.append(np.linalg.norm(psi - ref) * np.sqrt(dx))
+            counts.append(info["n_steps"])
+        self.assertLess(errs[3], 1e-8)
+        for k in range(3):
+            self.assertGreater(errs[k] / errs[k + 1], 10.0)
+
+        # 步数随容限按 tol^(-1/5) 标度 (四阶格式 + 局域误差控制)
+        slope = float(np.polyfit(np.log(tols), np.log(counts), 1)[0])
+        self.assertAlmostEqual(slope, -0.2, delta=0.08)
+
+        # 步长历史: 单调段内步长非负、总数一致
+        psi, info = adaptive_split_propagate(psi0.copy(), vg, dx, mass, T,
+                                             1e-8, order4=True, h0=0.1, h_max=0.5)
+        hh = np.array(info["h_history"])
+        self.assertEqual(len(hh), info["n_steps"])
+        self.assertTrue(np.all(hh > 0))
+        self.assertLess(float(np.max(hh)), 0.5 + 1e-12)
+
     def test_scattering(self):
         # 1. Van der Waals mean length
         a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)

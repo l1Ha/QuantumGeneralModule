@@ -2834,9 +2834,94 @@ def generate_fig37_splitting():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig38_adaptive_step():
+    """Fig 38 (book Fig 6.5): adaptive time-step control. (a) tolerance
+    tracking on the HO coherent state (achieved global error vs requested
+    local tolerance, with step counts); (b) step-size history along an
+    excited Morse trajectory — steps shrink at the fast inner-wall phase
+    and grow in the slow outer region (the physical payoff of adaptivity)."""
+    print("Generating Fig 38: adaptive time-step control...")
+    set_publication_style()
+    from pygenmod import adaptive_split_propagate, split_yoshida4_step, split_strang_step
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.6, 4.4), dpi=200)
+
+    # ---------------- (a) tolerance tracking ----------------
+    n, dx, mass, omega, x0 = 256, 0.15, 1.0, 0.5, 2.5
+    xg = (np.arange(1, n + 1) - 0.5 * (n + 1)) * dx
+    vg = 0.5 * mass * omega ** 2 * xg ** 2
+    psi0 = np.exp(-0.5 * mass * omega * (xg - x0) ** 2)
+    psi0 /= np.linalg.norm(psi0) * np.sqrt(dx)
+    T = 2.0 * np.pi / omega
+    ref = psi0.copy()
+    for _ in range(4096):
+        ref = split_yoshida4_step(ref, vg, dx, mass, T / 4096.0)
+
+    tols = np.array([1e-4, 1e-6, 1e-8, 1e-10])
+    errs, counts = [], []
+    for tol in tols:
+        psi, info = adaptive_split_propagate(psi0.copy(), vg, dx, mass, T,
+                                             float(tol), order4=True, h0=0.1, h_max=0.5)
+        errs.append(max(float(np.linalg.norm(psi - ref) * np.sqrt(dx)), 1e-14))
+        counts.append(info["n_steps"])
+    ax1.loglog(tols, errs, 'o-', color='crimson', markersize=6,
+               label='achieved global error')
+    ax1.loglog(tols, tols, ':', color='gray', linewidth=1.2, label='$=$ requested')
+    for t, e, c in zip(tols, errs, counts):
+        ax1.annotate(f'{c} steps', xy=(t, e), xytext=(0, -14),
+                     textcoords='offset points', fontsize=8, ha='center',
+                     color='dimgray')
+    ax1.set_xlabel('requested local tolerance')
+    ax1.set_ylabel('achieved global error')
+    ax1.set_ylim(1e-11, 1e-2)
+    ax1.legend(fontsize=8.6, loc='upper left')
+    ax1.set_title('(a) Tolerance Tracking (Yoshida4, HO one period)', fontsize=10.5)
+    ax1.grid(True, which='both', alpha=0.3)
+
+    # ---------------- (b) step-size history on the Morse potential ----------------
+    n2, dx2, mass2 = 512, 0.08, 1836.0
+    xg2 = 1.0 + np.arange(n2) * dx2
+    dm, bm, re = 0.2, 1.0, 2.0
+    vg2 = dm * (np.exp(-2.0 * bm * (xg2 - re)) - 2.0 * np.exp(-bm * (xg2 - re)))
+    psi02 = np.exp(-0.5 * ((xg2 - 3.1) / 0.45) ** 2)
+    psi02 /= np.linalg.norm(psi02) * np.sqrt(dx2)
+    _, info = adaptive_split_propagate(psi02.copy(), vg2, dx2, mass2, 600.0,
+                                       1e-7, order4=False, h0=0.05, h_max=2.0)
+    hh = np.array(info["h_history"])
+    ts = np.cumsum(hh)
+
+    # 同时给出 <x>(t) 轨迹以标注快慢相区
+    psi = psi02.copy()
+    xs = [float(np.sum(xg2 * np.abs(psi) ** 2) * dx2)]
+    for h in hh:
+        psi = split_strang_step(psi, vg2, dx2, mass2, float(h))
+        xs.append(float(np.sum(xg2 * np.abs(psi) ** 2) * dx2))
+    xs = np.array(xs[:-1])
+
+    ax2.plot(ts, hh, '-', color='royalblue', linewidth=1.2, label='adaptive $\\Delta t$')
+    ax2.plot(ts, np.ones_like(ts) * (600.0 / 16000.0), '--', color='crimson',
+             linewidth=1.2, label='fixed step (matched accuracy)')
+    ax2.set_xlabel('time (a.u.)')
+    ax2.set_ylabel('step size $\\Delta t$ (a.u.)')
+    ax2.set_ylim(0, float(np.max(hh)) * 1.15)
+    axin = ax2.inset_axes([0.55, 0.60, 0.42, 0.35])
+    axin.plot(ts, xs, color='seagreen', linewidth=0.9)
+    axin.set_title(r'$\langle x\rangle(t)$', fontsize=7.0)
+    axin.tick_params(labelsize=6.2)
+    ax2.legend(fontsize=8.4, loc='upper left')
+    ax2.set_title('(b) Step-Size History, Excited Morse (Strang)', fontsize=10.5)
+    ax2.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig38_adaptive_step.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 37 Scientific Calculation Benchmark Figures")
+    print(" Generating All 38 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -2875,8 +2960,9 @@ def main():
     generate_fig35_benchmark()
     generate_fig36_linalg_decomp()
     generate_fig37_splitting()
+    generate_fig38_adaptive_step()
     print("=" * 60)
-    print(" All 37 Figures Generated Successfully in docs/figures/!")
+    print(" All 38 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

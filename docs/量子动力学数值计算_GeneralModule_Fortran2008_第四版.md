@@ -1684,6 +1684,16 @@ $$
 
 ![图 6.4：分裂算符的高阶对称合成。(a) HO 相干态的阶数标定（Chebyshev 谱参照，状态距离度量，双对数）：Strang 沿斜率 2 参考线，Yoshida4（3 子步）与 Suzuki4（5 子步）沿斜率 4 参考线；(b) 固定末时刻的成本-精度权衡：横轴为每周期 FFT 对数，Yoshida4 在全成本域占优，Suzuki4 与 Strang 次之。绘图脚本见 `docs/generate_figures.py`（Python 镜像 `pygenmod/propagation.py` 与 Fortran 数值逐位吻合；Fortran 测试拟合斜率 2.00/3.99/4.00）。](figures/fig37_splitting_orders.png){width=15.0cm}
 
+**自适应步长控制（`adaptive_split_propagate_1d`）。** 固定步长在快慢混合动力学（势能内壁急、外转折缓；或强驱动场包络变化）中两难：按最快相位选步长则慢相位区大量浪费，按最慢选则快相位区精度崩坏。实现以**步长倍增法**估计局域误差：以 $h$ 走一步与以 $h/2$ 走两步的状态差 $\varepsilon=\|\psi_1-\psi_2\|$ 即 $\mathcal{O}(h^{p+1})$ 的局域误差估计（Strang $p=2$、Yoshida $p=4$），由 PI 型控制器
+
+$$
+h_{\text{new}}=h\cdot\operatorname{clamp}\Bigl[\bigl(\tfrac{\text{tol}}{\varepsilon}\bigr)^{1/(p+1)},\,0.2,\,5\Bigr]
+$$
+
+接受/拒绝步（$\varepsilon>\text{tol}$ 拒绝重试）；接受时采用更精确的半步行结果。验收（`tests/test_adaptive_step.f90`，3 项断言）：其一，**容限跟踪**——HO 一个周期内请求容限 $10^{-4}\!/10^{-6}\!/10^{-8}\!/10^{-10}$ 对应达成全局误差 $5.3\times10^{-5}\!/1.3\times10^{-6}\!/3.3\times10^{-8}\!/8.4\times10^{-10}$（成比例 ✓，步数 $31\to478$，标度 $N\propto\text{tol}^{-1/5}$ 与四阶格式 + 局域控制的理论一致）；其二，步数与拒绝率合理；其三，**激发态 Morse 匹配精度效率**——与固定步在同等精度（$\sim2\times10^{-6}$）下，自适应总成本 $6405$ FFT 对 vs 固定 $16000$（**省 2.5 倍**），步长沿轨迹自动由 $0.82$ 收缩到 $0.29$ 再回升（图 6.5b），对应快慢相区。Python 镜像 `pygenmod/propagation.py::adaptive_split_propagate` 并入 `test_adaptive_step`（Python 套件 42 → 43 项）。
+
+![图 6.5：自适应时间步长控制。(a) 容限跟踪（Yoshida4，HO 一个周期）：达成全局误差（红）随请求局域容限成比例变化（灰点线为斜率为 1 参考），标注为各自步数（$31\to478$）；(b) 激发态 Morse 势上的步长历史（Strang）：自适应步长沿轨迹自动调整（$0.82\to0.29\to$ 回升），固定步（红虚线，匹配精度）为 $0.0375$——自适应平均步长约大 7.5 倍，总成本省 2.5 倍；内嵌图为 $\langle x\rangle(t)$ 轨迹。绘图脚本见 `docs/generate_figures.py`。](figures/fig38_adaptive_step.png){width=15.0cm}
+
 ### 6.3　FFT、动量网格与混叠
 
 均匀网格 $x_i=x_0+i\Delta x$，$i=0,\ldots,N-1$ 对应动量网格
@@ -4442,7 +4452,7 @@ GitHub Actions 配置位于：
 - 稀疏 Krylov 传播（**已实现**：`mod_krylov_propagator`，§14.1；一般 Arnoldi/重启策略待续）；
 - 多维张量分解；
 - 高阶分裂算符（**已实现**：Yoshida4/Suzuki4，§6.2；自适应时间步长待续）；
-- 自适应时间步长；
+- 自适应时间步长（**已实现**：局部误差控制 + PI 控制器，§6.2）；
 - 并行散射计算。
 
 ### 12.2　物理方向
@@ -4516,6 +4526,7 @@ GitHub Actions 配置位于：
 | 4.8 | Cholesky / QR / SVD 分解三件套 | `mod_linear_algebra::cholesky_decompose`、`qr_decompose`、`least_squares_qr`、`svd_decompose`、`svd_pseudoinverse` | `linalg` 同名（NumPy/LAPACK 参照） | `test_linalg_decomp` | 图 4.5（36） |
 | 8.6 | JSON 实验记录（规范化契约） | `mod_json::json_writer_t` 及 add/begin 系列 | `json_io.JsonWriter`、`json_io.format_number` | `test_json_io` | 图 8.1（34） |
 | 8.7 | 核心算法性能基准 + 回归对比 | `benchmarks/bench_kernels.f90`、`mod_linear_algebra::transpose_blocked` | — | `scripts/validate_benchmark.py`（CI 步） | 图 8.2（35） |
+| 6.2 | 高阶分裂（Yoshida4/Suzuki4）+ 自适应步长 | `mod_wavepacket_propagator::propagate_yoshida4_1d`、`propagate_suzuki4_1d`、`adaptive_split_propagate_1d` | `propagation`（同名 + `adaptive_split_propagate`） | `test_suzuki4`、`test_adaptive_step` | 图 6.4（37）、6.5（38） |
 | 15.4 | 差分与收敛标定 | — | — | `docs/generate_figures.py` | 图 4.1 |
 
 表中"—"表示该层尚无独立 Python 参照或结果图（详见 §15 能力清单与 §12 路线图）。
@@ -5493,7 +5504,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 55 个测试程序、577 项断言全部通过。
+- 全库 56 个测试程序、580 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

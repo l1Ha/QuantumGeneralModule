@@ -108,7 +108,7 @@ module general_module
     public :: lanczos_tridiag, krylov_propagate_step
 
     ! 多态非绝热动力学
-    public :: propagate_suzuki4_1d, propagate_yoshida4_1d
+    public :: propagate_suzuki4_1d, propagate_yoshida4_1d, adaptive_split_propagate_1d
     public :: propagate_split_operator_2channel, landau_zener_probability, calculate_channel_populations
 
     ! 分子转振动力学与态跃迁

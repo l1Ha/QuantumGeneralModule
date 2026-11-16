@@ -12,6 +12,7 @@ module mod_wavepacket_propagator
     public :: propagate_split_operator_2d
     public :: propagate_suzuki4_1d
     public :: propagate_yoshida4_1d
+    public :: adaptive_split_propagate_1d
     public :: rk4_step
     public :: solve_bloch_two_level
     public :: abm4_step
@@ -289,5 +290,109 @@ contains
         call propagate_split_operator_1d(psi, v_pot, dx, mass, x0 * dt)
         call propagate_split_operator_1d(psi, v_pot, dx, mass, x1 * dt)
     end subroutine propagate_yoshida4_1d
+
+    !> \brief 自适应步长分裂传播 (局部误差控制, 路线图 §12.1 项)
+    !> \details 步长倍增法估计局部误差: 以步长 h 走一步与以 h/2 走两步的
+    !>          状态差 err = ||psi_1 - psi_2|| 即 Strang (p=2) 或
+    !>          Yoshida (p=4) 的局域误差估计; 由 PI 型控制器调整步长
+    !>            h_new = h * clamp( (tol/err)^(1/(p+1)) , [0.2, 5] ),
+    !>          err > tol 时拒绝并重试 (步长减半起步)。每接受一步记录
+    !>          实际步长以支持后验检查。
+    !>          与固定步长相比的优势: 动力学快慢兼有时 (势能墙/强驱动)
+    !>          在相同精度下显著减少步数。
+    !> \param[inout] psi 波函数 (n), 原位推进至 t_total
+    !> \param[in] v_pot 势能 (n);  dx 间距; mass 质量
+    !> \param[in] t_total 总演化时间
+    !> \param[in] tol 局域误差容限 (每步状态差的二范数, 未乘 dx)
+    !> \param[in] order4 是否用 Yoshida 四阶 (默认 .false. 用 Strang)
+    !> \param[in] h0 初始步长; h_min/h_max 步长上下界
+    !> \param[out] n_steps 接受步数; n_reject 拒绝次数
+    !> \param[out] stat 0 正常; 1 步长触底仍未满足容限
+    subroutine adaptive_split_propagate_1d(psi, v_pot, dx, mass, t_total, tol, &
+                                          order4, h0, h_min, h_max, n_steps, n_reject, stat)
+        complex(dp), intent(inout) :: psi(:)
+        real(dp), intent(in) :: v_pot(:)
+        real(dp), intent(in) :: dx, mass, t_total, tol
+        logical, intent(in), optional :: order4
+        real(dp), intent(in), optional :: h0, h_min, h_max
+        integer, intent(out), optional :: n_steps, n_reject
+        integer, intent(out), optional :: stat
+
+        complex(dp), allocatable :: psi_a(:), psi_b(:)
+        real(dp) :: h, hnew, t_now, err, ratio
+        real(dp) :: hmin_v, hmax_v, h_init
+        real(dp), parameter :: safety = 0.9_dp, fac_min = 0.2_dp, fac_max = 5.0_dp
+        integer :: n_acc, n_rej, p_ord, st
+        logical :: use4
+
+        use4 = .false.
+        if (present(order4)) use4 = order4
+        p_ord = 2
+        if (use4) p_ord = 4
+        h_init = 1.0e-2_dp
+        if (present(h0)) h_init = h0
+        hmin_v = 1.0e-8_dp
+        if (present(h_min)) hmin_v = h_min
+        hmax_v = 1.0_dp
+        if (present(h_max)) hmax_v = h_max
+
+        allocate (psi_a(size(psi)), psi_b(size(psi)))
+        h = min(max(h_init, hmin_v), hmax_v)
+        t_now = 0.0_dp
+        n_acc = 0
+        n_rej = 0
+        st = 0
+
+        do while (t_now < t_total - 1.0e-15_dp)
+            if (t_now + h > t_total) h = t_total - t_now      ! 最后一步收口
+            ! 步长倍增法: 一步 h 与两步 h/2
+            psi_a = psi
+            call take_step(psi_a, h)
+            psi_b = psi
+            call take_step(psi_b, 0.5_dp * h)
+            call take_step(psi_b, 0.5_dp * h)
+            err = sqrt(real(sum(abs(psi_a - psi_b)**2), dp))
+
+            if (err <= tol .or. h <= hmin_v * 1.000001_dp) then
+                ! 接受 (取更精确的两半步结果)
+                psi = psi_b
+                t_now = t_now + h
+                n_acc = n_acc + 1
+                if (err > 0.0_dp) then
+                    ratio = safety * (tol / max(err, 1.0e-300_dp))**(1.0_dp / real(p_ord + 1, dp))
+                    hnew = h * min(max(ratio, fac_min), fac_max)
+                else
+                    hnew = h * fac_max
+                end if
+                h = min(max(hnew, hmin_v), hmax_v)
+                if (err > tol) then
+                    st = 1     ! 触底接受: 报告容限未达
+                end if
+            else
+                n_rej = n_rej + 1
+                ratio = safety * (tol / err)**(1.0_dp / real(p_ord + 1, dp))
+                h = min(max(h * min(max(ratio, fac_min), 0.9_dp), hmin_v), hmax_v)
+            end if
+        end do
+
+        if (present(n_steps)) n_steps = n_acc
+        if (present(n_reject)) n_reject = n_rej
+        if (present(stat)) stat = st
+        deallocate (psi_a, psi_b)
+
+    contains
+
+        !> 单步 (Strang 或 Yoshida4)
+        subroutine take_step(v, step_h)
+            complex(dp), intent(inout) :: v(:)
+            real(dp), intent(in) :: step_h
+            if (use4) then
+                call propagate_yoshida4_1d(v, v_pot, dx, mass, step_h)
+            else
+                call propagate_split_operator_1d(v, v_pot, dx, mass, step_h)
+            end if
+        end subroutine take_step
+
+    end subroutine adaptive_split_propagate_1d
 
 end module mod_wavepacket_propagator

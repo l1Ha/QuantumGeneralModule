@@ -42,3 +42,44 @@ def split_yoshida4_step(psi, v_pot, dx, mass, dt):
     for w in (YOSHIDA_X1 * dt, YOSHIDA_X0 * dt, YOSHIDA_X1 * dt):
         psi = split_strang_step(psi, v_pot, dx, mass, w)
     return psi
+
+
+def adaptive_split_propagate(psi, v_pot, dx, mass, t_total, tol,
+                             order4=False, h0=1e-2, h_min=1e-8, h_max=1.0):
+    """Adaptive-step split propagation with local error control.
+
+    Mirrors `adaptive_split_propagate_1d` (src/mod_wavepacket_propagator.f90):
+    step doubling estimates the local error (one step h vs two steps h/2);
+    a PI-type controller  h_new = h * clamp((tol/err)**(1/(p+1)), 0.2, 5)
+    accepts/rejects steps (p = 2 for Strang, 4 for Yoshida4).
+
+    Returns
+    -------
+    psi : propagated state
+    info : dict with n_steps, n_reject and the per-accepted-step h history.
+    """
+    step = split_yoshida4_step if order4 else split_strang_step
+    p_ord = 4 if order4 else 2
+    safety, fac_min, fac_max = 0.9, 0.2, 5.0
+    h = min(max(h0, h_min), h_max)
+    t_now = 0.0
+    n_acc = n_rej = 0
+    hist = []
+    while t_now < t_total - 1e-15:
+        if t_now + h > t_total:
+            h = t_total - t_now
+        a = step(psi, v_pot, dx, mass, h)
+        b = step(step(psi, v_pot, dx, mass, 0.5 * h), v_pot, dx, mass, 0.5 * h)
+        err = float(np.linalg.norm(a - b) * np.sqrt(dx))
+        if err <= tol or h <= h_min * 1.000001:
+            psi = b
+            t_now += h
+            n_acc += 1
+            hist.append(h)
+            ratio = safety * (tol / max(err, 1e-300)) ** (1.0 / (p_ord + 1)) if err > 0 else fac_max
+            h = min(max(h * min(max(ratio, fac_min), fac_max), h_min), h_max)
+        else:
+            n_rej += 1
+            ratio = safety * (tol / err) ** (1.0 / (p_ord + 1))
+            h = min(max(h * min(max(ratio, fac_min), 0.9), h_min), h_max)
+    return psi, {"n_steps": n_acc, "n_reject": n_rej, "h_history": hist}
