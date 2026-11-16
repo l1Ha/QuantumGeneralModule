@@ -104,10 +104,11 @@ module general_module
     public :: gabor_transform_point, lewenstein_sfa_dipole
 
     ! 切比雪夫与能谱滤波
-    public :: chebyshev_propagate_step, window_operator_pes
+    public :: chebyshev_propagate_step, window_operator_pes, compute_bessel_j
     public :: lanczos_tridiag, krylov_propagate_step
 
     ! 多态非绝热动力学
+    public :: propagate_suzuki4_1d, propagate_yoshida4_1d
     public :: propagate_split_operator_2channel, landau_zener_probability, calculate_channel_populations
 
     ! 分子转振动力学与态跃迁

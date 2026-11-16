@@ -8,6 +8,7 @@ module mod_chebyshev_propagator
     private
 
     public :: chebyshev_propagate_step
+    public :: compute_bessel_j
     public :: window_operator_pes
 
 contains
@@ -84,7 +85,7 @@ contains
         integer, intent(in) :: m
         real(dp), intent(out) :: j_arr(0:m)
 
-        integer :: l, l_start
+        integer :: l, l_start, k
         real(dp) :: j_prev, j_curr, j_next, sum_norm
 
         if (abs(x) < 1.0e-14_dp) then
@@ -93,15 +94,30 @@ contains
             return
         end if
 
-        l_start = max(m + 15, int(abs(x) + 20.0_dp))
+        ! 起点阶数: 保证 J_{l_start}(x) 可忽略 (随 x 增加需更高起点)
+        l_start = m + 15 + int(abs(x))
         j_next = 0.0_dp
         j_curr = 1.0e-30_dp
         sum_norm = 0.0_dp
 
+        ! Miller 逆向递推 + **动态缩放**:
+        ! 小 x + 大 m 时递推中间量按 ~(2l/x) 增长, 无缩放会溢出成 NaN
+        ! (曾导致 Chebyshev 传播器在小 alpha/大阶参数下静默失效)。
+        ! 缩放事件确定性地发生在相同 l 处, 故已存储的高阶值与归一化
+        ! 和同步乘同一因子即可保持相对尺度一致。
         do l = l_start, 1, -1
             j_prev = (2.0_dp * real(l, dp) / x) * j_curr - j_next
             j_next = j_curr
             j_curr = j_prev
+
+            if (abs(j_curr) > 1.0e100_dp) then
+                j_curr = j_curr * 1.0e-100_dp
+                j_next = j_next * 1.0e-100_dp
+                do k = l + 1, min(l_start, m)
+                    j_arr(k) = j_arr(k) * 1.0e-100_dp
+                end do
+                sum_norm = sum_norm * 1.0e-100_dp
+            end if
 
             if (l <= m) j_arr(l) = j_next
             if (mod(l, 2) == 0) then

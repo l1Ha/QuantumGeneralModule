@@ -21,7 +21,13 @@ set -u
 # gfortran 优先搜索源文件所在目录的 .mod, 陈旧文件会遮蔽本脚本生成的模块,
 # 造成 "Symbol has no IMPLICIT type" 类假编译错误 (曾两次踩坑)。
 if [ "${1:-}" != "--compile-one" ] && [ -n "${1:-}" ]; then
+    # 源目录与当前工作目录的陈旧 .mod 一并清除: gfortran 搜索顺序为
+    # CWD -> -I 路径, 任一处的遗留模块都会遮蔽新构建 (三处踩坑记录:
+    # src/ 内遗留、仓库根目录手工编译遗留)。
     rm -f "$1"/mod_*.mod "$1"/general_module.mod 2>/dev/null || true
+    rm -f ./mod_*.mod ./general_module.mod 2>/dev/null || true
+    # 编译始终在源目录内进行 (CWD 即 .mod 落点与首选搜索位置)
+    cd "$1" || exit 1
 fi
 
 FC="${FC:-gfortran}"

@@ -904,6 +904,63 @@ class TestPyGenMod(unittest.TestCase):
         x_ref = np.linalg.lstsq(ar, br, rcond=None)[0]
         np.testing.assert_allclose(xr, x_ref, atol=1e-10)
 
+    def test_splitting_orders(self):
+        # 与 Fortran test_suzuki4 对应 (§12.1「高阶分裂算符」项)
+        from pygenmod import (split_strang_step, split_suzuki4_step,
+                              split_yoshida4_step)
+
+        n, dx, mass, omega, x0 = 256, 0.15, 1.0, 0.5, 2.5
+        xg = (np.arange(1, n + 1) - 0.5 * (n + 1)) * dx
+        vg = 0.5 * mass * omega ** 2 * xg ** 2
+        psi0 = np.exp(-0.5 * mass * omega * (xg - x0) ** 2)
+        psi0 /= np.linalg.norm(psi0) * np.sqrt(dx)
+        T = 2.0 * np.pi / omega
+
+        def run(step, nst):
+            dt = T / nst
+            psi = psi0.copy()
+            for _ in range(nst):
+                psi = step(psi, vg, dx, mass, dt)
+            return float(np.sum(xg * np.abs(psi) ** 2) * dx), psi
+
+        # 解析相干态动力学: <x>(T) = x0 cos(wT) = x0 (整周期)
+        e_strang = abs(run(split_strang_step, 63)[0] - x0)
+        e_yosh = abs(run(split_yoshida4_step, 63)[0] - x0)
+        e_suz = abs(run(split_suzuki4_step, 63)[0] - x0)
+        self.assertLess(e_suz, 1e-10)          # 四阶格式远优于二阶
+        self.assertLess(e_yosh, 1e-7)
+        self.assertLess(e_suz, e_strang)
+        self.assertLess(e_yosh, e_strang)
+
+        # 阶数标定 (状态距离度量): 注意 <x>(T) 整周期处因极值平稳性
+        # 呈现虚假高阶收敛 (Strang 表现为 ~dt^4), 故用 scipy.expm 的
+        # 精确离散演化作参照, 拟合 ||psi_num(T) - psi_exact(T)|| 的斜率
+        from scipy.linalg import expm
+        fmat = np.fft.fft(np.eye(n)) / np.sqrt(n)          # 酉 DFT
+        kmat = np.fft.fftfreq(n, d=dx / (2.0 * np.pi))
+        h_kin = fmat.conj().T @ np.diag(kmat ** 2 / (2.0 * mass)) @ fmat
+        h_dense = h_kin + np.diag(vg)
+        psi_ref = expm(-1j * h_dense * T) @ psi0
+
+        nsts = np.array([32, 64, 128, 256])
+        dts = T / nsts
+
+        def slope(step):
+            errs = []
+            for nst in nsts:
+                _, psi = run(step, int(nst))
+                errs.append(max(float(np.linalg.norm(psi - psi_ref) * np.sqrt(dx)), 1e-16))
+            return float(np.polyfit(np.log(dts), np.log(errs), 1)[0])
+
+        self.assertAlmostEqual(slope(split_strang_step), 2.0, delta=0.3)
+        self.assertAlmostEqual(slope(split_yoshida4_step), 4.0, delta=0.6)
+        self.assertAlmostEqual(slope(split_suzuki4_step), 4.0, delta=0.6)
+
+        # 范数守恒
+        _, psi = run(split_yoshida4_step, 63)
+        self.assertAlmostEqual(float(np.linalg.norm(psi) * np.sqrt(dx)), 1.0,
+                               places=13)
+
     def test_scattering(self):
         # 1. Van der Waals mean length
         a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)

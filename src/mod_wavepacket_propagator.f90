@@ -10,6 +10,8 @@ module mod_wavepacket_propagator
 
     public :: propagate_split_operator_1d
     public :: propagate_split_operator_2d
+    public :: propagate_suzuki4_1d
+    public :: propagate_yoshida4_1d
     public :: rk4_step
     public :: solve_bloch_two_level
     public :: abm4_step
@@ -240,5 +242,52 @@ contains
 
         deallocate(exp_v_half, exp_t)
     end subroutine propagate_split_operator_2d
+
+    !> \brief 四阶 Suzuki 分裂推进单步 (Suzuki 1990 分形合成)
+    !> \details 由 5 个二阶 Strang 子步合成 4 阶方法:
+    !>            S4(tau) = S2(p tau)^2 S2((1-4p) tau) S2(p tau)^2,
+    !>            p = 1/(4 - 4^{1/3}) = 0.414490771794375...
+    !>          对称合成使 O(dt^2) 误差项相消, 达到 O(dt^4); 代价为 5 倍
+    !>          FFT 对 (每步 5 个 Strang 步)。中间步系数 1-4p < 0 (负时间步),
+    !>          对分裂格式无害 (指数算子解析延拓)。
+    !> \param[inout] psi 波函数 (n), 原位推进
+    !> \param[in] v_pot 势能网格 (n)
+    !> \param[in] dx 网格间距, mass 质量, dt 时间步长
+    subroutine propagate_suzuki4_1d(psi, v_pot, dx, mass, dt)
+        complex(dp), intent(inout) :: psi(:)
+        real(dp), intent(in) :: v_pot(:)
+        real(dp), intent(in) :: dx, mass, dt
+
+        real(dp), parameter :: p4 = 0.4144907717943757_dp
+        real(dp) :: w1, w0
+
+        w1 = p4 * dt
+        w0 = (1.0_dp - 4.0_dp * p4) * dt
+
+        call propagate_split_operator_1d(psi, v_pot, dx, mass, w1)
+        call propagate_split_operator_1d(psi, v_pot, dx, mass, w1)
+        call propagate_split_operator_1d(psi, v_pot, dx, mass, w0)
+        call propagate_split_operator_1d(psi, v_pot, dx, mass, w1)
+        call propagate_split_operator_1d(psi, v_pot, dx, mass, w1)
+    end subroutine propagate_suzuki4_1d
+
+    !> \brief 四阶 Yoshida 分裂推进单步 (3 个 Strang 子步, 误差常数更小)
+    !> \details Yoshida 1990 三因子对称合成:
+    !>            S4(tau) = S2(x1 tau) S2(x0 tau) S2(x1 tau),
+    !>            x1 = 1/(2 - 2^{1/3}), x0 = -2^{1/3} x1  (x0 + 2 x1 = 1)。
+    !>          与 Suzuki 5 步分形合成同为四阶, 但少 2 次 FFT 对且误差常数
+    !>          显著更小 (见 tests/test_suzuki4.f90 的常数对拍)。
+    subroutine propagate_yoshida4_1d(psi, v_pot, dx, mass, dt)
+        complex(dp), intent(inout) :: psi(:)
+        real(dp), intent(in) :: v_pot(:)
+        real(dp), intent(in) :: dx, mass, dt
+
+        real(dp), parameter :: x1 = 1.3512071919596578_dp    ! 1/(2 - 2^(1/3))
+        real(dp), parameter :: x0 = -1.7024143839193153_dp   ! -2^(1/3) x1
+
+        call propagate_split_operator_1d(psi, v_pot, dx, mass, x1 * dt)
+        call propagate_split_operator_1d(psi, v_pot, dx, mass, x0 * dt)
+        call propagate_split_operator_1d(psi, v_pot, dx, mass, x1 * dt)
+    end subroutine propagate_yoshida4_1d
 
 end module mod_wavepacket_propagator

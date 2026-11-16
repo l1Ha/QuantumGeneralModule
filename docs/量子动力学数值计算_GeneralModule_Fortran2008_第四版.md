@@ -1664,6 +1664,26 @@ $$
 
 ![](qr/src__mod_wavepacket_propagator.f90.png){width=2.0cm}
 
+#### 高阶对称合成：三因子与五因子四阶格式
+
+Strang 分裂 $S_2(\tau)=e^{-iV\tau/2}e^{-iT\tau}e^{-iV\tau/2}$ 的误差为 $\mathcal{O}(\tau^{3})$（局域），全局 $\mathcal{O}(\tau^{2})$。利用其**时间反演对称性**（$S_2(-\tau)=S_2(\tau)^{-1}$），用不同权重的 Strang 子步做对称合成即可消去 $\tau^{3}$ 项，得到四阶方法：
+
+$$
+\text{Yoshida (1990):}\quad S_4(\tau)=S_2(x_1\tau)\,S_2(x_0\tau)\,S_2(x_1\tau),\qquad x_1=\frac{1}{2-2^{1/3}},\ x_0=-2^{1/3}x_1,
+$$
+
+$$
+\text{Suzuki (1990):}\quad S_4(\tau)=S_2(p\tau)^{2}\,S_2((1-4p)\tau)\,S_2(p\tau)^{2},\qquad p=\frac{1}{4-4^{1/3}}.
+$$
+
+两者权重和均为 1（$2x_1+x_0=1$、$4p+(1-4p)=1$），中间步权重为负（$x_0=-1.70$、$1-4p=-0.66$）——对分裂格式无害（指数算子解析延拓）。代价分别为 3 与 5 倍 FFT 对。实现为 `propagate_yoshida4_1d` 与 `propagate_suzuki4_1d`（§14.2）。
+
+**阶数标定与成本-精度（图 6.4）。** 在 HO 相干态上以 Chebyshev 谱参照（离散哈密顿量与传播器完全一致的 FFT 谱动能 + 势能）测状态距离误差并拟合 $\log\varepsilon$–$\log\Delta t$ 斜率：**Strang 2.00、Suzuki 3.99、Yoshida 4.00**——与理论阶数逐位吻合。一个值得注意的度量陷阱：若改测单观测量 $\langle x\rangle(T)$（整周期），所有对称格式都呈现**虚假高阶收敛**（Strang 表现为 $\sim\Delta t^{4}$、Yoshida 为 $\sim\Delta t^{8}$）——因为误差以频率重正化 $\omega\to\omega(1+c\Delta t^{2})$ 的形式出现，而 $\cos(\omega_{\text{eff}}T)$ 在极值处对频率误差二阶平稳。因此协议必须用状态距离、而非单个期望值。等成本对比（相同 FFT 对数）：Yoshida（3 子步）全面优于 Suzuki（5 子步）与 Strang，Yoshida 与 Suzuki 的误差常数比为 $\sim70$，与合成系数的 RHS 范数排序一致。
+
+**工具链副作用（本轮修复的库内缺陷）。** 阶数标定需要高精度参照，这暴露出 `compute_bessel_j`（Chebyshev 传播器的核心）在 **小 $x$ + 大阶 $m$** 时 Miller 逆向递推中间量溢出（NaN）——经典陷阱。修复为带**动态缩放**的 Miller：递推量超过 $10^{100}$ 时同步缩放（含已存储值与归一化和，保持相对尺度一致）；修复后全阶对拍 SciPy：$\max_k|J_k(x)-J_k^{\text{SciPy}}|=2.8\times10^{-16}$（$k\le60$，$x$ 覆盖 $0.85\dots8.5$），Chebyshev 传播器在 $\alpha\equiv\frac{\Delta E\,\Delta t}{2}\le100$ 全参数域的实测精度与理论一致（$\alpha\le1$ 任意阶机器精度；$\alpha=100$ 需阶数 $\gtrsim140$）。
+
+![图 6.4：分裂算符的高阶对称合成。(a) HO 相干态的阶数标定（Chebyshev 谱参照，状态距离度量，双对数）：Strang 沿斜率 2 参考线，Yoshida4（3 子步）与 Suzuki4（5 子步）沿斜率 4 参考线；(b) 固定末时刻的成本-精度权衡：横轴为每周期 FFT 对数，Yoshida4 在全成本域占优，Suzuki4 与 Strang 次之。绘图脚本见 `docs/generate_figures.py`（Python 镜像 `pygenmod/propagation.py` 与 Fortran 数值逐位吻合；Fortran 测试拟合斜率 2.00/3.99/4.00）。](figures/fig37_splitting_orders.png){width=15.0cm}
+
 ### 6.3　FFT、动量网格与混叠
 
 均匀网格 $x_i=x_0+i\Delta x$，$i=0,\ldots,N-1$ 对应动量网格
@@ -4421,7 +4441,7 @@ GitHub Actions 配置位于：
 - 更多正交多项式 DVR；
 - 稀疏 Krylov 传播（**已实现**：`mod_krylov_propagator`，§14.1；一般 Arnoldi/重启策略待续）；
 - 多维张量分解；
-- 高阶分裂算符；
+- 高阶分裂算符（**已实现**：Yoshida4/Suzuki4，§6.2；自适应时间步长待续）；
 - 自适应时间步长；
 - 并行散射计算。
 
@@ -4663,7 +4683,8 @@ $$
 
 #### 对应源码
 
-- 现行实现为二阶 Strang 分裂：`src/mod_wavepacket_propagator.f90` 的 `propagate_split_operator_1d/2d`；四阶 Suzuki 分裂与高阶系数属 §12.1 路线图（§15.10 已列）。
+- `src/mod_wavepacket_propagator.f90`：二阶 Strang（`propagate_split_operator_1d/2d`）与**四阶对称合成**（`propagate_yoshida4_1d` 三子步、`propagate_suzuki4_1d` 五子步，§6.2 节末）；Python 镜像 `pygenmod/propagation.py`。
+- 验收 `tests/test_suzuki4.f90`（3 项断言）：HO 相干态一个完整周期的解析动力学与阶数标定——拟合斜率 **Strang 2.00 / Suzuki 3.99 / Yoshida 4.00**（状态距离度量, Chebyshev 谱参照）；等 FFT 成本下 Suzuki 精度比 5×Strang 好约 $7\times10^2$ 倍（图 6.4）。
 
 ### 14.3　稀疏矩阵与存储策略
 
@@ -5472,7 +5493,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 54 个测试程序、574 项断言全部通过。
+- 全库 55 个测试程序、577 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

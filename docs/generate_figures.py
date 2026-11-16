@@ -2764,9 +2764,79 @@ def generate_fig36_linalg_decomp():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig37_splitting():
+    """Fig 37 (book Fig 6.x): higher-order split-operator compositions.
+    (a) order calibration on the HO coherent state (analytic reference):
+    error vs dt for Strang (slope 2), Yoshida (3 sub-steps) and Suzuki
+    (5 sub-steps), both slope 4; (b) cost-accuracy: error vs the number of
+    FFT pairs for a fixed final time — Yoshida dominates at every cost."""
+    print("Generating Fig 37: Strang vs Yoshida4 vs Suzuki4 splitting...")
+    set_publication_style()
+    from pygenmod import (split_strang_step, split_suzuki4_step,
+                          split_yoshida4_step)
+
+    n, dx, mass, omega, x0 = 256, 0.15, 1.0, 0.5, 2.5
+    xg = (np.arange(1, n + 1) - 0.5 * (n + 1)) * dx
+    vg = 0.5 * mass * omega ** 2 * xg ** 2
+    psi0 = np.exp(-0.5 * mass * omega * (xg - x0) ** 2)
+    psi0 /= np.linalg.norm(psi0) * np.sqrt(dx)
+    T = 2.0 * np.pi / omega
+
+    methods = (("Strang (1 sub-step)", split_strang_step, 1, 'royalblue', 'o-'),
+               ("Yoshida4 (3 sub-steps)", split_yoshida4_step, 3, 'seagreen', 's-'),
+               ("Suzuki4 (5 sub-steps)", split_suzuki4_step, 5, 'crimson', '^-'))
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.6, 4.4), dpi=200)
+
+    nsts = np.array([32, 64, 128, 256, 512])
+    tables = {}
+    for name, step, nsub, col, fmt in methods:
+        errs = []
+        for nst in nsts:
+            dt = T / nst
+            psi = psi0.copy()
+            for _ in range(int(nst)):
+                psi = step(psi, vg, dx, mass, dt)
+            xx = float(np.sum(xg * np.abs(psi) ** 2) * dx)
+            errs.append(max(abs(xx - x0), 1e-16))
+        tables[name] = (np.array(errs), nsub)
+        dts = T / nsts
+        ax1.loglog(dts, errs, fmt, color=col, markersize=5, label=name)
+
+    dts = T / nsts
+    for slope, col in ((2, 'gray'), (4, 'black')):
+        ref = tables["Strang (1 sub-step)"][0][0] * (dts / dts[0]) ** slope
+        ax1.loglog(dts, ref, ':', color=col, linewidth=1.0,
+                   label=f'slope {slope} reference')
+    ax1.set_xlabel('Time step $\\Delta t$ (a.u.)')
+    ax1.set_ylabel(r'$|\langle x\rangle(T)-x_0|$ at $T=2\pi/\omega$')
+    ax1.set_ylim(1e-14, 1e-1)
+    ax1.legend(fontsize=8.0, loc='lower right')
+    ax1.set_title('(a) Order Calibration on the HO Coherent State', fontsize=10.5)
+    ax1.grid(True, which='both', alpha=0.3)
+
+    # (b) cost-accuracy
+    for name, step, nsub, col, fmt in methods:
+        errs, nsub = tables[name]
+        cost = nsts * nsub * 2          # FFT pairs (forward+inverse per sub-step)
+        ax2.loglog(cost, errs, fmt, color=col, markersize=5, label=name)
+    ax2.set_xlabel('FFT pairs per period (cost)')
+    ax2.set_ylabel('error (same metric)')
+    ax2.set_ylim(1e-14, 1e-1)
+    ax2.legend(fontsize=8.0, loc='lower left')
+    ax2.set_title('(b) Cost-Accuracy Trade (fixed final time)', fontsize=10.5)
+    ax2.grid(True, which='both', alpha=0.3)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig37_splitting_orders.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 36 Scientific Calculation Benchmark Figures")
+    print(" Generating All 37 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -2804,8 +2874,9 @@ def main():
     generate_fig34_json_contract()
     generate_fig35_benchmark()
     generate_fig36_linalg_decomp()
+    generate_fig37_splitting()
     print("=" * 60)
-    print(" All 36 Figures Generated Successfully in docs/figures/!")
+    print(" All 37 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 
