@@ -1000,6 +1000,71 @@ class TestPyGenMod(unittest.TestCase):
         self.assertTrue(np.all(hh > 0))
         self.assertLess(float(np.max(hh)), 0.5 + 1e-12)
 
+    def test_toml_io(self):
+        # 与 Fortran test_toml_io 对应 (§15.10「数据格式」: TOML 实验记录)
+        import pathlib
+        try:
+            import tomllib
+        except ImportError:                      # Python < 3.11
+            import tomli as tomllib
+        from pygenmod import TomlWriter
+
+        fx_path = pathlib.Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "canonical_record.toml"
+        fixture = fx_path.read_text()
+
+        # --- 1. fixture 由标准 TOML 解析器独立解析, 数值逐位复原 ---
+        d = tomllib.loads(fixture)
+        self.assertEqual(d["module"], "mod_toml")
+        self.assertEqual(d["n_grid"], 16)
+        self.assertEqual(d["saddle_energy_Eh"], -0.153705)
+        self.assertTrue(d["pi"] == 3.141592653589793)
+        self.assertEqual(d["escape_test"], 'quote " backslash \\ tab\tok')
+        self.assertIs(d["converged"], True)
+        self.assertIs(d["diverged"], False)
+        self.assertEqual(d["levels"], [1.0, 2.5, -3.25])
+        self.assertEqual(d["scaled"], [1.2345678901234567e-10])
+        self.assertEqual(d["shape"], [16, 16, 16])
+        self.assertEqual(d["empty_int"], [])
+        self.assertEqual(d["empty_real"], [])
+        self.assertEqual(d["matrix"], [[0.5, 1.0e-3], [-0.25, 42.0]])
+        self.assertEqual(d["records"], [{"tag": "first", "weight": 0.75},
+                                        {"tag": "second", "weight": -1.5}])
+        self.assertEqual(d["meta"], {"author": "GeneralModule"})
+
+        # --- 2. Python 镜像与 Fortran 文档逐字节一致 ---
+        w = TomlWriter()
+        w.add_string("module", "mod_toml")
+        w.add_string("escape_test", 'quote " backslash \\ tab\tok')
+        w.add_int("n_grid", 16)
+        w.add_real("saddle_energy_Eh", -0.153705)
+        w.add_real("pi", 3.141592653589793)
+        w.add_bool("converged", True)
+        w.add_bool("diverged", False)
+        w.add_real_array("levels", [1.0, 2.5, -3.25])
+        w.add_real_array("scaled", [1.2345678901234567e-10])
+        w.add_int_array("shape", [16, 16, 16])
+        w.add_int_array("empty_int", [])
+        w.add_real_array("empty_real", [])
+        w.add_real_array_2d("matrix", [[0.5, 1.0e-3], [-0.25, 42.0]])
+        for tag, wt in (("first", 0.75), ("second", -1.5)):
+            w.begin_array_table("records")
+            w.add_string("tag", tag)
+            w.add_real("weight", wt)
+        w.begin_table("meta")
+        w.add_string("author", "GeneralModule")
+        self.assertEqual(w.get_text() + "\n", fixture)
+
+        # --- 3. 数值往返 (与 JSON 契约同一数字格式) ---
+        for v in (0.1, -0.153705, 1.0e-300, 1.0e308, 1.2345678901234567e-10):
+            w2 = TomlWriter()
+            w2.add_real("v", v)
+            self.assertEqual(tomllib.loads(w2.get_text())["v"], v)
+
+        # --- 4. 转义与控制字符 ---
+        w3 = TomlWriter()
+        w3.add_string("k", "ctl" + chr(1))
+        self.assertEqual(w3.get_text(), 'k = "ctl\\u0001"')
+
     def test_scattering(self):
         # 1. Van der Waals mean length
         a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)

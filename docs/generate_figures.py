@@ -2919,9 +2919,110 @@ def generate_fig38_adaptive_step():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig39_toml_contract():
+    """Fig 39 (book Fig 8.x): JSON + TOML experiment records. (a) the same
+    canonical record rendered in both formats (excerpts, byte contracts fixed
+    by the fixtures); (b) the dual validation loop: Fortran writers ->
+    fixtures -> independent Python parsers (stdlib json / tomllib) with
+    bitwise double recovery."""
+    print("Generating Fig 39: JSON + TOML record formats and validation loops...")
+    set_publication_style()
+    from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13.6, 5.6), dpi=200)
+    for ax in (ax1, ax2):
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
+        ax.axis('off')
+
+    ax1.set_title('(a) Same Record, Two Machine-Readable Formats', fontsize=11)
+
+    json_txt = """{
+  "module": "mod_json",
+  "n_grid": 16,
+  "saddle_energy_Eh": -1.537...E-001,
+  "levels": [
+    1.000...E+000,
+    2.500...E+000
+  ],
+  "records": [
+    { "tag": "first",
+      "weight": 7.500...E-001 },
+    { "tag": "second",
+      "weight": -1.500...E+000 }
+  ],
+  "meta": { "author": "GeneralModule" }
+}"""
+    toml_txt = """module = "mod_toml"
+n_grid = 16
+saddle_energy_Eh = -1.537...E-001
+levels = [
+  1.000...E+000,
+  2.500...E+000
+]
+[[records]]
+tag = "first"
+weight = 7.500...E-001
+[[records]]
+tag = "second"
+weight = -1.500...E+000
+[meta]
+author = "GeneralModule"
+"""
+
+    def tbox(ax, x, y, w, h, text, title, color):
+        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.10",
+                                    linewidth=1.0, facecolor=color, edgecolor='black'))
+        ax.text(x + w / 2, y + h - 0.28, title, ha='center', va='top',
+                fontsize=9.2, fontweight='bold')
+        ax.text(x + 0.18, y + h - 0.72, text, ha='left', va='top',
+                fontsize=7.4, family='monospace', linespacing=1.35)
+
+    tbox(ax1, 0.15, 0.35, 4.6, 8.9, json_txt, 'JSON (mod_json) — braces + nesting', '#dbe9f6')
+    tbox(ax1, 5.05, 0.35, 4.8, 8.9, toml_txt, 'TOML (mod_toml) — key = value + sections', '#e9f6ec')
+    ax1.text(0.15, 0.05, 'numbers share one canonical contract (17+3 digits, round-trip exact)',
+             fontsize=8.2, color='dimgray')
+
+    # ---------------- (b) validation loop ----------------
+    ax2.set_title('(b) Dual-Format Cross-Language Validation', fontsize=11)
+
+    def box(ax, x, y, w, h, label, fc, fs=8.6):
+        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.08",
+                                    linewidth=1.0, facecolor=fc, edgecolor='black'))
+        ax.text(x + w / 2, y + h / 2, label, ha='center', va='center', fontsize=fs)
+
+    box(ax2, 0.3, 7.2, 3.0, 1.2, 'Fortran\nmod_json / mod_toml', '#dbe9f6')
+    box(ax2, 0.3, 4.4, 3.0, 1.2, 'Python mirrors\njson_io / toml_io', '#e9f6ec')
+    box(ax2, 4.2, 7.2, 3.6, 1.2, 'fixtures/\ncanonical_record.json (861 B)\ncanonical_record.toml (686 B)', '#fdf3e3', fs=7.8)
+    box(ax2, 4.2, 4.4, 3.6, 1.2, 'independent parsers\njson (stdlib) / tomllib', '#f6e6e6', fs=8.2)
+    box(ax2, 4.2, 1.3, 3.6, 1.5,
+        'bitwise double recovery\n-0.153705, 3.141592653589793\ntables/arrays/nesting OK',
+        '#f0f0f0', fs=8.0)
+
+    def arrow(ax, p1, p2, label, col):
+        ax.add_patch(FancyArrowPatch(p1, p2, arrowstyle='-|>', color=col,
+                                     linewidth=1.4, mutation_scale=14))
+        ax.text((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2 + 0.26, label,
+                ha='center', fontsize=8.0, color=col)
+
+    arrow(ax2, (3.3, 7.8), (4.2, 7.8), 'byte-identical', 'royalblue')
+    arrow(ax2, (3.3, 5.0), (4.2, 5.0), 'byte-identical', 'seagreen')
+    arrow(ax2, (6.0, 7.2), (6.0, 5.6), 'parse', 'crimson')
+    arrow(ax2, (6.0, 4.4), (6.0, 2.8), 'assert ==', 'crimson')
+    ax2.text(0.3, 0.30, 'Both writers pass the same contract test: fixture byte-equality (Fortran)\n'
+             'plus independent-parser recovery of the exact doubles (Python).',
+             fontsize=8.2, color='dimgray')
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig39_json_toml_contract.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 38 Scientific Calculation Benchmark Figures")
+    print(" Generating All 39 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -2961,8 +3062,9 @@ def main():
     generate_fig36_linalg_decomp()
     generate_fig37_splitting()
     generate_fig38_adaptive_step()
+    generate_fig39_toml_contract()
     print("=" * 60)
-    print(" All 38 Figures Generated Successfully in docs/figures/!")
+    print(" All 39 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

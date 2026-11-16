@@ -6423,6 +6423,37 @@ Python 测试位于：
 \texttt{DBL\_MAX}（\(1.797\ldots\times10^{308}\) 的 18
 位十进制读回溢出），故极端量级使用 \texttt{1.0e308} 类安全值记录。
 
+\textbf{TOML 记录（\texttt{mod\_toml}，同一契约的姊妹格式）。}
+配置型/实验参数记录在生态上更常写作
+TOML（可读性强、无括号嵌套、天然支持节与数组表）。\texttt{src/mod\_toml.f90}
+提供与 \texttt{mod\_json} 同构的最小 TOML 1.0
+写入器：根表键值对、\texttt{{[}table{]}}/\texttt{{[}table.sub{]}}
+节、\texttt{{[}{[}records{]}{]}} 数组表、一/二维数值数组（多行数组）、与
+JSON 完全相同的\textbf{数字格式契约}（同一 18
+位有效数字规范，往返无损）与字符串转义集合。验收方式与 JSON
+完全一致：Fortran 输出与
+\texttt{tests/fixtures/canonical\_record.toml}（686
+字节）逐字节一致、转义边界、数值往返 6/6
+逐位无损、结构要素（空数组内联、数组表、点分节）齐备；Python 镜像
+\texttt{pygenmod/toml\_io.py}
+产出逐字节相同的文档，并由\textbf{独立解析器 \texttt{tomllib}（Python
+3.11 标准库）} 解析后逐位复原双精度值（\texttt{0.153705}、\texttt{pi}
+等）。两种格式共享同一条数字契约意味着同一份物理记录可以在两格式间\textbf{无损转换}（仅结构语法不同）。
+
+\begin{figure}
+\centering
+\includegraphics[width=15.5cm,height=\textheight]{figures/fig39_json_toml_contract.png}
+\caption{图 8.1b：同一份记录的两种机器可读格式与双格式验证回路。(a)
+JSON（\texttt{mod\_json}，花括号 + 嵌套）与
+TOML（\texttt{mod\_toml}，key = value + 节 +
+\texttt{{[}{[}数组表{]}{]}}）渲染同一记录（节选）：数字共享同一 17+3
+位规范契约；(b) 双格式交叉验证回路------Fortran 两个写入器分别与各自
+fixture 逐字节一致，Python 两个镜像同样逐字节一致，再由
+\texttt{json}（标准库）与 \texttt{tomllib}
+两个独立解析器验证结构并逐位复原双精度值。绘图脚本见
+\texttt{docs/generate\_figures.py}。}
+\end{figure}
+
 \begin{figure}
 \centering
 \includegraphics[width=15.5cm,height=\textheight]{figures/fig34_json_contract.png}
@@ -8700,6 +8731,19 @@ JSON 实验记录（规范化契约）\strut
 图 8.1（34）\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
+8.6\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+TOML 实验记录（同契约姊妹格式）\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{mod\_toml::toml\_writer\_t} 及 add/begin 系列\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{toml\_io.TomlWriter}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{test\_toml\_io}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+图 8.1b（39）\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.14\columnwidth}\raggedright
 8.7\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 核心算法性能基准 + 回归对比\strut
@@ -10418,7 +10462,7 @@ SVD/QR/Cholesky & 已具备 (§4.8) & 中 & 支持拟合和正则化\tabularnewl
 并行化 & 部分具备 (QCT/排列动力学/fft\_2d, 实测 9.5x@20 线程); MPI
 未具备 & 高 & OpenMP/MPI\tabularnewline
 单位类型 & 弱 & 中 & 显式状态码\tabularnewline
-数据格式 & JSON 已具备 (§8.6); TOML/HDF5 未具备 & 高 &
+数据格式 & JSON/TOML 已具备 (§8.6); HDF5 未具备 & 高 &
 JSON/TOML/HDF5\tabularnewline
 通用测试库 & 自实现 & 中 & 统一断言库\tabularnewline
 基准测试 & 已具备 (§8.7: 核心核 + JSON 记录 + 回归对比脚本) & 中 &
@@ -10442,7 +10486,8 @@ JSON/TOML/HDF5\tabularnewline
 \item
   增加二维样条（\textbf{已完成}，§4.6）；
 \item
-  增加 JSON/TOML 实验记录（JSON \textbf{已完成}，§8.6；TOML 待续）；
+  增加 JSON/TOML
+  实验记录（\textbf{均已完成}，§8.6：双格式共享数字契约与跨语言验证回路）；
 \item
   增加统一断言库；
 \item
@@ -10621,7 +10666,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 56 个测试程序、580 项断言全部通过。
+  全库 57 个测试程序、584 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的

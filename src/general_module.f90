@@ -19,6 +19,7 @@ module general_module
     use mod_rovibrational
     use mod_io_utils
     use mod_json
+    use mod_toml
     use mod_interpolation
     use mod_photofragment_flux
     use mod_open_quantum
@@ -124,6 +125,10 @@ module general_module
     public :: json_begin_object, json_end_object, json_begin_array, json_end_array
     public :: json_add_string, json_add_int, json_add_real, json_add_bool, json_add_null
     public :: json_add_int_array, json_add_real_array, json_add_real_array_2d
+    public :: toml_writer_t, toml_init, toml_finalize, toml_get_text, toml_begin_table
+    public :: toml_begin_array_table
+    public :: toml_add_string, toml_add_int, toml_add_real, toml_add_bool
+    public :: toml_add_int_array, toml_add_real_array, toml_add_real_array_2d
     public :: print_banner, print_progress_bar
 
     ! 势能面高精度样条插值与外推

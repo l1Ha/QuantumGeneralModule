@@ -65,6 +65,7 @@ from .linalg import (diag_hermitian_matrix, peierls_ring_spectrum,
                      svd_decompose, svd_pseudoinverse, hilbert_matrix)
 from .interp2d import Spline2D, Spline3D
 from .json_io import JsonWriter, format_number
+from .toml_io import TomlWriter
 from .propagation import (split_strang_step, split_suzuki4_step,
                            split_yoshida4_step, adaptive_split_propagate)
 
@@ -172,7 +173,7 @@ __all__ = [
     "cholesky_decompose", "cholesky_solve", "qr_decompose", "least_squares_qr",
     "svd_decompose", "svd_pseudoinverse", "hilbert_matrix",
     "Spline2D", "Spline3D",
-    "JsonWriter", "format_number",
+    "JsonWriter", "format_number", "TomlWriter",
     "split_strang_step", "split_suzuki4_step", "split_yoshida4_step",
     "adaptive_split_propagate",
     "rovibrational_state_index", "rovibrational_state_unindex",

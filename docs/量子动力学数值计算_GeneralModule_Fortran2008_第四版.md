@@ -3386,6 +3386,10 @@ Python 测试位于：
 
 **跨语言契约验收（图 8.1）。** 工程上与物理验收同样严格：规范文档由 `tests/fixtures/canonical_record.json`（861 字节，含 12 类键值结构）作为**跨语言金本**固定，三方同时受其约束——其一，Fortran 测试断言写入器输出与金本**逐字节一致**（并覆盖转义边界：引号/反斜杠/制表符/退格，空容器单行、5 层嵌套缩进）；其二，数值往返对 6 个"刁钻"双精度值（0.1、π、$-0.153705$、$10^{-300}$、$10^{308}$、$1.234\ldots\times10^{-10}$）逐位复原；其三，Python 镜像 `pygenmod/json_io.py` 产出与金本逐字节相同的文档，且由 **Python 标准库 `json`（独立解析器）** 解析后对 $-0.153705$、$3.141592653589793$ 等值**逐位复原**。数字格式的一个实测边界：18 位有效数字在最大双精度附近会向上进位超出 `DBL_MAX`（$1.797\ldots\times10^{308}$ 的 18 位十进制读回溢出），故极端量级使用 `1.0e308` 类安全值记录。
 
+**TOML 记录（`mod_toml`，同一契约的姊妹格式）。** 配置型/实验参数记录在生态上更常写作 TOML（可读性强、无括号嵌套、天然支持节与数组表）。`src/mod_toml.f90` 提供与 `mod_json` 同构的最小 TOML 1.0 写入器：根表键值对、`[table]`/`[table.sub]` 节、`[[records]]` 数组表、一/二维数值数组（多行数组）、与 JSON 完全相同的**数字格式契约**（同一 18 位有效数字规范，往返无损）与字符串转义集合。验收方式与 JSON 完全一致：Fortran 输出与 `tests/fixtures/canonical_record.toml`（686 字节）逐字节一致、转义边界、数值往返 6/6 逐位无损、结构要素（空数组内联、数组表、点分节）齐备；Python 镜像 `pygenmod/toml_io.py` 产出逐字节相同的文档，并由**独立解析器 `tomllib`（Python 3.11 标准库）** 解析后逐位复原双精度值（`0.153705`、`pi` 等）。两种格式共享同一条数字契约意味着同一份物理记录可以在两格式间**无损转换**（仅结构语法不同）。
+
+![图 8.1b：同一份记录的两种机器可读格式与双格式验证回路。(a) JSON（`mod_json`，花括号 + 嵌套）与 TOML（`mod_toml`，key = value + 节 + `[[数组表]]`）渲染同一记录（节选）：数字共享同一 17+3 位规范契约；(b) 双格式交叉验证回路——Fortran 两个写入器分别与各自 fixture 逐字节一致，Python 两个镜像同样逐字节一致，再由 `json`（标准库）与 `tomllib` 两个独立解析器验证结构并逐位复原双精度值。绘图脚本见 `docs/generate_figures.py`。](figures/fig39_json_toml_contract.png){width=15.5cm}
+
 ![图 8.1：JSON 实验记录契约与跨语言验证回路。(a) 规范记录 schema：12 类键值结构（字符串/转义字符串/整数/实数/布尔/null/实数数组/整数数组/空容器/二维数组/嵌套对象数组/嵌套对象）与数字格式契约；(b) 验证回路：Fortran `mod_json` 写入的文档与 `tests/fixtures/canonical_record.json` 逐字节一致，Python 镜像同样逐字节一致，而 Python 标准库 `json` 作为独立第三方解析器验证结构并**逐位复原**双精度值。绘图脚本见 `docs/generate_figures.py`。](figures/fig34_json_contract.png){width=15.5cm}
 
 #### 对应源码
@@ -4525,6 +4529,7 @@ GitHub Actions 配置位于：
 | 4.7 | 三维三三次样条 PES 插值 | `mod_interpolation::spline_3d_init`、`spline_3d_eval`、`spline_3d_grad` | `interp2d.Spline3D`、`qct.leps_potential_distances` | `test_interp_3d` | 图 4.4（33） |
 | 4.8 | Cholesky / QR / SVD 分解三件套 | `mod_linear_algebra::cholesky_decompose`、`qr_decompose`、`least_squares_qr`、`svd_decompose`、`svd_pseudoinverse` | `linalg` 同名（NumPy/LAPACK 参照） | `test_linalg_decomp` | 图 4.5（36） |
 | 8.6 | JSON 实验记录（规范化契约） | `mod_json::json_writer_t` 及 add/begin 系列 | `json_io.JsonWriter`、`json_io.format_number` | `test_json_io` | 图 8.1（34） |
+| 8.6 | TOML 实验记录（同契约姊妹格式） | `mod_toml::toml_writer_t` 及 add/begin 系列 | `toml_io.TomlWriter` | `test_toml_io` | 图 8.1b（39） |
 | 8.7 | 核心算法性能基准 + 回归对比 | `benchmarks/bench_kernels.f90`、`mod_linear_algebra::transpose_blocked` | — | `scripts/validate_benchmark.py`（CI 步） | 图 8.2（35） |
 | 6.2 | 高阶分裂（Yoshida4/Suzuki4）+ 自适应步长 | `mod_wavepacket_propagator::propagate_yoshida4_1d`、`propagate_suzuki4_1d`、`adaptive_split_propagate_1d` | `propagation`（同名 + `adaptive_split_propagate`） | `test_suzuki4`、`test_adaptive_step` | 图 6.4（37）、6.5（38） |
 | 15.4 | 差分与收敛标定 | — | — | `docs/generate_figures.py` | 图 4.1 |
@@ -5434,7 +5439,7 @@ end subroutine expect_close
 | 自适应网格 | 未具备 | 中 | 局部加密 |
 | 并行化 | 部分具备 (QCT/排列动力学/fft_2d, 实测 9.5x@20 线程); MPI 未具备 | 高 | OpenMP/MPI |
 | 单位类型 | 弱 | 中 | 显式状态码 |
-| 数据格式 | JSON 已具备 (§8.6); TOML/HDF5 未具备 | 高 | JSON/TOML/HDF5 |
+| 数据格式 | JSON/TOML 已具备 (§8.6); HDF5 未具备 | 高 | JSON/TOML/HDF5 |
 | 通用测试库 | 自实现 | 中 | 统一断言库 |
 | 基准测试 | 已具备 (§8.7: 核心核 + JSON 记录 + 回归对比脚本) | 中 | 性能回归 |
 | 自动微分 | 未具备 | 低 | 支持灵敏度和控制 |
@@ -5444,7 +5449,7 @@ end subroutine expect_close
 1. 增加 `diag_hermitian_matrix`（**已完成**，§4.5；稀疏对称本征求解部分见 §14.1）；
 2. 增加稀疏对称本征求解；
 3. 增加二维样条（**已完成**，§4.6）；
-4. 增加 JSON/TOML 实验记录（JSON **已完成**，§8.6；TOML 待续）；
+4. 增加 JSON/TOML 实验记录（**均已完成**，§8.6：双格式共享数字契约与跨语言验证回路）；
 5. 增加统一断言库；
 6. 增加 OpenMP 版本的 FFT 和矩阵乘法（FFT **已完成**且分块转置优化，§8.7；矩阵乘法待续）；
 7. 增加基准脚本（**已完成**，`make bench` + `scripts/validate_benchmark.py`，§8.7）；
@@ -5504,7 +5509,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 56 个测试程序、580 项断言全部通过。
+- 全库 57 个测试程序、584 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

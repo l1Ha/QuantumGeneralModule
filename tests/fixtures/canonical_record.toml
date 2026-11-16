@@ -1,0 +1,40 @@
+module = "mod_toml"
+escape_test = "quote \" backslash \\ tab\tok"
+n_grid = 16
+saddle_energy_Eh = -1.53705000000000008E-001
+pi = 3.14159265358979312E+000
+converged = true
+diverged = false
+levels = [
+  1.00000000000000000E+000,
+  2.50000000000000000E+000,
+  -3.25000000000000000E+000
+]
+scaled = [
+  1.23456789012345678E-010
+]
+shape = [
+  16,
+  16,
+  16
+]
+empty_int = []
+empty_real = []
+matrix = [
+  [
+    5.00000000000000000E-001,
+    1.00000000000000002E-003
+  ],
+  [
+    -2.50000000000000000E-001,
+    4.20000000000000000E+001
+  ]
+]
+[[records]]
+tag = "first"
+weight = 7.50000000000000000E-001
+[[records]]
+tag = "second"
+weight = -1.50000000000000000E+000
+[meta]
+author = "GeneralModule"
