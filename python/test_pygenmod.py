@@ -1092,6 +1092,47 @@ class TestPyGenMod(unittest.TestCase):
         self.assertTrue(np.all(sig > 0))
         self.assertEqual(dall.shape, (len(ee), l_max + 1))
 
+    def test_sparse_eig(self):
+        # 与 Fortran test_sparse_eig 对应 (§15.10「稀疏本征」项)
+        from pygenmod import lanczos_extreme_eigenvalues
+
+        # --- 1. 分离极值对角矩阵: 闭式极端值 ---
+        n = 300
+        d = np.ones(n)
+        d[0] = -1.0
+        d[-1] = 10.0 * n
+        d[1:-1] = np.arange(1, n - 1)
+        lo, hi, mv, res = lanczos_extreme_eigenvalues(lambda v: d * v, n, 3,
+                                                     m_max=80, n_restart=20, tol=1e-10)
+        np.testing.assert_allclose(lo, [-1.0, 1.0, 2.0], atol=1e-9)
+        np.testing.assert_allclose(hi, [10.0 * n, n - 2, n - 3], atol=1e-9)
+        self.assertLess(mv, 40 * n)          # 稀疏成本远低于稠密对角化
+
+        # --- 2. 稠密随机对称对照 (numpy.eigvalsh 独立参照) ---
+        rng = np.random.default_rng(3)
+        m = rng.standard_normal((150, 150))
+        A = 0.5 * (m + m.T)
+        lo2, hi2, mv2, res2 = lanczos_extreme_eigenvalues(lambda v: A @ v, 150, 3,
+                                                         m_max=60, n_restart=20, tol=1e-10)
+        dr = np.linalg.eigvalsh(A)
+        np.testing.assert_allclose(lo2, dr[:3], atol=1e-9)
+        np.testing.assert_allclose(hi2, dr[::-1][:3], atol=1e-9)
+
+        # --- 3. 简并极端谱 (块对角) ---
+        nb = 400
+        def blk(v):
+            w = np.zeros_like(v)
+            w[0], w[1] = v[1], v[0]
+            w[-2] = 4.0 * v[-2] + v[-1]
+            w[-1] = v[-2] + 4.0 * v[-1]
+            w[2:-2] = (2.0 + 1e-3 * np.arange(2, nb - 2) / nb) * v[2:-2]
+            return w
+        lo3, hi3, mv3, res3 = lanczos_extreme_eigenvalues(blk, nb, 4,
+                                                         m_max=60, n_restart=20, tol=1e-10)
+        # k=4 时低频列表含带内次小值 (2.000005...), 只查前两个极端
+        np.testing.assert_allclose(lo3[:2], [-1.0, 1.0], atol=1e-9)
+        np.testing.assert_allclose(hi3[:2], [5.0, 3.0], atol=1e-9)
+
     def test_scattering(self):
         # 1. Van der Waals mean length
         a_bar = van_der_waals_mean_length(mass=1.0, c6_au=50.0)

@@ -113,7 +113,7 @@ $(STATIC_LIB): $(MODULE_SRCS) scripts/compile_modules.sh
 	@echo "==> Library built: $(STATIC_LIB)"
 
 test: lib
-	@echo "==> Running full unit test suite (58 test suites)..."
+	@echo "==> Running full unit test suite (59 test suites)..."
 	@OPENMP=$(OPENMP) bash $(TEST_DIR)/run_all_tests.sh
 
 test-python: ## Run pygenmod Python unit tests (28 tests)
@@ -140,7 +140,7 @@ clean:
 help:
 	@echo "Available targets in GeneralModule Makefile:"
 	@echo "  make all      - Build the core static library (libgeneral_module.a)"
-	@echo "  make test     - Run all 58 unit test suites (588 assertions)"
+	@echo "  make test     - Run all 59 unit test suites (593 assertions)"
 	@echo "  make examples - Build and execute all 35 physics examples"
 	@echo "  make check    - Run Fortran tests and Python pygenmod test suite"
 	@echo "  make clean    - Remove all compiled objects, modules, and data outputs"

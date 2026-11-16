@@ -3088,9 +3088,86 @@ def generate_fig40_parallel_scattering():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig41_sparse_eig():
+    """Fig 41 (book Fig 14.x): restarted Lanczos for extreme eigenvalues.
+    (a) single-pass convergence of the extreme Ritz values vs Krylov
+    dimension m (separated-spectrum case) with the restarted final accuracy
+    marked, plus the matvec cost; (b) the clustered-spectrum hard case
+    (Dirichlet Laplacian, lambda_1 quadratically clustered): honest slow
+    convergence documented against the closed-form lambda_1."""
+    print("Generating Fig 41: restarted Lanczos extreme eigenvalues...")
+    set_publication_style()
+    from pygenmod import lanczos_extreme_eigenvalues, lanczos_tridiag
+    import numpy as _np
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.6, 4.4), dpi=200)
+
+    # ---------------- (a) separated spectrum ----------------
+    n = 300
+    d = _np.ones(n)
+    d[0] = -1.0
+    d[-1] = 10.0 * n
+    d[1:-1] = _np.arange(1, n - 1)
+    exact = _np.array([-1.0, 1.0, 2.0, 10.0 * n, n - 2, n - 3])
+
+    ms = _np.arange(10, 81, 10)
+    errs = []
+    for m in ms:
+        lo, hi, _, _ = lanczos_extreme_eigenvalues(lambda v: d * v, n, 3,
+                                                  m_max=int(m), n_restart=1, tol=0.0)
+        errs.append(max(_np.max(_np.abs(lo - exact[:3])), _np.max(_np.abs(hi - exact[3:]))))
+    lo_r, hi_r, mv_r, res_r = lanczos_extreme_eigenvalues(lambda v: d * v, n, 3,
+                                                         m_max=80, n_restart=20, tol=1e-10)
+    err_restart = max(_np.max(_np.abs(lo_r - exact[:3])), _np.max(_np.abs(hi_r - exact[3:])))
+
+    ax1.semilogy(ms, _np.maximum(errs, 1e-14), 'o-', color='royalblue',
+                 markersize=5, label='single pass (m steps)')
+    ax1.axhline(err_restart, color='crimson', linewidth=1.4, linestyle='--',
+                label=f'restarted Lanczos ({mv_r} matvecs)')
+    ax1.set_xlabel('Krylov dimension $m$ (single pass)')
+    ax1.set_ylabel('max extreme-eigenvalue error')
+    ax1.set_ylim(1e-14, 1e1)
+    ax1.legend(fontsize=8.4, loc='lower left')
+    ax1.set_title('(a) Separated Spectrum: Restarts Reach 1e-12', fontsize=10.5)
+    ax1.grid(True, which='both', alpha=0.3)
+
+    # ---------------- (b) clustered hard case ----------------
+    n2 = 500
+    def lap(v):
+        w = 2.0 * v
+        w[1:] -= v[:-1]
+        w[:-1] -= v[1:]
+        return w
+    lam1 = 4.0 * _np.sin(_np.pi / (2.0 * (n2 + 1))) ** 2
+    ms2 = _np.arange(20, 161, 20)
+    errs2 = []
+    for m in ms2:
+        lo, _, _, _ = lanczos_extreme_eigenvalues(lap, n2, 1, m_max=int(m),
+                                                 n_restart=1, tol=0.0)
+        errs2.append(abs(lo[0] - lam1))
+    ax2.loglog(ms2, errs2, 's-', color='seagreen', markersize=5,
+               label=r'$|\lambda_1^{Ritz}-\lambda_1|$')
+    ax2.set_xlabel('Krylov dimension $m$')
+    ax2.set_ylabel('error of the smallest eigenvalue')
+    ax2.set_title('(b) Clustered Spectrum: Honest Slow Convergence', fontsize=10.5)
+    ax2.annotate(f'Dirichlet Laplacian $n={n2}$\n'
+                 r'$\lambda_1=4\sin^2\frac{\pi}{2(n+1)}=$' + f'{lam1:.2e}\n'
+                 'gap/width $\\approx 3\\times10^{-5}$',
+                 xy=(0.04, 0.62), xycoords='axes fraction', fontsize=8.2,
+                 color='dimgray')
+    ax2.legend(fontsize=8.4, loc='lower left')
+    ax2.grid(True, which='both', alpha=0.3)
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig41_sparse_eig.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 40 Scientific Calculation Benchmark Figures")
+    print(" Generating All 41 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -3132,8 +3209,9 @@ def main():
     generate_fig38_adaptive_step()
     generate_fig39_toml_contract()
     generate_fig40_parallel_scattering()
+    generate_fig41_sparse_eig()
     print("=" * 60)
-    print(" All 40 Figures Generated Successfully in docs/figures/!")
+    print(" All 41 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

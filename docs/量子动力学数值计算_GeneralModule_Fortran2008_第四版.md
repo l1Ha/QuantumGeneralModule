@@ -4537,6 +4537,7 @@ GitHub Actions 配置位于：
 | 8.7 | 核心算法性能基准 + 回归对比 | `benchmarks/bench_kernels.f90`、`mod_linear_algebra::transpose_blocked` | — | `scripts/validate_benchmark.py`（CI 步） | 图 8.2（35） |
 | 6.2 | 高阶分裂（Yoshida4/Suzuki4）+ 自适应步长 | `mod_wavepacket_propagator::propagate_yoshida4_1d`、`propagate_suzuki4_1d`、`adaptive_split_propagate_1d` | `propagation`（同名 + `adaptive_split_propagate`） | `test_suzuki4`、`test_adaptive_step` | 图 6.4（37）、6.5（38） |
 | 7.2 | 并行散射能量扫描（OpenMP 数据并行） | `mod_ti_scattering::phase_shift_energy_scan`、`sigma_energy_scan` | `scattering` 同名（串行镜像） | `test_parallel_scattering` | 图 8.3（40） |
+| 14.1 | 厚重启 Lanczos 极端本征值 | `mod_krylov_propagator::lanczos_extreme_eigenvalues` | `krylov.lanczos_extreme_eigenvalues` | `test_sparse_eig` | 图 14.2（41） |
 | 15.4 | 差分与收敛标定 | — | — | `docs/generate_figures.py` | 图 4.1 |
 
 表中"—"表示该层尚无独立 Python 参照或结果图（详见 §15 能力清单与 §12 路线图）。
@@ -4667,6 +4668,10 @@ Lanczos 方法适合求极端本征值和时间演化，但对重复本征值和
 - 已实现：`src/mod_krylov_propagator.f90` 的 `lanczos_tridiag`（两遍全重正交三对角化）与 `krylov_propagate_step`（子空间内精确矩阵指数，实/虚部分别传播）；Python 镜像 `python/pygenmod/krylov.py`；验证 `tests/test_krylov_propagator.f90`（8 项断言）与 `python/test_pygenmod.py::test_krylov_propagator`。
 - 三条闭式验收（图 14.1）：其一，**HO 相干态解析演化** $|\alpha e^{-i\omega t}\rangle$——本征基中分量相位 $e^{-i\omega(n+1/2)t}$ 严格已知，Krylov 传播一个完整周期后保真度 $1-F<10^{-10}$，期望值 $\langle x\rangle(t)=\sqrt{2/\omega}\,\alpha\cos\omega t$ 偏差 $5.6\times10^{-15}$；其二，**二能级不变子空间精确终止**——$d=2$ 时 $\beta_3=0$（数值 0）、$m_{\mathrm{eff}}=2$，Rabi 几率 $P_e(t)=\frac{\Omega^2}{\Omega^2+\Delta^2}\sin^2\frac{\Omega t}{2}$ 在 400 步内误差 $1.4\times10^{-14}$（严格精确，非近似）；其三，**后验误差估计** $\epsilon\approx\beta_{m+1}|[\exp(-iT_m dt)]_{m,1}|$ 与真实误差同量级（比值 0.62–4.4，跨 6 个数量级），$m$ 从 4 增至 20 误差降 6 个数量级（超指数收敛）。Lanczos 基正交性 $\|V_m^{T}V_m-I\|<5\times10^{-16}$、$T_m=V_m^{T}HV_m$ 重构 $<4\times10^{-16}$（40 维稠密随机对称阵全三对角化）；2000 步长时范数漂移 $3\times10^{-13}$；与库内切比雪夫传播器在 DVR 网格 + quartic 非谐势上交叉验证 $1-F=-1.1\times10^{-15}$（两条独立路径到机器精度一致）。
 - 边界：本模块要求 $H$ 实对称（无磁场、无复吸收势）；复势（CAP）情形仍由切比雪夫/劈裂算符路径承担（§6.7）。一般 Arnoldi（复向量）与重启/块 Lanczos 策略属 §12.1 后续项。
+
+**极端本征值：厚重启 Lanczos（`lanczos_extreme_eigenvalues`）。** 传播之外，同一 Krylov 机械还承担大维稀疏对称矩阵的极端本征值问题（§15.10 路线图项）：每趟用 `lanczos_tridiag` 构造 $m$ 维 Krylov 空间、对角化三对角 $T$（tql2）取 $k$ 个极端 Ritz 对，随后**以极端 Ritz 向量的随机权重组合重启**（随机分量随趟数指数衰减 $10^{-2}\to10^{-11}$ —— 固定的小随机分量会成为重启的**精度地板**，使 Ritz 残差无法低于其相对幅度）。验收（`tests/test_sparse_eig.f90`，5 项断言）：其一，**分离极值**对角矩阵（$n=300$，孤立极值 $-1$ 与 $10n$、带 $[1,n-2]$）极端值达 $2.0\times10^{-13}/1.4\times10^{-12}$（720 次 matvec，远低于稠密对角化成本）；其二，$n=200$ 稠密随机对称矩阵与库内 tql2 对照 $1.4\times10^{-14}$（**仅 60 次 matvec**）；其三，容限驱动停止（紧容限残差 $3.6\times10^{-15}$）；其四，**聚簇硬例诚实记录**——Dirichlet Laplacian（$n=500$，$\lambda_1$ 二次聚簇、gap/width $\approx3\times10^{-5}$）误差随 $m$ 由 $5.1\times10^{-5}$（$m=40$）降至 $1.3\times10^{-6}$（$m=120$），Lanczos 在此类谱上的慢收敛是**物理正确**的行为，测试仅断言单调下降趋势；其五，简并极端谱（块对角，极端成对简并）精确复原 $-1,1,5,3$。诊断中还有一个值得记录的陷阱：若 matvec 施加的是**非对称**矩阵（参考解却用对称化矩阵），会出现"Ritz 残差 $10^{-15}$ 但本征值错 1.2"的矛盾现象——Lanczos 的前提（实对称算子）必须由调用方保证，测试对此显式对称化。Python 镜像同算法（重启向量为 $V U_{\text{extreme}}$ 而非 Krylov 基列——早期实现混用导致收敛停滞）并入 `test_sparse_eig`（Python 套件 45 → 46 项）。适用边界：实对称（含简并）；非对称情形需一般 Arnoldi（未具备，保持记录于 §15.10）。
+
+![图 14.2：厚重启 Lanczos 极端本征值验证。(a) 分离谱情形：单趟（$m$ 步）极端 Ritz 误差随 $m$ 下降（蓝），重启后在 800 次 matvec 达 $10^{-12}$（红虚线）——重启的价值在于用有界内存持续提纯极端子空间；(b) 聚簇硬例（Dirichlet Laplacian $n=500$）：最小本征值误差随 $m$ 的诚实慢收敛（$m=140$ 时 $10^{-4}$，gap/width $\approx3\times10^{-5}$），与 Fortran 测试的趋势断言一致。绘图脚本见 `docs/generate_figures.py`（Python 镜像实测）。](figures/fig41_sparse_eig.png){width=15.0cm}
 
 ![图 14.1：Lanczos–Krylov 短迭代传播器验收（正向计算）。(a) 误差随 Krylov 维数 $m$ 的超指数收敛（HO 相干态，$\omega=0.5$、$dt=5.0$ a.u. 大步长）：红色为由后验误差估计 $\beta_{m+1}|[\exp(-iT_m dt)]_{m,1}|$ 给出的预测误差，蓝色为与闭式解逐点比较的真实误差，两者同量级且同步下降（$m=4\to20$ 降 6 个数量级）；绿色星标为二能级情形的严格精确点（$m=2$ 处 $\beta_3=0$，不变子空间终止）。(b) HO 相干态期望值 $\langle x\rangle(t)$：黑实线为闭式 $\sqrt{2/\omega}\,\alpha\cos\omega t$，红圈为 Krylov 传播逐点计算，最大偏差 $5.6\times10^{-15}$（机器精度）；内嵌图为 2000 步长时范数漂移（对数纵轴，饱和于 $\sim10^{-12}$）。绘图脚本见 `docs/generate_figures.py`。](figures/fig30_krylov_propagator.png){width=13.5cm}
 
@@ -5438,7 +5443,7 @@ end subroutine expect_close
 | 领域 | 当前状态 | 优先级 | 建议目标 |
 |---|---|---|---|
 | 复 Hermitian 本征 | 已具备 (加倍归约, §4.5) | 高 | 支持复哈密顿量 |
-| 稀疏本征 | 部分具备 (Lanczos/Ritz 极值; Arnoldi 未具备) | 高 | Lanczos/Arnoldi |
+| 稀疏本征 | 已具备 (对称: 厚重启 Lanczos 极端值, §14.1; 非对称 Arnoldi 未具备) | 高 | Lanczos/Arnoldi |
 | SVD/QR/Cholesky | 已具备 (§4.8) | 中 | 支持拟合和正则化 |
 | 多维插值 | 二维/三维已具备 (§4.6/§4.7); 四维以上未具备 | 高 | 二维/三维势能面 |
 | 自适应网格 | 未具备 | 中 | 局部加密 |
@@ -5514,7 +5519,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 58 个测试程序、588 项断言全部通过。
+- 全库 59 个测试程序、593 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

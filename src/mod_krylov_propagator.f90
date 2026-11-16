@@ -22,6 +22,7 @@ module mod_krylov_propagator
 
     public :: lanczos_tridiag
     public :: krylov_propagate_step
+    public :: lanczos_extreme_eigenvalues
 
 contains
 
@@ -245,5 +246,126 @@ contains
 
         deallocate(alpha, beta, v_basis, tri, lam, umat, coeff)
     end subroutine lanczos_apply_expm
+
+    !> \brief 稀疏/大维实对称矩阵的 k 个极端本征值 (厚重启 Lanczos; §15.10 项)
+    !> \details 每次"趟"用已验证的 lanczos_tridiag 构造 m 维 Krylov 空间并
+    !>          对角化三对角 T (tql2), 取 k 个极端 Ritz 对; 重启向量取这些
+    !>          Ritz 向量的**随机权重组合** (突破对称锁定), 迭代若干趟直至
+    !>          Ritz 残差收敛。空间迭代收敛率为相邻本征值比 |lam_{k+1}/lam_k|,
+    !>          对谱间隙大或需求精度中等的大矩阵可显著少于单趟长 Lanczos 的
+    !>          矩阵-向量乘法数。
+    !>          适用边界: 实对称 (含简并); 非对称情形需一般 Arnoldi (未具备,
+    !>          保持记录于 §15.10)。
+    !> \param[in]  n_dim 维度; k 需求解的极端本征值个数; m_max 每趟 Krylov 维数
+    !> \param[in]  n_restart 最大重启趟数; tol Ritz 残差收敛容限
+    !> \param[in]  r_mult 实对称 matvec
+    !> \param[out] evals_low 最小 k 个本征值 (升序); evals_high 最大 k 个 (降序)
+    !> \param[out] n_matvec 总 matvec 次数; res_max 达成的最差 Ritz 残差
+    !> \param[out] stat 0 收敛; 1 未在趟数上限内收敛
+    subroutine lanczos_extreme_eigenvalues(n_dim, k, m_max, n_restart, r_mult, &
+                                           evals_low, evals_high, n_matvec, res_max, tol, stat)
+        integer, intent(in) :: n_dim, k, m_max, n_restart
+        interface
+            subroutine r_mult(v_in, v_out)
+                use mod_constants, only: dp
+                real(dp), intent(in) :: v_in(:)
+                real(dp), intent(out) :: v_out(:)
+            end subroutine r_mult
+        end interface
+        real(dp), intent(out) :: evals_low(k), evals_high(k)
+        integer, intent(out) :: n_matvec
+        real(dp), intent(out) :: res_max
+        real(dp), intent(in), optional :: tol
+        integer, intent(out) :: stat
+
+        real(dp), allocatable :: alpha(:), beta(:), v_basis(:, :)
+        real(dp), allocatable :: tri(:, :), lam(:), evec(:, :)
+        real(dp), allocatable :: v_start(:), w(:)
+        real(dp) :: tol_v, resid, s
+        integer :: pass, i, j, m_eff, st_lan, st_diag, nsel
+        integer :: seed(8)
+        real(dp), allocatable :: ritz_vecs(:, :)
+
+        stat = 1
+        tol_v = 1.0e-10_dp
+        if (present(tol)) tol_v = tol
+        n_matvec = 0
+
+        allocate (alpha(m_max), beta(m_max + 1), v_basis(n_dim, m_max))
+        allocate (tri(m_max, m_max), lam(m_max), evec(m_max, m_max))
+        allocate (v_start(n_dim), w(n_dim), ritz_vecs(n_dim, m_max))
+
+        ! 初始随机向量 (固定种子保证可复现)
+        seed = [101, 203, 307, 401, 503, 607, 701, 809]
+        call random_seed(size=st_lan)
+        block
+            integer, allocatable :: sd(:)
+            allocate (sd(st_lan))
+            do i = 1, st_lan
+                sd(i) = seed(mod(i - 1, 8) + 1) * (i + 3)
+            end do
+            call random_seed(put=sd)
+            deallocate (sd)
+        end block
+        call random_number(v_start)
+
+        do pass = 1, n_restart
+            call lanczos_tridiag(n_dim, m_max, v_start, r_mult, alpha, beta, &
+                                 v_basis, m_eff, st_lan)
+            n_matvec = n_matvec + m_eff
+            if (st_lan /= 0) exit
+            ! 三对角化 + 谱分解
+            tri = 0.0_dp
+            do j = 1, m_eff
+                tri(j, j) = alpha(j)
+                if (j < m_eff) then
+                    tri(j, j + 1) = beta(j + 1)
+                    tri(j + 1, j) = beta(j + 1)
+                end if
+            end do
+            call diag_symmetric_matrix(m_eff, tri, lam, evec, st_diag)
+            if (st_diag /= 0) exit
+
+            ! 极端 Ritz 对与残差: resid_i = |beta_{m+1} * evec(m_eff, i)|
+            evals_low = lam(1:k)
+            do i = 1, k
+                evals_high(i) = lam(m_eff - i + 1)
+            end do
+            res_max = 0.0_dp
+            do i = 1, k
+                s = abs(beta(m_eff + 1) * evec(m_eff, i))
+                res_max = max(res_max, s)
+                s = abs(beta(m_eff + 1) * evec(m_eff, m_eff - i + 1))
+                res_max = max(res_max, s)
+            end do
+            if (beta(m_eff + 1) <= 1.0e-14_dp) then
+                stat = 0        ! 不变子空间: 精确
+                exit
+            end if
+            if (res_max <= tol_v) then
+                stat = 0
+                exit
+            end if
+
+            ! 重启向量: 极端 Ritz 向量的随机权重组合 + 小随机分量
+            v_start = 0.0_dp
+            do i = 1, k
+                call random_number(s)
+                s = 2.0_dp * s - 1.0_dp
+                v_start = v_start + s * matmul(v_basis, evec(:, i))
+                call random_number(s)
+                s = 2.0_dp * s - 1.0_dp
+                v_start = v_start + s * matmul(v_basis, evec(:, m_eff - i + 1))
+            end do
+            call random_number(w)
+            ! 随机分量随趟数指数衰减 (1e-2 -> 1e-11): 固定的小随机分量会成为
+            ! 重启的**精度地板** (Ritz 残差无法低于其相对幅度), 衰减后重启
+            ! 才可能收敛到 1e-12 量级
+            v_start = v_start + 1.0e-2_dp * 10.0_dp**(-real(min(pass - 1, 8), dp)) * w
+            v_start = v_start / sqrt(sum(v_start**2))
+        end do
+
+        deallocate (alpha, beta, v_basis, tri, lam, evec, v_start, w, ritz_vecs)
+    end subroutine lanczos_extreme_eigenvalues
 
 end module mod_krylov_propagator

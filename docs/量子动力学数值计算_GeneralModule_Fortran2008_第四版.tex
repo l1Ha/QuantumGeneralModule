@@ -8810,6 +8810,19 @@ TOML 实验记录（同契约姊妹格式）\strut
 图 8.3（40）\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.14\columnwidth}\raggedright
+14.1\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+厚重启 Lanczos 极端本征值\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{mod\_krylov\_propagator::lanczos\_extreme\_eigenvalues}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{krylov.lanczos\_extreme\_eigenvalues}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+\texttt{test\_sparse\_eig}\strut
+\end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
+图 14.2（41）\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.14\columnwidth}\raggedright
 15.4\strut
 \end{minipage} & \begin{minipage}[t]{0.14\columnwidth}\raggedright
 差分与收敛标定\strut
@@ -9317,6 +9330,50 @@ Lanczos
   实对称（无磁场、无复吸收势）；复势（CAP）情形仍由切比雪夫/劈裂算符路径承担（§6.7）。一般
   Arnoldi（复向量）与重启/块 Lanczos 策略属 §12.1 后续项。
 \end{itemize}
+
+\textbf{极端本征值：厚重启
+Lanczos（\texttt{lanczos\_extreme\_eigenvalues}）。} 传播之外，同一
+Krylov 机械还承担大维稀疏对称矩阵的极端本征值问题（§15.10
+路线图项）：每趟用 \texttt{lanczos\_tridiag} 构造 \(m\) 维 Krylov
+空间、对角化三对角 \(T\)（tql2）取 \(k\) 个极端 Ritz
+对，随后\textbf{以极端 Ritz
+向量的随机权重组合重启}（随机分量随趟数指数衰减 \(10^{-2}\to10^{-11}\)
+------ 固定的小随机分量会成为重启的\textbf{精度地板}，使 Ritz
+残差无法低于其相对幅度）。验收（\texttt{tests/test\_sparse\_eig.f90}，5
+项断言）：其一，\textbf{分离极值}对角矩阵（\(n=300\)，孤立极值 \(-1\) 与
+\(10n\)、带 \([1,n-2]\)）极端值达
+\(2.0\times10^{-13}/1.4\times10^{-12}\)（720 次
+matvec，远低于稠密对角化成本）；其二，\(n=200\) 稠密随机对称矩阵与库内
+tql2 对照 \(1.4\times10^{-14}\)（\textbf{仅 60 次
+matvec}）；其三，容限驱动停止（紧容限残差
+\(3.6\times10^{-15}\)）；其四，\textbf{聚簇硬例诚实记录}------Dirichlet
+Laplacian（\(n=500\)，\(\lambda_1\) 二次聚簇、gap/width
+\(\approx3\times10^{-5}\)）误差随 \(m\) 由
+\(5.1\times10^{-5}\)（\(m=40\)）降至
+\(1.3\times10^{-6}\)（\(m=120\)），Lanczos
+在此类谱上的慢收敛是\textbf{物理正确}的行为，测试仅断言单调下降趋势；其五，简并极端谱（块对角，极端成对简并）精确复原
+\(-1,1,5,3\)。诊断中还有一个值得记录的陷阱：若 matvec
+施加的是\textbf{非对称}矩阵（参考解却用对称化矩阵），会出现``Ritz 残差
+\(10^{-15}\) 但本征值错 1.2''的矛盾现象------Lanczos
+的前提（实对称算子）必须由调用方保证，测试对此显式对称化。Python
+镜像同算法（重启向量为 \(V U_{\text{extreme}}\) 而非 Krylov
+基列------早期实现混用导致收敛停滞）并入
+\texttt{test\_sparse\_eig}（Python 套件 45 → 46
+项）。适用边界：实对称（含简并）；非对称情形需一般
+Arnoldi（未具备，保持记录于 §15.10）。
+
+\begin{figure}
+\centering
+\includegraphics[width=15cm,height=\textheight]{figures/fig41_sparse_eig.png}
+\caption{图 14.2：厚重启 Lanczos 极端本征值验证。(a)
+分离谱情形：单趟（\(m\) 步）极端 Ritz 误差随 \(m\) 下降（蓝），重启后在
+800 次 matvec 达
+\(10^{-12}\)（红虚线）------重启的价值在于用有界内存持续提纯极端子空间；(b)
+聚簇硬例（Dirichlet Laplacian \(n=500\)）：最小本征值误差随 \(m\)
+的诚实慢收敛（\(m=140\) 时 \(10^{-4}\)，gap/width
+\(\approx3\times10^{-5}\)），与 Fortran 测试的趋势断言一致。绘图脚本见
+\texttt{docs/generate\_figures.py}（Python 镜像实测）。}
+\end{figure}
 
 \begin{figure}
 \centering
@@ -10511,7 +10568,7 @@ V_{\mathrm{interp}}(x_i)-V_{\mathrm{ref}}(x_i)
 \begin{minipage}[t]{0.22\columnwidth}\raggedright
 稀疏本征\strut
 \end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
-部分具备 (Lanczos/Ritz 极值; Arnoldi 未具备)\strut
+已具备 (对称: 厚重启 Lanczos 极端值, §14.1; 非对称 Arnoldi 未具备)\strut
 \end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
 高\strut
 \end{minipage} & \begin{minipage}[t]{0.22\columnwidth}\raggedright
@@ -10797,7 +10854,7 @@ Morse/谐振子极限求和结果\strut
 \item
   \(N=16\) 时，\(J^2\) 本征值与 \(l(l+1)\) 最大偏差低于 \(10^{-10}\)；
 \item
-  全库 58 个测试程序、588 项断言全部通过。
+  全库 59 个测试程序、593 项断言全部通过。
 \end{itemize}
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的

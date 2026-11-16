@@ -58,7 +58,7 @@ from .hhg import (
     calculate_dipole_acceleration, hhg_power_spectrum
 )
 
-from .krylov import lanczos_tridiag, krylov_propagate_step
+from .krylov import lanczos_tridiag, krylov_propagate_step, lanczos_extreme_eigenvalues
 from .linalg import (diag_hermitian_matrix, peierls_ring_spectrum,
                      peierls_ring_hamiltonian, cholesky_decompose,
                      cholesky_solve, qr_decompose, least_squares_qr,
@@ -169,7 +169,7 @@ __all__ = [
     "keldysh_parameter", "ponderomotive_energy", "hhg_cutoff_energy", "quiver_radius", "adk_ionization_rate",
     "calculate_dipole_acceleration", "hhg_power_spectrum",
     "landau_zener_probability", "calculate_channel_populations",
-    "lanczos_tridiag", "krylov_propagate_step",
+    "lanczos_tridiag", "krylov_propagate_step", "lanczos_extreme_eigenvalues",
     "diag_hermitian_matrix", "peierls_ring_spectrum", "peierls_ring_hamiltonian",
     "cholesky_decompose", "cholesky_solve", "qr_decompose", "least_squares_qr",
     "svd_decompose", "svd_pseudoinverse", "hilbert_matrix",

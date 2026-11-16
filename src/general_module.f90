@@ -106,7 +106,7 @@ module general_module
 
     ! 切比雪夫与能谱滤波
     public :: chebyshev_propagate_step, window_operator_pes, compute_bessel_j
-    public :: lanczos_tridiag, krylov_propagate_step
+    public :: lanczos_tridiag, krylov_propagate_step, lanczos_extreme_eigenvalues
 
     ! 多态非绝热动力学
     public :: propagate_suzuki4_1d, propagate_yoshida4_1d, adaptive_split_propagate_1d

@@ -125,3 +125,50 @@ def krylov_propagate_step(psi, dt, m_krylov, r_mult):
 
     psi[...] = out
     return max(err_re, err_im), max(m_re, m_im)
+
+
+def lanczos_extreme_eigenvalues(r_mult, n_dim, k, m_max=60, n_restart=20,
+                                tol=1e-10, seed=12345):
+    """k extreme eigenvalues of a sparse/large real-symmetric operator.
+
+    Mirrors `lanczos_extreme_eigenvalues` (src/mod_krylov_propagator.f90):
+    each pass builds an m-dimensional Krylov space with the verified
+    tridiagonalization, takes the k extreme Ritz pairs, and restarts from a
+    random-weight combination of the extreme Ritz vectors with a noise
+    component that decays geometrically over the passes (a fixed noise floor
+    would cap the achievable Ritz residual).
+
+    Returns (evals_low, evals_high, n_matvec, res_max) with the low values in
+    ascending and the high values in descending order.
+    """
+    rng = np.random.default_rng(seed)
+    v = rng.standard_normal(n_dim)
+    v /= np.linalg.norm(v)
+    n_mv = 0
+    evals_low = np.zeros(k)
+    evals_high = np.zeros(k)
+    res_max = np.inf
+    for pass_i in range(n_restart):
+        alpha, beta, V, m_eff = lanczos_tridiag(r_mult, v, m_max)
+        n_mv += m_eff
+        T = np.diag(alpha)
+        if m_eff > 1:
+            off = beta[1:m_eff]
+            T += np.diag(off, 1) + np.diag(off, -1)
+        lam, U = np.linalg.eigh(T)
+        evals_low = lam[:k].copy()
+        evals_high = lam[::-1][:k].copy()
+        # Ritz 残差只取 2k 个极端对 (内部对的残差天然大, 不参与收敛判据)
+        res_extremes = np.abs(beta[m_eff] * U[m_eff - 1, :])
+        res_max = float(max(res_extremes[:k].max(), res_extremes[m_eff - k:].max()))
+        if beta[m_eff] <= 1e-14 or res_max <= tol:
+            break
+        # restart vector: random-weight combination of the extreme Ritz
+        # vectors + geometrically decaying noise
+        w = rng.standard_normal(2 * k)
+        idx = list(range(k)) + list(range(m_eff - k, m_eff))
+        ritz = V @ U[:, idx]          # 极端 Ritz 向量 (原空间), 非 Krylov 基列
+        v = ritz @ w
+        v = v + 1e-2 * 10.0 ** (-min(pass_i, 8)) * rng.standard_normal(n_dim)
+        v /= np.linalg.norm(v)
+    return evals_low, evals_high, n_mv, res_max
