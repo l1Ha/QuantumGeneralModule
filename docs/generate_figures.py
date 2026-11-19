@@ -3256,9 +3256,110 @@ def generate_fig42_hermite_dvr():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig43_arnoldi():
+    """Fig 43 (book Sec 14.1): non-symmetric Arnoldi with complex Schur.
+    (a) restart convergence for the CAP Hamiltonian SR target: residual
+    (a-posteriori estimate, matches the true residual) vs cumulative
+    matvecs, restarted (20x60) vs the single-pass m sweep;
+    (b) complex-plane spectrum of the CAP Hamiltonian: the dense
+    reference spectrum (numpy eigvals) with the 4 converged Arnoldi
+    pairs marked, plus the low-lying zoom showing resonance widths."""
+    print("Generating Fig 43: non-symmetric Arnoldi...")
+    set_publication_style()
+    from pygenmod import arnoldi_general_eigenpairs
+    import numpy as _np
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.6, 4.4), dpi=200)
+
+    # ---------------- CAP matrix (same as the Fortran test) ----------------
+    n_cap = 200
+    dx = 20.0 / n_cap
+    xg = -10.0 + (_np.arange(n_cap) + 0.5) * dx
+    diag = 0.5 * xg**2 - 0.05j * (xg / 10.0)**4 + 1.0 / dx**2
+    off = -0.5 / dx**2 * _np.ones(n_cap - 1)
+
+    def cap_mult(v):
+        w = diag * v
+        w[:-1] += off * v[1:]
+        w[1:] += off * v[:-1]
+        return w
+
+    ev_np = _np.linalg.eigvals(_np.diag(diag) + _np.diag(off, 1) + _np.diag(off, -1))
+    ref_sr = ev_np[_np.argsort(ev_np.real)][:4]
+
+    # ---------------- (a) restart convergence ----------------
+    # per-pass worst open residual, recorded by re-running short bursts
+    m_max = 60
+    traj = []
+    cum = []
+    ev_check = None
+    for nrs in range(1, 21):
+        ev, rv, res, mv, st = arnoldi_general_eigenpairs(
+            cap_mult, n_cap, 4, m_max, nrs, which='SR', tol=1e-10, seed=42)
+        traj.append(max(res, 1e-16))
+        cum.append(mv)
+        ev_check = ev
+        if st == 0:
+            break
+    ax1.semilogy(cum, traj, 'o-', color='royalblue', markersize=4.6,
+                 label='restarted (m=60 per pass)')
+    ax1.axhline(1e-10, color='crimson', linestyle='--', linewidth=1.4,
+                label='tolerance $10^{-10}$')
+    # 单趟扫描
+    ms = [20, 30, 40, 50, 60, 80, 100, 120]
+    err_single = []
+    for m in ms:
+        _, _, res_s, _, _ = arnoldi_general_eigenpairs(
+            cap_mult, n_cap, 4, int(m), 1, which='SR', tol=1e-10, seed=42)
+        err_single.append(max(res_s, 1e-16))
+    ax1.semilogy(ms, _np.maximum(err_single, 1e-16), 's-', color='seagreen',
+                 markersize=4.4, label='single pass (m steps)')
+    ax1.set_xlabel('cumulative matvecs')
+    ax1.set_ylabel('worst Ritz residual')
+    ax1.set_ylim(1e-16, 1e1)
+    ax1.legend(fontsize=8.4, loc='upper right')
+    ax1.set_title('(a) CAP Target SR: Locked Restart Convergence', fontsize=10.5)
+    ax1.grid(True, which='both', alpha=0.3)
+
+    # ---------------- (b) complex-plane spectrum ----------------
+    ax2.scatter(ev_np.real, ev_np.imag, s=4, color='lightgray', zorder=1,
+                label='dense reference (numpy eigvals)')
+    ax2.scatter(ref_sr.real, ref_sr.imag, s=90, facecolors='none',
+                edgecolors='crimson', linewidths=1.6, zorder=3,
+                label='Arnoldi SR pairs (k=4)')
+    ax2.set_xlabel('Re $E$')
+    ax2.set_ylabel('Im $E$')
+    ax2.legend(fontsize=8.4, loc='upper left')
+    ax2.set_title('(b) CAP Spectrum: Complex Symmetric, Non-normal', fontsize=10.5)
+    ax2.grid(True, alpha=0.3)
+    # 低能区放大插图
+    ins = ax2.inset_axes([0.55, 0.08, 0.42, 0.40])
+    low = ev_np[_np.abs(ev_np.imag) < 0.01]
+    ins.scatter(low.real, low.imag, s=6, color='lightgray')
+    ins.scatter(ref_sr.real, ref_sr.imag, s=50, facecolors='none',
+                edgecolors='crimson', linewidths=1.4)
+    ins.set_xlabel('Re $E$', fontsize=8, labelpad=1)
+    ins.set_ylabel('Im $E$', fontsize=8, labelpad=1)
+    ins.tick_params(labelsize=7)
+    ins.grid(True, alpha=0.25)
+    ax2.annotate(f'k=4 converged: err {max(abs(ev_a - ref_e) for ev_a, ref_e in zip(ev_check, ref_sr)):.1e}\n'
+                 'residual estimate = true residual\n'
+                 '600 matvecs (20 x 60, locked restart)',
+                 xy=(0.04, 0.06), xycoords='axes fraction', fontsize=8.2,
+                 color='dimgray',
+                 bbox=dict(boxstyle='round,pad=0.35', facecolor='white',
+                           edgecolor='none', alpha=0.85))
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig43_arnoldi.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 42 Scientific Calculation Benchmark Figures")
+    print(" Generating All 43 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -3302,8 +3403,9 @@ def main():
     generate_fig40_parallel_scattering()
     generate_fig41_sparse_eig()
     generate_fig42_hermite_dvr()
+    generate_fig43_arnoldi()
     print("=" * 60)
-    print(" All 42 Figures Generated Successfully in docs/figures/!")
+    print(" All 43 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

@@ -21,6 +21,7 @@ module general_module
     use mod_json
     use mod_toml
     use mod_hermite_dvr
+    use mod_arnoldi
     use mod_interpolation
     use mod_photofragment_flux
     use mod_open_quantum
@@ -392,5 +393,9 @@ module general_module
     ! Smolyak 稀疏网格数值求积 (Sparse Grid Quadrature, 第18.4节)
     public :: clenshaw_curtis_1d, smolyak_grid_2d_t
     public :: build_smolyak_grid_2d, destroy_smolyak_grid_2d, smolyak_integrate_2d
+
+    ! 非对称 Arnoldi 与复 Schur 分解 (General Eigenpairs, 路线图 15.10)
+    public :: arnoldi_factorize, hessenberg_schur, hessenberg_eigenvectors
+    public :: dense_hessenberg_reduce, arnoldi_general_eigenpairs
 
 end module general_module

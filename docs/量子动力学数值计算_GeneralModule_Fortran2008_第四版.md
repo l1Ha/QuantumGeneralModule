@@ -3283,7 +3283,7 @@ GeneralModule 同时提供 `Makefile`、`fpm.toml` 和 `CMakeLists.txt`。三者
 
 ### 8.3　测试体系的验证层次
 
-GeneralModule 当前包含 60 个 Fortran 测试程序和 36 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。测试流水线利用服务器多核并行：模块编译由依赖自愈的并行编译器完成（`scripts/compile_modules.sh`，逐波并行尝试、未就绪者下轮重试，61 个模块约 3.5 秒），测试套件间无共享文件 I/O，以 `xargs -P` 并行执行并按固定顺序回放日志（`TEST_JOBS` 可调并行度）。
+GeneralModule 当前包含 61 个 Fortran 测试程序和 36 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。测试流水线利用服务器多核并行：模块编译由依赖自愈的并行编译器完成（`scripts/compile_modules.sh`，逐波并行尝试、未就绪者下轮重试，62 个模块约 3.5 秒），测试套件间无共享文件 I/O，以 `xargs -P` 并行执行并按固定顺序回放日志（`TEST_JOBS` 可调并行度）。
 
 测试应覆盖以下层次：
 
@@ -4493,9 +4493,9 @@ GitHub Actions 配置位于：
 ### 12.1　算法方向
 
 - 更多正交多项式 DVR（**已实现**：Gauss-Hermite DVR，`mod_hermite_dvr`，§5.7）；
-- 稀疏 Krylov 传播（**已实现**：`mod_krylov_propagator`，§14.1；一般 Arnoldi/重启策略待续）；
-- 多维张量分解；
-- 高阶分裂算符（**已实现**：Yoshida4/Suzuki4，§6.2；自适应时间步长待续）；
+- 稀疏 Krylov 传播（**已实现**：`mod_krylov_propagator` 与非对称 Arnoldi/复 Schur `mod_arnoldi`，§14.1）；
+- 多维张量分解（**已实现**：SOP 矩阵自由作用、TT/MPS、Smolyak 稀疏网格与 MCTDH，第18章）；
+- 高阶分裂算符（**已实现**：Yoshida4/Suzuki4 与局部误差自适应步长，§6.2）；
 - 自适应时间步长（**已实现**：局部误差控制 + PI 控制器，§6.2）；
 - 并行散射计算（**已实现**：能量扫描数据并行 + 串并逐位一致验收，§8.7）；
 
@@ -4705,11 +4705,57 @@ Lanczos 方法适合求极端本征值和时间演化，但对重复本征值和
 - 三条闭式验收（图 14.1）：其一，**HO 相干态解析演化** $|\alpha e^{-i\omega t}\rangle$——本征基中分量相位 $e^{-i\omega(n+1/2)t}$ 严格已知，Krylov 传播一个完整周期后保真度 $1-F<10^{-10}$，期望值 $\langle x\rangle(t)=\sqrt{2/\omega}\,\alpha\cos\omega t$ 偏差 $5.6\times10^{-15}$；其二，**二能级不变子空间精确终止**——$d=2$ 时 $\beta_3=0$（数值 0）、$m_{\mathrm{eff}}=2$，Rabi 几率 $P_e(t)=\frac{\Omega^2}{\Omega^2+\Delta^2}\sin^2\frac{\Omega t}{2}$ 在 400 步内误差 $1.4\times10^{-14}$（严格精确，非近似）；其三，**后验误差估计** $\epsilon\approx\beta_{m+1}|[\exp(-iT_m dt)]_{m,1}|$ 与真实误差同量级（比值 0.62–4.4，跨 6 个数量级），$m$ 从 4 增至 20 误差降 6 个数量级（超指数收敛）。Lanczos 基正交性 $\|V_m^{T}V_m-I\|<5\times10^{-16}$、$T_m=V_m^{T}HV_m$ 重构 $<4\times10^{-16}$（40 维稠密随机对称阵全三对角化）；2000 步长时范数漂移 $3\times10^{-13}$；与库内切比雪夫传播器在 DVR 网格 + quartic 非谐势上交叉验证 $1-F=-1.1\times10^{-15}$（两条独立路径到机器精度一致）。
 - 边界：本模块要求 $H$ 实对称（无磁场、无复吸收势）；复势（CAP）情形仍由切比雪夫/劈裂算符路径承担（§6.7）。一般 Arnoldi（复向量）与重启/块 Lanczos 策略属 §12.1 后续项。
 
-**极端本征值：厚重启 Lanczos（`lanczos_extreme_eigenvalues`）。** 传播之外，同一 Krylov 机械还承担大维稀疏对称矩阵的极端本征值问题（§15.10 路线图项）：每趟用 `lanczos_tridiag` 构造 $m$ 维 Krylov 空间、对角化三对角 $T$（tql2）取 $k$ 个极端 Ritz 对，随后**以极端 Ritz 向量的随机权重组合重启**（随机分量随趟数指数衰减 $10^{-2}\to10^{-11}$ —— 固定的小随机分量会成为重启的**精度地板**，使 Ritz 残差无法低于其相对幅度）。验收（`tests/test_sparse_eig.f90`，5 项断言）：其一，**分离极值**对角矩阵（$n=300$，孤立极值 $-1$ 与 $10n$、带 $[1,n-2]$）极端值达 $2.0\times10^{-13}/1.4\times10^{-12}$（720 次 matvec，远低于稠密对角化成本）；其二，$n=200$ 稠密随机对称矩阵与库内 tql2 对照 $1.4\times10^{-14}$（**仅 60 次 matvec**）；其三，容限驱动停止（紧容限残差 $3.6\times10^{-15}$）；其四，**聚簇硬例诚实记录**——Dirichlet Laplacian（$n=500$，$\lambda_1$ 二次聚簇、gap/width $\approx3\times10^{-5}$）误差随 $m$ 由 $5.1\times10^{-5}$（$m=40$）降至 $1.3\times10^{-6}$（$m=120$），Lanczos 在此类谱上的慢收敛是**物理正确**的行为，测试仅断言单调下降趋势；其五，简并极端谱（块对角，极端成对简并）精确复原 $-1,1,5,3$。诊断中还有一个值得记录的陷阱：若 matvec 施加的是**非对称**矩阵（参考解却用对称化矩阵），会出现"Ritz 残差 $10^{-15}$ 但本征值错 1.2"的矛盾现象——Lanczos 的前提（实对称算子）必须由调用方保证，测试对此显式对称化。Python 镜像同算法（重启向量为 $V U_{\text{extreme}}$ 而非 Krylov 基列——早期实现混用导致收敛停滞）并入 `test_sparse_eig`（Python 套件 45 → 46 项）。适用边界：实对称（含简并）；非对称情形需一般 Arnoldi（未具备，保持记录于 §15.10）。
+**极端本征值：厚重启 Lanczos（`lanczos_extreme_eigenvalues`）。** 传播之外，同一 Krylov 机械还承担大维稀疏对称矩阵的极端本征值问题（§15.10 路线图项）：每趟用 `lanczos_tridiag` 构造 $m$ 维 Krylov 空间、对角化三对角 $T$（tql2）取 $k$ 个极端 Ritz 对，随后**以极端 Ritz 向量的随机权重组合重启**（随机分量随趟数指数衰减 $10^{-2}\to10^{-11}$ —— 固定的小随机分量会成为重启的**精度地板**，使 Ritz 残差无法低于其相对幅度）。验收（`tests/test_sparse_eig.f90`，5 项断言）：其一，**分离极值**对角矩阵（$n=300$，孤立极值 $-1$ 与 $10n$、带 $[1,n-2]$）极端值达 $2.0\times10^{-13}/1.4\times10^{-12}$（720 次 matvec，远低于稠密对角化成本）；其二，$n=200$ 稠密随机对称矩阵与库内 tql2 对照 $1.4\times10^{-14}$（**仅 60 次 matvec**）；其三，容限驱动停止（紧容限残差 $3.6\times10^{-15}$）；其四，**聚簇硬例诚实记录**——Dirichlet Laplacian（$n=500$，$\lambda_1$ 二次聚簇、gap/width $\approx3\times10^{-5}$）误差随 $m$ 由 $5.1\times10^{-5}$（$m=40$）降至 $1.3\times10^{-6}$（$m=120$），Lanczos 在此类谱上的慢收敛是**物理正确**的行为，测试仅断言单调下降趋势；其五，简并极端谱（块对角，极端成对简并）精确复原 $-1,1,5,3$。诊断中还有一个值得记录的陷阱：若 matvec 施加的是**非对称**矩阵（参考解却用对称化矩阵），会出现"Ritz 残差 $10^{-15}$ 但本征值错 1.2"的矛盾现象——Lanczos 的前提（实对称算子）必须由调用方保证，测试对此显式对称化。Python 镜像同算法（重启向量为 $V U_{\text{extreme}}$ 而非 Krylov 基列——早期实现混用导致收敛停滞）并入 `test_sparse_eig`（Python 套件 45 → 46 项）。适用边界：实对称（含简并）；非对称情形见下文非对称 Arnoldi。
 
 ![图 14.2：厚重启 Lanczos 极端本征值验证。(a) 分离谱情形：单趟（$m$ 步）极端 Ritz 误差随 $m$ 下降（蓝），重启后在 800 次 matvec 达 $10^{-12}$（红虚线）——重启的价值在于用有界内存持续提纯极端子空间；(b) 聚簇硬例（Dirichlet Laplacian $n=500$）：最小本征值误差随 $m$ 的诚实慢收敛（$m=140$ 时 $10^{-4}$，gap/width $\approx3\times10^{-5}$），与 Fortran 测试的趋势断言一致。绘图脚本见 `docs/generate_figures.py`（Python 镜像实测）。](figures/fig41_sparse_eig.png){width=15.0cm}
 
 ![图 14.1：Lanczos–Krylov 短迭代传播器验收（正向计算）。(a) 误差随 Krylov 维数 $m$ 的超指数收敛（HO 相干态，$\omega=0.5$、$dt=5.0$ a.u. 大步长）：红色为由后验误差估计 $\beta_{m+1}|[\exp(-iT_m dt)]_{m,1}|$ 给出的预测误差，蓝色为与闭式解逐点比较的真实误差，两者同量级且同步下降（$m=4\to20$ 降 6 个数量级）；绿色星标为二能级情形的严格精确点（$m=2$ 处 $\beta_3=0$，不变子空间终止）。(b) HO 相干态期望值 $\langle x\rangle(t)$：黑实线为闭式 $\sqrt{2/\omega}\,\alpha\cos\omega t$，红圈为 Krylov 传播逐点计算，最大偏差 $5.6\times10^{-15}$（机器精度）；内嵌图为 2000 步长时范数漂移（对数纵轴，饱和于 $\sim10^{-12}$）。绘图脚本见 `docs/generate_figures.py`。](figures/fig30_krylov_propagator.png){width=13.5cm}
+
+**非对称 Arnoldi 与复 Schur 分解（`arnoldi_general_eigenpairs`）。** 复吸收势
+$H-iW$、开放体系的 Lindblad 超算符与复标度哈密顿量都产生**非 Hermitian**
+谱问题——库内 tql2（实对称）与加倍归约（复 Hermitian）均不适用。新增
+`src/mod_arnoldi.f90` 补齐一般复矩阵路径：$m$ 步 Arnoldi 分解
+$AV_m=V_mH_m+h_{m+1,m}v_{m+1}e_m^T$（修正 Gram-Schmidt + 二次正交化），
+小 Hessenberg 矩阵经**移位复 QR**（Wilkinson 移位 + 每 10 次停滞注入
+EISPACK COMQR 式异常移位）三角化为 Schur 形式 $T=Z^\dagger HZ$，旋转
+累积给出 Schur 向量；本征矢由三角回代获得。残差后验估计
+$r_i=|h_{m+1,m}|\,|(Zy_{\mathrm{tri}})_m|$——回代矢量是上三角本征矢，
+对 $i<m$ 恒有 $y_{\mathrm{tri}}(m)=0$，直接用 $y_{\mathrm{tri}}(m)$ 是
+常见错误，必须经 $Z$ 变换后取末分量（实测估计与真实残差逐位一致）。
+
+三个以不变量检查固化的工程陷阱：其一，**复 Givens 共轭**——消去条件
+$-\bar s\,a+cb=0$ 要求 $s=c\,\bar b/\bar a$，漏掉 $\bar a$ 的共轭时
+$-\bar s\,a+cb=cb(1-a/\bar a)$ 对复 $a$ 不为零，Schur 向量完全失去
+幺正性（$\|Z^\dagger Z-I\|$ 达 46.9）；其二，**旋转系数按 $k$ 存储**——
+列旋转循环若复用标量 $c$（行循环末次的残留值），全部列旋转用错系数，
+幺正性破坏同样被 $\|T-Z^\dagger HZ\|$ 不变量捕获；其三，**行旋转列跨度**
+必须覆盖 $k..m$ 全部非零列——活动窗的行在已收敛列 $ihi{+}1..m$ 上有耦合
+元素，只转 $k..ihi$ 会留下与 $Z$ 不一致的旧值。
+
+重启采用**锁定 + 正交化紧缩**设计（保持算子 $A$ 不动，残差恒相对 $A$）：
+残差低于容限的 Ritz 对进入锁定表，重启向量取未收敛最优 Ritz 矢量加几何
+衰减噪声（$10^{-2}\to10^{-12}$，同厚重启 Lanczos 的噪声底教训）并对锁定
+方向正交化。两个谱选取陷阱：重启后的 Krylov 空间会对同一 $\lambda$ 产生
+渐近重复的 Ritz 对（$5.0,4.9999995,\ldots$），其键序优于真正的下一个
+本征值，不过滤会挤掉全部目标（实测三个返回值全为同一 $\lambda$）——
+判据用**方向平行** $|\langle x_i,x_{\mathrm{kept}}\rangle|>0.999$（尺度
+无关；残差带判据 $|\Delta\lambda|\le10\max(r_i,r_j)$ 在单趟大残差阶段会
+误吞 gap $\sim1$ 的真谱，已弃用），平行候选若残差更小则原位升级；仅键序
+前 $k$ 名允许锁定，否则谱顶的快收敛对会以 'SR' 等目标误入锁定表。
+
+验收（`tests/test_arnoldi.f90`，4 项断言）：其一，Schur 引擎不变量
+$\|T-Z^\dagger HZ\|=5.6\times10^{-15}$、$\|Z^\dagger Z-I\|=3.8\times10^{-15}$
+与 2×2 解析谱 $(5\pm\sqrt{33})/2$；其二，**正规相似变换精确谱**
+$A=U\Lambda U^\dagger$（本征值条件数 1）排序配对偏差 $1.6\times10^{-14}$——
+注意非正规相似 $SJS^{-1}$ 的本征值条件数可任意大（实测偏差 0.45），不适
+合作机器精度断言；其三，目标选取语义 LR/SR/LI vs 密集参照 $3.6\times10^{-14}$；
+其四，CAP 复对称哈密顿量（$n=200$，$\eta=0.05$）：$k=4$ 个 'SR' 对与
+numpy 全谱参照偏差 $2.4\times10^{-13}$、残差 $5.2\times10^{-11}$
+（600 次 matvec，20×60 锁定重启）。Python 镜像 `python/pygenmod/arnoldi.py`
+以 `numpy.linalg.eig` 作小 Hessenberg 问题的独立参照（跨语言互验 Fortran
+QR 引擎），并入 `test_pygenmod.py::TestArnoldi`（3 项断言）。
+
+![图 14.3：非对称 Arnoldi 验收（正向计算）。(a) CAP 目标 'SR' 的锁定重启收敛：最坏 Ritz 残差随累计 matvec 下降（蓝，每趟 $m=60$），容限 $10^{-10}$（红虚线）；单趟扫描（绿方）显示残差对 $m$ 的非单调性——同一目标集在 $m=60$ 处的残差高于 $m=50$，因 Krylov 空间增大后目标对选取向真本征值迁移；(b) CAP 复对称非正规谱（灰点，numpy 全谱参照）与 Arnoldi 收敛的 4 个 'SR' 对（红圈），插图为低能区放大（吸收共振宽度的虚部结构）。绘图脚本见 `docs/generate_figures.py`。](figures/fig43_arnoldi.png){width=15.0cm}
 
 ### 14.2　高阶分裂算符
 
@@ -5429,7 +5475,7 @@ end type experiment_record_t
 
 #### 已有能力
 
-- 60 个 Fortran 测试程序；
+- 61 个 Fortran 测试程序；
 - 36 个物理示例；
 - `Makefile`、`fpm.toml`、`CMakeLists.txt`；
 - GitHub Actions CI；
@@ -5479,7 +5525,7 @@ end subroutine expect_close
 | 领域 | 当前状态 | 优先级 | 建议目标 |
 |---|---|---|---|
 | 复 Hermitian 本征 | 已具备 (加倍归约, §4.5) | 高 | 支持复哈密顿量 |
-| 稀疏本征 | 已具备 (对称: 厚重启 Lanczos 极端值, §14.1; 非对称 Arnoldi 未具备) | 高 | Lanczos/Arnoldi |
+| 稀疏本征 | 已具备 (对称: 厚重启 Lanczos 极端值; 非对称: Arnoldi + 复 Schur, §14.1) | 高 | Lanczos/Arnoldi |
 | SVD/QR/Cholesky | 已具备 (§4.8) | 中 | 支持拟合和正则化 |
 | 多维插值 | 二维/三维已具备 (§4.6/§4.7); 四维以上未具备 | 高 | 二维/三维势能面 |
 | 自适应网格 | 未具备 | 中 | 局部加密 |
@@ -5493,7 +5539,7 @@ end subroutine expect_close
 ### 15.11　最小扩展路线
 
 1. 增加 `diag_hermitian_matrix`（**已完成**，§4.5；稀疏对称本征求解部分见 §14.1）；
-2. 增加稀疏对称本征求解；
+2. 增加稀疏本征求解（**已完成**：对称厚重启 Lanczos 极端值与非对称 Arnoldi/复 Schur，§14.1）；
 3. 增加二维样条（**已完成**，§4.6）；
 4. 增加 JSON/TOML 实验记录（**均已完成**，§8.6：双格式共享数字契约与跨语言验证回路）；
 5. 增加统一断言库；
@@ -5555,7 +5601,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 60 个测试程序、596 项断言全部通过。
+- 全库 61 个测试程序、600 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 

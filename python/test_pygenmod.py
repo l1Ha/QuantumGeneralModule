@@ -17,6 +17,7 @@ from pygenmod import (
     dvr_sinc_init, fgh_solve_bound_states,
     gauss_hermite_nodes_weights, hermite_function_values,
     hermite_ho_kinetic, hermite_dvr_hamiltonian,
+    arnoldi_general_eigenpairs,
     get_atom_config, keldysh_parameter, hhg_cutoff_energy,
     soft_core_coulomb_potential, adk_ionization_rate,
     landau_zener_probability, calculate_channel_populations,
@@ -1675,6 +1676,76 @@ class TestHermiteDVR(unittest.TestCase):
         dvr = dvr_sinc_init(-8.0, 8.0, 512, 1.0)
         e_fgh, _ = fgh_solve_bound_states(dvr, 0.5 * dvr.x**2 + lam * dvr.x**4)
         self.assertLess(abs(e120 - e_fgh[0]), 1e-9)
+
+
+
+def _normal_matrix(n, seed):
+    """Normal matrix U diag(lam) U^† with distinct known spectrum."""
+    rng = np.random.default_rng(seed)
+    g = rng.random((n, n)) - 0.5 + 1j * (rng.random((n, n)) - 0.5)
+    u, _ = np.linalg.qr(g)
+    lam = np.array([-1.0 + 0.1 * i + 0.05j * i for i in range(1, n + 1)])
+    return u @ np.diag(lam) @ u.conj().T, lam
+
+
+class TestArnoldi(unittest.TestCase):
+    """非对称 Arnoldi —— 镜像 mod_arnoldi (路线图 §15.10 项)。
+
+    验收: 正规相似变换精确谱 (本征值条件数 1); 目标选取语义
+    LR/SR/LI/LM vs numpy 全谱排序; 残差后验估计与真实残差一致;
+    CAP 复对称哈密顿量的 SR 目标。numpy.linalg.eig 是 Fortran 移位
+    Hessenberg QR 引擎的独立参照。
+    """
+
+    def test_exact_spectrum_selection_semantics(self):
+        n = 60
+        a, lam = _normal_matrix(n, seed=7)
+        for which in ('LR', 'SR', 'LI', 'LM'):
+            ev, rv, res, mv, st = arnoldi_general_eigenpairs(
+                lambda v: a @ v, n, 3, 45, 10, which=which, tol=1e-12)
+            self.assertEqual(st, 0, f"{which} not converged")
+            key = {'LR': -lam.real, 'SR': lam.real, 'LI': -lam.imag,
+                   'LM': -np.abs(lam)}[which]
+            ref = lam[np.argsort(key)][:3]
+            err = np.max(np.abs(ev[:3] - ref))
+            self.assertLess(err, 1e-11, f"{which} eigenvalue error {err}")
+
+    def test_residual_estimate_matches_true(self):
+        n = 60
+        a, _ = _normal_matrix(n, seed=11)
+        ev, rv, res, mv, st = arnoldi_general_eigenpairs(
+            lambda v: a @ v, n, 3, 45, 15, which='LR', tol=1e-10)
+        self.assertEqual(st, 0)
+        true_res = max(np.linalg.norm(a @ rv[:, i] - ev[i] * rv[:, i])
+                       for i in range(3))
+        # 后验估计与真实残差同量级 (相对偏差 < 10 倍)
+        self.assertLess(res / max(true_res, 1e-300), 10.0)
+        self.assertLess(true_res / max(res, 1e-300), 10.0)
+
+    def test_cap_complex_symmetric_sr(self):
+        # H = p^2/2 + x^2/2 - i eta (x/xmax)^4 (复对称, 非正规)
+        n_cap = 200
+        dx = 20.0 / n_cap
+        xg = -10.0 + (np.arange(n_cap) + 0.5) * dx
+        diag = 0.5 * xg**2 - 0.05j * (xg / 10.0)**4 + 1.0 / dx**2
+        off = -0.5 / dx**2 * np.ones(n_cap - 1)
+
+        def cap_mult(v):
+            w = diag * v
+            w[:-1] += off * v[1:]
+            w[1:] += off * v[:-1]
+            return w
+
+        ev, rv, res, mv, st = arnoldi_general_eigenpairs(
+            cap_mult, n_cap, 4, 60, 20, which='SR', tol=1e-10)
+        self.assertEqual(st, 0)
+        # numpy 独立全谱参照
+        a_full = np.diag(diag) + np.diag(off, 1) + np.diag(off, -1)
+        ev_np = np.linalg.eigvals(a_full)
+        ref = ev_np[np.argsort(ev_np.real)][:4]
+        err = np.max(np.abs(ev[:4] - ref))
+        self.assertLess(err, 1e-9, f"CAP eigenvalue error {err}")
+        self.assertLess(res, 1e-9)
 
 
 class TestMCTDHCore(unittest.TestCase):
