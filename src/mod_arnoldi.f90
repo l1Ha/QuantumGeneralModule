@@ -241,8 +241,8 @@ contains
         complex(dp), intent(out) :: vecs(:, :)
         integer, intent(out) :: stat
 
-        complex(dp) :: y(m), x(m), den, ssum, noise
-        real(dp) :: tnorm, clus_tol, floor_den, nrm, proj
+        complex(dp) :: y(m), x(m), den, ssum, noise, proj
+        real(dp) :: tnorm, clus_tol, floor_den, nrm
         integer :: i, j, k, jj, n_retry
 
         stat = 0
