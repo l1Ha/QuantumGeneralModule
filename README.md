@@ -23,11 +23,11 @@
    - 参数配置采用清晰的派生类型（Derived Types，如 `pulse_config_t`, `surface_lattice_t`, `ion_atom_system_t`, `tully_model_t`, `rotor_molecule_t`, `optical_lattice_t`, `rph_path_t`, `dirac_state_t`, `rixs_system_t`, `penning_system_t` 等），自解释、低耦合、便于大语言模型精确构造与调用。
 4. **全链路双语生态支持**
    - 附带标准 Python 伴侣分析包 `pygenmod`，无缝衔接参数预计算、波包与散射长度可视化、Breit-Rabi 能级图、发表级绘图（含一键动力学出图流水线 `plot_rovibrational_dynamics.py`）。
-   - 教科书《量子动力学数值计算》内嵌的 41 幅计算结果图（角动量选择定则热图、H3 LEPS 势能面与 IRC、Lindblad 弛豫、Mollow 三重峰、DVR 谱收敛、split-operator 波包传播、HHG 高次谐波谱、QR 收敛阶与差分步长标定、分子排列复苏、Hönl–London P/R 支强度包络与垂直带 Q 支指纹、散射长度、Wigner 时延与 Levinson 定理、Breit-Rabi、Feshbach、QCT 不透明度、Smolyak 稀疏网格、折合质量矩阵等）全部由 `docs/generate_figures.py` 一键真实前向模拟生成，零手工修饰。
+   - 教科书《量子动力学数值计算》内嵌的 42 幅计算结果图（角动量选择定则热图、H3 LEPS 势能面与 IRC、Lindblad 弛豫、Mollow 三重峰、DVR 谱收敛、split-operator 波包传播、HHG 高次谐波谱、QR 收敛阶与差分步长标定、分子排列复苏、Hönl–London P/R 支强度包络与垂直带 Q 支指纹、散射长度、Wigner 时延与 Levinson 定理、Breit-Rabi、Feshbach、QCT 不透明度、Smolyak 稀疏网格、折合质量矩阵、Hermite-DVR 节点权重与四次非谐振子谱收敛等）全部由 `docs/generate_figures.py` 一键真实前向模拟生成，零手工修饰。
 5. **全自动 CI/CD 持续集成**
-   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 59 大测试套件（593 个单元断言 100% 通过）与 36 大物理应用工程算例。
+   - 内置 GitHub Actions 跨平台持续集成（Ubuntu / macOS），全自动化执行 60 大测试套件（596 个单元断言 100% 通过）与 36 大物理应用工程算例。
 6. **服务器级高性能与多核硬件加速 (HPC & Multi-Core Ready)**
-   - 构建与测试流水线全面并行化：模块编译采用依赖自愈的并行编译器（`scripts/compile_modules.sh`，55 个模块约 3.5 秒），测试套件以 `xargs -P` 并行执行（`TEST_JOBS` 可调），全量回归在 20 核服务器上仅需约 7 秒（OPENMP=1 构建）；CI 同时回归串行与 OpenMP 两条构建路径。
+   - 构建与测试流水线全面并行化：模块编译采用依赖自愈的并行编译器（`scripts/compile_modules.sh`，61 个模块约 3.5 秒），测试套件以 `xargs -P` 并行执行（`TEST_JOBS` 可调），全量回归在 20 核服务器上仅需约 7 秒（OPENMP=1 构建）；CI 同时回归串行与 OpenMP 两条构建路径。
    - 核心计算密集模块（2D 分裂算符波包传播、2D FFT、DVR 动能矩阵构造、Penning 碰撞截面、RIXS 2D 强度谱、ATAS 瞬态吸收光谱、两电子库仑三体变分求积、SOP 逐维张量缩并与 TT 稠密还原、QCT 轨迹系综）内嵌标准 OpenMP 哨兵指令，支持零依赖单核运行与 `make OPENMP=1` / `cmake -DENABLE_OPENMP=ON` 服务器多核多线程加速。
    - Python 伴侣包 `pygenmod` 的 QCT 轨迹系综（`run_qct_ensemble`）支持进程级多核并发（`n_workers=-1` 自动侦测并打满服务器核心）；Fortran 侧 `mod_qct_dynamics` 的系综循环同样支持 OpenMP 多线程（10 万条 H+H2 轨迹 20 线程加速约 13 倍）。两侧均采用每轨迹独立确定性种子流设计（种子由全局轨迹索引导出），任意线程/进程数下结果逐位可复现。
 
@@ -48,7 +48,7 @@ GeneralModule/
 │   ├── mod_constants.f90          # 1. 物理常数与各单位 a.u. 双向转换
 │   ├── mod_special_functions.f90  # 2. 勒让德、Wigner 3j/6j/9j、CG半整数代数、转动偶极/取向矩阵元
 │   ├── mod_linear_algebra.f90     # 3. 对称矩阵本征求解 (EISPACK TRED2/TQL2)、实/复方阵求逆、1D/2D FFT
-│   ├── mod_dvr_grid.f90           # 4. Sinc-DVR、Legendre-DVR、FGH 束缚态求解、格点期望值
+│   ├── mod_dvr_grid.f90           # 4. Sinc-DVR、Legendre-DVR、FGH 束缚态求解、格点期望值 (Hermite-DVR 见 mod_hermite_dvr)
 │   ├── mod_laser_pulse.f90        # 5. 超快强场脉冲时域合成、矢量势、椭偏场与便捷构造器
 │   ├── mod_absorbing_boundary.f90 # 6. 复吸收势边界（CAP）、概率流与存活范数
 │   ├── mod_thermal_ensemble.f90   # 7. 玻尔兹曼转振分布、热系综统计平均
@@ -95,7 +95,7 @@ GeneralModule/
 │   ├── mod_resonant_xray_scattering.f90 # 48. 共振非弹性 X 射线散射 (RIXS)、Kramers-Heisenberg 二阶截面、XAS/XES 与 Huang-Rhys 振动级数
 │   ├── mod_penning_associative_ionization.f90 # 49. 亚稳态原子潘宁电离与缔合化学电离动力学、光学势自电离宽度、PIES 电子发射能谱与自旋抑制
 │   └── general_module.f90          # 顶层聚合入口模块 (use general_module, 49 大核心物理模块)
-├── tests/                          # 自动化单元测试套件 (47 个套件，100% 全部通过，430/430 断言)
+├── tests/                          # 自动化单元测试套件 (60 个套件，100% 全部通过，596/596 断言)
 │   ├── test_constants.f90
 │   ├── test_special_functions.f90
 │   ├── test_dvr_grid.f90
@@ -137,7 +137,7 @@ GeneralModule/
 │   ├── test_relativistic_atomic.f90       # 狄拉克氢 1s 基态、2p 精细结构劈裂、Cs 核心极化与相对论 E1 振子强度测试
 │   ├── test_resonant_xray_scattering.f90  # Cu L3 XAS 吸收峰、Kramers-Heisenberg 共振放大、2D RIXS 图谱与 Laguerre 声子级数测试
 │   ├── test_penning_associative_ionization.f90 # 潘宁电离与缔合电离势能面、自电离宽度、低能 AI 俘获主导至高能 PI 转变与 PIES 能谱测试
-│   └── run_all_tests.sh            # 自动化测试运行脚本 (100% Pass, 430/430 断言, 47 测试套件)
+│   └── run_all_tests.sh            # 自动化测试运行脚本 (100% Pass, 596/596 断言, 60 测试套件)
 ├── examples/                       # 典型物理应用算例 (36 大完整前沿算例)
 │   ├── ex01_fgh_diatomic_bound_states.f90 # 双原子 Morse 势能级与波函数求解
 │   ├── ex02_pulse_synthesis.f90            # 啁啾、双色、太赫兹脉冲时频生成
@@ -179,7 +179,7 @@ GeneralModule/
 └── python/                        # Python 辅助分析与可视化套件 (pygenmod)
     ├── pyproject.toml
     ├── README.md                  # pygenmod 子包独立说明与快速上手
-    ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 35/35 测试)
+    ├── test_pygenmod.py           # Python 单元测试 (100% Pass, 50/50 测试)
     ├── plot_rovibrational_dynamics.py # 出版级分子转振受控动力学一键绘图管道
     ├── examples/                  # Python 算例 (TI vs TD 散射波函数对比；QCT 与高维方法演示)
     └── pygenmod/
@@ -1660,7 +1660,7 @@ chmod +x build_examples.sh
 
 ```bash
 cd GeneralModule/python
-python3 test_pygenmod.py   # 运行 35 项单元测试 (100% Pass)
+python3 test_pygenmod.py   # 运行 50 项单元测试 (100% Pass)
 pip install ./python       # 或按标准 Python 包安装 (pygenmod 1.5.0)
 ```
 

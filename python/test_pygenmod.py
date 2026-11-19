@@ -15,6 +15,8 @@ from pygenmod import (
     PulseConfig, PULSE_GAUSSIAN,
     pulse_envelope, pulse_electric_field,
     dvr_sinc_init, fgh_solve_bound_states,
+    gauss_hermite_nodes_weights, hermite_function_values,
+    hermite_ho_kinetic, hermite_dvr_hamiltonian,
     get_atom_config, keldysh_parameter, hhg_cutoff_energy,
     soft_core_coulomb_potential, adk_ionization_rate,
     landau_zener_probability, calculate_channel_populations,
@@ -1600,6 +1602,79 @@ class TestSparseGrid(unittest.TestCase):
             errs.append(abs(g.integrate(vals) - exact))
         self.assertLess(errs[-1], 1e-8)
         self.assertLess(errs[-1], errs[0])   # 收敛
+
+
+
+def gamma_ref(p):
+    """Gamma(p + 1/2) for the Gauss-Hermite monomial moments."""
+    from math import gamma as _gamma
+    return _gamma(p + 0.5)
+
+
+class TestHermiteDVR(unittest.TestCase):
+    """Hermite DVR (谐振子基) —— 镜像 mod_hermite_dvr。
+
+    验收: 节点/权重矩 + 独立参照 hermgauss; HO 精确能级 (梯位闭式动能);
+    四次非谐势 N 加倍收敛 + FGH 交叉对照。权重用 Christoffel 恒等式
+    w_k = 1/(N psit_{N-1}(x_k)^2) —— numpy eigh 本征矢微小分量受绝对
+    噪声污染 (曾致 N=120 势矩阵出现 1e41 垃圾元)。
+    """
+
+    def test_nodes_weights_moments(self):
+        x, w = gauss_hermite_nodes_weights(40)
+        # 单项式矩: /e^{-x^2} x^{2p} = Gamma(p+1/2), 奇矩 = 0
+        err_mom = max(abs(np.sum(w * x**(2 * k)) - gamma_ref(k))
+                      for k in range(7))
+        err_odd = max(abs(np.sum(w * x**(2 * k + 1))) for k in range(7))
+        self.assertLess(err_mom, 1e-11)
+        self.assertLess(err_odd, 1e-11)
+        # 独立参照: numpy hermgauss (节点)
+        from numpy.polynomial.hermite import hermgauss
+        xh, wh = hermgauss(40)
+        order = np.argsort(x)
+        self.assertLess(np.max(np.abs(x[order] - xh)), 1e-12)
+        self.assertLess(np.max(np.abs(w[order] - wh)), 1e-12)
+        # 权重正值与总质量
+        self.assertTrue(np.all(w > 0))
+        # Christoffel 重构的极端节点权重相对误差 ~1e-11, 和的偏差 ~2e-14
+        self.assertAlmostEqual(np.sum(w), np.sqrt(np.pi), places=13)
+
+    def test_hermite_functions(self):
+        # 解析: psi_0(0) = pi^{-1/4}, psi_1(0) = 0
+        psi0 = hermite_function_values(0.0, 39)
+        self.assertAlmostEqual(psi0[0], np.pi**-0.25, places=14)
+        self.assertAlmostEqual(psi0[1], 0.0, places=14)
+        # 极端节点上的 psi_0 (递推稳定性): psi_0(x) = pi^{-1/4} e^{-x^2/2}
+        x40, _ = gauss_hermite_nodes_weights(40)
+        p = hermite_function_values(x40[0], 39)
+        self.assertLess(abs(p[0] - np.exp(-0.5 * x40[0]**2) * np.pi**-0.25), 1e-14)
+
+    def test_ho_exact_levels(self):
+        # 梯位闭式动能 + 节点求值势能 => HO 能级精确到舍入
+        n_ord, om = 30, 0.6
+        xq, _ = gauss_hermite_nodes_weights(n_ord)
+        v_nodes = 0.5 * om**2 * (xq / np.sqrt(om))**2
+        h_mat, _ = hermite_dvr_hamiltonian(n_ord, om, v_nodes)
+        ev = np.linalg.eigvalsh(h_mat)
+        expected = om * (np.arange(10) + 0.5)
+        self.assertLess(np.max(np.abs(ev[:10] - expected)), 1e-12)
+
+    def test_quartic_convergence_fgh(self):
+        # 四次非谐振子 H = p^2/2 + x^2/2 + 0.2 x^4
+        lam = 0.2
+
+        def ground(n_ord):
+            xq, _ = gauss_hermite_nodes_weights(n_ord)
+            v = 0.5 * xq**2 + lam * xq**4
+            h_mat, _ = hermite_dvr_hamiltonian(n_ord, 1.0, v)
+            return np.linalg.eigvalsh(h_mat)[0]
+
+        e60, e120 = ground(60), ground(120)
+        self.assertLess(abs(e120 - e60), 1e-9)
+        # FGH 独立交叉对照
+        dvr = dvr_sinc_init(-8.0, 8.0, 512, 1.0)
+        e_fgh, _ = fgh_solve_bound_states(dvr, 0.5 * dvr.x**2 + lam * dvr.x**4)
+        self.assertLess(abs(e120 - e_fgh[0]), 1e-9)
 
 
 class TestMCTDHCore(unittest.TestCase):

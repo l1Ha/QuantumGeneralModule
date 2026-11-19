@@ -3165,9 +3165,100 @@ def generate_fig41_sparse_eig():
     print(f" -> Saved to {fig_path}")
 
 
+def generate_fig42_hermite_dvr():
+    """Fig 42 (book Sec 5.x): Hermite DVR (harmonic-oscillator basis).
+    (a) Gauss-Hermite nodes/weights (log weights vs node index) with the
+    monomial-moment exactness sum w x^{2p} - Gamma(p+1/2) inset;
+    (b) quartic oscillator ground state vs basis size N (exponential
+    convergence), the FGH cross-reference, and the exactly-reproduced HO
+    ladder marking; cross-language parity annotation (Fortran tql2 vs
+    numpy + Christoffel weights)."""
+    print("Generating Fig 42: Hermite DVR...")
+    set_publication_style()
+    from pygenmod import (gauss_hermite_nodes_weights,
+                          hermite_dvr_hamiltonian,
+                          dvr_sinc_init, fgh_solve_bound_states)
+    import numpy as _np
+    from math import gamma as _gamma
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.6, 4.4), dpi=200)
+
+    # ---------------- (a) nodes/weights + moment exactness ----------------
+    n_a = 40
+    x, w = gauss_hermite_nodes_weights(n_a)
+    idx = _np.arange(n_a)
+    # ascending-node order for a clean stem plot
+    order = _np.argsort(x)
+    xs, ws = x[order], w[order]
+    ax1.semilogy(xs, _np.maximum(ws, 1e-40), 'o', color='royalblue',
+                 markersize=4.6, label=r'weights $w_k$ (N=40)')
+    ax1.set_xlabel(r'Gauss-Hermite node $q_k$')
+    ax1.set_ylabel(r'weight $w_k$')
+    ax1.set_ylim(1e-40, 1e1)
+    ax1.legend(fontsize=8.4, loc='upper left', framealpha=0.92)
+    ax1.set_title('(a) Golub-Welsch Nodes/Weights ($e^{-q^2}$ rule)', fontsize=10.5)
+    ax1.grid(True, which='both', alpha=0.3)
+    # inset: monomial-moment exactness
+    ins = ax1.inset_axes([0.60, 0.10, 0.36, 0.42])
+    ps = _np.arange(0, 45)
+    err_m = [_np.abs(_np.sum(w * x ** (2 * p)) - _gamma(p + 0.5)) for p in ps]
+    ins.semilogy(2 * ps, _np.maximum(err_m, 1e-18), 's-', color='crimson',
+                 markersize=3.0)
+    ins.axvline(2 * n_a - 1, color='dimgray', linestyle=':', linewidth=1.0)
+    ins.text(2 * n_a - 11, 3e-6, r'$2N-1$', fontsize=8, color='dimgray')
+    ins.set_xlabel(r'polynomial degree $2p$', fontsize=8.4, labelpad=1)
+    ins.set_ylabel(r'$|\sum w_k q_k^{2p}-\Gamma(p+\frac{1}{2})|$', fontsize=8.4,
+                   labelpad=2)
+    ins.tick_params(labelsize=7)
+    ins.set_ylim(1e-18, 1e+6)
+    ins.grid(True, which='both', alpha=0.25)
+
+    # ---------------- (b) quartic convergence + FGH ----------------
+    lam = 0.2
+
+    def ground(n_ord):
+        xq, _ = gauss_hermite_nodes_weights(n_ord)
+        v = 0.5 * xq ** 2 + lam * xq ** 4
+        h_mat, _ = hermite_dvr_hamiltonian(n_ord, 1.0, v)
+        return float(_np.linalg.eigvalsh(h_mat)[0])
+
+    ns = _np.array([16, 20, 24, 28, 32, 40, 48, 60, 80, 100, 120])
+    es = _np.array([ground(int(n)) for n in ns])
+    e_ref = ground(160)          # 高精度参照 (N=160, 漂移 < 1e-15)
+    e120_ref = es[-1]
+    dvr = dvr_sinc_init(-8.0, 8.0, 512, 1.0)
+    e_fgh, _ = fgh_solve_bound_states(dvr, 0.5 * dvr.x ** 2 + lam * dvr.x ** 4)
+    e_fgh0 = float(e_fgh[0])
+
+    ax2.semilogy(ns, _np.maximum(_np.abs(es - e_ref), 1e-17), 'o-',
+                 color='seagreen', markersize=5,
+                 label='Hermite DVR $|E_0(N)-E_0(160)|$')
+    ax2.axhline(_np.abs(e_fgh0 - e_ref), color='crimson', linestyle='--',
+                linewidth=1.4, label=f'FGH (512 pts) offset = {abs(e_fgh0 - e_ref):.1e}')
+    ax2.set_xlabel('basis size $N$')
+    ax2.set_ylabel('ground-state error')
+    ax2.set_ylim(1e-17, 1e0)
+    ax2.legend(fontsize=8.4, loc='upper right')
+    ax2.set_title('(b) Quartic Oscillator: Exponential Convergence', fontsize=10.5)
+    ax2.grid(True, which='both', alpha=0.3)
+    ax2.annotate(f'$E_0(120)$ = {e120_ref:.12f}\n'
+                 'HO ladder exact to $3\\times10^{-14}$\n'
+                 'Fortran--Python parity $1.4\\times10^{-15}$',
+                 xy=(0.04, 0.08), xycoords='axes fraction', fontsize=8.2,
+                 color='dimgray',
+                 bbox=dict(boxstyle='round,pad=0.35', facecolor='white',
+                           edgecolor='none', alpha=0.85))
+
+    plt.tight_layout()
+    fig_path = os.path.join(OUT_DIR, "fig42_hermite_dvr.png")
+    plt.savefig(fig_path)
+    plt.close()
+    print(f" -> Saved to {fig_path}")
+
+
 def main():
     print("=" * 60)
-    print(" Generating All 41 Scientific Calculation Benchmark Figures")
+    print(" Generating All 42 Scientific Calculation Benchmark Figures")
     print("=" * 60)
     generate_fig01_morse_fgh()
     generate_fig02_laser_pulses()
@@ -3210,8 +3301,9 @@ def main():
     generate_fig39_toml_contract()
     generate_fig40_parallel_scattering()
     generate_fig41_sparse_eig()
+    generate_fig42_hermite_dvr()
     print("=" * 60)
-    print(" All 41 Figures Generated Successfully in docs/figures/!")
+    print(" All 42 Figures Generated Successfully in docs/figures/!")
     print("=" * 60)
 
 

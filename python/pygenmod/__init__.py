@@ -45,6 +45,10 @@ from .pulse import (
     PulseConfig, pulse_envelope, pulse_electric_field, pulse_stark_shift
 )
 
+from .hermite_dvr import (
+    gauss_hermite_nodes_weights, hermite_function_values,
+    hermite_ho_kinetic, hermite_dvr_hamiltonian,
+)
 from .dvr import (
     SincDVR, dvr_sinc_init, fgh_solve_bound_states
 )
@@ -165,6 +169,8 @@ __all__ = [
     "to_au", "from_au",
     "PulseConfig", "pulse_envelope", "pulse_electric_field", "pulse_stark_shift",
     "SincDVR", "dvr_sinc_init", "fgh_solve_bound_states",
+    "gauss_hermite_nodes_weights", "hermite_function_values",
+    "hermite_ho_kinetic", "hermite_dvr_hamiltonian",
     "AtomConfig", "get_atom_config", "soft_core_coulomb_potential", "soft_core_coulomb_derivative",
     "keldysh_parameter", "ponderomotive_energy", "hhg_cutoff_energy", "quiver_radius", "adk_ionization_rate",
     "calculate_dipole_acceleration", "hhg_power_spectrum",

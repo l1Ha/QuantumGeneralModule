@@ -20,6 +20,7 @@ module general_module
     use mod_io_utils
     use mod_json
     use mod_toml
+    use mod_hermite_dvr
     use mod_interpolation
     use mod_photofragment_flux
     use mod_open_quantum
@@ -129,6 +130,8 @@ module general_module
     public :: toml_begin_array_table
     public :: toml_add_string, toml_add_int, toml_add_real, toml_add_bool
     public :: toml_add_int_array, toml_add_real_array, toml_add_real_array_2d
+    public :: gauss_hermite_nodes_weights, hermite_function_values
+    public :: hermite_ho_kinetic, hermite_dvr_hamiltonian
     public :: print_banner, print_progress_bar
 
     ! 势能面高精度样条插值与外推

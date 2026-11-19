@@ -1287,13 +1287,49 @@ DVR 不是单一算法。不同 DVR 的差异在于权重、动能矩阵和边�
 | Laguerre-DVR | 半无限径向域 | 径向结构 | 长程势 | 奇点处理 |
 | Distributed Gaussian DVR | 可调局域高斯 | 动能重叠矩阵 | 多维非均匀势能面 | 线性相关 |
 
-因此，将 DVR 等同于 Sinc-DVR 是不完整的。GeneralModule 提供 Sinc-DVR 与 Gauss-Legendre DVR，并可通过同一框架扩展到其他正交多项式网格。
+因此，将 DVR 等同于 Sinc-DVR 是不完整的。GeneralModule 提供 Sinc-DVR、Gauss-Legendre DVR 与 Gauss-Hermite DVR（5.7 节，谐振子基），并可通过同一框架扩展到其他正交多项式网格。
 
 #### 对应源码
 
-- 表中各行的两个代表实现：FGH 入口 `src/mod_dvr_grid.f90` 的 `fgh_solve_bound_states`（5.3 节）、Legendre-DVR 入口 `dvr_legendre_init`（5.5 节）；适用性结论由 `tests/test_dvr_grid.f90` 的网格收敛断言支撑。
+- 表中各行的代表实现：FGH 入口 `src/mod_dvr_grid.f90` 的 `fgh_solve_bound_states`（5.3 节）、Legendre-DVR 入口 `dvr_legendre_init`（5.5 节）、Gauss-Hermite DVR 入口 `src/mod_hermite_dvr.f90`（5.7 节）；适用性结论由 `tests/test_dvr_grid.f90` 与 `tests/test_hermite_dvr.f90` 的网格收敛断言支撑。
 
-### 5.7　多维张量积 DVR
+### 5.7　Hermite-DVR（谐振子基）
+
+Sinc-DVR 以平面波为局域基、Legendre-DVR 以勒让德多项式为角向基；当问题本身以谐振子为天然参照系（分子振动的内坐标模式、多模振动的模式坐标）时，以归一化 Hermite 函数为基的 DVR 是最优选择：基函数即未微扰问题的精确本征基，动能矩阵有梯位算符给出的闭式（无差分近似），势能矩阵元由 Gauss-Hermite 求值对 $2N-1$ 次以下多项式势能严格精确。
+
+**质量--频率标度坐标。**取 $q=\sqrt{m\,\omega}\,x$，则 $H=p^2/(2m)+m\omega^2x^2/2$ 变为 $H=\omega\,(p_q^2+q^2)/2$，基函数 $\psi_n(q)=(2^n n!\sqrt{\pi})^{-1/2}e^{-q^2/2}H_n(q)$ 不再显含 $m,\omega$；物理坐标势能由调用方按 $V(x=q/\sqrt{m\omega})$ 折算后供给节点值。梯位算符 $p_q=i(a^\dagger-a)/\sqrt{2}$ 给出动能矩阵的严格闭式：
+
+$$
+\langle j|p_q^2|j\rangle=j+\tfrac12,\qquad
+\langle j\pm 2|p_q^2|j\rangle=-\tfrac12\sqrt{(j{+}1)(j{+}2)},\qquad
+T_{ij}=\frac{\omega}{2}\,\langle i|p_q^2|j\rangle .
+$$
+
+早期实现曾把对角元写成 $(2j{+}1)$、次对角写成 $-\sqrt{j(j{\mp}1)}$——漏掉 $1/\sqrt2$ 因子（$p_q$ 定义中的 $\sqrt2$ 与 $p^2/2$ 的 $1/2$ 相消得 $j{+}1/2$），装配出的 HO 矩阵对角为 $0.3545$ 而非 $0.3$，被解析本征值断言当场捕获。
+
+**Golub--Welsch 节点与权重。**单体化 Hermite 递推 $p_{k+1}=xp_k-\tfrac{k}{2}p_{k-1}$ 的 Jacobi 三对角矩阵（对角为零、次对角 $\sqrt{k/2}$）的本征值即 Gauss-Hermite 节点，本征矢量首分量平方乘 $\sqrt{\pi}$ 即权重。这一构造复用库内 `diag_symmetric_matrix`（tql2），取代了早期 Newton 求根——后者在初值不当时会跳根，使权重公式 $w_k=2^{N-1}N!\sqrt{\pi}/(N^2H_{N-1}(q_k)^2)$ 除以近零值而静默失效。
+
+**三个数值陷阱（全部以回归测试固化）。**
+
+1. *双重计权*：Gauss-Hermite 权重已含 $e^{-q^2}$，若势能矩阵元直接用含 $e^{-q^2/2}$ 的函数值 $\psi_n(q_k)$ 组装 $V_{ij}=\sum_k w_k\psi_i(q_k)V(q_k)\psi_j(q_k)$，等价于以 $e^{-2q^2}$ 为权求值——HO 的装配矩阵对角变成 $0.037$ 而非 $0.3$。正确做法是用**去指数多项式部分** $\tilde\psi_n(q)=\psi_n(q)\,e^{+q^2/2}=H_n(q)/\sqrt{2^nn!\sqrt{\pi}}$，使被积函数恰为「权重 $\times$ 多项式 $\times$ $V$」。
+2. *本征矢噪声底*：Golub--Welsch 权重的教科书形式 $w_k=\sqrt{\pi}\,v_{1k}^2$ 依赖本征矢量首分量。numpy 的 LAPACK 分治求本征矢对极端节点首分量（$N=120$ 时 $|v_{1}|\sim5.9\times10^{-48}$）只有约 $10^{-16}$ 的绝对精度，返回的权重被抬高 37 个量级（$10^{-59}$ 对真实 $9.7\times10^{-96}$），势能矩阵随之出现 $10^{41}$ 量级的灾难性消去垃圾元。tql2 以旋转乘积积累本征矢，微小分量保持相对精度，不受影响；Python 镜像侧则改用 Christoffel 恒等式
+
+   $$
+   w_k=\frac{1}{N\,\tilde\psi_{N-1}(q_k)^2},
+   $$
+
+   其右端由三项递推与单次 $\exp$ 直接构造，相对精度独立于任何本征矢算法（库内实测 $N\,w_k\tilde\psi_{N-1}(q_k)^2=1$ 偏差 $7.2\times10^{-12}$，出现在最不利的极端节点上）。
+3. *归一化溢出*：$2^nn!$ 作为乘积在 $n\gtrsim165$ 溢出（$2^{159}159!\approx1.2\times10^{329}$），使 $\psi_n$ 归一化因子变 $\infty$、函数值归零。归一化在 log 域合成——$\psi_n=\exp[-\tfrac12(n\ln2+\ln\Gamma(n{+}1)+\tfrac12\ln\pi)-\tfrac12q^2]\,H_n(q)$——与 $e^{-q^2/2}$ 合并为单次指数求值，顺带减少一次舍入。
+
+**数值验收（`tests/test_hermite_dvr.f90`，3 组断言）。**其一，$N=40$ 节点/权重：单项式矩 $\sum_k w_kq_k^{2p}=\Gamma(p+\tfrac12)$（$p\le6$）最大偏差 $5.8\times10^{-13}$，离散正交 $\sum_k w_k\tilde\psi_i(q_k)\tilde\psi_j(q_k)=\delta_{ij}$ 最大偏差 $6.5\times10^{-14}$；其二，$\omega=0.6$、$N=30$ 的谐振子梯位闭式动能加节点求值势能给出精确谱梯，前 10 条能级最大偏差 $3.4\times10^{-14}$——基即本征基，任何偏离机器精度的误差都指向装配错误，这正是该断言作为「装配金标准」的价值；其三，四次非谐振子 $H=p^2/2+x^2/2+0.2x^4$（$\omega=1$）基维数 $N=60\to120$ 加倍漂移 $2.1\times10^{-14}$，与 512 点 FGH 独立交叉对照偏差 $4.9\times10^{-13}$（受 FGH 自身网格离散误差限制）。
+
+![Hermite-DVR 验收（正向计算）。左：$N=40$ Golub--Welsch 节点上的权重（$e^{-q^2}$ 权重的特征钟形衰减，极端节点权重低至 $10^{-29}$），插图为单项式矩绝对误差随多项式阶 $2p$ 的增长——代数上对 $2N-1=79$ 次以下严格精确（虚线），可见增长均为大幅值 $\Gamma(p+\tfrac12)$ 下的浮点舍入。右：四次非谐振子基态随基维数 $N$ 的指数收敛（参照 $N=160$），512 点 FGH 交叉对照的偏差水平（红线）与 Fortran--Python 跨语言奇偶（$1.4\times10^{-15}$）标注于框内；谐振子谱梯精确到 $3\times10^{-14}$。绘图脚本见 `docs/generate_figures.py`。](figures/fig42_hermite_dvr.png){width=15.0cm}
+
+#### 对应源码
+
+- `src/mod_hermite_dvr.f90`：`gauss_hermite_nodes_weights`（Golub--Welsch）、`hermite_function_values`（log 域归一化三项递推）、`hermite_ho_kinetic`（梯位闭式）、`hermite_dvr_hamiltonian`（$\tilde\psi$ 装配）；Python 镜像 `python/pygenmod/hermite_dvr.py`（Christoffel 权重）由 `python/test_pygenmod.py::TestHermiteDVR`（4 项断言）覆盖，跨语言基态奇偶 $1.4\times10^{-15}$。
+
+### 5.8　多维张量积 DVR
 
 若体系有 $d$ 个自由度，则张量积网格为
 
@@ -3247,7 +3283,7 @@ GeneralModule 同时提供 `Makefile`、`fpm.toml` 和 `CMakeLists.txt`。三者
 
 ### 8.3　测试体系的验证层次
 
-GeneralModule 当前包含 48 个 Fortran 测试程序和 36 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。测试流水线利用服务器多核并行：模块编译由依赖自愈的并行编译器完成（`scripts/compile_modules.sh`，逐波并行尝试、未就绪者下轮重试，56 个模块约 3.5 秒），测试套件间无共享文件 I/O，以 `xargs -P` 并行执行并按固定顺序回放日志（`TEST_JOBS` 可调并行度）。
+GeneralModule 当前包含 60 个 Fortran 测试程序和 36 个物理示例。测试框架由项目自实现，每个测试程序维护计数器和断言逻辑。测试流水线利用服务器多核并行：模块编译由依赖自愈的并行编译器完成（`scripts/compile_modules.sh`，逐波并行尝试、未就绪者下轮重试，61 个模块约 3.5 秒），测试套件间无共享文件 I/O，以 `xargs -P` 并行执行并按固定顺序回放日志（`TEST_JOBS` 可调并行度）。
 
 测试应覆盖以下层次：
 
@@ -4456,7 +4492,7 @@ GitHub Actions 配置位于：
 
 ### 12.1　算法方向
 
-- 更多正交多项式 DVR；
+- 更多正交多项式 DVR（**已实现**：Gauss-Hermite DVR，`mod_hermite_dvr`，§5.7）；
 - 稀疏 Krylov 传播（**已实现**：`mod_krylov_propagator`，§14.1；一般 Arnoldi/重启策略待续）；
 - 多维张量分解；
 - 高阶分裂算符（**已实现**：Yoshida4/Suzuki4，§6.2；自适应时间步长待续）；
@@ -5393,7 +5429,7 @@ end type experiment_record_t
 
 #### 已有能力
 
-- 48 个 Fortran 测试程序；
+- 60 个 Fortran 测试程序；
 - 36 个物理示例；
 - `Makefile`、`fpm.toml`、`CMakeLists.txt`；
 - GitHub Actions CI；
@@ -5519,7 +5555,7 @@ end subroutine expect_close
 修正后的 `dvr_legendre_init` 已加入单元测试：
 
 - $N=16$ 时，$J^2$ 本征值与 $l(l+1)$ 最大偏差低于 $10^{-10}$；
-- 全库 59 个测试程序、593 项断言全部通过。
+- 全库 60 个测试程序、596 项断言全部通过。
 
 该修正不改变 Sinc-DVR/FGH 的既有结果，只修正 Gauss-Legendre 角向 DVR 的 \(J^2\) 矩阵。
 
