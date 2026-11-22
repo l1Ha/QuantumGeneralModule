@@ -22,6 +22,7 @@ module general_module
     use mod_toml
     use mod_hermite_dvr
     use mod_arnoldi
+    use mod_quantum_hardware
     use mod_interpolation
     use mod_photofragment_flux
     use mod_open_quantum

@@ -157,6 +157,7 @@ TESTS=(
     "test_sparse_eig"
     "test_hermite_dvr"
     "test_arnoldi"
+    "test_quantum_hardware"
 )
 
 # 并行执行: 各测试只打印 stdout、无共享文件 I/O, 天然可安全并行。
