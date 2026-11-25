@@ -487,12 +487,14 @@ contains
             wr = 1.0_dp
             wi = 0.0_dp
             do m = 1, mmax
+                !$acc parallel loop private(j, temp)
                 do i = m, n, istep
                     j = i + mmax
                     temp = cmplx(wr, wi, kind=dp) * data_vec(j)
                     data_vec(j) = data_vec(i) - temp
                     data_vec(i) = data_vec(i) + temp
                 end do
+                !$acc end parallel loop
                 wtemp = wr
                 wr = wr * wpr - wi * wpi + wr
                 wi = wi * wpr + wtemp * wpi + wi
