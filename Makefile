@@ -11,9 +11,15 @@ ifeq ($(shell uname -s),Darwin)
 export DEVELOPER_DIR ?= /Library/Developer/CommandLineTools
 endif
 OPENMP ?= 0
+GPU ?= 0
 FFLAGS ?= -O2 -fPIC -Wall -Wextra -std=f2008 -ffree-line-length-none
 ifeq ($(OPENMP),1)
 FFLAGS += -fopenmp
+endif
+# GPU=1: OpenACC 卸载路径 (sop_apply_3d / fft_1d 的热循环已双指令化);
+# 与 OPENMP 互斥 (两套并行指令不可同时启用), 无 GPU 时运行时回退主机
+ifeq ($(GPU),1)
+FFLAGS += -fopenacc
 endif
 AR ?= ar
 ARFLAGS ?= rcs
