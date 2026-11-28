@@ -82,6 +82,10 @@ contains
         real(dp) :: tmp1(sop%n1, sop%n2, sop%n3)
         real(dp) :: tmp2(sop%n1, sop%n2, sop%n3)
         real(dp) :: tmp3(sop%n1, sop%n2, sop%n3)
+        ! OpenACC 深拷贝工作区: 派生类型组件数组 (sop%h1(m)%mat 等) 不会
+        ! 被隐式数据子句拷贝到设备, 直接引用会触发 Illegal address ——
+        ! 每项先拷入连续局部数组, acc region 引用局部数组 (隐式拷贝有效)
+        real(dp) :: hm1(sop%n1, sop%n1), hm2(sop%n2, sop%n2), hm3(sop%n3, sop%n3)
         integer  :: m, i1, i2, i3, k
         real(dp) :: c
 
@@ -90,6 +94,10 @@ contains
         do m = 1, sop%n_terms
             c = sop%coeffs(m)
             if (abs(c) < 1.0e-30_dp) cycle
+            hm1 = sop%h1(m)%mat
+            hm2 = sop%h2(m)%mat
+            hm3 = sop%h3(m)%mat
+            !$acc data copyin(in_vec, hm1, hm2, hm3) copy(tmp1, tmp2, tmp3)
 
             ! 1. 作用维度 1: tmp1(i1, i2, i3) = sum_k h1(i1, k) * in_vec(k, i2, i3)
             !    (OpenMP: 各 i3 切片独立写, 无竞争)
@@ -100,7 +108,7 @@ contains
                 do i2 = 1, sop%n2
                     do i1 = 1, sop%n1
                         do k = 1, sop%n1
-                            tmp1(i1, i2, i3) = tmp1(i1, i2, i3) + sop%h1(m)%mat(i1, k) * in_vec(k, i2, i3)
+                            tmp1(i1, i2, i3) = tmp1(i1, i2, i3) + hm1(i1, k) * in_vec(k, i2, i3)
                         end do
                     end do
                 end do
@@ -116,7 +124,7 @@ contains
                 do i2 = 1, sop%n2
                     do k = 1, sop%n2
                         do i1 = 1, sop%n1
-                            tmp2(i1, i2, i3) = tmp2(i1, i2, i3) + sop%h2(m)%mat(i2, k) * tmp1(i1, k, i3)
+                            tmp2(i1, i2, i3) = tmp2(i1, i2, i3) + hm2(i2, k) * tmp1(i1, k, i3)
                         end do
                     end do
                 end do
@@ -132,7 +140,7 @@ contains
                 do k = 1, sop%n3
                     do i2 = 1, sop%n2
                         do i1 = 1, sop%n1
-                            tmp3(i1, i2, i3) = tmp3(i1, i2, i3) + sop%h3(m)%mat(i3, k) * tmp2(i1, i2, k)
+                            tmp3(i1, i2, i3) = tmp3(i1, i2, i3) + hm3(i3, k) * tmp2(i1, i2, k)
                         end do
                     end do
                 end do
@@ -141,6 +149,7 @@ contains
             !$acc end parallel loop
 
             out_vec = out_vec + c * tmp3
+            !$acc end data
         end do
     end subroutine sop_apply_3d
 

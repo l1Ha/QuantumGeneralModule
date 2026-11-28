@@ -487,14 +487,14 @@ contains
             wr = 1.0_dp
             wi = 0.0_dp
             do m = 1, mmax
-                !$acc parallel loop private(j, temp)
+                ! 注: 蝶形循环不做逐 m 卸载 (2^22 时每 m 一次隐式整组拷贝,
+                ! 设备端挂死); FFT 的 GPU 路径经由 fft_2d 的列级并行实现
                 do i = m, n, istep
                     j = i + mmax
                     temp = cmplx(wr, wi, kind=dp) * data_vec(j)
                     data_vec(j) = data_vec(i) - temp
                     data_vec(i) = data_vec(i) + temp
                 end do
-                !$acc end parallel loop
                 wtemp = wr
                 wr = wr * wpr - wi * wpi + wr
                 wi = wi * wpr + wtemp * wpi + wi
